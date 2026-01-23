@@ -2,7 +2,8 @@ name: 🐛 Bug Report
 description: Help us improve this repository by filling a detailed bug report.
 title: "[Bug]: "
 labels: ["bug"]
-projects: []
+projects: ["HyperSystemsDev/1"]
+type: bug
 body:
   - type: input
     id: pluginVersion
