@@ -14,6 +14,7 @@ import com.hypixel.hytale.math.vector.Vector3d;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
+import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
@@ -93,6 +94,7 @@ public class FactionCommand extends AbstractPlayerCommand {
             case "power" -> handlePower(ctx, player, subArgs);
             case "chat", "c" -> handleChat(ctx, player, subArgs);
             case "help", "?" -> showHelp(ctx, player);
+            case "gui", "menu" -> handleGui(ctx, store, ref, player);
             case "admin" -> handleAdmin(ctx, store, ref, player, currentWorld, subArgs);
             case "reload" -> handleReload(ctx, player);
             default -> {
@@ -129,6 +131,7 @@ public class FactionCommand extends AbstractPlayerCommand {
         ctx.sendMessage(msg("/f info [faction]", COLOR_YELLOW).insert(msg(" - View faction info", COLOR_GRAY)));
         ctx.sendMessage(msg("/f map", COLOR_YELLOW).insert(msg(" - View territory map", COLOR_GRAY)));
         ctx.sendMessage(msg("/f list", COLOR_YELLOW).insert(msg(" - List all factions", COLOR_GRAY)));
+        ctx.sendMessage(msg("/f gui", COLOR_YELLOW).insert(msg(" - Open faction GUI", COLOR_GRAY)));
     }
 
     // === Create ===
@@ -766,6 +769,23 @@ public class FactionCommand extends AbstractPlayerCommand {
             ctx.sendMessage(Message.raw(row.toString()));
         }
         ctx.sendMessage(msg("Legend: +You /Own /Ally /Enemy -Wild", COLOR_GRAY));
+        ctx.sendMessage(msg("Use /f gui for interactive map", COLOR_GRAY));
+    }
+
+    // === GUI ===
+    private void handleGui(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref, PlayerRef playerRef) {
+        if (!hasPermission(playerRef, "hyperfactions.use")) {
+            ctx.sendMessage(prefix().insert(msg("You don't have permission.", COLOR_RED)));
+            return;
+        }
+
+        Player player = store.getComponent(ref, Player.getComponentType());
+        if (player == null) {
+            ctx.sendMessage(prefix().insert(msg("Could not find player entity.", COLOR_RED)));
+            return;
+        }
+
+        hyperFactions.getGuiManager().openFactionMain(player, ref, store, playerRef);
     }
 
     // === Who ===

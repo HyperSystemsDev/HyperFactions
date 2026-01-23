@@ -97,9 +97,7 @@ public class FactionMainPage extends InteractiveCustomUIPage<FactionMainData> {
     }
 
     private void buildNoFactionView(UICommandBuilder cmd, UIEventBuilder events) {
-        cmd.set("#Title #TitleText.Text", "Factions");
         cmd.set("#FactionName.Text", "No Faction");
-        cmd.set("#FactionName.Style.TextColor", "#888888");
 
         // Show create button
         cmd.append("#ActionArea", "HyperFactions/no_faction_actions.ui");
@@ -126,17 +124,13 @@ public class FactionMainPage extends InteractiveCustomUIPage<FactionMainData> {
         boolean isLeader = role == FactionRole.LEADER;
         boolean isOfficer = role.getLevel() >= FactionRole.OFFICER.getLevel();
 
-        // Set title
-        cmd.set("#Title #TitleText.Text", faction.name());
-
         // Set faction name with color
         String colorHex = faction.color() != null ? faction.color() : "#00FFFF";
         cmd.set("#FactionName.Text", faction.name());
-        cmd.set("#FactionName.Style.TextColor", colorHex);
 
         // Power stats
         PowerManager.FactionPowerStats powerStats = powerManager.getFactionPowerStats(faction.id());
-        cmd.set("#PowerValue.Text", String.format("%d / %d", powerStats.currentPower(), powerStats.maxPower()));
+        cmd.set("#PowerValue.Text", String.format("%.0f / %.0f", powerStats.currentPower(), powerStats.maxPower()));
 
         // Claim stats
         int claimCount = faction.claims().size();
@@ -156,7 +150,6 @@ public class FactionMainPage extends InteractiveCustomUIPage<FactionMainData> {
 
         // Role display
         cmd.set("#RoleValue.Text", role.name());
-        cmd.set("#RoleValue.Style.TextColor", getRoleColor(role));
 
         // Quick action buttons
         cmd.append("#ActionArea", "HyperFactions/faction_actions.ui");

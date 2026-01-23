@@ -61,13 +61,8 @@ public class FactionRelationsPage extends InteractiveCustomUIPage<FactionRelatio
         // Load the main template
         cmd.append("HyperFactions/faction_relations.ui");
 
-        // Set title
-        cmd.set("#Title #TitleText.Text", faction.name() + " - Relations");
 
         // Tab buttons
-        cmd.set("#TabAllies.Style.TextColor", currentTab.equals("allies") ? "#00FFFF" : "#888888");
-        cmd.set("#TabEnemies.Style.TextColor", currentTab.equals("enemies") ? "#FF5555" : "#888888");
-        cmd.set("#TabRequests.Style.TextColor", currentTab.equals("requests") ? "#FFAA00" : "#888888");
 
         events.addEventBinding(
                 CustomUIEventBindingType.Activating,
@@ -113,9 +108,7 @@ public class FactionRelationsPage extends InteractiveCustomUIPage<FactionRelatio
 
                 // Faction info
                 cmd.set(prefix + "#FactionName.Text", entry.factionName);
-                cmd.set(prefix + "#FactionName.Style.TextColor", entry.color);
                 cmd.set(prefix + "#RelationType.Text", entry.type);
-                cmd.set(prefix + "#RelationType.Style.TextColor", entry.color);
 
                 // Action buttons based on tab and permissions
                 if (canManage) {

@@ -57,8 +57,6 @@ public class FactionMembersPage extends InteractiveCustomUIPage<FactionMembersDa
         // Load the main template
         cmd.append("HyperFactions/faction_members.ui");
 
-        // Set title
-        cmd.set("#Title #TitleText.Text", faction.name() + " - Members");
 
         // Sort members by role priority (leader first) then by name
         List<FactionMember> sortedMembers = faction.members().values().stream()
@@ -93,9 +91,7 @@ public class FactionMembersPage extends InteractiveCustomUIPage<FactionMembersDa
 
                 // Member info
                 cmd.set(prefix + "#MemberName.Text", member.username());
-                cmd.set(prefix + "#MemberName.Style.TextColor", getRoleColor(member.role()));
                 cmd.set(prefix + "#MemberRole.Text", member.role().name());
-                cmd.set(prefix + "#MemberRole.Style.TextColor", getRoleColor(member.role()));
 
                 // Last online
                 String lastOnline = formatLastOnline(member.lastOnline());

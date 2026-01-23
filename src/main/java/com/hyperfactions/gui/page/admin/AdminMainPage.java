@@ -52,8 +52,6 @@ public class AdminMainPage extends InteractiveCustomUIPage<AdminMainData> {
         // Load the main template
         cmd.append("HyperFactions/admin_main.ui");
 
-        // Set title
-        cmd.set("#Title #TitleText.Text", "Factions Admin");
 
         // Stats overview
         Collection<Faction> allFactions = factionManager.getAllFactions();
@@ -113,7 +111,6 @@ public class AdminMainPage extends InteractiveCustomUIPage<AdminMainData> {
                 // Faction info
                 String colorHex = faction.color() != null ? faction.color() : "#00FFFF";
                 cmd.set(prefix + "#FactionName.Text", faction.name());
-                cmd.set(prefix + "#FactionName.Style.TextColor", colorHex);
                 cmd.set(prefix + "#MemberCount.Text", faction.members().size() + " members");
                 cmd.set(prefix + "#PowerCount.Text", stats.currentPower() + "/" + stats.maxPower() + " power");
                 cmd.set(prefix + "#ClaimCount.Text", faction.claims().size() + " claims");

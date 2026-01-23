@@ -49,12 +49,8 @@ public class AdminZonePage extends InteractiveCustomUIPage<AdminZoneData> {
         // Load the main template
         cmd.append("HyperFactions/admin_zones.ui");
 
-        // Set title
-        cmd.set("#Title #TitleText.Text", "Zone Management");
 
         // Tab buttons
-        cmd.set("#TabSafe.Style.TextColor", currentTab.equals("safe") ? "#00FFFF" : "#888888");
-        cmd.set("#TabWar.Style.TextColor", currentTab.equals("war") ? "#FF00FF" : "#888888");
 
         events.addEventBinding(
                 CustomUIEventBindingType.Activating,
@@ -108,9 +104,7 @@ public class AdminZonePage extends InteractiveCustomUIPage<AdminZoneData> {
                 // Zone info
                 String typeColor = zone.type() == ZoneType.SAFE ? "#00FFFF" : "#FF00FF";
                 cmd.set(prefix + "#ZoneName.Text", zone.name());
-                cmd.set(prefix + "#ZoneName.Style.TextColor", typeColor);
                 cmd.set(prefix + "#ZoneType.Text", zone.type().name());
-                cmd.set(prefix + "#ZoneType.Style.TextColor", typeColor);
                 cmd.set(prefix + "#ZoneLocation.Text", String.format(
                         "%s (%d, %d)",
                         zone.world(), zone.chunkX(), zone.chunkZ()

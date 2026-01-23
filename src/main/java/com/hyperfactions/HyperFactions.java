@@ -1,6 +1,7 @@
 package com.hyperfactions;
 
 import com.hyperfactions.config.HyperFactionsConfig;
+import com.hyperfactions.gui.GuiManager;
 import com.hyperfactions.integration.HyperPermsIntegration;
 import com.hyperfactions.manager.*;
 import com.hyperfactions.protection.ProtectionChecker;
@@ -49,6 +50,9 @@ public class HyperFactions {
 
     // Protection
     private ProtectionChecker protectionChecker;
+
+    // GUI
+    private GuiManager guiManager;
 
     // Task management
     private final AtomicInteger taskIdCounter = new AtomicInteger(0);
@@ -135,6 +139,19 @@ public class HyperFactions {
         // Initialize protection checker
         protectionChecker = new ProtectionChecker(
             factionManager, claimManager, zoneManager, relationManager, combatTagManager
+        );
+
+        // Initialize GUI manager
+        guiManager = new GuiManager(
+            () -> this,
+            () -> factionManager,
+            () -> claimManager,
+            () -> powerManager,
+            () -> relationManager,
+            () -> zoneManager,
+            () -> teleportManager,
+            () -> inviteManager,
+            () -> dataDir
         );
 
         // Setup combat tag callbacks
@@ -291,5 +308,10 @@ public class HyperFactions {
     @NotNull
     public ProtectionChecker getProtectionChecker() {
         return protectionChecker;
+    }
+
+    @NotNull
+    public GuiManager getGuiManager() {
+        return guiManager;
     }
 }

@@ -4,7 +4,7 @@ $S = "styles.ui";
 $C.@PageOverlay {}
 
 $C.@Container {
-  Anchor: (Width: 550, Height: 550);
+  Anchor: (Width: 400, Height: 300);
 
   #Title {
     $C.@Title {
@@ -14,117 +14,42 @@ $C.@Container {
 
   #Content {
     LayoutMode: Top;
-    Padding: (Left: 10, Right: 10, Top: 10, Bottom: 10);
+    Padding: (Left: 20, Right: 20, Top: 20, Bottom: 20);
+
+    Label #PositionInfo {
+      Text: "Your Position: Chunk (0, 0)";
+      Style: (FontSize: 16, TextColor: #00FFFF, RenderBold: true, HorizontalAlignment: Center);
+      Anchor: (Height: 30, Bottom: 15);
+    }
 
     Group {
-      Anchor: (Height: 25, Bottom: 5);
-      LayoutMode: Left;
-
-      Label #PositionInfo {
-        Text: "Position: 0, 0";
-        Style: (FontSize: 12, TextColor: #888888, VerticalAlignment: Center);
-      }
+      Anchor: (Height: 1, Bottom: 15);
+      Background: (Color: #00AAAA);
     }
 
-    Group #MapGrid {
-      Anchor: (Width: 375, Height: 375);
-      Background: (Color: #1a1a1a);
+    Label #ChunkStatus {
+      Text: "Wilderness (Unclaimed)";
+      Style: (FontSize: 14, TextColor: #AAAAAA, HorizontalAlignment: Center);
+      Anchor: (Height: 25, Bottom: 10);
     }
 
-    Group #Legend {
-      Anchor: (Height: 60, Top: 10);
-      LayoutMode: Left;
-      Padding: (Left: 5, Right: 5);
-
-      Group {
-        LayoutMode: Top;
-        Anchor: (Width: 90);
-        Group { LayoutMode: Left; Anchor: (Height: 18);
-          Group #LegendYou { Anchor: (Width: 14, Height: 14); Background: (Color: #FFFFFF); }
-          Label { Text: "You"; Style: (FontSize: 10, TextColor: #888888, VerticalAlignment: Center); Anchor: (Left: 5); }
-        }
-        Group { LayoutMode: Left; Anchor: (Height: 18);
-          Group #LegendOwn { Anchor: (Width: 14, Height: 14); Background: (Color: #00FF00); }
-          Label { Text: "Your Faction"; Style: (FontSize: 10, TextColor: #888888, VerticalAlignment: Center); Anchor: (Left: 5); }
-        }
-      }
-
-      Group {
-        LayoutMode: Top;
-        Anchor: (Width: 90);
-        Group { LayoutMode: Left; Anchor: (Height: 18);
-          Group #LegendAlly { Anchor: (Width: 14, Height: 14); Background: (Color: #00AAFF); }
-          Label { Text: "Ally"; Style: (FontSize: 10, TextColor: #888888, VerticalAlignment: Center); Anchor: (Left: 5); }
-        }
-        Group { LayoutMode: Left; Anchor: (Height: 18);
-          Group #LegendEnemy { Anchor: (Width: 14, Height: 14); Background: (Color: #FF0000); }
-          Label { Text: "Enemy"; Style: (FontSize: 10, TextColor: #888888, VerticalAlignment: Center); Anchor: (Left: 5); }
-        }
-      }
-
-      Group {
-        LayoutMode: Top;
-        Anchor: (Width: 90);
-        Group { LayoutMode: Left; Anchor: (Height: 18);
-          Group #LegendOther { Anchor: (Width: 14, Height: 14); Background: (Color: #FFAA00); }
-          Label { Text: "Other"; Style: (FontSize: 10, TextColor: #888888, VerticalAlignment: Center); Anchor: (Left: 5); }
-        }
-        Group { LayoutMode: Left; Anchor: (Height: 18);
-          Group #LegendWilderness { Anchor: (Width: 14, Height: 14); Background: (Color: #444444); }
-          Label { Text: "Wilderness"; Style: (FontSize: 10, TextColor: #888888, VerticalAlignment: Center); Anchor: (Left: 5); }
-        }
-      }
-
-      Group {
-        LayoutMode: Top;
-        Anchor: (Width: 90);
-        Group { LayoutMode: Left; Anchor: (Height: 18);
-          Group #LegendSafeZone { Anchor: (Width: 14, Height: 14); Background: (Color: #00FFFF); }
-          Label { Text: "Safe Zone"; Style: (FontSize: 10, TextColor: #888888, VerticalAlignment: Center); Anchor: (Left: 5); }
-        }
-        Group { LayoutMode: Left; Anchor: (Height: 18);
-          Group #LegendWarZone { Anchor: (Width: 14, Height: 14); Background: (Color: #FF00FF); }
-          Label { Text: "War Zone"; Style: (FontSize: 10, TextColor: #888888, VerticalAlignment: Center); Anchor: (Left: 5); }
-        }
-      }
+    Label #FactionClaims {
+      Text: "Your Claims: 0";
+      Style: (FontSize: 14, TextColor: #888888, HorizontalAlignment: Center);
+      Anchor: (Height: 25, Bottom: 20);
     }
 
-    Group #Navigation {
-      Anchor: (Height: 30);
-      LayoutMode: Left;
+    Group {
+      Anchor: (Height: 1, Bottom: 15);
+      Background: (Color: #00AAAA);
+    }
 
-      TextButton #NavUp {
-        Text: "↑";
-        Anchor: (Height: 26, Width: 30);
-        Style: $S.@ButtonStyle;
-      }
-      TextButton #NavDown {
-        Text: "↓";
-        Anchor: (Height: 26, Width: 30);
-        Style: $S.@ButtonStyle;
-      }
-      TextButton #NavLeft {
-        Text: "←";
-        Anchor: (Height: 26, Width: 30);
-        Style: $S.@ButtonStyle;
-      }
-      TextButton #NavRight {
-        Text: "→";
-        Anchor: (Height: 26, Width: 30);
-        Style: $S.@ButtonStyle;
-      }
-      Label { Anchor: (Width: 10); }
-      TextButton #NavCenter {
-        Text: "CENTER";
-        Anchor: (Height: 26, Width: 70);
-        Style: $S.@CyanButtonStyle;
-      }
+    Label #MapHint {
+      Text: "Use /f map in chat for a visual territory map";
+      Style: (FontSize: 12, TextColor: #666666, HorizontalAlignment: Center);
+      Anchor: (Height: 20);
     }
   }
 }
 
-TextButton #BackBtn {
-  Anchor: (Top: 10, Left: 10, Width: 80, Height: 28);
-  Text: "< BACK";
-  Style: $S.@ButtonStyle;
-}
+$C.@BackButton {}

@@ -56,8 +56,6 @@ public class FactionBrowserPage extends InteractiveCustomUIPage<FactionBrowserDa
         // Load the main template
         cmd.append("HyperFactions/faction_browser.ui");
 
-        // Set title
-        cmd.set("#Title #TitleText.Text", "All Factions");
 
         // Get all factions and sort
         List<FactionEntry> entries = new ArrayList<>();
@@ -84,9 +82,6 @@ public class FactionBrowserPage extends InteractiveCustomUIPage<FactionBrowserDa
         cmd.set("#FactionCount.Text", entries.size() + " factions");
 
         // Sort buttons
-        cmd.set("#SortPower.Style.TextColor", sortBy.equals("power") ? "#00FFFF" : "#888888");
-        cmd.set("#SortMembers.Style.TextColor", sortBy.equals("members") ? "#00FFFF" : "#888888");
-        cmd.set("#SortName.Style.TextColor", sortBy.equals("name") ? "#00FFFF" : "#888888");
 
         events.addEventBinding(
                 CustomUIEventBindingType.Activating,
@@ -127,7 +122,6 @@ public class FactionBrowserPage extends InteractiveCustomUIPage<FactionBrowserDa
 
                 // Faction info
                 cmd.set(prefix + "#FactionName.Text", entry.name);
-                cmd.set(prefix + "#FactionName.Style.TextColor", entry.color);
                 cmd.set(prefix + "#MemberCount.Text", entry.memberCount + " members");
                 cmd.set(prefix + "#PowerCount.Text", entry.power + " power");
                 cmd.set(prefix + "#ClaimCount.Text", entry.claimCount + " claims");
