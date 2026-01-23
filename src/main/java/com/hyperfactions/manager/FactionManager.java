@@ -1,0 +1,544 @@
+package com.hyperfactions.manager;
+
+import com.hyperfactions.config.HyperFactionsConfig;
+import com.hyperfactions.data.*;
+import com.hyperfactions.storage.FactionStorage;
+import com.hyperfactions.util.Logger;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
+
+/**
+ * Manages faction data, membership, and operations.
+ */
+public class FactionManager {
+
+    private final FactionStorage storage;
+
+    // Primary cache: faction ID -> Faction
+    private final Map<UUID, Faction> factions = new ConcurrentHashMap<>();
+
+    // Index: player UUID -> faction ID
+    private final Map<UUID, UUID> playerToFaction = new ConcurrentHashMap<>();
+
+    // Index: name (lowercase) -> faction ID
+    private final Map<String, UUID> nameToFaction = new ConcurrentHashMap<>();
+
+    public FactionManager(@NotNull FactionStorage storage) {
+        this.storage = storage;
+    }
+
+    /**
+     * Loads all factions from storage.
+     *
+     * @return a future that completes when loading is done
+     */
+    public CompletableFuture<Void> loadAll() {
+        return storage.loadAllFactions().thenAccept(loaded -> {
+            factions.clear();
+            playerToFaction.clear();
+            nameToFaction.clear();
+
+            for (Faction faction : loaded) {
+                factions.put(faction.id(), faction);
+                nameToFaction.put(faction.name().toLowerCase(), faction.id());
+
+                for (UUID memberUuid : faction.members().keySet()) {
+                    playerToFaction.put(memberUuid, faction.id());
+                }
+            }
+
+            Logger.info("Loaded %d factions with %d members indexed",
+                factions.size(), playerToFaction.size());
+        });
+    }
+
+    /**
+     * Saves all factions to storage.
+     *
+     * @return a future that completes when saving is done
+     */
+    public CompletableFuture<Void> saveAll() {
+        List<CompletableFuture<Void>> futures = factions.values().stream()
+            .map(storage::saveFaction)
+            .collect(Collectors.toList());
+
+        return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+    }
+
+    // === Faction Queries ===
+
+    /**
+     * Gets a faction by its ID.
+     *
+     * @param factionId the faction ID
+     * @return the faction, or null if not found
+     */
+    @Nullable
+    public Faction getFaction(@NotNull UUID factionId) {
+        return factions.get(factionId);
+    }
+
+    /**
+     * Gets a faction by name (case-insensitive).
+     *
+     * @param name the faction name
+     * @return the faction, or null if not found
+     */
+    @Nullable
+    public Faction getFactionByName(@NotNull String name) {
+        UUID id = nameToFaction.get(name.toLowerCase());
+        return id != null ? factions.get(id) : null;
+    }
+
+    /**
+     * Gets a player's faction.
+     *
+     * @param playerUuid the player's UUID
+     * @return the faction, or null if not in one
+     */
+    @Nullable
+    public Faction getPlayerFaction(@NotNull UUID playerUuid) {
+        UUID factionId = playerToFaction.get(playerUuid);
+        return factionId != null ? factions.get(factionId) : null;
+    }
+
+    /**
+     * Gets a player's faction ID.
+     *
+     * @param playerUuid the player's UUID
+     * @return the faction ID, or null if not in one
+     */
+    @Nullable
+    public UUID getPlayerFactionId(@NotNull UUID playerUuid) {
+        return playerToFaction.get(playerUuid);
+    }
+
+    /**
+     * Checks if a player is in any faction.
+     *
+     * @param playerUuid the player's UUID
+     * @return true if in a faction
+     */
+    public boolean isInFaction(@NotNull UUID playerUuid) {
+        return playerToFaction.containsKey(playerUuid);
+    }
+
+    /**
+     * Checks if two players are in the same faction.
+     *
+     * @param player1 first player's UUID
+     * @param player2 second player's UUID
+     * @return true if same faction
+     */
+    public boolean areInSameFaction(@NotNull UUID player1, @NotNull UUID player2) {
+        UUID f1 = playerToFaction.get(player1);
+        UUID f2 = playerToFaction.get(player2);
+        return f1 != null && f1.equals(f2);
+    }
+
+    /**
+     * Checks if a faction name is taken.
+     *
+     * @param name the name to check
+     * @return true if taken
+     */
+    public boolean isNameTaken(@NotNull String name) {
+        return nameToFaction.containsKey(name.toLowerCase());
+    }
+
+    /**
+     * Gets all factions.
+     *
+     * @return collection of all factions
+     */
+    @NotNull
+    public Collection<Faction> getAllFactions() {
+        return Collections.unmodifiableCollection(factions.values());
+    }
+
+    /**
+     * Gets faction count.
+     *
+     * @return number of factions
+     */
+    public int getFactionCount() {
+        return factions.size();
+    }
+
+    // === Faction Operations ===
+
+    /**
+     * Result of a faction operation.
+     */
+    public enum FactionResult {
+        SUCCESS,
+        ALREADY_IN_FACTION,
+        NOT_IN_FACTION,
+        FACTION_NOT_FOUND,
+        NAME_TAKEN,
+        NAME_TOO_SHORT,
+        NAME_TOO_LONG,
+        FACTION_FULL,
+        NOT_LEADER,
+        NOT_OFFICER,
+        CANNOT_KICK_LEADER,
+        CANNOT_DEMOTE_MEMBER,
+        CANNOT_PROMOTE_LEADER,
+        TARGET_NOT_IN_FACTION,
+        NO_PERMISSION
+    }
+
+    /**
+     * Creates a new faction.
+     *
+     * @param name       the faction name
+     * @param leaderUuid the leader's UUID
+     * @param leaderName the leader's username
+     * @return the result
+     */
+    public FactionResult createFaction(@NotNull String name, @NotNull UUID leaderUuid, @NotNull String leaderName) {
+        // Validation
+        if (isInFaction(leaderUuid)) {
+            return FactionResult.ALREADY_IN_FACTION;
+        }
+
+        HyperFactionsConfig config = HyperFactionsConfig.get();
+        if (name.length() < config.getMinNameLength()) {
+            return FactionResult.NAME_TOO_SHORT;
+        }
+        if (name.length() > config.getMaxNameLength()) {
+            return FactionResult.NAME_TOO_LONG;
+        }
+        if (isNameTaken(name)) {
+            return FactionResult.NAME_TAKEN;
+        }
+
+        // Create faction
+        Faction faction = Faction.create(name, leaderUuid, leaderName);
+
+        // Update caches
+        factions.put(faction.id(), faction);
+        nameToFaction.put(name.toLowerCase(), faction.id());
+        playerToFaction.put(leaderUuid, faction.id());
+
+        // Save async
+        storage.saveFaction(faction);
+
+        Logger.info("Faction '%s' created by %s", name, leaderName);
+        return FactionResult.SUCCESS;
+    }
+
+    /**
+     * Disbands a faction.
+     *
+     * @param factionId  the faction ID
+     * @param actorUuid  the actor's UUID (must be leader)
+     * @return the result
+     */
+    public FactionResult disbandFaction(@NotNull UUID factionId, @NotNull UUID actorUuid) {
+        Faction faction = factions.get(factionId);
+        if (faction == null) {
+            return FactionResult.FACTION_NOT_FOUND;
+        }
+
+        // Check if actor is leader
+        FactionMember actor = faction.getMember(actorUuid);
+        if (actor == null || !actor.isLeader()) {
+            return FactionResult.NOT_LEADER;
+        }
+
+        // Remove from caches
+        factions.remove(factionId);
+        nameToFaction.remove(faction.name().toLowerCase());
+        for (UUID memberUuid : faction.members().keySet()) {
+            playerToFaction.remove(memberUuid);
+        }
+
+        // Delete from storage
+        storage.deleteFaction(factionId);
+
+        Logger.info("Faction '%s' disbanded", faction.name());
+        return FactionResult.SUCCESS;
+    }
+
+    /**
+     * Adds a member to a faction.
+     *
+     * @param factionId   the faction ID
+     * @param playerUuid  the player's UUID
+     * @param playerName  the player's username
+     * @return the result
+     */
+    public FactionResult addMember(@NotNull UUID factionId, @NotNull UUID playerUuid, @NotNull String playerName) {
+        Faction faction = factions.get(factionId);
+        if (faction == null) {
+            return FactionResult.FACTION_NOT_FOUND;
+        }
+
+        if (isInFaction(playerUuid)) {
+            return FactionResult.ALREADY_IN_FACTION;
+        }
+
+        if (faction.getMemberCount() >= HyperFactionsConfig.get().getMaxMembers()) {
+            return FactionResult.FACTION_FULL;
+        }
+
+        // Add member
+        FactionMember member = FactionMember.create(playerUuid, playerName);
+        Faction updated = faction.withMember(member)
+            .withLog(FactionLog.create(FactionLog.LogType.MEMBER_JOIN, playerName + " joined the faction", playerUuid));
+
+        // Update caches
+        factions.put(factionId, updated);
+        playerToFaction.put(playerUuid, factionId);
+
+        // Save async
+        storage.saveFaction(updated);
+
+        return FactionResult.SUCCESS;
+    }
+
+    /**
+     * Removes a member from a faction.
+     *
+     * @param factionId  the faction ID
+     * @param playerUuid the player's UUID
+     * @param actorUuid  the actor's UUID (self for leaving, officer+ for kicking)
+     * @param isKick     true if this is a kick, false if leaving
+     * @return the result
+     */
+    public FactionResult removeMember(@NotNull UUID factionId, @NotNull UUID playerUuid,
+                                      @NotNull UUID actorUuid, boolean isKick) {
+        Faction faction = factions.get(factionId);
+        if (faction == null) {
+            return FactionResult.FACTION_NOT_FOUND;
+        }
+
+        FactionMember target = faction.getMember(playerUuid);
+        if (target == null) {
+            return FactionResult.TARGET_NOT_IN_FACTION;
+        }
+
+        // Can't kick the leader
+        if (target.isLeader()) {
+            return FactionResult.CANNOT_KICK_LEADER;
+        }
+
+        // If kicking, check permissions
+        if (isKick && !actorUuid.equals(playerUuid)) {
+            FactionMember actor = faction.getMember(actorUuid);
+            if (actor == null || !actor.role().canManage(target.role())) {
+                return FactionResult.NOT_OFFICER;
+            }
+        }
+
+        // Remove member
+        FactionLog.LogType logType = isKick ? FactionLog.LogType.MEMBER_KICK : FactionLog.LogType.MEMBER_LEAVE;
+        String message = isKick ? target.username() + " was kicked" : target.username() + " left the faction";
+
+        Faction updated = faction.withoutMember(playerUuid)
+            .withLog(FactionLog.create(logType, message, actorUuid));
+
+        // Update caches
+        factions.put(factionId, updated);
+        playerToFaction.remove(playerUuid);
+
+        // Save async
+        storage.saveFaction(updated);
+
+        return FactionResult.SUCCESS;
+    }
+
+    /**
+     * Promotes a member to the next rank.
+     *
+     * @param factionId  the faction ID
+     * @param playerUuid the player's UUID to promote
+     * @param actorUuid  the actor's UUID
+     * @return the result
+     */
+    public FactionResult promoteMember(@NotNull UUID factionId, @NotNull UUID playerUuid, @NotNull UUID actorUuid) {
+        Faction faction = factions.get(factionId);
+        if (faction == null) {
+            return FactionResult.FACTION_NOT_FOUND;
+        }
+
+        FactionMember actor = faction.getMember(actorUuid);
+        if (actor == null || !actor.isLeader()) {
+            return FactionResult.NOT_LEADER;
+        }
+
+        FactionMember target = faction.getMember(playerUuid);
+        if (target == null) {
+            return FactionResult.TARGET_NOT_IN_FACTION;
+        }
+
+        // Can't promote beyond officer (leader transfer is separate)
+        if (target.role() == FactionRole.OFFICER) {
+            return FactionResult.CANNOT_PROMOTE_LEADER;
+        }
+
+        // Promote
+        FactionRole newRole = target.role() == FactionRole.MEMBER ? FactionRole.OFFICER : FactionRole.OFFICER;
+        FactionMember promoted = target.withRole(newRole);
+
+        Faction updated = faction.withMember(promoted)
+            .withLog(FactionLog.create(FactionLog.LogType.MEMBER_PROMOTE,
+                target.username() + " promoted to " + newRole.getDisplayName(), actorUuid));
+
+        factions.put(factionId, updated);
+        storage.saveFaction(updated);
+
+        return FactionResult.SUCCESS;
+    }
+
+    /**
+     * Demotes a member to the previous rank.
+     *
+     * @param factionId  the faction ID
+     * @param playerUuid the player's UUID to demote
+     * @param actorUuid  the actor's UUID
+     * @return the result
+     */
+    public FactionResult demoteMember(@NotNull UUID factionId, @NotNull UUID playerUuid, @NotNull UUID actorUuid) {
+        Faction faction = factions.get(factionId);
+        if (faction == null) {
+            return FactionResult.FACTION_NOT_FOUND;
+        }
+
+        FactionMember actor = faction.getMember(actorUuid);
+        if (actor == null || !actor.isLeader()) {
+            return FactionResult.NOT_LEADER;
+        }
+
+        FactionMember target = faction.getMember(playerUuid);
+        if (target == null) {
+            return FactionResult.TARGET_NOT_IN_FACTION;
+        }
+
+        // Can't demote a member (already lowest)
+        if (target.role() == FactionRole.MEMBER) {
+            return FactionResult.CANNOT_DEMOTE_MEMBER;
+        }
+
+        // Demote
+        FactionMember demoted = target.withRole(FactionRole.MEMBER);
+
+        Faction updated = faction.withMember(demoted)
+            .withLog(FactionLog.create(FactionLog.LogType.MEMBER_DEMOTE,
+                target.username() + " demoted to Member", actorUuid));
+
+        factions.put(factionId, updated);
+        storage.saveFaction(updated);
+
+        return FactionResult.SUCCESS;
+    }
+
+    /**
+     * Transfers leadership to another member.
+     *
+     * @param factionId  the faction ID
+     * @param newLeader  the new leader's UUID
+     * @param actorUuid  the current leader's UUID
+     * @return the result
+     */
+    public FactionResult transferLeadership(@NotNull UUID factionId, @NotNull UUID newLeader, @NotNull UUID actorUuid) {
+        Faction faction = factions.get(factionId);
+        if (faction == null) {
+            return FactionResult.FACTION_NOT_FOUND;
+        }
+
+        FactionMember actor = faction.getMember(actorUuid);
+        if (actor == null || !actor.isLeader()) {
+            return FactionResult.NOT_LEADER;
+        }
+
+        FactionMember target = faction.getMember(newLeader);
+        if (target == null) {
+            return FactionResult.TARGET_NOT_IN_FACTION;
+        }
+
+        // Demote old leader, promote new leader
+        FactionMember oldLeader = actor.withRole(FactionRole.OFFICER);
+        FactionMember promoted = target.withRole(FactionRole.LEADER);
+
+        Faction updated = faction
+            .withMember(oldLeader)
+            .withMember(promoted)
+            .withLog(FactionLog.create(FactionLog.LogType.LEADER_TRANSFER,
+                "Leadership transferred to " + target.username(), actorUuid));
+
+        factions.put(factionId, updated);
+        storage.saveFaction(updated);
+
+        Logger.info("Faction '%s' leadership transferred to %s", faction.name(), target.username());
+        return FactionResult.SUCCESS;
+    }
+
+    /**
+     * Updates a faction's home.
+     *
+     * @param factionId the faction ID
+     * @param home      the new home, or null to clear
+     * @param actorUuid the actor's UUID
+     * @return the result
+     */
+    public FactionResult setHome(@NotNull UUID factionId, @Nullable Faction.FactionHome home, @NotNull UUID actorUuid) {
+        Faction faction = factions.get(factionId);
+        if (faction == null) {
+            return FactionResult.FACTION_NOT_FOUND;
+        }
+
+        FactionMember actor = faction.getMember(actorUuid);
+        if (actor == null || !actor.isOfficerOrHigher()) {
+            return FactionResult.NOT_OFFICER;
+        }
+
+        Faction updated = faction.withHome(home)
+            .withLog(FactionLog.create(FactionLog.LogType.HOME_SET,
+                home != null ? "Home set" : "Home cleared", actorUuid));
+
+        factions.put(factionId, updated);
+        storage.saveFaction(updated);
+
+        return FactionResult.SUCCESS;
+    }
+
+    /**
+     * Updates a faction in the cache and saves it.
+     * Used by other managers (e.g., ClaimManager) to persist changes.
+     *
+     * @param faction the updated faction
+     */
+    public void updateFaction(@NotNull Faction faction) {
+        factions.put(faction.id(), faction);
+        storage.saveFaction(faction);
+    }
+
+    /**
+     * Updates a member's last online time.
+     *
+     * @param playerUuid the player's UUID
+     */
+    public void updateLastOnline(@NotNull UUID playerUuid) {
+        UUID factionId = playerToFaction.get(playerUuid);
+        if (factionId == null) return;
+
+        Faction faction = factions.get(factionId);
+        if (faction == null) return;
+
+        FactionMember member = faction.getMember(playerUuid);
+        if (member == null) return;
+
+        FactionMember updated = member.withLastOnline(System.currentTimeMillis());
+        Faction updatedFaction = faction.withMember(updated);
+
+        factions.put(factionId, updatedFaction);
+        // Don't save immediately for last online updates - batch save later
+    }
+}

@@ -1,0 +1,130 @@
+$C = "../Common.ui";
+$S = "styles.ui";
+
+$C.@PageOverlay {}
+
+$C.@Container {
+  Anchor: (Width: 550, Height: 550);
+
+  #Title {
+    $C.@Title {
+      @Text = "Territory Map";
+    }
+  }
+
+  #Content {
+    LayoutMode: Top;
+    Padding: (Left: 10, Right: 10, Top: 10, Bottom: 10);
+
+    Group {
+      Anchor: (Height: 25, Bottom: 5);
+      LayoutMode: Left;
+
+      Label #PositionInfo {
+        Text: "Position: 0, 0";
+        Style: (FontSize: 12, TextColor: #888888, VerticalAlignment: Center);
+      }
+    }
+
+    Group #MapGrid {
+      Anchor: (Width: 375, Height: 375);
+      Background: (Color: #1a1a1a);
+    }
+
+    Group #Legend {
+      Anchor: (Height: 60, Top: 10);
+      LayoutMode: Left;
+      Padding: (Left: 5, Right: 5);
+
+      Group {
+        LayoutMode: Top;
+        Anchor: (Width: 90);
+        Group { LayoutMode: Left; Anchor: (Height: 18);
+          Group #LegendYou { Anchor: (Width: 14, Height: 14); Background: (Color: #FFFFFF); }
+          Label { Text: "You"; Style: (FontSize: 10, TextColor: #888888, VerticalAlignment: Center); Anchor: (Left: 5); }
+        }
+        Group { LayoutMode: Left; Anchor: (Height: 18);
+          Group #LegendOwn { Anchor: (Width: 14, Height: 14); Background: (Color: #00FF00); }
+          Label { Text: "Your Faction"; Style: (FontSize: 10, TextColor: #888888, VerticalAlignment: Center); Anchor: (Left: 5); }
+        }
+      }
+
+      Group {
+        LayoutMode: Top;
+        Anchor: (Width: 90);
+        Group { LayoutMode: Left; Anchor: (Height: 18);
+          Group #LegendAlly { Anchor: (Width: 14, Height: 14); Background: (Color: #00AAFF); }
+          Label { Text: "Ally"; Style: (FontSize: 10, TextColor: #888888, VerticalAlignment: Center); Anchor: (Left: 5); }
+        }
+        Group { LayoutMode: Left; Anchor: (Height: 18);
+          Group #LegendEnemy { Anchor: (Width: 14, Height: 14); Background: (Color: #FF0000); }
+          Label { Text: "Enemy"; Style: (FontSize: 10, TextColor: #888888, VerticalAlignment: Center); Anchor: (Left: 5); }
+        }
+      }
+
+      Group {
+        LayoutMode: Top;
+        Anchor: (Width: 90);
+        Group { LayoutMode: Left; Anchor: (Height: 18);
+          Group #LegendOther { Anchor: (Width: 14, Height: 14); Background: (Color: #FFAA00); }
+          Label { Text: "Other"; Style: (FontSize: 10, TextColor: #888888, VerticalAlignment: Center); Anchor: (Left: 5); }
+        }
+        Group { LayoutMode: Left; Anchor: (Height: 18);
+          Group #LegendWilderness { Anchor: (Width: 14, Height: 14); Background: (Color: #444444); }
+          Label { Text: "Wilderness"; Style: (FontSize: 10, TextColor: #888888, VerticalAlignment: Center); Anchor: (Left: 5); }
+        }
+      }
+
+      Group {
+        LayoutMode: Top;
+        Anchor: (Width: 90);
+        Group { LayoutMode: Left; Anchor: (Height: 18);
+          Group #LegendSafeZone { Anchor: (Width: 14, Height: 14); Background: (Color: #00FFFF); }
+          Label { Text: "Safe Zone"; Style: (FontSize: 10, TextColor: #888888, VerticalAlignment: Center); Anchor: (Left: 5); }
+        }
+        Group { LayoutMode: Left; Anchor: (Height: 18);
+          Group #LegendWarZone { Anchor: (Width: 14, Height: 14); Background: (Color: #FF00FF); }
+          Label { Text: "War Zone"; Style: (FontSize: 10, TextColor: #888888, VerticalAlignment: Center); Anchor: (Left: 5); }
+        }
+      }
+    }
+
+    Group #Navigation {
+      Anchor: (Height: 30);
+      LayoutMode: Left;
+
+      TextButton #NavUp {
+        Text: "↑";
+        Anchor: (Height: 26, Width: 30);
+        Style: $S.@ButtonStyle;
+      }
+      TextButton #NavDown {
+        Text: "↓";
+        Anchor: (Height: 26, Width: 30);
+        Style: $S.@ButtonStyle;
+      }
+      TextButton #NavLeft {
+        Text: "←";
+        Anchor: (Height: 26, Width: 30);
+        Style: $S.@ButtonStyle;
+      }
+      TextButton #NavRight {
+        Text: "→";
+        Anchor: (Height: 26, Width: 30);
+        Style: $S.@ButtonStyle;
+      }
+      Label { Anchor: (Width: 10); }
+      TextButton #NavCenter {
+        Text: "CENTER";
+        Anchor: (Height: 26, Width: 70);
+        Style: $S.@CyanButtonStyle;
+      }
+    }
+  }
+}
+
+TextButton #BackBtn {
+  Anchor: (Top: 10, Left: 10, Width: 80, Height: 28);
+  Text: "< BACK";
+  Style: $S.@ButtonStyle;
+}

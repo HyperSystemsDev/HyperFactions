@@ -1,0 +1,60 @@
+package com.hyperfactions.storage;
+
+import com.hyperfactions.data.PlayerPower;
+import org.jetbrains.annotations.NotNull;
+
+import java.util.Collection;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+
+/**
+ * Interface for player power data persistence.
+ */
+public interface PlayerStorage {
+
+    /**
+     * Initializes the storage provider.
+     *
+     * @return a future that completes when initialization is done
+     */
+    CompletableFuture<Void> init();
+
+    /**
+     * Shuts down the storage provider.
+     *
+     * @return a future that completes when shutdown is done
+     */
+    CompletableFuture<Void> shutdown();
+
+    /**
+     * Loads player power data.
+     *
+     * @param uuid the player's UUID
+     * @return a future containing the player power if found
+     */
+    CompletableFuture<Optional<PlayerPower>> loadPlayerPower(@NotNull UUID uuid);
+
+    /**
+     * Saves player power data.
+     *
+     * @param power the player power to save
+     * @return a future that completes when saving is done
+     */
+    CompletableFuture<Void> savePlayerPower(@NotNull PlayerPower power);
+
+    /**
+     * Deletes player power data.
+     *
+     * @param uuid the player's UUID
+     * @return a future that completes when deletion is done
+     */
+    CompletableFuture<Void> deletePlayerPower(@NotNull UUID uuid);
+
+    /**
+     * Loads all player power data.
+     *
+     * @return a future containing all player power data
+     */
+    CompletableFuture<Collection<PlayerPower>> loadAllPlayerPower();
+}

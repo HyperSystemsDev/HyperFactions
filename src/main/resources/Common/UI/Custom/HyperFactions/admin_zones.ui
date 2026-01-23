@@ -1,0 +1,118 @@
+$C = "../Common.ui";
+$S = "styles.ui";
+
+$C.@PageOverlay {}
+
+$C.@Container {
+  Anchor: (Width: 550, Height: 500);
+
+  #Title {
+    $C.@Title {
+      @Text = "Zone Management";
+    }
+  }
+
+  #Content {
+    LayoutMode: Top;
+    Padding: (Left: 15, Right: 15, Top: 10, Bottom: 10);
+
+    Group #Tabs {
+      Anchor: (Height: 35, Bottom: 10);
+      LayoutMode: Left;
+
+      TextButton #TabSafe {
+        Text: "SAFE ZONES";
+        Anchor: (Height: 28, Width: 120);
+        Style: $S.@CyanButtonStyle;
+      }
+
+      Label { Anchor: (Width: 10); }
+
+      TextButton #TabWar {
+        Text: "WAR ZONES";
+        Anchor: (Height: 28, Width: 120);
+        Style: $S.@ButtonStyle;
+      }
+
+      Label { FlexWeight: 1; }
+
+      TextButton #CreateZoneBtn {
+        Text: "+ CREATE";
+        Anchor: (Height: 28, Width: 90);
+        Style: $S.@GreenButtonStyle;
+      }
+    }
+
+    Group {
+      Anchor: (Height: 1, Bottom: 8);
+      Background: (Color: #00AAAA);
+    }
+
+    Group {
+      Anchor: (Height: 25, Bottom: 5);
+      LayoutMode: Left;
+
+      Label #ZoneCount {
+        Text: "0 zones";
+        Style: (FontSize: 12, TextColor: #888888, VerticalAlignment: Center);
+      }
+    }
+
+    Group #ZoneListContainer {
+      LayoutMode: TopScrolling;
+      ScrollbarStyle: $C.@DefaultScrollbarStyle;
+      FlexWeight: 1;
+
+      Group #ZoneList {
+        LayoutMode: Top;
+
+        Group #ZoneEntry0 { Anchor: (Height: 45); }
+        Group #ZoneEntry1 { Anchor: (Height: 45); }
+        Group #ZoneEntry2 { Anchor: (Height: 45); }
+        Group #ZoneEntry3 { Anchor: (Height: 45); }
+        Group #ZoneEntry4 { Anchor: (Height: 45); }
+        Group #ZoneEntry5 { Anchor: (Height: 45); }
+        Group #ZoneEntry6 { Anchor: (Height: 45); }
+        Group #ZoneEntry7 { Anchor: (Height: 45); }
+      }
+    }
+
+    Group {
+      Anchor: (Height: 1, Top: 8, Bottom: 8);
+      Background: (Color: #00AAAA);
+    }
+
+    Group #Pagination {
+      Anchor: (Height: 35);
+      LayoutMode: Left;
+
+      TextButton #PrevBtn {
+        Text: "< PREV";
+        Anchor: (Height: 26, Width: 80);
+        Style: $S.@ButtonStyle;
+      }
+
+      Label { FlexWeight: 1; }
+
+      Label #PageInfo {
+        Text: "1/1";
+        Style: (FontSize: 14, TextColor: #888888, HorizontalAlignment: Center, VerticalAlignment: Center);
+        Anchor: (Width: 60);
+      }
+
+      Label { FlexWeight: 1; }
+
+      TextButton #NextBtn {
+        Text: "NEXT >";
+        Anchor: (Height: 26, Width: 80);
+        Style: $S.@ButtonStyle;
+      }
+    }
+  }
+}
+
+TextButton #BackBtn {
+  Anchor: (Top: 10, Left: 10, Width: 80, Height: 28);
+  Text: "< BACK";
+  Style: $S.@ButtonStyle;
+}

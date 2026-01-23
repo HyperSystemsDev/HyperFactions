@@ -1,0 +1,35 @@
+$C = "../Common.ui";
+$S = "styles.ui";
+
+Group {
+  LayoutMode: Top;
+
+  Label {
+    Text: "You are not in a faction.";
+    Style: (FontSize: 14, TextColor: #888888, HorizontalAlignment: Center, VerticalAlignment: Center);
+    Anchor: (Height: 40);
+  }
+
+  Group {
+    Anchor: (Height: 50);
+    LayoutMode: Left;
+
+    Label { FlexWeight: 1; }
+
+    TextButton #CreateFactionBtn {
+      Text: "CREATE FACTION";
+      Anchor: (Height: 36, Width: 160);
+      Style: $S.@CyanButtonStyle;
+    }
+
+    Label { Anchor: (Width: 20); }
+
+    TextButton #BrowseFactionsBtn {
+      Text: "BROWSE FACTIONS";
+      Anchor: (Height: 36, Width: 160);
+      Style: $S.@ButtonStyle;
+    }
+
+    Label { FlexWeight: 1; }
+  }
+}
