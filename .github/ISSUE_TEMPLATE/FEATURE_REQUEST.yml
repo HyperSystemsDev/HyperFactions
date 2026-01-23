@@ -1,0 +1,82 @@
+name: 🚀 Feature Request
+description: Submit a request for a new feature or an enhancement to an existing feature.
+title: "[Feat] "
+labels: ["enhancement"]
+type: feature
+body:
+  - type: textarea
+    attributes:
+      label: Scope
+      description: Provide a short summary of what this feature should encompass.
+      placeholder: |
+        Example:
+          1. X Feature should do Y
+          2. X Feature should interact with Z
+          3. X Feature should have A, B, and C options
+          4. X Feature should be compatible with D
+          5. X Feature should not do E
+          6. X Feature should optionally do F
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Implementation Details
+      description: Provide a moderate level of detail on how you would envision this feature being implemented.
+      placeholder: |
+        Example:
+          1. Suggested command reference: `/a dosomething <option>`
+          2. Suggested config structure:
+            ```json
+            {
+              "feature": {
+                "optionA": true,
+                "optionB": 10
+              }
+            }
+            ```
+          3. Suggested API methods to add:
+            - `FeatureManager#doSomething()`
+            - `Feature#getOptionA()`
+          4. Suggested permission nodes:
+            - `feature.use`
+            - `feature.admin`
+
+  - type: textarea
+    attributes:
+      label: Risks and Alternatives
+      description: Provide a simple analysis of potential risks, challenges, and alternative approaches to implementing this feature.
+      placeholder: |
+        Example:
+          1. Risk: This feature may conflict with existing Feature X.
+          2. Challenge: Implementing this feature may require significant changes to Module Y.
+          3. Alternative: Instead of implementing this feature, we could enhance Feature Z to cover similar functionality.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: References and Media
+      description: Provide any relevant references, links, images, or other media that support this feature request.
+      placeholder: |
+        Example:
+          1. Link to similar feature in another project: https://example.com/feature
+          2. Screenshot or mockup of the desired feature:
+            ![Feature Mockup](https://example.com/mockup.png)
+          3. Documentation or articles related to the feature:
+            - https://example.com/article1
+            - https://example.com/article2
+          4. Video demonstration of the feature concept: https://example.com/video
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Confirmation Checklist
+      options:
+        - label: I have checked the existing [issues](https://github.com/HyperSystemsDev/HyperFactions/issues) for duplicates.
+          required: true
+
+        - label: I agree to follow this project's [Code of Conduct](https://github.com/HyperSystemsDev/HyperFactions/blob/main/CODE_OF_CONDUCT.md).
+          required: true
