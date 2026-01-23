@@ -21,9 +21,9 @@ bin/
 Thumbs.db
 desktop.ini
 
-# Runtime data
-data/
-logs/
+# Runtime data (root level only)
+/data/
+/logs/
 
 # Environment
 .env
