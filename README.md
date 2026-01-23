@@ -4,7 +4,7 @@ A comprehensive faction management mod for Hytale servers featuring territory cl
 
 **Version:** 0.1.0-SNAPSHOT
 **Game:** Hytale Early Access
-**License:** All Rights Reserved
+**License:** GLPv3
 
 ---
 
