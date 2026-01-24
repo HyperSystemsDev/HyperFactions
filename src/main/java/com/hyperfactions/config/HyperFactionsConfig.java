@@ -49,6 +49,14 @@ public class HyperFactionsConfig {
     private boolean factionDamage = false;
     private boolean taggedLogoutPenalty = true;
 
+    // Relation settings
+    private int maxAllies = 10;      // -1 for unlimited
+    private int maxEnemies = -1;     // -1 for unlimited
+
+    // Stuck command settings
+    private int stuckWarmupSeconds = 30;
+    private int stuckCooldownSeconds = 300;  // 5 minutes
+
     // Teleport settings
     private int warmupSeconds = 5;
     private int cooldownSeconds = 300;
@@ -136,6 +144,20 @@ public class HyperFactionsConfig {
                 taggedLogoutPenalty = getBool(combat, "taggedLogoutPenalty", taggedLogoutPenalty);
             }
 
+            // Relation settings
+            if (root.has("relations") && root.get("relations").isJsonObject()) {
+                JsonObject relations = root.getAsJsonObject("relations");
+                maxAllies = getInt(relations, "maxAllies", maxAllies);
+                maxEnemies = getInt(relations, "maxEnemies", maxEnemies);
+            }
+
+            // Stuck settings
+            if (root.has("stuck") && root.get("stuck").isJsonObject()) {
+                JsonObject stuck = root.getAsJsonObject("stuck");
+                stuckWarmupSeconds = getInt(stuck, "warmupSeconds", stuckWarmupSeconds);
+                stuckCooldownSeconds = getInt(stuck, "cooldownSeconds", stuckCooldownSeconds);
+            }
+
             // Teleport settings
             if (root.has("teleport") && root.get("teleport").isJsonObject()) {
                 JsonObject teleport = root.getAsJsonObject("teleport");
@@ -218,6 +240,18 @@ public class HyperFactionsConfig {
             combat.addProperty("taggedLogoutPenalty", taggedLogoutPenalty);
             root.add("combat", combat);
 
+            // Relation settings
+            JsonObject relations = new JsonObject();
+            relations.addProperty("maxAllies", maxAllies);
+            relations.addProperty("maxEnemies", maxEnemies);
+            root.add("relations", relations);
+
+            // Stuck settings
+            JsonObject stuck = new JsonObject();
+            stuck.addProperty("warmupSeconds", stuckWarmupSeconds);
+            stuck.addProperty("cooldownSeconds", stuckCooldownSeconds);
+            root.add("stuck", stuck);
+
             // Teleport settings
             JsonObject teleport = new JsonObject();
             teleport.addProperty("warmupSeconds", warmupSeconds);
@@ -283,6 +317,14 @@ public class HyperFactionsConfig {
     public boolean isAllyDamage() { return allyDamage; }
     public boolean isFactionDamage() { return factionDamage; }
     public boolean isTaggedLogoutPenalty() { return taggedLogoutPenalty; }
+
+    // === Relation Getters ===
+    public int getMaxAllies() { return maxAllies; }
+    public int getMaxEnemies() { return maxEnemies; }
+
+    // === Stuck Getters ===
+    public int getStuckWarmupSeconds() { return stuckWarmupSeconds; }
+    public int getStuckCooldownSeconds() { return stuckCooldownSeconds; }
 
     // === Teleport Getters ===
     public int getWarmupSeconds() { return warmupSeconds; }

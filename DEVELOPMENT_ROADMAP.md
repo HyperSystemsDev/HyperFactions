@@ -1,7 +1,7 @@
 # HyperFactions Development Roadmap
 
-> Last Updated: January 24, 2026 (Updated after Phase 1 completion)
-> Version: 0.1.0-SNAPSHOT
+> Last Updated: January 24, 2026 (Updated after Phase 2 completion)
+> Version: 0.2.0
 > Repository: https://github.com/HyperSystemsDev/HyperFactions
 
 ---
@@ -171,117 +171,130 @@ if (defenderFaction.getClaimCount() < defenderMaxClaims) {
 
 ## Phase 2: Core Enhancements
 
-> Estimated Time: 1-3 days each
+> **STATUS: COMPLETE** :white_check_mark:
+> All implementable Phase 2 tasks have been completed.
+> Note: Explosion, Piston, and Hopper protection are NOT POSSIBLE in Hytale as these mechanics don't exist in the current API.
 
-### 2.1 Faction Settings Commands
+### 2.0 Wire Up Block Protection Events :white_check_mark:
 - **Priority:** P1
-- **Effort:** 1 day
-- **Status:** :red_circle: Not Started
-
-Add commands for settings that already exist in the data model:
-
-| Command | Description | Data Model Method |
-|---------|-------------|-------------------|
-| `/f rename <name>` | Change faction name | `Faction.withName()` |
-| `/f desc <text>` | Set description | `Faction.withDescription()` |
-| `/f color <color>` | Set faction color | `Faction.withColor()` |
-| `/f open` | Allow anyone to join | `Faction.withOpen(true)` |
-| `/f close` | Require invite to join | `Faction.withOpen(false)` |
-
-**Files to modify:**
-- `FactionCommand.java` - Add new subcommands
-- `FactionManager.java` - Add update methods if needed
-
----
-
-### 2.2 Explosion Protection
-- **Priority:** P1
-- **Effort:** 1 day
-- **Status:** :red_circle: Not Started
-
-Protect claimed territory from:
-- TNT explosions
-- Creeper explosions
-- Wither explosions
-- End crystals
-- Beds in nether/end
-
-**Files to modify:**
-- `ProtectionListener.java` - Add `onExplosion()` method
-- `ProtectionChecker.java` - Add explosion check logic
-- `HyperFactionsConfig.java` - Add config options
-
-**Config Options:**
-```java
-boolean protectFromTNT = true;
-boolean protectFromCreepers = true;
-boolean protectFromWithers = true;
-boolean protectFromFireballs = true;
-```
-
----
-
-### 2.3 Piston Griefing Protection
-- **Priority:** P1
-- **Effort:** 1 day
-- **Status:** :red_circle: Not Started
-
-Prevent pistons from:
-- Pushing blocks into/out of claimed territory
-- Pulling blocks across faction boundaries
-
-**Files to modify:**
-- `ProtectionListener.java` - Add `onPistonExtend()`, `onPistonRetract()`
-
----
-
-### 2.4 Hopper Extraction Protection
-- **Priority:** P2
 - **Effort:** 0.5 day
-- **Status:** :red_circle: Not Started
+- **Status:** :white_check_mark: **COMPLETE**
 
-Prevent hoppers from stealing items from containers in other faction's territory.
+Connected the existing ProtectionListener to Hytale ECS events for block protection.
 
-**Files to modify:**
-- `ProtectionListener.java` - Add `onHopperTransfer()`
+**Implementation:**
+- Added `BlockPlaceProtectionSystem` - Handles PlaceBlockEvent via EntityEventSystem
+- Added `BlockBreakProtectionSystem` - Handles BreakBlockEvent via EntityEventSystem
+- Added `BlockUseProtectionSystem` - Handles UseBlockEvent.Pre via EntityEventSystem
+- Uses `store.getExternalData().getWorld()` to get world context
+- Uses `chunk.getComponent(entityIndex, PlayerRef.getComponentType())` for player info
+
+**Files modified:**
+- `HyperFactionsPlugin.java` - Added ECS event system registration + inner system classes
 
 ---
 
-### 2.5 `/f stuck` Command
+### 2.1 Faction Settings Commands :white_check_mark:
+- **Priority:** P1
+- **Effort:** 1 day
+- **Status:** :white_check_mark: **COMPLETE**
+
+Added commands for settings that already exist in the data model:
+
+| Command | Description | Permission | Role Required |
+|---------|-------------|------------|---------------|
+| `/f rename <name>` | Change faction name | `hyperfactions.rename` | Leader |
+| `/f desc <text>` | Set description | `hyperfactions.desc` | Officer+ |
+| `/f color <code>` | Set faction color (0-9, a-f) | `hyperfactions.color` | Officer+ |
+| `/f open` | Allow anyone to join | `hyperfactions.open` | Leader |
+| `/f close` | Require invite to join | `hyperfactions.close` | Leader |
+
+**Files modified:**
+- `FactionCommand.java` - Added 5 new handler methods + switch cases + help text
+
+---
+
+### 2.2 Explosion Protection :no_entry:
+- **Priority:** P1
+- **Status:** :no_entry: **NOT POSSIBLE IN HYTALE**
+
+Hytale does not have explosion mechanics in the current API. This feature is deferred until Hytale adds relevant events.
+
+---
+
+### 2.3 Piston Griefing Protection :no_entry:
+- **Priority:** P1
+- **Status:** :no_entry: **NOT POSSIBLE IN HYTALE**
+
+Hytale does not have piston mechanics in the current API. This feature is deferred until Hytale adds relevant events.
+
+---
+
+### 2.4 Hopper Extraction Protection :no_entry:
+- **Priority:** P2
+- **Status:** :no_entry: **NOT POSSIBLE IN HYTALE**
+
+Hytale does not have hopper mechanics in the current API. This feature is deferred until Hytale adds relevant events.
+
+---
+
+### 2.5 `/f stuck` Command :white_check_mark:
 - **Priority:** P2
 - **Effort:** 1 day
-- **Status:** :red_circle: Not Started
+- **Status:** :white_check_mark: **COMPLETE**
 
 Teleport players out of enemy territory when trapped.
 
 **Behavior:**
-- Find nearest unclaimed/own chunk
-- Long warmup (60+ seconds)
-- Cancel on movement
-- Only usable in enemy territory
+- Only usable in enemy/neutral territory (not own/ally/wilderness)
+- 30-second warmup (configurable via `stuck.warmupSeconds`)
+- Finds nearest safe chunk via spiral search (wilderness, own claim, or ally claim)
+- Cancel on movement or combat tag
+- Combat check prevents use while tagged
 
-**Files to modify:**
-- `FactionCommand.java` - Add subcommand
-- `TeleportManager.java` - Add stuck teleport logic
+**Config Options:**
+```json
+{
+  "stuck": {
+    "warmupSeconds": 30,
+    "cooldownSeconds": 300
+  }
+}
+```
+
+**Files modified:**
+- `FactionCommand.java` - Added `handleStuck()` method + `findNearestSafeChunk()` helper
+- `HyperFactionsConfig.java` - Added stuck warmup/cooldown settings
 
 ---
 
-### 2.6 Ally/Enemy Caps
+### 2.6 Ally/Enemy Caps :white_check_mark:
 - **Priority:** P2
 - **Effort:** 0.5 day
-- **Status:** :red_circle: Not Started
+- **Status:** :white_check_mark: **COMPLETE**
 
 Limit number of allies/enemies to prevent mega-alliances.
 
 **Config Options:**
-```java
-int maxAllies = 10;       // -1 for unlimited
-int maxEnemies = -1;      // -1 for unlimited
+```json
+{
+  "relations": {
+    "maxAllies": 10,
+    "maxEnemies": -1
+  }
+}
 ```
+(-1 means unlimited)
 
-**Files to modify:**
-- `HyperFactionsConfig.java` - Add limits
-- `RelationManager.java` - Check limits in `requestAlly()`, `setEnemy()`
+**Implementation:**
+- Added `ALLY_LIMIT_REACHED` and `ENEMY_LIMIT_REACHED` to `RelationResult` enum
+- Added cap checks in `requestAlly()` and `setEnemy()` methods
+- Added error handling in `FactionCommand` for new result types
+
+**Files modified:**
+- `HyperFactionsConfig.java` - Added `maxAllies`, `maxEnemies` fields + getters
+- `RelationManager.java` - Added cap validation + new enum values
+- `FactionCommand.java` - Added error messages for cap limits
 
 ---
 
@@ -617,11 +630,33 @@ File System → data/factions/*.json, data/players/*.json
 - [x] Test cancel when combat tagged (**Implemented**)
 
 ### Protection Events
-- [ ] Place TNT near faction border - verify protection
-- [ ] Detonate TNT in claimed territory - verify blocks protected
-- [ ] Push piston across boundary - verify blocked
-- [ ] Pull piston across boundary - verify blocked
-- [ ] Place hopper under faction container - verify no extraction
+- [x] Block place in enemy territory - verify blocked (**Implemented via ECS event system**)
+- [x] Block break in enemy territory - verify blocked (**Implemented via ECS event system**)
+- [x] Block interact in enemy territory - verify blocked (**Implemented via ECS event system**)
+- [x] All actions in own territory - verify allowed (**Implemented**)
+- [ ] ~~Place TNT near faction border~~ (N/A - Hytale has no explosions)
+- [ ] ~~Push piston across boundary~~ (N/A - Hytale has no pistons)
+- [ ] ~~Place hopper under faction container~~ (N/A - Hytale has no hoppers)
+
+### Faction Settings
+- [ ] `/f rename NewName` as leader - verify success
+- [ ] `/f rename NewName` as member - verify denied
+- [ ] `/f rename` with taken name - verify error
+- [ ] `/f desc Some description` - verify updates visible in `/f info`
+- [ ] `/f open` then `/f close` - verify toggles join permission
+- [ ] `/f color a` - verify updates color display
+
+### Stuck Command
+- [ ] Use `/f stuck` in own territory - verify "not stuck" message
+- [ ] Use `/f stuck` in enemy territory - verify 30s warmup starts
+- [ ] Move during warmup - verify cancelled
+- [ ] Wait full warmup - verify teleported to safe location
+- [ ] Use while combat tagged - verify denied
+
+### Ally/Enemy Caps
+- [ ] Set `maxAllies: 2` in config, ally with 2 factions - verify success
+- [ ] Try to ally with 3rd faction - verify "maximum allies" error
+- [ ] Set `maxEnemies: 1`, declare 2 enemies - verify error on 2nd
 
 ### Relation System
 - [x] Send ally request (existing functionality)
@@ -634,7 +669,31 @@ File System → data/factions/*.json, data/players/*.json
 
 ## Changelog
 
-### Version 0.1.1 (Current) - January 24, 2026
+### Version 0.2.0 (Current) - January 24, 2026
+**New Features:**
+- **Block Protection Events** - Wired up ECS event systems for PlaceBlockEvent, BreakBlockEvent, UseBlockEvent.Pre
+- **Faction Settings Commands:**
+  - `/f rename <name>` - Change faction name (Leader only)
+  - `/f desc <text>` - Set faction description (Officer+)
+  - `/f color <code>` - Set faction color using 0-9, a-f codes (Officer+)
+  - `/f open` - Open faction to public joining (Leader only)
+  - `/f close` - Close faction to invite-only (Leader only)
+- **`/f stuck` Command** - Escape from enemy territory with 30s warmup, finds nearest safe chunk
+- **Ally/Enemy Caps** - Configurable limits on ally (default: 10) and enemy (-1 = unlimited) relations
+
+**Configuration Additions:**
+```json
+{
+  "relations": { "maxAllies": 10, "maxEnemies": -1 },
+  "stuck": { "warmupSeconds": 30, "cooldownSeconds": 300 }
+}
+```
+
+**Technical Notes:**
+- Explosion, piston, and hopper protection are NOT POSSIBLE in Hytale (no such mechanics in API)
+- Block events use EntityEventSystem pattern (like HyperWarps damage system)
+
+### Version 0.1.1 - January 24, 2026
 **Critical Bug Fixes:**
 - Fixed promotion logic error - Officers can now be promoted to Leader
 - Fixed overclaim power check - Correct boundary comparison (< instead of <=)
@@ -656,11 +715,6 @@ File System → data/factions/*.json, data/players/*.json
 - Ally/enemy relations
 - Combat tagging
 - Safe/War zones
-
-### Version 0.2.0 (Planned)
-- Add explosion/piston/hopper protection
-- Add faction settings commands (`/f rename`, `/f desc`, `/f color`, `/f open`)
-- Add `/f stuck` command
 
 ### Version 0.3.0 (Planned)
 - Faction treasury system

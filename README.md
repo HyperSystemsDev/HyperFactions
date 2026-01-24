@@ -2,7 +2,7 @@
 
 A comprehensive faction management mod for Hytale servers featuring territory claims, alliances, strategic PvP, power systems, and extensive customization. Part of the **HyperSystems** plugin suite.
 
-**Version:** 0.1.0-SNAPSHOT
+**Version:** 0.2.0
 **Game:** Hytale Early Access
 **License:** GLPv3
 
@@ -110,6 +110,16 @@ HyperFactions transforms your Hytale server into a dynamic faction-based environ
 | `/f kick <player>` | Remove player from faction | `hyperfactions.kick` |
 | `/f disband` | Dissolve faction (Leader only) | `hyperfactions.disband` |
 
+### Faction Settings
+
+| Command | Description | Permission |
+|---------|-------------|------------|
+| `/f rename <name>` | Change faction name (Leader) | `hyperfactions.rename` |
+| `/f desc <text>` | Set faction description (Officer+) | `hyperfactions.desc` |
+| `/f color <code>` | Set faction color (Officer+) | `hyperfactions.color` |
+| `/f open` | Allow anyone to join (Leader) | `hyperfactions.open` |
+| `/f close` | Require invite to join (Leader) | `hyperfactions.close` |
+
 ### Territory Commands
 
 | Command | Description | Permission |
@@ -118,6 +128,7 @@ HyperFactions transforms your Hytale server into a dynamic faction-based environ
 | `/f unclaim` | Unclaim current chunk | `hyperfactions.unclaim` |
 | `/f map` | Open chunk management GUI | `hyperfactions.map` |
 | `/f overclaim` | Capture enemy chunk (requires 0 power) | `hyperfactions.overclaim` |
+| `/f stuck` | Escape from enemy territory (30s warmup) | `hyperfactions.use` |
 
 ### Home & Teleportation
 

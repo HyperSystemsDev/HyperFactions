@@ -1,5 +1,6 @@
 package com.hyperfactions.manager;
 
+import com.hyperfactions.config.HyperFactionsConfig;
 import com.hyperfactions.data.*;
 import com.hyperfactions.util.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -36,7 +37,9 @@ public class RelationManager {
         ALREADY_NEUTRAL,
         REQUEST_SENT,
         REQUEST_ACCEPTED,
-        NO_PENDING_REQUEST
+        NO_PENDING_REQUEST,
+        ALLY_LIMIT_REACHED,
+        ENEMY_LIMIT_REACHED
     }
 
     // === Queries ===
@@ -181,6 +184,17 @@ public class RelationManager {
             return RelationResult.ALREADY_ALLY;
         }
 
+        // Check ally cap
+        int maxAllies = HyperFactionsConfig.get().getMaxAllies();
+        if (maxAllies >= 0) {
+            long allyCount = actorFaction.relations().values().stream()
+                .filter(r -> r.type() == RelationType.ALLY)
+                .count();
+            if (allyCount >= maxAllies) {
+                return RelationResult.ALLY_LIMIT_REACHED;
+            }
+        }
+
         // Check if target has a pending request from us
         if (hasPendingRequest(targetFactionId, actorFaction.id())) {
             // Accept the existing request
@@ -267,6 +281,17 @@ public class RelationManager {
 
         if (actorFaction.isEnemy(targetFactionId)) {
             return RelationResult.ALREADY_ENEMY;
+        }
+
+        // Check enemy cap
+        int maxEnemies = HyperFactionsConfig.get().getMaxEnemies();
+        if (maxEnemies >= 0) {
+            long enemyCount = actorFaction.relations().values().stream()
+                .filter(r -> r.type() == RelationType.ENEMY)
+                .count();
+            if (enemyCount >= maxEnemies) {
+                return RelationResult.ENEMY_LIMIT_REACHED;
+            }
         }
 
         // Remove any pending ally requests

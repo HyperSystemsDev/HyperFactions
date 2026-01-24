@@ -9,9 +9,21 @@ import com.hyperfactions.listener.ProtectionListener;
 import com.hyperfactions.util.Logger;
 import com.hypixel.hytale.server.core.event.events.player.PlayerConnectEvent;
 import com.hypixel.hytale.server.core.event.events.player.PlayerDisconnectEvent;
+import com.hypixel.hytale.server.core.event.events.ecs.PlaceBlockEvent;
+import com.hypixel.hytale.server.core.event.events.ecs.BreakBlockEvent;
+import com.hypixel.hytale.server.core.event.events.ecs.UseBlockEvent;
+import com.hypixel.hytale.component.Archetype;
+import com.hypixel.hytale.component.ArchetypeChunk;
+import com.hypixel.hytale.component.CommandBuffer;
+import com.hypixel.hytale.component.Store;
+import com.hypixel.hytale.component.query.Query;
+import com.hypixel.hytale.component.system.EntityEventSystem;
+import com.hypixel.hytale.math.vector.Vector3i;
+import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.plugin.JavaPlugin;
 import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
+import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 
 import java.util.Map;
 import java.util.UUID;
@@ -180,7 +192,30 @@ public class HyperFactionsPlugin extends JavaPlugin {
         playerListener = new PlayerListener(hyperFactions);
         protectionListener = new ProtectionListener(hyperFactions);
 
+        // Register ECS event systems for block protection
+        registerBlockProtectionSystems();
+
         getLogger().at(Level.INFO).log("Registered event listeners");
+    }
+
+    /**
+     * Registers ECS event systems for block protection.
+     */
+    private void registerBlockProtectionSystems() {
+        try {
+            // Block place protection
+            getEntityStoreRegistry().registerSystem(new BlockPlaceProtectionSystem(hyperFactions, protectionListener));
+
+            // Block break protection
+            getEntityStoreRegistry().registerSystem(new BlockBreakProtectionSystem(hyperFactions, protectionListener));
+
+            // Block use/interact protection
+            getEntityStoreRegistry().registerSystem(new BlockUseProtectionSystem(hyperFactions, protectionListener));
+
+            getLogger().at(Level.INFO).log("Registered block protection systems");
+        } catch (Exception e) {
+            getLogger().at(Level.WARNING).withCause(e).log("Failed to register block protection systems");
+        }
     }
 
     /**
@@ -335,5 +370,186 @@ public class HyperFactionsPlugin extends JavaPlugin {
      */
     public ProtectionListener getProtectionListener() {
         return protectionListener;
+    }
+
+    // === ECS Event Systems for Block Protection ===
+
+    /**
+     * ECS system for handling block place protection.
+     */
+    private static class BlockPlaceProtectionSystem extends EntityEventSystem<EntityStore, PlaceBlockEvent> {
+        private final HyperFactions hyperFactions;
+        private final ProtectionListener protectionListener;
+
+        public BlockPlaceProtectionSystem(HyperFactions hyperFactions, ProtectionListener protectionListener) {
+            super(PlaceBlockEvent.class);
+            this.hyperFactions = hyperFactions;
+            this.protectionListener = protectionListener;
+        }
+
+        @Override
+        public Query<EntityStore> getQuery() {
+            return Archetype.empty();
+        }
+
+        @Override
+        public void handle(int entityIndex, ArchetypeChunk<EntityStore> chunk,
+                           Store<EntityStore> store, CommandBuffer<EntityStore> commandBuffer,
+                           PlaceBlockEvent event) {
+            try {
+                PlayerRef player = chunk.getComponent(entityIndex, PlayerRef.getComponentType());
+                if (player == null) return;
+
+                Vector3i pos = event.getTargetBlock();
+                // Get world name from store's external data (EntityStore)
+                String worldName = getWorldName(store);
+                if (worldName == null) return;
+
+                boolean blocked = protectionListener.onBlockPlace(
+                    player.getUuid(),
+                    worldName,
+                    pos.getX(), pos.getY(), pos.getZ()
+                );
+
+                if (blocked) {
+                    event.setCancelled(true);
+                    player.sendMessage(Message.raw(protectionListener.getDenialMessage(
+                        hyperFactions.getProtectionChecker().canInteract(
+                            player.getUuid(), worldName, pos.getX(), pos.getZ(),
+                            com.hyperfactions.protection.ProtectionChecker.InteractionType.BUILD
+                        )
+                    )).color("#FF5555"));
+                }
+            } catch (Exception e) {
+                Logger.severe("Error processing block place event", e);
+            }
+        }
+
+        private String getWorldName(Store<EntityStore> store) {
+            try {
+                return store.getExternalData().getWorld().getName();
+            } catch (Exception e) {
+                return null;
+            }
+        }
+    }
+
+    /**
+     * ECS system for handling block break protection.
+     */
+    private static class BlockBreakProtectionSystem extends EntityEventSystem<EntityStore, BreakBlockEvent> {
+        private final HyperFactions hyperFactions;
+        private final ProtectionListener protectionListener;
+
+        public BlockBreakProtectionSystem(HyperFactions hyperFactions, ProtectionListener protectionListener) {
+            super(BreakBlockEvent.class);
+            this.hyperFactions = hyperFactions;
+            this.protectionListener = protectionListener;
+        }
+
+        @Override
+        public Query<EntityStore> getQuery() {
+            return Archetype.empty();
+        }
+
+        @Override
+        public void handle(int entityIndex, ArchetypeChunk<EntityStore> chunk,
+                           Store<EntityStore> store, CommandBuffer<EntityStore> commandBuffer,
+                           BreakBlockEvent event) {
+            try {
+                PlayerRef player = chunk.getComponent(entityIndex, PlayerRef.getComponentType());
+                if (player == null) return;
+
+                Vector3i pos = event.getTargetBlock();
+                String worldName = getWorldName(store);
+                if (worldName == null) return;
+
+                boolean blocked = protectionListener.onBlockBreak(
+                    player.getUuid(),
+                    worldName,
+                    pos.getX(), pos.getY(), pos.getZ()
+                );
+
+                if (blocked) {
+                    event.setCancelled(true);
+                    player.sendMessage(Message.raw(protectionListener.getDenialMessage(
+                        hyperFactions.getProtectionChecker().canInteract(
+                            player.getUuid(), worldName, pos.getX(), pos.getZ(),
+                            com.hyperfactions.protection.ProtectionChecker.InteractionType.BUILD
+                        )
+                    )).color("#FF5555"));
+                }
+            } catch (Exception e) {
+                Logger.severe("Error processing block break event", e);
+            }
+        }
+
+        private String getWorldName(Store<EntityStore> store) {
+            try {
+                return store.getExternalData().getWorld().getName();
+            } catch (Exception e) {
+                return null;
+            }
+        }
+    }
+
+    /**
+     * ECS system for handling block use/interact protection.
+     */
+    private static class BlockUseProtectionSystem extends EntityEventSystem<EntityStore, UseBlockEvent.Pre> {
+        private final HyperFactions hyperFactions;
+        private final ProtectionListener protectionListener;
+
+        public BlockUseProtectionSystem(HyperFactions hyperFactions, ProtectionListener protectionListener) {
+            super(UseBlockEvent.Pre.class);
+            this.hyperFactions = hyperFactions;
+            this.protectionListener = protectionListener;
+        }
+
+        @Override
+        public Query<EntityStore> getQuery() {
+            return Archetype.empty();
+        }
+
+        @Override
+        public void handle(int entityIndex, ArchetypeChunk<EntityStore> chunk,
+                           Store<EntityStore> store, CommandBuffer<EntityStore> commandBuffer,
+                           UseBlockEvent.Pre event) {
+            try {
+                PlayerRef player = chunk.getComponent(entityIndex, PlayerRef.getComponentType());
+                if (player == null) return;
+
+                Vector3i pos = event.getTargetBlock();
+                String worldName = getWorldName(store);
+                if (worldName == null) return;
+
+                // Use INTERACT for general block use
+                boolean blocked = protectionListener.onBlockInteract(
+                    player.getUuid(),
+                    worldName,
+                    pos.getX(), pos.getY(), pos.getZ()
+                );
+
+                if (blocked) {
+                    event.setCancelled(true);
+                    player.sendMessage(Message.raw(protectionListener.getDenialMessage(
+                        hyperFactions.getProtectionChecker().canInteract(
+                            player.getUuid(), worldName, pos.getX(), pos.getZ(),
+                            com.hyperfactions.protection.ProtectionChecker.InteractionType.INTERACT
+                        )
+                    )).color("#FF5555"));
+                }
+            } catch (Exception e) {
+                Logger.severe("Error processing block use event", e);
+            }
+        }
+
+        private String getWorldName(Store<EntityStore> store) {
+            try {
+                return store.getExternalData().getWorld().getName();
+            } catch (Exception e) {
+                return null;
+            }
+        }
     }
 }

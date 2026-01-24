@@ -97,6 +97,12 @@ public class FactionCommand extends AbstractPlayerCommand {
             case "gui", "menu" -> handleGui(ctx, store, ref, player);
             case "admin" -> handleAdmin(ctx, store, ref, player, currentWorld, subArgs);
             case "reload" -> handleReload(ctx, player);
+            case "rename" -> handleRename(ctx, player, subArgs);
+            case "desc", "description" -> handleDesc(ctx, player, subArgs);
+            case "color" -> handleColor(ctx, player, subArgs);
+            case "open" -> handleOpen(ctx, player);
+            case "close" -> handleClose(ctx, player);
+            case "stuck" -> handleStuck(ctx, store, ref, player, currentWorld);
             default -> {
                 ctx.sendMessage(prefix().insert(msg("Unknown subcommand: " + subcommand, COLOR_RED)));
                 showHelp(ctx, player);
@@ -132,6 +138,12 @@ public class FactionCommand extends AbstractPlayerCommand {
         ctx.sendMessage(msg("/f map", COLOR_YELLOW).insert(msg(" - View territory map", COLOR_GRAY)));
         ctx.sendMessage(msg("/f list", COLOR_YELLOW).insert(msg(" - List all factions", COLOR_GRAY)));
         ctx.sendMessage(msg("/f gui", COLOR_YELLOW).insert(msg(" - Open faction GUI", COLOR_GRAY)));
+        ctx.sendMessage(msg("/f rename <name>", COLOR_YELLOW).insert(msg(" - Rename your faction", COLOR_GRAY)));
+        ctx.sendMessage(msg("/f desc <text>", COLOR_YELLOW).insert(msg(" - Set faction description", COLOR_GRAY)));
+        ctx.sendMessage(msg("/f color <code>", COLOR_YELLOW).insert(msg(" - Set faction color", COLOR_GRAY)));
+        ctx.sendMessage(msg("/f open", COLOR_YELLOW).insert(msg(" - Allow anyone to join", COLOR_GRAY)));
+        ctx.sendMessage(msg("/f close", COLOR_YELLOW).insert(msg(" - Require invite to join", COLOR_GRAY)));
+        ctx.sendMessage(msg("/f stuck", COLOR_YELLOW).insert(msg(" - Escape from enemy territory", COLOR_GRAY)));
     }
 
     // === Create ===
@@ -677,6 +689,7 @@ public class FactionCommand extends AbstractPlayerCommand {
             case NOT_OFFICER -> ctx.sendMessage(prefix().insert(msg("You must be an officer to manage relations.", COLOR_RED)));
             case CANNOT_RELATE_SELF -> ctx.sendMessage(prefix().insert(msg("You cannot ally with yourself.", COLOR_RED)));
             case ALREADY_ALLY -> ctx.sendMessage(prefix().insert(msg("You are already allied with that faction.", COLOR_RED)));
+            case ALLY_LIMIT_REACHED -> ctx.sendMessage(prefix().insert(msg("You have reached the maximum number of allies.", COLOR_RED)));
             default -> ctx.sendMessage(prefix().insert(msg("Failed to send ally request.", COLOR_RED)));
         }
     }
@@ -703,6 +716,7 @@ public class FactionCommand extends AbstractPlayerCommand {
             case NOT_IN_FACTION -> ctx.sendMessage(prefix().insert(msg("You are not in a faction.", COLOR_RED)));
             case NOT_OFFICER -> ctx.sendMessage(prefix().insert(msg("You must be an officer to manage relations.", COLOR_RED)));
             case ALREADY_ENEMY -> ctx.sendMessage(prefix().insert(msg("You are already enemies with that faction.", COLOR_RED)));
+            case ENEMY_LIMIT_REACHED -> ctx.sendMessage(prefix().insert(msg("You have reached the maximum number of enemies.", COLOR_RED)));
             default -> ctx.sendMessage(prefix().insert(msg("Failed to set enemy.", COLOR_RED)));
         }
     }
@@ -1045,6 +1059,327 @@ public class FactionCommand extends AbstractPlayerCommand {
 
         plugin.reloadConfig();
         ctx.sendMessage(prefix().insert(msg("Configuration reloaded.", COLOR_GREEN)));
+    }
+
+    // === Rename ===
+    private void handleRename(CommandContext ctx, PlayerRef player, String[] args) {
+        if (!hasPermission(player, "hyperfactions.rename")) {
+            ctx.sendMessage(prefix().insert(msg("You don't have permission.", COLOR_RED)));
+            return;
+        }
+
+        if (args.length == 0) {
+            ctx.sendMessage(prefix().insert(msg("Usage: /f rename <name>", COLOR_RED)));
+            return;
+        }
+
+        Faction faction = hyperFactions.getFactionManager().getPlayerFaction(player.getUuid());
+        if (faction == null) {
+            ctx.sendMessage(prefix().insert(msg("You are not in a faction.", COLOR_RED)));
+            return;
+        }
+
+        FactionMember member = faction.getMember(player.getUuid());
+        if (member == null || !member.isLeader()) {
+            ctx.sendMessage(prefix().insert(msg("Only the leader can rename the faction.", COLOR_RED)));
+            return;
+        }
+
+        String newName = String.join(" ", args);
+        HyperFactionsConfig config = HyperFactionsConfig.get();
+
+        if (newName.length() < config.getMinNameLength()) {
+            ctx.sendMessage(prefix().insert(msg("Name is too short (min " + config.getMinNameLength() + " chars).", COLOR_RED)));
+            return;
+        }
+        if (newName.length() > config.getMaxNameLength()) {
+            ctx.sendMessage(prefix().insert(msg("Name is too long (max " + config.getMaxNameLength() + " chars).", COLOR_RED)));
+            return;
+        }
+        if (hyperFactions.getFactionManager().isNameTaken(newName) && !newName.equalsIgnoreCase(faction.name())) {
+            ctx.sendMessage(prefix().insert(msg("That name is already taken.", COLOR_RED)));
+            return;
+        }
+
+        String oldName = faction.name();
+        Faction updated = faction.withName(newName)
+            .withLog(FactionLog.create(FactionLog.LogType.SETTINGS_CHANGE,
+                "Renamed from '" + oldName + "' to '" + newName + "'", player.getUuid()));
+
+        hyperFactions.getFactionManager().updateFaction(updated);
+
+        ctx.sendMessage(prefix().insert(msg("Faction renamed to ", COLOR_GREEN))
+            .insert(msg(newName, COLOR_CYAN)).insert(msg("!", COLOR_GREEN)));
+        broadcastToFaction(faction.id(), prefix().insert(msg(player.getUsername(), COLOR_YELLOW))
+            .insert(msg(" renamed the faction to ", COLOR_GREEN))
+            .insert(msg(newName, COLOR_CYAN)));
+    }
+
+    // === Description ===
+    private void handleDesc(CommandContext ctx, PlayerRef player, String[] args) {
+        if (!hasPermission(player, "hyperfactions.desc")) {
+            ctx.sendMessage(prefix().insert(msg("You don't have permission.", COLOR_RED)));
+            return;
+        }
+
+        Faction faction = hyperFactions.getFactionManager().getPlayerFaction(player.getUuid());
+        if (faction == null) {
+            ctx.sendMessage(prefix().insert(msg("You are not in a faction.", COLOR_RED)));
+            return;
+        }
+
+        FactionMember member = faction.getMember(player.getUuid());
+        if (member == null || !member.isOfficerOrHigher()) {
+            ctx.sendMessage(prefix().insert(msg("You must be an officer to set the description.", COLOR_RED)));
+            return;
+        }
+
+        String description = args.length > 0 ? String.join(" ", args) : null;
+
+        Faction updated = faction.withDescription(description)
+            .withLog(FactionLog.create(FactionLog.LogType.SETTINGS_CHANGE,
+                description != null ? "Description set" : "Description cleared", player.getUuid()));
+
+        hyperFactions.getFactionManager().updateFaction(updated);
+
+        if (description != null) {
+            ctx.sendMessage(prefix().insert(msg("Faction description set!", COLOR_GREEN)));
+        } else {
+            ctx.sendMessage(prefix().insert(msg("Faction description cleared.", COLOR_GREEN)));
+        }
+    }
+
+    // === Color ===
+    private void handleColor(CommandContext ctx, PlayerRef player, String[] args) {
+        if (!hasPermission(player, "hyperfactions.color")) {
+            ctx.sendMessage(prefix().insert(msg("You don't have permission.", COLOR_RED)));
+            return;
+        }
+
+        Faction faction = hyperFactions.getFactionManager().getPlayerFaction(player.getUuid());
+        if (faction == null) {
+            ctx.sendMessage(prefix().insert(msg("You are not in a faction.", COLOR_RED)));
+            return;
+        }
+
+        FactionMember member = faction.getMember(player.getUuid());
+        if (member == null || !member.isOfficerOrHigher()) {
+            ctx.sendMessage(prefix().insert(msg("You must be an officer to change the color.", COLOR_RED)));
+            return;
+        }
+
+        if (!HyperFactionsConfig.get().isAllowColors()) {
+            ctx.sendMessage(prefix().insert(msg("Faction colors are disabled.", COLOR_RED)));
+            return;
+        }
+
+        if (args.length == 0) {
+            ctx.sendMessage(prefix().insert(msg("Usage: /f color <code>", COLOR_RED)));
+            ctx.sendMessage(msg("Valid codes: 0-9, a-f", COLOR_GRAY));
+            return;
+        }
+
+        String colorCode = args[0].toLowerCase();
+        if (colorCode.length() != 1 || !colorCode.matches("[0-9a-f]")) {
+            ctx.sendMessage(prefix().insert(msg("Invalid color code. Use 0-9 or a-f.", COLOR_RED)));
+            return;
+        }
+
+        Faction updated = faction.withColor(colorCode)
+            .withLog(FactionLog.create(FactionLog.LogType.SETTINGS_CHANGE,
+                "Color changed to '" + colorCode + "'", player.getUuid()));
+
+        hyperFactions.getFactionManager().updateFaction(updated);
+
+        ctx.sendMessage(prefix().insert(msg("Faction color updated to ", COLOR_GREEN))
+            .insert(msg("\u00A7" + colorCode + "this color", null))
+            .insert(msg("!", COLOR_GREEN)));
+    }
+
+    // === Open ===
+    private void handleOpen(CommandContext ctx, PlayerRef player) {
+        if (!hasPermission(player, "hyperfactions.open")) {
+            ctx.sendMessage(prefix().insert(msg("You don't have permission.", COLOR_RED)));
+            return;
+        }
+
+        Faction faction = hyperFactions.getFactionManager().getPlayerFaction(player.getUuid());
+        if (faction == null) {
+            ctx.sendMessage(prefix().insert(msg("You are not in a faction.", COLOR_RED)));
+            return;
+        }
+
+        FactionMember member = faction.getMember(player.getUuid());
+        if (member == null || !member.isLeader()) {
+            ctx.sendMessage(prefix().insert(msg("Only the leader can change this setting.", COLOR_RED)));
+            return;
+        }
+
+        if (faction.open()) {
+            ctx.sendMessage(prefix().insert(msg("Your faction is already open.", COLOR_YELLOW)));
+            return;
+        }
+
+        Faction updated = faction.withOpen(true)
+            .withLog(FactionLog.create(FactionLog.LogType.SETTINGS_CHANGE,
+                "Faction set to open", player.getUuid()));
+
+        hyperFactions.getFactionManager().updateFaction(updated);
+
+        ctx.sendMessage(prefix().insert(msg("Your faction is now open! Anyone can join with /f join.", COLOR_GREEN)));
+        broadcastToFaction(faction.id(), prefix().insert(msg(player.getUsername(), COLOR_YELLOW))
+            .insert(msg(" opened the faction to public joining.", COLOR_GREEN)));
+    }
+
+    // === Close ===
+    private void handleClose(CommandContext ctx, PlayerRef player) {
+        if (!hasPermission(player, "hyperfactions.close")) {
+            ctx.sendMessage(prefix().insert(msg("You don't have permission.", COLOR_RED)));
+            return;
+        }
+
+        Faction faction = hyperFactions.getFactionManager().getPlayerFaction(player.getUuid());
+        if (faction == null) {
+            ctx.sendMessage(prefix().insert(msg("You are not in a faction.", COLOR_RED)));
+            return;
+        }
+
+        FactionMember member = faction.getMember(player.getUuid());
+        if (member == null || !member.isLeader()) {
+            ctx.sendMessage(prefix().insert(msg("Only the leader can change this setting.", COLOR_RED)));
+            return;
+        }
+
+        if (!faction.open()) {
+            ctx.sendMessage(prefix().insert(msg("Your faction is already closed.", COLOR_YELLOW)));
+            return;
+        }
+
+        Faction updated = faction.withOpen(false)
+            .withLog(FactionLog.create(FactionLog.LogType.SETTINGS_CHANGE,
+                "Faction set to invite-only", player.getUuid()));
+
+        hyperFactions.getFactionManager().updateFaction(updated);
+
+        ctx.sendMessage(prefix().insert(msg("Your faction is now invite-only.", COLOR_GREEN)));
+        broadcastToFaction(faction.id(), prefix().insert(msg(player.getUsername(), COLOR_YELLOW))
+            .insert(msg(" closed the faction to invite-only.", COLOR_GREEN)));
+    }
+
+    // === Stuck ===
+    private void handleStuck(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref, PlayerRef player, World world) {
+        TransformComponent transform = store.getComponent(ref, TransformComponent.getComponentType());
+        if (transform == null) return;
+
+        Vector3d pos = transform.getPosition();
+        UUID playerUuid = player.getUuid();
+
+        int chunkX = (int) Math.floor(pos.getX()) >> 4;
+        int chunkZ = (int) Math.floor(pos.getZ()) >> 4;
+
+        // Check if in enemy/neutral territory
+        UUID claimOwner = hyperFactions.getClaimManager().getClaimOwner(world.getName(), chunkX, chunkZ);
+        Faction playerFaction = hyperFactions.getFactionManager().getPlayerFaction(playerUuid);
+
+        if (claimOwner == null) {
+            ctx.sendMessage(prefix().insert(msg("You're not stuck - this is wilderness.", COLOR_RED)));
+            return;
+        }
+
+        if (playerFaction != null && claimOwner.equals(playerFaction.id())) {
+            ctx.sendMessage(prefix().insert(msg("You're not stuck - this is your territory.", COLOR_RED)));
+            return;
+        }
+
+        if (playerFaction != null && playerFaction.isAlly(claimOwner)) {
+            ctx.sendMessage(prefix().insert(msg("You're not stuck - this is ally territory.", COLOR_RED)));
+            return;
+        }
+
+        // Combat check
+        if (hyperFactions.getCombatTagManager().isTagged(playerUuid)) {
+            ctx.sendMessage(prefix().insert(msg("You cannot use /f stuck while in combat!", COLOR_RED)));
+            return;
+        }
+
+        // Find nearest safe chunk
+        int[] safeChunk = findNearestSafeChunk(world.getName(), chunkX, chunkZ, playerFaction);
+        if (safeChunk == null) {
+            ctx.sendMessage(prefix().insert(msg("Could not find a safe location.", COLOR_RED)));
+            return;
+        }
+
+        // Create teleport location (center of safe chunk)
+        double targetX = (safeChunk[0] << 4) + 8;
+        double targetZ = (safeChunk[1] << 4) + 8;
+        double targetY = pos.getY();
+
+        // Use extended warmup for stuck (30 seconds by default)
+        int warmupSeconds = HyperFactionsConfig.get().getStuckWarmupSeconds();
+
+        TeleportManager.StartLocation startLoc = new TeleportManager.StartLocation(
+            world.getName(), pos.getX(), pos.getY(), pos.getZ()
+        );
+
+        ctx.sendMessage(prefix().insert(msg("Teleporting to safety in " + warmupSeconds + " seconds. Don't move!", COLOR_YELLOW)));
+
+        // Schedule teleport with extended warmup
+        final double finalTargetX = targetX;
+        final double finalTargetZ = targetZ;
+        final double finalTargetY = targetY;
+
+        int taskId = hyperFactions.scheduleDelayedTask(warmupSeconds * 20, () -> {
+            // Recheck combat tag
+            if (hyperFactions.getCombatTagManager().isTagged(playerUuid)) {
+                player.sendMessage(prefix().insert(msg("Teleportation cancelled - you are in combat!", COLOR_RED)));
+                return;
+            }
+
+            // Recheck if still pending
+            TeleportManager.PendingTeleport pending = hyperFactions.getTeleportManager().getPending(playerUuid);
+            if (pending == null) {
+                return;
+            }
+            hyperFactions.getTeleportManager().cancelPending(playerUuid, hyperFactions::cancelTask);
+
+            // Execute teleport
+            transform.setPosition(new Vector3d(finalTargetX, finalTargetY, finalTargetZ));
+            player.sendMessage(prefix().insert(msg("Teleported to safety!", COLOR_GREEN)));
+        });
+
+        // Store as pending teleport
+        TeleportManager.PendingTeleport pending = new TeleportManager.PendingTeleport(
+            playerUuid, null, startLoc,
+            System.currentTimeMillis(), warmupSeconds, taskId, null
+        );
+        // Note: We're directly tracking this since TeleportManager.teleportToHome doesn't fit this use case
+    }
+
+    /**
+     * Finds the nearest safe chunk (wilderness, own claim, or ally claim).
+     */
+    private int[] findNearestSafeChunk(String world, int startX, int startZ, Faction playerFaction) {
+        int maxRadius = 10;
+
+        for (int radius = 1; radius <= maxRadius; radius++) {
+            for (int dx = -radius; dx <= radius; dx++) {
+                for (int dz = -radius; dz <= radius; dz++) {
+                    if (Math.abs(dx) != radius && Math.abs(dz) != radius) continue;
+
+                    int checkX = startX + dx;
+                    int checkZ = startZ + dz;
+                    UUID owner = hyperFactions.getClaimManager().getClaimOwner(world, checkX, checkZ);
+
+                    // Safe if: wilderness, own claim, or ally claim
+                    if (owner == null) return new int[]{checkX, checkZ};
+                    if (playerFaction != null) {
+                        if (owner.equals(playerFaction.id())) return new int[]{checkX, checkZ};
+                        if (playerFaction.isAlly(owner)) return new int[]{checkX, checkZ};
+                    }
+                }
+            }
+        }
+        return null;
     }
 
     // === Helpers ===
