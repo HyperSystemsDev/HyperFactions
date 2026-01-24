@@ -124,7 +124,7 @@ public class HyperFactions {
         claimManager = new ClaimManager(factionManager, powerManager);
         relationManager = new RelationManager(factionManager);
         combatTagManager = new CombatTagManager();
-        zoneManager = new ZoneManager(zoneStorage);
+        zoneManager = new ZoneManager(zoneStorage, claimManager);
         teleportManager = new TeleportManager(factionManager);
         inviteManager = new InviteManager();
 

@@ -298,7 +298,7 @@ public class ClaimManager {
         double defenderPower = powerManager.getFactionPower(defenderId);
         int defenderMaxClaims = HyperFactionsConfig.get().calculateMaxClaims(defenderPower);
 
-        if (defenderFaction.getClaimCount() <= defenderMaxClaims) {
+        if (defenderFaction.getClaimCount() < defenderMaxClaims) {
             return ClaimResult.TARGET_HAS_POWER;
         }
 

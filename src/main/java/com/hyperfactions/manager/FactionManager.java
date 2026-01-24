@@ -378,13 +378,13 @@ public class FactionManager {
             return FactionResult.TARGET_NOT_IN_FACTION;
         }
 
-        // Can't promote beyond officer (leader transfer is separate)
-        if (target.role() == FactionRole.OFFICER) {
+        // Can't promote a leader
+        if (target.role() == FactionRole.LEADER) {
             return FactionResult.CANNOT_PROMOTE_LEADER;
         }
 
-        // Promote
-        FactionRole newRole = target.role() == FactionRole.MEMBER ? FactionRole.OFFICER : FactionRole.OFFICER;
+        // Promote to next rank
+        FactionRole newRole = target.role() == FactionRole.MEMBER ? FactionRole.OFFICER : FactionRole.LEADER;
         FactionMember promoted = target.withRole(newRole);
 
         Faction updated = faction.withMember(promoted)

@@ -15,8 +15,8 @@ public class RelationManager {
 
     private final FactionManager factionManager;
 
-    // Pending ally requests: target faction -> set of requesting factions
-    private final Map<UUID, Set<UUID>> pendingAllyRequests = new ConcurrentHashMap<>();
+    // Pending ally requests: target faction -> (requesting faction -> requester player UUID)
+    private final Map<UUID, Map<UUID, UUID>> pendingAllyRequests = new ConcurrentHashMap<>();
 
     public RelationManager(@NotNull FactionManager factionManager) {
         this.factionManager = factionManager;
@@ -131,8 +131,8 @@ public class RelationManager {
      * @return true if pending
      */
     public boolean hasPendingRequest(@NotNull UUID fromFactionId, @NotNull UUID toFactionId) {
-        Set<UUID> pending = pendingAllyRequests.get(toFactionId);
-        return pending != null && pending.contains(fromFactionId);
+        Map<UUID, UUID> pending = pendingAllyRequests.get(toFactionId);
+        return pending != null && pending.containsKey(fromFactionId);
     }
 
     /**
@@ -143,8 +143,8 @@ public class RelationManager {
      */
     @NotNull
     public Set<UUID> getPendingRequests(@NotNull UUID factionId) {
-        Set<UUID> pending = pendingAllyRequests.get(factionId);
-        return pending != null ? Collections.unmodifiableSet(pending) : Collections.emptySet();
+        Map<UUID, UUID> pending = pendingAllyRequests.get(factionId);
+        return pending != null ? Collections.unmodifiableSet(pending.keySet()) : Collections.emptySet();
     }
 
     // === Operations ===
@@ -187,9 +187,9 @@ public class RelationManager {
             return acceptAlly(actorUuid, targetFactionId);
         }
 
-        // Send new request
-        pendingAllyRequests.computeIfAbsent(targetFactionId, k -> ConcurrentHashMap.newKeySet())
-            .add(actorFaction.id());
+        // Send new request (store requester's player UUID for logging)
+        pendingAllyRequests.computeIfAbsent(targetFactionId, k -> new ConcurrentHashMap<>())
+            .put(actorFaction.id(), actorUuid);
 
         Logger.info("Faction '%s' sent ally request to '%s'", actorFaction.name(), targetFaction.name());
         return RelationResult.REQUEST_SENT;
@@ -213,10 +213,13 @@ public class RelationManager {
             return RelationResult.NOT_OFFICER;
         }
 
-        Set<UUID> pending = pendingAllyRequests.get(actorFaction.id());
-        if (pending == null || !pending.contains(fromFactionId)) {
+        Map<UUID, UUID> pending = pendingAllyRequests.get(actorFaction.id());
+        if (pending == null || !pending.containsKey(fromFactionId)) {
             return RelationResult.NO_PENDING_REQUEST;
         }
+
+        // Get the original requester's UUID for logging
+        UUID requesterUuid = pending.get(fromFactionId);
 
         Faction fromFaction = factionManager.getFaction(fromFactionId);
         if (fromFaction == null) {
@@ -224,9 +227,9 @@ public class RelationManager {
             return RelationResult.FACTION_NOT_FOUND;
         }
 
-        // Set mutual ally relation
+        // Set mutual ally relation (both sides get proper actor attribution)
         setRelation(actorFaction.id(), fromFactionId, RelationType.ALLY, actorUuid);
-        setRelation(fromFactionId, actorFaction.id(), RelationType.ALLY, null);
+        setRelation(fromFactionId, actorFaction.id(), RelationType.ALLY, requesterUuid);
 
         // Remove pending request
         pending.remove(fromFactionId);
@@ -267,7 +270,7 @@ public class RelationManager {
         }
 
         // Remove any pending ally requests
-        Set<UUID> pending = pendingAllyRequests.get(actorFaction.id());
+        Map<UUID, UUID> pending = pendingAllyRequests.get(actorFaction.id());
         if (pending != null) {
             pending.remove(targetFactionId);
         }
@@ -357,7 +360,7 @@ public class RelationManager {
     public void clearAllRelations(@NotNull UUID factionId) {
         // Remove pending requests
         pendingAllyRequests.remove(factionId);
-        for (Set<UUID> requests : pendingAllyRequests.values()) {
+        for (Map<UUID, UUID> requests : pendingAllyRequests.values()) {
             requests.remove(factionId);
         }
 

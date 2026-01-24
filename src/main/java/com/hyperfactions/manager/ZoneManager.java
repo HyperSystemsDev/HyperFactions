@@ -19,6 +19,7 @@ import java.util.stream.Collectors;
 public class ZoneManager {
 
     private final ZoneStorage storage;
+    private final ClaimManager claimManager;
 
     // Index: ChunkKey -> Zone
     private final Map<ChunkKey, Zone> zoneIndex = new ConcurrentHashMap<>();
@@ -26,8 +27,9 @@ public class ZoneManager {
     // All zones by ID
     private final Map<UUID, Zone> zonesById = new ConcurrentHashMap<>();
 
-    public ZoneManager(@NotNull ZoneStorage storage) {
+    public ZoneManager(@NotNull ZoneStorage storage, @NotNull ClaimManager claimManager) {
         this.storage = storage;
+        this.claimManager = claimManager;
     }
 
     /**
@@ -212,6 +214,11 @@ public class ZoneManager {
         // Check if zone already exists at location
         if (zoneIndex.containsKey(key)) {
             return ZoneResult.ALREADY_EXISTS;
+        }
+
+        // Check if chunk is claimed by a faction
+        if (claimManager.getClaimOwner(world, chunkX, chunkZ) != null) {
+            return ZoneResult.CHUNK_CLAIMED;
         }
 
         Zone zone = Zone.create(name, type, world, chunkX, chunkZ, createdBy);

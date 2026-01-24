@@ -545,24 +545,69 @@ public class FactionCommand extends AbstractPlayerCommand {
 
     // === Home ===
     private void handleHome(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref, PlayerRef player, World world) {
-        Faction faction = hyperFactions.getFactionManager().getPlayerFaction(player.getUuid());
-        if (faction == null) {
-            ctx.sendMessage(prefix().insert(msg("You are not in a faction.", COLOR_RED)));
-            return;
+        TransformComponent transform = store.getComponent(ref, TransformComponent.getComponentType());
+        if (transform == null) return;
+
+        Vector3d pos = transform.getPosition();
+        UUID playerUuid = player.getUuid();
+
+        // Create start location for movement checking
+        TeleportManager.StartLocation startLoc = new TeleportManager.StartLocation(
+            world.getName(), pos.getX(), pos.getY(), pos.getZ()
+        );
+
+        // Call TeleportManager with all required callbacks
+        TeleportManager.TeleportResult result = hyperFactions.getTeleportManager().teleportToHome(
+            playerUuid,
+            startLoc,
+            // Task scheduler
+            (delayTicks, task) -> hyperFactions.scheduleDelayedTask(delayTicks, task),
+            // Task canceller
+            hyperFactions::cancelTask,
+            // Teleport executor
+            faction -> executeTeleport(store, ref, world, faction),
+            // Message sender
+            message -> ctx.sendMessage(msg(message, COLOR_YELLOW)),
+            // Combat tag checker
+            () -> hyperFactions.getCombatTagManager().isTagged(playerUuid)
+        );
+
+        // Handle immediate results (warmup will handle async results)
+        switch (result) {
+            case NOT_IN_FACTION -> ctx.sendMessage(prefix().insert(msg("You are not in a faction.", COLOR_RED)));
+            case NO_HOME -> ctx.sendMessage(prefix().insert(msg("Your faction has no home set.", COLOR_RED)));
+            case COMBAT_TAGGED -> ctx.sendMessage(prefix().insert(msg("You cannot teleport while in combat!", COLOR_RED)));
+            case ON_COOLDOWN -> {} // Message sent by TeleportManager
+            case SUCCESS -> {} // Either instant teleport completed or warmup started
+            default -> {}
+        }
+    }
+
+    /**
+     * Executes the actual teleport to faction home.
+     */
+    private TeleportManager.TeleportResult executeTeleport(Store<EntityStore> store, Ref<EntityStore> ref,
+                                                           World currentWorld, Faction faction) {
+        Faction.FactionHome home = faction.home();
+        if (home == null) {
+            return TeleportManager.TeleportResult.NO_HOME;
         }
 
-        if (!faction.hasHome()) {
-            ctx.sendMessage(prefix().insert(msg("Your faction has no home set.", COLOR_RED)));
-            return;
+        // Check if same world (cross-world teleport needs different handling)
+        if (!currentWorld.getName().equals(home.world())) {
+            // For now, cross-world teleport is not supported
+            return TeleportManager.TeleportResult.WORLD_NOT_FOUND;
         }
 
-        if (hyperFactions.getCombatTagManager().isTagged(player.getUuid())) {
-            ctx.sendMessage(prefix().insert(msg("You cannot teleport while in combat!", COLOR_RED)));
-            return;
+        TransformComponent transform = store.getComponent(ref, TransformComponent.getComponentType());
+        if (transform == null) {
+            return TeleportManager.TeleportResult.WORLD_NOT_FOUND;
         }
 
-        ctx.sendMessage(prefix().insert(msg("Teleporting to faction home...", COLOR_YELLOW)));
-        // Actual teleport would need full implementation with warmup
+        // Teleport the player (position only - rotation would need platform-specific handling)
+        transform.setPosition(new Vector3d(home.x(), home.y(), home.z()));
+
+        return TeleportManager.TeleportResult.SUCCESS;
     }
 
     // === SetHome ===
@@ -790,13 +835,117 @@ public class FactionCommand extends AbstractPlayerCommand {
 
     // === Who ===
     private void handleWho(CommandContext ctx, PlayerRef player, String[] args) {
-        ctx.sendMessage(prefix().insert(msg("Player lookup not yet implemented.", COLOR_GRAY)));
+        String targetName;
+        UUID targetUuid = null;
+
+        if (args.length == 0) {
+            // Show own info
+            targetName = player.getUsername();
+            targetUuid = player.getUuid();
+        } else {
+            // Look up target player
+            targetName = args[0];
+
+            // First check online players
+            for (PlayerRef online : plugin.getTrackedPlayers().values()) {
+                if (online.getUsername().equalsIgnoreCase(targetName)) {
+                    targetUuid = online.getUuid();
+                    targetName = online.getUsername(); // Use correct case
+                    break;
+                }
+            }
+
+            // If not online, search faction members
+            if (targetUuid == null) {
+                for (Faction faction : hyperFactions.getFactionManager().getAllFactions()) {
+                    for (FactionMember member : faction.getMembersSorted()) {
+                        if (member.username().equalsIgnoreCase(targetName)) {
+                            targetUuid = member.uuid();
+                            targetName = member.username(); // Use correct case
+                            break;
+                        }
+                    }
+                    if (targetUuid != null) break;
+                }
+            }
+        }
+
+        if (targetUuid == null) {
+            ctx.sendMessage(prefix().insert(msg("Player not found.", COLOR_RED)));
+            return;
+        }
+
+        // Get faction info
+        Faction faction = hyperFactions.getFactionManager().getPlayerFaction(targetUuid);
+        FactionMember member = faction != null ? faction.getMember(targetUuid) : null;
+
+        // Get power info
+        PlayerPower power = hyperFactions.getPowerManager().getPlayerPower(targetUuid);
+
+        // Check if online
+        boolean isOnline = plugin.getTrackedPlayer(targetUuid) != null;
+
+        // Display info
+        ctx.sendMessage(msg("=== " + targetName + " ===", COLOR_CYAN));
+
+        if (faction != null && member != null) {
+            ctx.sendMessage(msg("Faction: ", COLOR_GRAY).insert(msg(faction.name(), COLOR_WHITE)));
+            ctx.sendMessage(msg("Role: ", COLOR_GRAY).insert(msg(member.role().getDisplayName(), COLOR_WHITE)));
+            ctx.sendMessage(msg("Joined: ", COLOR_GRAY).insert(msg(TimeUtil.formatRelative(member.joinedAt()), COLOR_WHITE)));
+        } else {
+            ctx.sendMessage(msg("Faction: ", COLOR_GRAY).insert(msg("None", COLOR_WHITE)));
+        }
+
+        ctx.sendMessage(msg("Power: ", COLOR_GRAY).insert(msg(String.format("%.1f/%.1f", power.power(), power.maxPower()), COLOR_WHITE)));
+        ctx.sendMessage(msg("Status: ", COLOR_GRAY).insert(msg(isOnline ? "Online" : "Offline", isOnline ? COLOR_GREEN : COLOR_RED)));
+
+        if (!isOnline && member != null) {
+            ctx.sendMessage(msg("Last seen: ", COLOR_GRAY).insert(msg(TimeUtil.formatRelative(member.lastOnline()), COLOR_WHITE)));
+        }
     }
 
     // === Power ===
     private void handlePower(CommandContext ctx, PlayerRef player, String[] args) {
-        UUID targetUuid = player.getUuid();
-        String targetName = player.getUsername();
+        UUID targetUuid;
+        String targetName;
+
+        if (args.length == 0) {
+            // Show own power
+            targetUuid = player.getUuid();
+            targetName = player.getUsername();
+        } else {
+            // Look up target player
+            targetName = args[0];
+            targetUuid = null;
+
+            // First check online players
+            for (PlayerRef online : plugin.getTrackedPlayers().values()) {
+                if (online.getUsername().equalsIgnoreCase(targetName)) {
+                    targetUuid = online.getUuid();
+                    targetName = online.getUsername();
+                    break;
+                }
+            }
+
+            // If not online, search faction members
+            if (targetUuid == null) {
+                for (Faction faction : hyperFactions.getFactionManager().getAllFactions()) {
+                    for (FactionMember member : faction.getMembersSorted()) {
+                        if (member.username().equalsIgnoreCase(targetName)) {
+                            targetUuid = member.uuid();
+                            targetName = member.username();
+                            break;
+                        }
+                    }
+                    if (targetUuid != null) break;
+                }
+            }
+
+            if (targetUuid == null) {
+                ctx.sendMessage(prefix().insert(msg("Player not found.", COLOR_RED)));
+                return;
+            }
+        }
 
         PlayerPower power = hyperFactions.getPowerManager().getPlayerPower(targetUuid);
         ctx.sendMessage(msg(targetName + "'s Power:", COLOR_CYAN));
@@ -853,6 +1002,10 @@ public class FactionCommand extends AbstractPlayerCommand {
                 );
                 if (result == ZoneManager.ZoneResult.SUCCESS) {
                     ctx.sendMessage(prefix().insert(msg("Created SafeZone at " + chunkX + ", " + chunkZ, COLOR_GREEN)));
+                } else if (result == ZoneManager.ZoneResult.CHUNK_CLAIMED) {
+                    ctx.sendMessage(prefix().insert(msg("Cannot create zone: This chunk is claimed by a faction.", COLOR_RED)));
+                } else if (result == ZoneManager.ZoneResult.ALREADY_EXISTS) {
+                    ctx.sendMessage(prefix().insert(msg("A zone already exists at this location.", COLOR_RED)));
                 } else {
                     ctx.sendMessage(prefix().insert(msg("Failed: " + result, COLOR_RED)));
                 }
@@ -863,6 +1016,10 @@ public class FactionCommand extends AbstractPlayerCommand {
                 );
                 if (result == ZoneManager.ZoneResult.SUCCESS) {
                     ctx.sendMessage(prefix().insert(msg("Created WarZone at " + chunkX + ", " + chunkZ, COLOR_GREEN)));
+                } else if (result == ZoneManager.ZoneResult.CHUNK_CLAIMED) {
+                    ctx.sendMessage(prefix().insert(msg("Cannot create zone: This chunk is claimed by a faction.", COLOR_RED)));
+                } else if (result == ZoneManager.ZoneResult.ALREADY_EXISTS) {
+                    ctx.sendMessage(prefix().insert(msg("A zone already exists at this location.", COLOR_RED)));
                 } else {
                     ctx.sendMessage(prefix().insert(msg("Failed: " + result, COLOR_RED)));
                 }
