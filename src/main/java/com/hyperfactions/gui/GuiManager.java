@@ -197,6 +197,32 @@ public class GuiManager {
     }
 
     /**
+     * Opens the Create Faction page (multi-step form).
+     *
+     * @param player    The Player entity
+     * @param ref       The entity reference
+     * @param store     The entity store
+     * @param playerRef The PlayerRef component
+     */
+    public void openCreateFaction(Player player, Ref<EntityStore> ref,
+                                  Store<EntityStore> store, PlayerRef playerRef) {
+        Logger.debug("[GUI] Opening CreateFactionPage for %s", playerRef.getUsername());
+        try {
+            PageManager pageManager = player.getPageManager();
+            CreateFactionPage page = new CreateFactionPage(
+                playerRef,
+                factionManager.get(),
+                this
+            );
+            pageManager.openCustomPage(ref, store, page);
+            Logger.debug("[GUI] CreateFactionPage opened successfully");
+        } catch (Exception e) {
+            Logger.severe("[GUI] Failed to open CreateFactionPage: %s", e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
      * Opens the Faction Browser page (list all factions).
      *
      * @param player    The Player entity

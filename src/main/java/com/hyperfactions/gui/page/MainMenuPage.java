@@ -181,15 +181,7 @@ public class MainMenuPage extends InteractiveCustomUIPage<MainMenuData> {
                 }
             }
 
-            case "CreateFaction" -> {
-                guiManager.closePage(player, ref, store);
-                player.sendMessage(
-                    com.hypixel.hytale.server.core.Message.raw("Use ")
-                        .color("#AAAAAA")
-                        .insert(com.hypixel.hytale.server.core.Message.raw("/f create <name>").color("#55FF55"))
-                        .insert(com.hypixel.hytale.server.core.Message.raw(" to create a faction.").color("#AAAAAA"))
-                );
-            }
+            case "CreateFaction" -> guiManager.openCreateFaction(player, ref, store, playerRef);
 
             case "Map" -> guiManager.openChunkMap(player, ref, store, playerRef);
 
