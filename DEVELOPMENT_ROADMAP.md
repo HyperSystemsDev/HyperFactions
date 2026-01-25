@@ -20,6 +20,120 @@ See [CHANGELOG.md](CHANGELOG.md) for complete list of implemented features.
 
 ---
 
+## Critical Bugs (Post-Merge Testing)
+
+> Discovered during manual testing on 2026-01-24
+
+### Bug #4: /f home Command Silent Failure
+- **Priority:** P0 - Critical
+- **Status:** Not Fixed
+- **Discovered:** Manual testing session
+
+**Problem:**
+The `/f home` command executes but provides no feedback to the player. Command appears in server logs as executed, but:
+- No success message when teleport completes
+- No error message if teleport fails
+- Silent failure provides poor user experience
+
+**Evidence:**
+```
+[2026/01/25 02:48:53] CommandManager: DMehaffy executed command: f home
+[2026/01/25 02:48:57] CommandManager: DMehaffy executed command: f home
+(no response messages in log)
+```
+
+**Root Cause:**
+Line 594 in `FactionCommand.java`:
+```java
+case SUCCESS -> {} // Either instant teleport completed or warmup started
+```
+
+The SUCCESS case has no feedback. Need to determine if warmup was started or instant teleport occurred and provide appropriate message.
+
+**Fix Required:**
+1. Add success message for instant teleport
+2. Add message for warmup started (e.g., "Teleporting in 5 seconds...")
+3. Ensure all TeleportResult cases have appropriate feedback
+4. Test with both warmup enabled and disabled configurations
+
+**Files:**
+- `FactionCommand.java` (line 589-596)
+- May need to update `TeleportManager.java` to return more granular status
+
+---
+
+### Bug #5: Help Command Format Inconsistency
+- **Priority:** P1 - High
+- **Status:** Not Fixed
+- **Discovered:** Manual testing session
+
+**Problem:**
+The `/f help` command and all nested subcommand help outputs don't follow the HyperSystems standard message format used by HyperPerms.
+
+**Current Format:**
+```
+Generic plain text help output
+Not using HyperPerms message formatting standards
+```
+
+**Expected Format (HyperPerms Standard):**
+```
+--- hp user ------------------------------
+  Manage users
+
+  Subcommands:
+    info - Show user's groups and permissions
+    setperm - Set a permission on a user
+    ...
+
+  Use /hp user <subcommand> --help for details
+------------------------------------------
+```
+
+**Fix Required:**
+1. Audit all help output in `FactionCommand.java`
+2. Update `showHelp()` method to use HyperPerms message formatting pattern
+3. Ensure consistent formatting across all subcommands
+4. Add proper section dividers, indentation, and structure
+5. Include color coding consistent with HyperPerms (headers, subcommands, descriptions)
+
+**Files:**
+- `FactionCommand.java` - Multiple help methods
+- May need to add utility methods for consistent formatting
+
+**Reference:**
+See `HyperPerms` command help output for formatting standards.
+
+---
+
+### Bug #6: /f desc Verification (STATUS: WORKING)
+- **Priority:** N/A - Not a bug
+- **Status:** ✅ Working Correctly
+- **Discovered:** Manual testing session
+
+**Investigation:**
+User was uncertain if `/f desc` command worked during testing.
+
+**Verification:**
+Checked faction data file (`4efb8a8a-15ce-4beb-a164-eafffa77f95e.json`):
+```json
+{
+  "description": "hello world",
+  "logs": [
+    {
+      "type": "SETTINGS_CHANGE",
+      "message": "Description set",
+      "timestamp": 1769309356776,
+      "actorUuid": "d2e70a75-04e3-4acf-a69f-8a2445c66ffc"
+    }
+  ]
+}
+```
+
+**Conclusion:** Command is working correctly. Description was saved and logged properly. No action required.
+
+---
+
 ## Development Phases
 
 ### Phase 2: Core Enhancements (Remaining)
@@ -339,6 +453,10 @@ These may become possible if Hytale adds these mechanics in future updates.
 ---
 
 ## Timeline Summary
+
+### Critical Bug Fixes (Next 1-2 days) ⚠️
+1. **Bug #4**: /f home silent failure (2-3 hours) - P0
+2. **Bug #5**: Help command formatting (3-4 hours) - P1
 
 ### Immediate Priorities (Next 4-6 weeks)
 1. **Phase 2.11**: GUI System Overhaul (2-3 weeks) - P0
