@@ -8,6 +8,8 @@ import com.hyperfactions.integration.HyperPermsIntegration;
 import com.hyperfactions.manager.*;
 import com.hyperfactions.platform.HyperFactionsPlugin;
 import com.hyperfactions.util.ChunkUtil;
+import com.hyperfactions.util.CommandHelp;
+import com.hyperfactions.util.HelpFormatter;
 import com.hyperfactions.util.TimeUtil;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
@@ -122,29 +124,55 @@ public class FactionCommand extends AbstractPlayerCommand {
     }
 
     private void showHelp(CommandContext ctx, PlayerRef player) {
-        ctx.sendMessage(msg("=== HyperFactions Help ===", COLOR_CYAN).bold(true));
-        ctx.sendMessage(msg("/f create <name>", COLOR_YELLOW).insert(msg(" - Create a faction", COLOR_GRAY)));
-        ctx.sendMessage(msg("/f disband", COLOR_YELLOW).insert(msg(" - Disband your faction", COLOR_GRAY)));
-        ctx.sendMessage(msg("/f invite <player>", COLOR_YELLOW).insert(msg(" - Invite a player", COLOR_GRAY)));
-        ctx.sendMessage(msg("/f accept [faction]", COLOR_YELLOW).insert(msg(" - Accept an invite", COLOR_GRAY)));
-        ctx.sendMessage(msg("/f leave", COLOR_YELLOW).insert(msg(" - Leave your faction", COLOR_GRAY)));
-        ctx.sendMessage(msg("/f kick <player>", COLOR_YELLOW).insert(msg(" - Kick a member", COLOR_GRAY)));
-        ctx.sendMessage(msg("/f claim", COLOR_YELLOW).insert(msg(" - Claim this chunk", COLOR_GRAY)));
-        ctx.sendMessage(msg("/f unclaim", COLOR_YELLOW).insert(msg(" - Unclaim this chunk", COLOR_GRAY)));
-        ctx.sendMessage(msg("/f home", COLOR_YELLOW).insert(msg(" - Teleport to faction home", COLOR_GRAY)));
-        ctx.sendMessage(msg("/f sethome", COLOR_YELLOW).insert(msg(" - Set faction home", COLOR_GRAY)));
-        ctx.sendMessage(msg("/f ally <faction>", COLOR_YELLOW).insert(msg(" - Request alliance", COLOR_GRAY)));
-        ctx.sendMessage(msg("/f enemy <faction>", COLOR_YELLOW).insert(msg(" - Declare enemy", COLOR_GRAY)));
-        ctx.sendMessage(msg("/f info [faction]", COLOR_YELLOW).insert(msg(" - View faction info", COLOR_GRAY)));
-        ctx.sendMessage(msg("/f map", COLOR_YELLOW).insert(msg(" - View territory map", COLOR_GRAY)));
-        ctx.sendMessage(msg("/f list", COLOR_YELLOW).insert(msg(" - List all factions", COLOR_GRAY)));
-        ctx.sendMessage(msg("/f gui", COLOR_YELLOW).insert(msg(" - Open faction GUI", COLOR_GRAY)));
-        ctx.sendMessage(msg("/f rename <name>", COLOR_YELLOW).insert(msg(" - Rename your faction", COLOR_GRAY)));
-        ctx.sendMessage(msg("/f desc <text>", COLOR_YELLOW).insert(msg(" - Set faction description", COLOR_GRAY)));
-        ctx.sendMessage(msg("/f color <code>", COLOR_YELLOW).insert(msg(" - Set faction color", COLOR_GRAY)));
-        ctx.sendMessage(msg("/f open", COLOR_YELLOW).insert(msg(" - Allow anyone to join", COLOR_GRAY)));
-        ctx.sendMessage(msg("/f close", COLOR_YELLOW).insert(msg(" - Require invite to join", COLOR_GRAY)));
-        ctx.sendMessage(msg("/f stuck", COLOR_YELLOW).insert(msg(" - Escape from enemy territory", COLOR_GRAY)));
+        List<CommandHelp> commands = new ArrayList<>();
+
+        // Core - Basic faction management
+        commands.add(new CommandHelp("/f create <name>", "Create a faction", "Core"));
+        commands.add(new CommandHelp("/f disband", "Disband your faction", "Core"));
+        commands.add(new CommandHelp("/f invite <player>", "Invite a player", "Core"));
+        commands.add(new CommandHelp("/f accept [faction]", "Accept an invite", "Core"));
+        commands.add(new CommandHelp("/f leave", "Leave your faction", "Core"));
+        commands.add(new CommandHelp("/f kick <player>", "Kick a member", "Core"));
+
+        // Management - Faction settings
+        commands.add(new CommandHelp("/f rename <name>", "Rename your faction", "Management"));
+        commands.add(new CommandHelp("/f desc <text>", "Set faction description", "Management"));
+        commands.add(new CommandHelp("/f color <code>", "Set faction color", "Management"));
+        commands.add(new CommandHelp("/f open", "Allow anyone to join", "Management"));
+        commands.add(new CommandHelp("/f close", "Require invite to join", "Management"));
+        commands.add(new CommandHelp("/f promote <player>", "Promote to officer", "Management"));
+        commands.add(new CommandHelp("/f demote <player>", "Demote to member", "Management"));
+        commands.add(new CommandHelp("/f transfer <player>", "Transfer leadership", "Management"));
+
+        // Territory - Land claims
+        commands.add(new CommandHelp("/f claim", "Claim this chunk", "Territory"));
+        commands.add(new CommandHelp("/f unclaim", "Unclaim this chunk", "Territory"));
+        commands.add(new CommandHelp("/f overclaim", "Overclaim enemy territory", "Territory"));
+        commands.add(new CommandHelp("/f map", "View territory map", "Territory"));
+
+        // Relations - Diplomatic relations
+        commands.add(new CommandHelp("/f ally <faction>", "Request alliance", "Relations"));
+        commands.add(new CommandHelp("/f enemy <faction>", "Declare enemy", "Relations"));
+        commands.add(new CommandHelp("/f neutral <faction>", "Set neutral relation", "Relations"));
+
+        // Teleport - Home teleportation
+        commands.add(new CommandHelp("/f home", "Teleport to faction home", "Teleport"));
+        commands.add(new CommandHelp("/f sethome", "Set faction home", "Teleport"));
+        commands.add(new CommandHelp("/f stuck", "Escape from enemy territory", "Teleport"));
+
+        // Information - Viewing faction data
+        commands.add(new CommandHelp("/f info [faction]", "View faction info", "Information"));
+        commands.add(new CommandHelp("/f list", "List all factions", "Information"));
+        commands.add(new CommandHelp("/f who <player>", "View player info", "Information"));
+        commands.add(new CommandHelp("/f power [player]", "View power level", "Information"));
+        commands.add(new CommandHelp("/f gui", "Open faction GUI", "Information"));
+
+        // Other
+        commands.add(new CommandHelp("/f chat [mode]", "Toggle faction chat", "Other"));
+        commands.add(new CommandHelp("/f admin", "Admin commands", "Other"));
+        commands.add(new CommandHelp("/f reload", "Reload config", "Other"));
+
+        ctx.sendMessage(HelpFormatter.buildHelp("HyperFactions", "Faction management and territory control", commands, "Use /f <command> for more details"));
     }
 
     // === Create ===
@@ -1002,10 +1030,13 @@ public class FactionCommand extends AbstractPlayerCommand {
         }
 
         if (args.length == 0) {
-            ctx.sendMessage(msg("/f admin safezone - Create SafeZone", COLOR_YELLOW));
-            ctx.sendMessage(msg("/f admin warzone - Create WarZone", COLOR_YELLOW));
-            ctx.sendMessage(msg("/f admin removezone - Remove zone", COLOR_YELLOW));
-            ctx.sendMessage(msg("/f admin zoneflag [flag] [true|false|clear] - Manage zone flags", COLOR_YELLOW));
+            List<CommandHelp> adminCommands = new ArrayList<>();
+            adminCommands.add(new CommandHelp("/f admin safezone", "Create SafeZone at current chunk"));
+            adminCommands.add(new CommandHelp("/f admin warzone", "Create WarZone at current chunk"));
+            adminCommands.add(new CommandHelp("/f admin removezone", "Remove zone at current chunk"));
+            adminCommands.add(new CommandHelp("/f admin zoneflag <flag> [value]", "Manage zone flags"));
+            adminCommands.add(new CommandHelp("/f admin bypass", "Toggle admin bypass mode"));
+            ctx.sendMessage(HelpFormatter.buildHelp("HyperFactions Admin", null, adminCommands, null));
             return;
         }
 
