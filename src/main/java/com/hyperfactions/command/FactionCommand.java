@@ -3,6 +3,7 @@ package com.hyperfactions.command;
 import com.hyperfactions.HyperFactions;
 import com.hyperfactions.config.HyperFactionsConfig;
 import com.hyperfactions.data.*;
+import com.hyperfactions.data.ZoneFlags;
 import com.hyperfactions.integration.HyperPermsIntegration;
 import com.hyperfactions.manager.*;
 import com.hyperfactions.platform.HyperFactionsPlugin;
@@ -995,9 +996,10 @@ public class FactionCommand extends AbstractPlayerCommand {
         }
 
         if (args.length == 0) {
-            ctx.sendMessage(msg("/f admin safezone - Create SafeZone", COLOR_RED));
-            ctx.sendMessage(msg("/f admin warzone - Create WarZone", COLOR_RED));
-            ctx.sendMessage(msg("/f admin removezone - Remove zone", COLOR_RED));
+            ctx.sendMessage(msg("/f admin safezone - Create SafeZone", COLOR_YELLOW));
+            ctx.sendMessage(msg("/f admin warzone - Create WarZone", COLOR_YELLOW));
+            ctx.sendMessage(msg("/f admin removezone - Remove zone", COLOR_YELLOW));
+            ctx.sendMessage(msg("/f admin zoneflag [flag] [true|false|clear] - Manage zone flags", COLOR_YELLOW));
             return;
         }
 
@@ -1046,7 +1048,77 @@ public class FactionCommand extends AbstractPlayerCommand {
                     ctx.sendMessage(prefix().insert(msg("No zone found.", COLOR_RED)));
                 }
             }
+            case "zoneflag" -> handleZoneFlag(ctx, world.getName(), chunkX, chunkZ, Arrays.copyOfRange(args, 1, args.length));
             default -> ctx.sendMessage(prefix().insert(msg("Unknown admin command.", COLOR_RED)));
+        }
+    }
+
+    // === Zone Flag Management ===
+    private void handleZoneFlag(CommandContext ctx, String worldName, int chunkX, int chunkZ, String[] args) {
+        Zone zone = hyperFactions.getZoneManager().getZone(worldName, chunkX, chunkZ);
+        if (zone == null) {
+            ctx.sendMessage(prefix().insert(msg("No zone at your location. Stand in a zone to manage flags.", COLOR_RED)));
+            return;
+        }
+
+        // No args - show current flags
+        if (args.length == 0) {
+            ctx.sendMessage(msg("=== Zone Flags: " + zone.name() + " ===", COLOR_CYAN).bold(true));
+            ctx.sendMessage(msg("Zone Type: " + zone.type().getDisplayName(), COLOR_GRAY));
+            ctx.sendMessage(msg("", COLOR_GRAY));
+
+            for (String flag : ZoneFlags.ALL_FLAGS) {
+                boolean effectiveValue = zone.getEffectiveFlag(flag);
+                boolean isCustom = zone.hasFlagSet(flag);
+                String valueStr = effectiveValue ? "true" : "false";
+                String customStr = isCustom ? " (custom)" : " (default)";
+                String color = effectiveValue ? COLOR_GREEN : COLOR_RED;
+                ctx.sendMessage(msg("  " + flag + ": ", COLOR_GRAY).insert(msg(valueStr, color)).insert(msg(customStr, COLOR_GRAY)));
+            }
+            ctx.sendMessage(msg("", COLOR_GRAY));
+            ctx.sendMessage(msg("Usage: /f admin zoneflag <flag> <true|false|clear>", COLOR_YELLOW));
+            return;
+        }
+
+        // Get flag name
+        String flagName = args[0].toLowerCase();
+        if (!ZoneFlags.isValidFlag(flagName)) {
+            ctx.sendMessage(prefix().insert(msg("Invalid flag: " + flagName, COLOR_RED)));
+            ctx.sendMessage(msg("Valid flags: " + String.join(", ", ZoneFlags.ALL_FLAGS), COLOR_GRAY));
+            return;
+        }
+
+        // Show specific flag value
+        if (args.length == 1) {
+            boolean effectiveValue = zone.getEffectiveFlag(flagName);
+            boolean isCustom = zone.hasFlagSet(flagName);
+            ctx.sendMessage(prefix().insert(msg("Flag '" + flagName + "' = " + effectiveValue, effectiveValue ? COLOR_GREEN : COLOR_RED))
+                .insert(msg(isCustom ? " (custom)" : " (default)", COLOR_GRAY)));
+            return;
+        }
+
+        // Set or clear flag
+        String action = args[1].toLowerCase();
+        ZoneManager.ZoneResult result;
+
+        if (action.equals("clear") || action.equals("default") || action.equals("reset")) {
+            result = hyperFactions.getZoneManager().clearZoneFlag(zone.id(), flagName);
+            if (result == ZoneManager.ZoneResult.SUCCESS) {
+                boolean defaultValue = zone.isSafeZone() ? ZoneFlags.getSafeZoneDefault(flagName) : ZoneFlags.getWarZoneDefault(flagName);
+                ctx.sendMessage(prefix().insert(msg("Cleared flag '" + flagName + "' (now using default: " + defaultValue + ")", COLOR_GREEN)));
+            } else {
+                ctx.sendMessage(prefix().insert(msg("Failed to clear flag.", COLOR_RED)));
+            }
+        } else if (action.equals("true") || action.equals("false")) {
+            boolean value = action.equals("true");
+            result = hyperFactions.getZoneManager().setZoneFlag(zone.id(), flagName, value);
+            if (result == ZoneManager.ZoneResult.SUCCESS) {
+                ctx.sendMessage(prefix().insert(msg("Set flag '" + flagName + "' to " + value, COLOR_GREEN)));
+            } else {
+                ctx.sendMessage(prefix().insert(msg("Failed to set flag.", COLOR_RED)));
+            }
+        } else {
+            ctx.sendMessage(prefix().insert(msg("Invalid value. Use: true, false, or clear", COLOR_RED)));
         }
     }
 

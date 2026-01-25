@@ -17,6 +17,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.Map;
+import java.util.HashMap;
 
 /**
  * JSON file-based implementation of ZoneStorage.
@@ -108,10 +110,30 @@ public class JsonZoneStorage implements ZoneStorage {
         obj.addProperty("chunkZ", zone.chunkZ());
         obj.addProperty("createdAt", zone.createdAt());
         obj.addProperty("createdBy", zone.createdBy().toString());
+
+        // Serialize flags if present
+        if (zone.flags() != null && !zone.flags().isEmpty()) {
+            JsonObject flagsObj = new JsonObject();
+            for (Map.Entry<String, Boolean> entry : zone.flags().entrySet()) {
+                flagsObj.addProperty(entry.getKey(), entry.getValue());
+            }
+            obj.add("flags", flagsObj);
+        }
+
         return obj;
     }
 
     private Zone deserializeZone(JsonObject obj) {
+        // Deserialize flags if present
+        Map<String, Boolean> flags = null;
+        if (obj.has("flags") && obj.get("flags").isJsonObject()) {
+            flags = new HashMap<>();
+            JsonObject flagsObj = obj.getAsJsonObject("flags");
+            for (String key : flagsObj.keySet()) {
+                flags.put(key, flagsObj.get(key).getAsBoolean());
+            }
+        }
+
         return new Zone(
             UUID.fromString(obj.get("id").getAsString()),
             obj.get("name").getAsString(),
@@ -120,7 +142,8 @@ public class JsonZoneStorage implements ZoneStorage {
             obj.get("chunkX").getAsInt(),
             obj.get("chunkZ").getAsInt(),
             obj.get("createdAt").getAsLong(),
-            UUID.fromString(obj.get("createdBy").getAsString())
+            UUID.fromString(obj.get("createdBy").getAsString()),
+            flags
         );
     }
 }

@@ -49,6 +49,12 @@ public class HyperFactionsConfig {
     private boolean factionDamage = false;
     private boolean taggedLogoutPenalty = true;
 
+    // Spawn protection settings
+    private boolean spawnProtectionEnabled = true;
+    private int spawnProtectionDurationSeconds = 5;
+    private boolean spawnProtectionBreakOnAttack = true;
+    private boolean spawnProtectionBreakOnMove = true;
+
     // Relation settings
     private int maxAllies = 10;      // -1 for unlimited
     private int maxEnemies = -1;     // -1 for unlimited
@@ -66,6 +72,17 @@ public class HyperFactionsConfig {
     // Update settings
     private boolean updateCheckEnabled = true;
     private String updateCheckUrl = "https://api.github.com/repos/ZenithDevHQ/HyperFactions/releases/latest";
+
+    // Auto-save settings
+    private boolean autoSaveEnabled = true;
+    private int autoSaveIntervalMinutes = 5;
+
+    // Economy settings
+    private boolean economyEnabled = true;
+    private String economyCurrencyName = "dollar";
+    private String economyCurrencyNamePlural = "dollars";
+    private String economyCurrencySymbol = "$";
+    private double economyStartingBalance = 0.0;
 
     // Message settings
     private String prefix = "\u00A7b[HyperFactions]\u00A7r ";
@@ -142,6 +159,15 @@ public class HyperFactionsConfig {
                 allyDamage = getBool(combat, "allyDamage", allyDamage);
                 factionDamage = getBool(combat, "factionDamage", factionDamage);
                 taggedLogoutPenalty = getBool(combat, "taggedLogoutPenalty", taggedLogoutPenalty);
+
+                // Spawn protection sub-section
+                if (combat.has("spawnProtection") && combat.get("spawnProtection").isJsonObject()) {
+                    JsonObject spawnProt = combat.getAsJsonObject("spawnProtection");
+                    spawnProtectionEnabled = getBool(spawnProt, "enabled", spawnProtectionEnabled);
+                    spawnProtectionDurationSeconds = getInt(spawnProt, "durationSeconds", spawnProtectionDurationSeconds);
+                    spawnProtectionBreakOnAttack = getBool(spawnProt, "breakOnAttack", spawnProtectionBreakOnAttack);
+                    spawnProtectionBreakOnMove = getBool(spawnProt, "breakOnMove", spawnProtectionBreakOnMove);
+                }
             }
 
             // Relation settings
@@ -172,6 +198,23 @@ public class HyperFactionsConfig {
                 JsonObject updates = root.getAsJsonObject("updates");
                 updateCheckEnabled = getBool(updates, "enabled", updateCheckEnabled);
                 updateCheckUrl = getString(updates, "url", updateCheckUrl);
+            }
+
+            // Auto-save settings
+            if (root.has("autoSave") && root.get("autoSave").isJsonObject()) {
+                JsonObject autoSave = root.getAsJsonObject("autoSave");
+                autoSaveEnabled = getBool(autoSave, "enabled", autoSaveEnabled);
+                autoSaveIntervalMinutes = getInt(autoSave, "intervalMinutes", autoSaveIntervalMinutes);
+            }
+
+            // Economy settings
+            if (root.has("economy") && root.get("economy").isJsonObject()) {
+                JsonObject economy = root.getAsJsonObject("economy");
+                economyEnabled = getBool(economy, "enabled", economyEnabled);
+                economyCurrencyName = getString(economy, "currencyName", economyCurrencyName);
+                economyCurrencyNamePlural = getString(economy, "currencyNamePlural", economyCurrencyNamePlural);
+                economyCurrencySymbol = getString(economy, "currencySymbol", economyCurrencySymbol);
+                economyStartingBalance = getDouble(economy, "startingBalance", economyStartingBalance);
             }
 
             // Message settings
@@ -238,6 +281,15 @@ public class HyperFactionsConfig {
             combat.addProperty("allyDamage", allyDamage);
             combat.addProperty("factionDamage", factionDamage);
             combat.addProperty("taggedLogoutPenalty", taggedLogoutPenalty);
+
+            // Spawn protection sub-section
+            JsonObject spawnProt = new JsonObject();
+            spawnProt.addProperty("enabled", spawnProtectionEnabled);
+            spawnProt.addProperty("durationSeconds", spawnProtectionDurationSeconds);
+            spawnProt.addProperty("breakOnAttack", spawnProtectionBreakOnAttack);
+            spawnProt.addProperty("breakOnMove", spawnProtectionBreakOnMove);
+            combat.add("spawnProtection", spawnProt);
+
             root.add("combat", combat);
 
             // Relation settings
@@ -265,6 +317,21 @@ public class HyperFactionsConfig {
             updates.addProperty("enabled", updateCheckEnabled);
             updates.addProperty("url", updateCheckUrl);
             root.add("updates", updates);
+
+            // Auto-save settings
+            JsonObject autoSave = new JsonObject();
+            autoSave.addProperty("enabled", autoSaveEnabled);
+            autoSave.addProperty("intervalMinutes", autoSaveIntervalMinutes);
+            root.add("autoSave", autoSave);
+
+            // Economy settings
+            JsonObject economy = new JsonObject();
+            economy.addProperty("enabled", economyEnabled);
+            economy.addProperty("currencyName", economyCurrencyName);
+            economy.addProperty("currencyNamePlural", economyCurrencyNamePlural);
+            economy.addProperty("currencySymbol", economyCurrencySymbol);
+            economy.addProperty("startingBalance", economyStartingBalance);
+            root.add("economy", economy);
 
             // Message settings
             JsonObject messages = new JsonObject();
@@ -318,6 +385,12 @@ public class HyperFactionsConfig {
     public boolean isFactionDamage() { return factionDamage; }
     public boolean isTaggedLogoutPenalty() { return taggedLogoutPenalty; }
 
+    // === Spawn Protection Getters ===
+    public boolean isSpawnProtectionEnabled() { return spawnProtectionEnabled; }
+    public int getSpawnProtectionDurationSeconds() { return spawnProtectionDurationSeconds; }
+    public boolean isSpawnProtectionBreakOnAttack() { return spawnProtectionBreakOnAttack; }
+    public boolean isSpawnProtectionBreakOnMove() { return spawnProtectionBreakOnMove; }
+
     // === Relation Getters ===
     public int getMaxAllies() { return maxAllies; }
     public int getMaxEnemies() { return maxEnemies; }
@@ -335,6 +408,17 @@ public class HyperFactionsConfig {
     // === Update Getters ===
     public boolean isUpdateCheckEnabled() { return updateCheckEnabled; }
     public String getUpdateCheckUrl() { return updateCheckUrl; }
+
+    // === Auto-save Getters ===
+    public boolean isAutoSaveEnabled() { return autoSaveEnabled; }
+    public int getAutoSaveIntervalMinutes() { return autoSaveIntervalMinutes; }
+
+    // === Economy Getters ===
+    public boolean isEconomyEnabled() { return economyEnabled; }
+    public String getEconomyCurrencyName() { return economyCurrencyName; }
+    public String getEconomyCurrencyNamePlural() { return economyCurrencyNamePlural; }
+    public String getEconomyCurrencySymbol() { return economyCurrencySymbol; }
+    public double getEconomyStartingBalance() { return economyStartingBalance; }
 
     // === Message Getters ===
     public String getPrefix() { return prefix; }

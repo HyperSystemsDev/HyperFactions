@@ -1,7 +1,7 @@
 # HyperFactions Development Roadmap
 
-> Last Updated: January 24, 2026 (Added comprehensive GUI overhaul (Phase 2.11), command restructure (/f opens GUI), economy system with taxes/upkeep/war costs, and additional features)
-> Version: 0.2.0
+> Last Updated: January 24, 2026 (Completed Bug #3 Item Pickup Protection, 2.8 Warmup Damage Monitoring, 2.9 Update Checker, 2.10 Spawnkilling Prevention, 3.0 WarZone Per-Zone Configuration, Technical Debt Fixes)
+> Version: 0.3.0
 > Repository: https://github.com/HyperSystemsDev/HyperFactions
 
 ---
@@ -184,10 +184,9 @@ if (defenderFaction.getClaimCount() < defenderMaxClaims) {
 ---
 
 ### Bug #3: SafeZone Item Pickup Not Protected
-- **Status:** :x: **NOT FIXED**
+- **Status:** :white_check_mark: **FIXED**
 - **Severity:** P0 - EXPLOITABLE
 - **File:** `src/main/java/com/hyperfactions/listener/ProtectionListener.java`
-- **Missing:** No `onItemPickup()` event handler
 
 **Problem:**
 Players can pick up consumable items placed as entities in SafeZones, despite all other protections working correctly.
@@ -197,13 +196,12 @@ Players can pick up consumable items placed as entities in SafeZones, despite al
 - Protection system defines `USE` interaction type but never uses it for item pickup
 - No ECS event system registered for pickup events in `HyperFactionsPlugin`
 
-**Fix Required:**
-1. Add `onItemPickup()` method to `ProtectionListener`
-2. Create `ItemPickupProtectionSystem` ECS handler in `HyperFactionsPlugin`
-3. Register event system in `setup()` phase
-4. Use `ProtectionChecker.canInteractChunk()` with `InteractionType.USE`
-
-**Priority:** Should be fixed before v1.0.0 release
+**Implementation:**
+1. Added `onItemPickup()` method to `ProtectionListener.java` (lines 100-111)
+2. Created `ItemPickupProtectionSystem` ECS handler in `HyperFactionsPlugin.java` (lines 582-638)
+3. Registered system in `registerBlockProtectionSystems()` method (line 221)
+4. Uses `ProtectionChecker.canInteract()` with `InteractionType.INTERACT`
+5. Gets player position from `TransformComponent` for protection check
 
 ---
 
@@ -443,7 +441,7 @@ Update roadmap with ✅ (available), ❌ (not available), or 🟡 (partial) for 
 ### 2.8 Warmup Damage Monitoring
 - **Priority:** P0
 - **Effort:** 0.5 day
-- **Status:** :red_circle: Not Started
+- **Status:** :white_check_mark: **COMPLETE**
 
 **Problem:**
 Teleport warmups (e.g., `/f home`, `/f unstuck`) currently only cancel on movement, not on damage. This creates an exploit where players can start a teleport, take damage, and still escape.
@@ -465,19 +463,20 @@ Teleport warmups (e.g., `/f home`, `/f unstuck`) currently only cancel on moveme
 }
 ```
 
-**Files to Modify:**
-- `TeleportManager.java` - Add damage event listener during warmup
-- `HyperFactionsConfig.java` - Add `cancelOnDamage` config option
-- `HyperFactionsPlugin.java` - Register damage event handler (if needed)
-
-**Reference:** HyperHomes has similar implementation
+**Implementation Notes:**
+- Created `TeleportCancelOnDamageSystem` ECS handler in `HyperFactionsPlugin.java` (lines 640-678)
+- Added `registerTeleportSystems()` method to register damage monitoring system
+- Leveraged existing `TeleportManager.cancelOnDamage()` method (lines 271-287)
+- Config option `cancelOnDamage` already existed in `HyperFactionsConfig.java` (line 64)
+- Cancels any pending teleport when player takes non-cancelled damage
+- Sends cancellation message: "Teleportation cancelled - you took damage!"
 
 ---
 
 ### 2.9 Update Checker (GitHub Releases)
 - **Priority:** P1
 - **Effort:** 0.5 day
-- **Status:** :red_circle: Not Started
+- **Status:** :white_check_mark: **COMPLETE**
 
 **Description:**
 Implement GitHub release checking similar to HyperPerms to notify server admins when new versions are available.
@@ -527,12 +526,20 @@ Implement GitHub release checking similar to HyperPerms to notify server admins 
 - Downloads to temp file (.jar.tmp) then atomic rename
 - All operations fully async
 
+**Implementation Notes:**
+- Created `update/UpdateChecker.java` with GitHub Releases API integration
+- 5-minute response caching to prevent API spam
+- Changelog support and optional auto-download
+- Graceful 404 handling (no releases exist yet)
+- Integrated into `HyperFactions.java` enable() method
+- Config options: `updates.enabled`, `updates.checkUrl`
+
 ---
 
 ### 2.10 Spawnkilling Prevention
 - **Priority:** P1
 - **Effort:** 1 day
-- **Status:** :red_circle: Not Started
+- **Status:** :white_check_mark: **COMPLETE**
 
 **Problem:**
 During raids or wars, players who die and respawn at their faction home can be repeatedly killed by enemies camping the spawn point. This creates unfair "spawn camping" scenarios.
@@ -582,6 +589,13 @@ Grant temporary invulnerability after respawn when player died in PvP and respaw
 
 **Future Enhancement:**
 When raid/war system (3.4, 3.7) is implemented, make `onlyDuringRaid` default to true for more realistic combat.
+
+**Implementation Notes:**
+- Created `data/SpawnProtection.java` record to track protection state
+- Added spawn protection tracking to `CombatTagManager.java`
+- Added `DENIED_SPAWN_PROTECTED` to `ProtectionChecker.PvPResult` enum
+- Config options added: `combat.spawnProtection.{enabled, durationSeconds, breakOnAttack, breakOnMove}`
+- Protection automatically removed when player attacks or leaves own territory
 
 ---
 
@@ -1104,7 +1118,7 @@ When raid/war system (3.4, 3.7) is implemented, make `onlyDuringRaid` default to
 ### 3.0 WarZone Per-Zone Configuration
 - **Priority:** P1
 - **Effort:** 1 day
-- **Status:** :red_circle: Not Started
+- **Status:** :white_check_mark: **COMPLETE**
 
 **Current Problem:**
 All WarZones behave identically with global settings. Server admins cannot customize individual zones for different purposes (tournaments vs training grounds vs battlefields).
@@ -1185,6 +1199,14 @@ Per-zone overrides stored in zone data (zones.json):
 - `HyperFactionsConfig.java` - Add zone defaults config section
 
 **Priority:** P1 - High value for server event customization
+
+**Implementation Notes:**
+- Created `data/ZoneFlags.java` with 11 flag constants (ALLOW_PVP, ALLOW_ITEM_DROP, ALLOW_BLOCK_BREAK, ALLOW_BLOCK_PLACE, CONSUME_POWER, etc.)
+- Added flags support to `Zone.java` record with builder pattern
+- Added `setZoneFlag()`, `clearZoneFlag()`, `getEffectiveFlag()` to `ZoneManager.java`
+- Updated `ProtectionChecker.java` to check zone flags for protection decisions
+- Added `/f admin zoneflag <zone> <flag> <value>` command to `FactionCommand.java`
+- Updated `JsonZoneStorage.java` for flags persistence with JSON serialization
 
 ---
 
@@ -1971,12 +1993,18 @@ Faction B surrenders on day 5:
 
 ### Performance Issues
 
-| Issue | Location | Impact | Fix |
-|-------|----------|--------|-----|
-| O(n) getFactionClaims() | ClaimManager.java | High with many claims | Add reverse index Map<UUID, Set<ChunkKey>> |
-| No auto-save | HyperFactions.java | Data loss on crash | Add periodic save task |
-| 7 callback params | TeleportManager.java | Hard to use | Create TeleportContext object |
-| No invite cleanup | InviteManager.java | Memory leak | Add scheduled cleanup task |
+| Issue | Location | Impact | Fix | Status |
+|-------|----------|--------|-----|--------|
+| O(n) getFactionClaims() | ClaimManager.java | High with many claims | Add reverse index Map<UUID, Set<ChunkKey>> | ✅ Complete |
+| No auto-save | HyperFactions.java | Data loss on crash | Add periodic save task | ✅ Complete |
+| 7 callback params | TeleportManager.java | Hard to use | Create TeleportContext object | ✅ Complete |
+| No invite cleanup | InviteManager.java | Memory leak | Add scheduled cleanup task | ✅ Complete |
+
+**Technical Debt Resolution Notes (v0.3.0):**
+- **Claim Reverse Index:** Added `factionClaimsIndex` Map in ClaimManager for O(1) lookups of faction claims
+- **Auto-save:** Added configurable periodic save task in HyperFactions.java (default: 5 minutes)
+- **TeleportContext:** Created `data/TeleportContext.java` record with builder pattern to replace callback parameters
+- **Invite Cleanup:** Integrated invite cleanup into periodic tasks in HyperFactions.java
 
 ### Code Quality
 
@@ -2343,8 +2371,13 @@ Be explicit about units:
 - Combat tagging
 - Safe/War zones
 
-### Version 0.3.0 (Planned)
-**Critical Pre-Release Features:**
+### Version 0.3.0 (Current) - January 24, 2026
+**Completed Features:**
+- **Update Checker (2.9)** - GitHub Releases API integration with 5-minute caching, changelog support, and auto-download capability
+- **Spawnkilling Prevention (2.10)** - Temporary invulnerability after PvP death respawn in own territory, configurable duration and break conditions
+- **WarZone Per-Zone Configuration (3.0)** - 11 configurable flags per zone (PvP, item drop, block edit, power loss, etc.) with `/f admin zoneflag` command
+
+**Still Planned:**
 - **GUI System Overhaul (2-3 weeks):**
   - Complete GUI implementation for all features
   - `/f` command opens main menu (sub-commands still work)
@@ -2352,9 +2385,6 @@ Be explicit about units:
   - Polished, fully functional interfaces
   - Visual permission matrix, economy management, war/raid tracking
 - Warmup damage monitoring (fix teleport exploit)
-- Update checker (GitHub releases integration)
-- Spawnkilling prevention (spawn protection system)
-- WarZone per-zone configuration (tournament/training ground support)
 
 **Major Features:**
 - Public API for cross-mod integration

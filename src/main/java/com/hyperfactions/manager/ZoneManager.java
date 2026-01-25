@@ -2,6 +2,7 @@ package com.hyperfactions.manager;
 
 import com.hyperfactions.data.ChunkKey;
 import com.hyperfactions.data.Zone;
+import com.hyperfactions.data.ZoneFlags;
 import com.hyperfactions.data.ZoneType;
 import com.hyperfactions.storage.ZoneStorage;
 import com.hyperfactions.util.Logger;
@@ -296,5 +297,88 @@ public class ZoneManager {
 
         saveAll();
         return ZoneResult.SUCCESS;
+    }
+
+    // === Flag Management ===
+
+    /**
+     * Sets a flag on a zone.
+     *
+     * @param zoneId   the zone ID
+     * @param flagName the flag name (see ZoneFlags)
+     * @param value    the flag value
+     * @return the result
+     */
+    public ZoneResult setZoneFlag(@NotNull UUID zoneId, @NotNull String flagName, boolean value) {
+        if (!ZoneFlags.isValidFlag(flagName)) {
+            return ZoneResult.NOT_FOUND; // Invalid flag
+        }
+
+        Zone zone = zonesById.get(zoneId);
+        if (zone == null) {
+            return ZoneResult.NOT_FOUND;
+        }
+
+        Zone updated = zone.withFlag(flagName, value);
+        zonesById.put(zoneId, updated);
+        zoneIndex.put(zone.toChunkKey(), updated);
+
+        saveAll();
+        Logger.info("Set flag '%s' to %s on zone '%s'", flagName, value, zone.name());
+        return ZoneResult.SUCCESS;
+    }
+
+    /**
+     * Clears a flag from a zone (reverts to default).
+     *
+     * @param zoneId   the zone ID
+     * @param flagName the flag name
+     * @return the result
+     */
+    public ZoneResult clearZoneFlag(@NotNull UUID zoneId, @NotNull String flagName) {
+        Zone zone = zonesById.get(zoneId);
+        if (zone == null) {
+            return ZoneResult.NOT_FOUND;
+        }
+
+        Zone updated = zone.withoutFlag(flagName);
+        zonesById.put(zoneId, updated);
+        zoneIndex.put(zone.toChunkKey(), updated);
+
+        saveAll();
+        Logger.info("Cleared flag '%s' from zone '%s' (using default)", flagName, zone.name());
+        return ZoneResult.SUCCESS;
+    }
+
+    /**
+     * Gets the effective value of a flag for a zone.
+     * Returns the zone's custom value if set, otherwise the default for its type.
+     *
+     * @param zone     the zone
+     * @param flagName the flag name
+     * @return the effective flag value
+     */
+    public boolean getEffectiveFlag(@NotNull Zone zone, @NotNull String flagName) {
+        return zone.getEffectiveFlag(flagName);
+    }
+
+    /**
+     * Gets the effective value of a flag at a location.
+     * Returns the zone's flag value if in a zone, otherwise returns the default.
+     *
+     * @param world    the world name
+     * @param chunkX   the chunk X
+     * @param chunkZ   the chunk Z
+     * @param flagName the flag name
+     * @param defaultValue the default value if not in a zone
+     * @return the effective flag value
+     */
+    public boolean getEffectiveFlagAt(@NotNull String world, int chunkX, int chunkZ,
+                                       @NotNull String flagName, boolean defaultValue) {
+        Zone zone = getZone(world, chunkX, chunkZ);
+        if (zone == null) {
+            return defaultValue;
+        }
+        return zone.getEffectiveFlag(flagName);
     }
 }
