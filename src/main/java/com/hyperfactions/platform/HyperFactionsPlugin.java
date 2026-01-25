@@ -12,6 +12,9 @@ import com.hypixel.hytale.server.core.event.events.player.PlayerDisconnectEvent;
 import com.hypixel.hytale.server.core.event.events.ecs.PlaceBlockEvent;
 import com.hypixel.hytale.server.core.event.events.ecs.BreakBlockEvent;
 import com.hypixel.hytale.server.core.event.events.ecs.UseBlockEvent;
+import com.hypixel.hytale.server.core.event.events.ecs.InteractivelyPickupItemEvent;
+import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
+import com.hypixel.hytale.server.core.modules.entity.damage.Damage;
 import com.hypixel.hytale.component.Archetype;
 import com.hypixel.hytale.component.ArchetypeChunk;
 import com.hypixel.hytale.component.CommandBuffer;
@@ -100,6 +103,9 @@ public class HyperFactionsPlugin extends JavaPlugin {
 
         // Register event listeners
         registerEventListeners();
+
+        // Register teleport systems
+        registerTeleportSystems();
 
         // Start periodic tasks
         startPeriodicTasks();
@@ -212,9 +218,26 @@ public class HyperFactionsPlugin extends JavaPlugin {
             // Block use/interact protection
             getEntityStoreRegistry().registerSystem(new BlockUseProtectionSystem(hyperFactions, protectionListener));
 
+            // Item pickup protection
+            getEntityStoreRegistry().registerSystem(new ItemPickupProtectionSystem(hyperFactions, protectionListener));
+
             getLogger().at(Level.INFO).log("Registered block protection systems");
         } catch (Exception e) {
             getLogger().at(Level.WARNING).withCause(e).log("Failed to register block protection systems");
+        }
+    }
+
+    /**
+     * Registers ECS event systems for teleport management.
+     */
+    private void registerTeleportSystems() {
+        try {
+            // Cancel teleport on damage
+            getEntityStoreRegistry().registerSystem(new TeleportCancelOnDamageSystem(hyperFactions, this));
+
+            getLogger().at(Level.INFO).log("Registered teleport systems");
+        } catch (Exception e) {
+            getLogger().at(Level.WARNING).withCause(e).log("Failed to register teleport systems");
         }
     }
 
@@ -549,6 +572,118 @@ public class HyperFactionsPlugin extends JavaPlugin {
                 return store.getExternalData().getWorld().getName();
             } catch (Exception e) {
                 return null;
+            }
+        }
+    }
+
+    /**
+     * ECS system for handling item pickup protection.
+     */
+    private static class ItemPickupProtectionSystem extends EntityEventSystem<EntityStore, InteractivelyPickupItemEvent> {
+        private final HyperFactions hyperFactions;
+        private final ProtectionListener protectionListener;
+
+        public ItemPickupProtectionSystem(HyperFactions hyperFactions, ProtectionListener protectionListener) {
+            super(InteractivelyPickupItemEvent.class);
+            this.hyperFactions = hyperFactions;
+            this.protectionListener = protectionListener;
+        }
+
+        @Override
+        public Query<EntityStore> getQuery() {
+            return Archetype.empty();
+        }
+
+        @Override
+        public void handle(int entityIndex, ArchetypeChunk<EntityStore> chunk,
+                           Store<EntityStore> store, CommandBuffer<EntityStore> commandBuffer,
+                           InteractivelyPickupItemEvent event) {
+            try {
+                PlayerRef player = chunk.getComponent(entityIndex, PlayerRef.getComponentType());
+                if (player == null) return;
+
+                // Get player's position from TransformComponent
+                TransformComponent transform = chunk.getComponent(entityIndex, TransformComponent.getComponentType());
+                if (transform == null) return;
+
+                String worldName = getWorldName(store);
+                if (worldName == null) return;
+
+                // Use player's position for protection check (item is at player's feet)
+                com.hypixel.hytale.math.vector.Vector3d position = transform.getPosition();
+                int x = (int) Math.floor(position.getX());
+                int y = (int) Math.floor(position.getY());
+                int z = (int) Math.floor(position.getZ());
+
+                boolean blocked = protectionListener.onItemPickup(
+                    player.getUuid(),
+                    worldName,
+                    x, y, z
+                );
+
+                if (blocked) {
+                    event.setCancelled(true);
+                    player.sendMessage(Message.raw(protectionListener.getDenialMessage(
+                        hyperFactions.getProtectionChecker().canInteract(
+                            player.getUuid(), worldName, x, z,
+                            com.hyperfactions.protection.ProtectionChecker.InteractionType.INTERACT
+                        )
+                    )).color("#FF5555"));
+                }
+            } catch (Exception e) {
+                Logger.severe("Error processing item pickup event", e);
+            }
+        }
+
+        private String getWorldName(Store<EntityStore> store) {
+            try {
+                return store.getExternalData().getWorld().getName();
+            } catch (Exception e) {
+                return null;
+            }
+        }
+    }
+
+    /**
+     * ECS system for canceling teleports when players take damage.
+     */
+    private static class TeleportCancelOnDamageSystem extends EntityEventSystem<EntityStore, Damage> {
+        private final HyperFactions hyperFactions;
+        private final HyperFactionsPlugin plugin;
+
+        public TeleportCancelOnDamageSystem(HyperFactions hyperFactions, HyperFactionsPlugin plugin) {
+            super(Damage.class);
+            this.hyperFactions = hyperFactions;
+            this.plugin = plugin;
+        }
+
+        @Override
+        public Query<EntityStore> getQuery() {
+            return Archetype.empty();
+        }
+
+        @Override
+        public void handle(int entityIndex, ArchetypeChunk<EntityStore> chunk,
+                           Store<EntityStore> store, CommandBuffer<EntityStore> commandBuffer,
+                           Damage event) {
+            try {
+                // Only process if damage was not cancelled
+                if (event.isCancelled()) return;
+
+                // Get the player being damaged
+                PlayerRef player = chunk.getComponent(entityIndex, PlayerRef.getComponentType());
+                if (player == null) return;
+
+                UUID playerUuid = player.getUuid();
+
+                // Check if player has a pending teleport and cancel it if configured
+                hyperFactions.getTeleportManager().cancelOnDamage(
+                    playerUuid,
+                    taskId -> plugin.hyperFactions.cancelTask(taskId),
+                    message -> player.sendMessage(Message.raw(message))
+                );
+            } catch (Exception e) {
+                Logger.severe("Error processing damage event for teleport cancellation", e);
             }
         }
     }
