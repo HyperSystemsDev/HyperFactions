@@ -1,0 +1,55 @@
+// Main Menu - Faction Section Content
+// Displayed when player is in a faction
+
+$C = "../Common.ui";
+$S = "styles.ui";
+
+Group {
+  LayoutMode: Top;
+
+  // Faction name display
+  Group {
+    Anchor: (Height: 30, Bottom: 8);
+    LayoutMode: Left;
+
+    Label {
+      Text: "Your faction:";
+      Style: (FontSize: 13, TextColor: #888888, VerticalAlignment: Center);
+      Anchor: (Width: 100);
+    }
+
+    Label #FactionNameLabel {
+      Text: "Faction Name";
+      Style: (FontSize: 13, TextColor: #00FFFF, RenderBold: true, VerticalAlignment: Center);
+      FlexWeight: 1;
+    }
+  }
+
+  // Action buttons
+  Group {
+    Anchor: (Height: 40);
+    LayoutMode: Left;
+
+    TextButton #ViewFactionBtn {
+      Text: "VIEW";
+      Anchor: (Height: 32, Width: 110);
+      Style: $S.@CyanButtonStyle;
+    }
+
+    Label { Anchor: (Width: 10); }
+
+    TextButton #MembersBtn {
+      Text: "MEMBERS";
+      Anchor: (Height: 32, Width: 110);
+      Style: $S.@ButtonStyle;
+    }
+
+    Label { Anchor: (Width: 10); }
+
+    TextButton #RelationsBtn {
+      Text: "RELATIONS";
+      Anchor: (Height: 32, Width: 110);
+      Style: $S.@ButtonStyle;
+    }
+  }
+}

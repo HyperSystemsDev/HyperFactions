@@ -112,7 +112,7 @@ public class AdminMainPage extends InteractiveCustomUIPage<AdminMainData> {
                 String colorHex = faction.color() != null ? faction.color() : "#00FFFF";
                 cmd.set(prefix + "#FactionName.Text", faction.name());
                 cmd.set(prefix + "#MemberCount.Text", faction.members().size() + " members");
-                cmd.set(prefix + "#PowerCount.Text", stats.currentPower() + "/" + stats.maxPower() + " power");
+                cmd.set(prefix + "#PowerCount.Text", String.format("%.0f/%.0f power", stats.currentPower(), stats.maxPower()));
                 cmd.set(prefix + "#ClaimCount.Text", faction.claims().size() + " claims");
 
                 // Leader info

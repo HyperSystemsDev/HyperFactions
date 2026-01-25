@@ -1,0 +1,30 @@
+// Main Menu - No Faction Section Content
+// Displayed when player is not in a faction
+
+$C = "../Common.ui";
+$S = "styles.ui";
+
+Group {
+  LayoutMode: Top;
+
+  Label {
+    Text: "You are not in a faction yet.";
+    Style: (FontSize: 13, TextColor: #888888, HorizontalAlignment: Center, VerticalAlignment: Center);
+    Anchor: (Height: 30, Bottom: 8);
+  }
+
+  Group {
+    Anchor: (Height: 40);
+    LayoutMode: Left;
+
+    Label { FlexWeight: 1; }
+
+    TextButton #CreateFactionBtn {
+      Text: "CREATE FACTION";
+      Anchor: (Height: 32, Width: 180);
+      Style: $S.@CyanButtonStyle;
+    }
+
+    Label { FlexWeight: 1; }
+  }
+}

@@ -1,7 +1,9 @@
 package com.hyperfactions.gui.page;
 
 import com.hyperfactions.data.*;
+import com.hyperfactions.gui.FactionPageRegistry;
 import com.hyperfactions.gui.GuiManager;
+import com.hyperfactions.gui.NavBarHelper;
 import com.hyperfactions.gui.data.FactionRelationsData;
 import com.hyperfactions.manager.FactionManager;
 import com.hyperfactions.manager.RelationManager;
@@ -25,6 +27,7 @@ import java.util.*;
  */
 public class FactionRelationsPage extends InteractiveCustomUIPage<FactionRelationsData> {
 
+    private static final String PAGE_ID = "relations";
     private static final int ENTRIES_PER_PAGE = 6;
 
     private final PlayerRef playerRef;
@@ -61,6 +64,8 @@ public class FactionRelationsPage extends InteractiveCustomUIPage<FactionRelatio
         // Load the main template
         cmd.append("HyperFactions/faction_relations.ui");
 
+        // Setup navigation bar
+        NavBarHelper.setupBar(playerRef, true, PAGE_ID, cmd, events);
 
         // Tab buttons
 
@@ -181,14 +186,7 @@ public class FactionRelationsPage extends InteractiveCustomUIPage<FactionRelatio
                     false
             );
         }
-
-        // Back button
-        events.addEventBinding(
-                CustomUIEventBindingType.Activating,
-                "#BackBtn",
-                EventData.of("Button", "Back"),
-                false
-        );
+        // Native back button ($C.@BackButton) handles dismissal automatically
     }
 
     private List<FactionRelationEntry> getEntriesForTab() {
@@ -257,12 +255,25 @@ public class FactionRelationsPage extends InteractiveCustomUIPage<FactionRelatio
         PlayerRef playerRef = store.getComponent(ref, PlayerRef.getComponentType());
 
         if (player == null || playerRef == null || data.button == null) {
+            sendUpdate();
+            return;
+        }
+
+        // Handle navigation
+        if ("Nav".equals(data.button) && data.navBar != null) {
+            FactionPageRegistry.Entry entry = FactionPageRegistry.getInstance().getEntry(data.navBar);
+            if (entry != null) {
+                var page = entry.guiSupplier().create(player, ref, store, playerRef, faction, guiManager);
+                if (page != null) {
+                    player.getPageManager().openCustomPage(ref, store, page);
+                    return;
+                }
+            }
+            sendUpdate();
             return;
         }
 
         switch (data.button) {
-            case "Back" -> guiManager.openFactionMain(player, ref, store, playerRef);
-
             case "TabAllies", "TabEnemies", "TabRequests" -> {
                 currentTab = data.tab;
                 currentPage = 0;

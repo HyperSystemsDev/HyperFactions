@@ -17,6 +17,8 @@ import java.nio.file.Path;
 import java.util.UUID;
 import java.util.function.Supplier;
 
+import static com.hyperfactions.gui.FactionPageRegistry.Entry;
+
 /**
  * Central manager for HyperFactions GUI pages.
  * Provides methods to open various UI screens.
@@ -51,6 +53,98 @@ public class GuiManager {
         this.teleportManager = teleportManager;
         this.inviteManager = inviteManager;
         this.dataDir = dataDir;
+
+        // Register all pages with the central registry
+        registerPages();
+    }
+
+    /**
+     * Registers all GUI pages with the central FactionPageRegistry.
+     * This enables navigation between pages via the NavBarHelper.
+     */
+    private void registerPages() {
+        FactionPageRegistry registry = FactionPageRegistry.getInstance();
+
+        // Dashboard (main faction page)
+        registry.registerEntry(new Entry(
+                "dashboard",
+                "Dashboard",
+                null, // No permission required
+                (player, ref, store, playerRef, faction, guiManager) ->
+                        new FactionMainPage(playerRef, factionManager.get(), claimManager.get(),
+                                powerManager.get(), teleportManager.get(), inviteManager.get(), guiManager),
+                true, // Show in nav bar
+                false, // Doesn't require faction
+                0 // Order
+        ));
+
+        // Members page
+        registry.registerEntry(new Entry(
+                "members",
+                "Members",
+                null,
+                (player, ref, store, playerRef, faction, guiManager) -> {
+                    if (faction == null) return null;
+                    return new FactionMembersPage(playerRef, factionManager.get(), guiManager, faction);
+                },
+                true,
+                true, // Requires faction
+                1
+        ));
+
+        // Browser page
+        registry.registerEntry(new Entry(
+                "browser",
+                "Browse",
+                null,
+                (player, ref, store, playerRef, faction, guiManager) ->
+                        new FactionBrowserPage(playerRef, factionManager.get(), powerManager.get(), guiManager),
+                true,
+                false,
+                2
+        ));
+
+        // Map page
+        registry.registerEntry(new Entry(
+                "map",
+                "Map",
+                null,
+                (player, ref, store, playerRef, faction, guiManager) ->
+                        new ChunkMapPage(playerRef, factionManager.get(), claimManager.get(),
+                                zoneManager.get(), guiManager),
+                true,
+                false,
+                3
+        ));
+
+        // Relations page
+        registry.registerEntry(new Entry(
+                "relations",
+                "Relations",
+                null,
+                (player, ref, store, playerRef, faction, guiManager) -> {
+                    if (faction == null) return null;
+                    return new FactionRelationsPage(playerRef, factionManager.get(),
+                            relationManager.get(), guiManager, faction);
+                },
+                true,
+                true,
+                4
+        ));
+
+        // Admin page (requires permission) - accessed via /f admin, not in main nav bar
+        registry.registerEntry(new Entry(
+                "admin",
+                "Admin",
+                "hyperfactions.admin",
+                (player, ref, store, playerRef, faction, guiManager) ->
+                        new AdminMainPage(playerRef, factionManager.get(), powerManager.get(), guiManager),
+                false,  // Not in main nav bar - separate admin GUI
+                false,
+                10
+        ));
+
+        Logger.debug("[GUI] Registered %d pages with FactionPageRegistry", registry.getEntries().size());
     }
 
     /**

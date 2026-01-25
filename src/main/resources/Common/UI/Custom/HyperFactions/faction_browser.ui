@@ -1,122 +1,132 @@
+// Faction Browser Page
+// Lists all factions with sorting and pagination
+
 $C = "../Common.ui";
 $S = "styles.ui";
+$Nav = "nav/nav_bar.ui";
 
-$C.@PageOverlay {}
+$C.@PageOverlay {
+  $Nav.@HyperFactionsNavBar #HyperFactionsNavBar {}
 
-$C.@Container {
-  Anchor: (Width: 550, Height: 520);
+  $C.@DecoratedContainer {
+    Anchor: (Width: 550, Height: 520);
 
-  #Title {
-    $C.@Title {
-      @Text = "All Factions";
-    }
-  }
-
-  #Content {
-    LayoutMode: Top;
-    Padding: (Left: 15, Right: 15, Top: 10, Bottom: 10);
-
-    Group {
-      Anchor: (Height: 35, Bottom: 10);
-      LayoutMode: Left;
-
-      Label #FactionCount {
-        Text: "0 factions";
-        Style: (FontSize: 14, TextColor: #888888, VerticalAlignment: Center);
-        Anchor: (Width: 120);
-      }
-
-      Label { FlexWeight: 1; }
-
-      Label {
-        Text: "Sort:";
-        Style: (FontSize: 12, TextColor: #666666, VerticalAlignment: Center);
-        Anchor: (Width: 40);
-      }
-
-      TextButton #SortPower {
-        Text: "POWER";
-        Anchor: (Height: 26, Width: 70);
-        Style: $S.@SmallCyanButtonStyle;
-      }
-
-      Label { Anchor: (Width: 5); }
-
-      TextButton #SortMembers {
-        Text: "MEMBERS";
-        Anchor: (Height: 26, Width: 80);
-        Style: $S.@SmallButtonStyle;
-      }
-
-      Label { Anchor: (Width: 5); }
-
-      TextButton #SortName {
-        Text: "NAME";
-        Anchor: (Height: 26, Width: 60);
-        Style: $S.@SmallButtonStyle;
+    #Title {
+      Group {
+        $C.@Title {
+          @Text = "All Factions";
+        }
       }
     }
 
-    Group {
-      Anchor: (Height: 1, Bottom: 8);
-      Background: (Color: #00AAAA);
-    }
+    #Content {
+      LayoutMode: Top;
+      Padding: (Left: 15, Right: 15, Top: 10, Bottom: 10);
 
-    Group #FactionListContainer {
-      LayoutMode: TopScrolling;
-      ScrollbarStyle: $C.@DefaultScrollbarStyle;
-      FlexWeight: 1;
+      // Header row with count and sort buttons
+      Group {
+        Anchor: (Height: 35, Bottom: 10);
+        LayoutMode: Left;
 
-      Group #FactionList {
-        LayoutMode: Top;
+        Label #FactionCount {
+          Text: "0 factions";
+          Style: (FontSize: 14, TextColor: #888888, VerticalAlignment: Center);
+          Anchor: (Width: 120);
+        }
 
-        Group #FactionCard0 { Anchor: (Height: 60); }
-        Group #FactionCard1 { Anchor: (Height: 60); }
-        Group #FactionCard2 { Anchor: (Height: 60); }
-        Group #FactionCard3 { Anchor: (Height: 60); }
-        Group #FactionCard4 { Anchor: (Height: 60); }
-        Group #FactionCard5 { Anchor: (Height: 60); }
-        Group #FactionCard6 { Anchor: (Height: 60); }
-        Group #FactionCard7 { Anchor: (Height: 60); }
+        Label { FlexWeight: 1; }
+
+        Label {
+          Text: "Sort:";
+          Style: (FontSize: 12, TextColor: #666666, VerticalAlignment: Center);
+          Anchor: (Width: 40);
+        }
+
+        TextButton #SortPower {
+          Text: "POWER";
+          Anchor: (Height: 26, Width: 70);
+          Style: $S.@SmallCyanButtonStyle;
+        }
+
+        Label { Anchor: (Width: 5); }
+
+        TextButton #SortMembers {
+          Text: "MEMBERS";
+          Anchor: (Height: 26, Width: 80);
+          Style: $S.@SmallButtonStyle;
+        }
+
+        Label { Anchor: (Width: 5); }
+
+        TextButton #SortName {
+          Text: "NAME";
+          Anchor: (Height: 26, Width: 60);
+          Style: $S.@SmallButtonStyle;
+        }
       }
-    }
 
-    Group {
-      Anchor: (Height: 1, Top: 8, Bottom: 8);
-      Background: (Color: #00AAAA);
-    }
-
-    Group #Pagination {
-      Anchor: (Height: 35);
-      LayoutMode: Left;
-
-      TextButton #PrevBtn {
-        Text: "< PREV";
-        Anchor: (Height: 26, Width: 80);
-        Style: $S.@ButtonStyle;
+      // Divider
+      Group {
+        Anchor: (Height: 1, Bottom: 8);
+        Background: (Color: #00AAAA);
       }
 
-      Label { FlexWeight: 1; }
+      // Scrollable faction list
+      Group #FactionListContainer {
+        LayoutMode: TopScrolling;
+        ScrollbarStyle: $C.@DefaultScrollbarStyle;
+        FlexWeight: 1;
 
-      Label #PageInfo {
-        Text: "1/1";
-        Style: (FontSize: 14, TextColor: #888888, HorizontalAlignment: Center, VerticalAlignment: Center);
-        Anchor: (Width: 60);
+        Group #FactionList {
+          LayoutMode: Top;
+
+          Group #FactionCard0 { Anchor: (Height: 65); }
+          Group #FactionCard1 { Anchor: (Height: 65); }
+          Group #FactionCard2 { Anchor: (Height: 65); }
+          Group #FactionCard3 { Anchor: (Height: 65); }
+          Group #FactionCard4 { Anchor: (Height: 65); }
+          Group #FactionCard5 { Anchor: (Height: 65); }
+          Group #FactionCard6 { Anchor: (Height: 65); }
+          Group #FactionCard7 { Anchor: (Height: 65); }
+        }
       }
 
-      Label { FlexWeight: 1; }
+      // Divider
+      Group {
+        Anchor: (Height: 1, Top: 8, Bottom: 8);
+        Background: (Color: #00AAAA);
+      }
 
-      TextButton #NextBtn {
-        Text: "NEXT >";
-        Anchor: (Height: 26, Width: 80);
-        Style: $S.@ButtonStyle;
+      // Pagination
+      Group #Pagination {
+        Anchor: (Height: 35);
+        LayoutMode: Left;
+
+        TextButton #PrevBtn {
+          Text: "< PREV";
+          Anchor: (Height: 26, Width: 80);
+          Style: $S.@ButtonStyle;
+        }
+
+        Label { FlexWeight: 1; }
+
+        Label #PageInfo {
+          Text: "1/1";
+          Style: (FontSize: 14, TextColor: #888888, HorizontalAlignment: Center, VerticalAlignment: Center);
+          Anchor: (Width: 60);
+        }
+
+        Label { FlexWeight: 1; }
+
+        TextButton #NextBtn {
+          Text: "NEXT >";
+          Anchor: (Height: 26, Width: 80);
+          Style: $S.@ButtonStyle;
+        }
       }
     }
   }
 }
 
-TextButton #BackBtn {
-  Anchor: (Top: 10, Left: 10, Width: 80, Height: 28);
-  Text: "< BACK";
-  Style: $S.@ButtonStyle;
-}
+// Native Hytale back button (bottom-left ESC)
+$C.@BackButton {}

@@ -14,11 +14,13 @@ import com.hyperfactions.util.TimeUtil;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.math.vector.Vector3d;
+import com.hypixel.hytale.math.vector.Vector3f;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
 import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
+import com.hypixel.hytale.server.core.modules.entity.teleport.Teleport;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.World;
@@ -65,10 +67,10 @@ public class FactionCommand extends AbstractPlayerCommand {
 
         // parts[0] is "faction", "f", or "hf"
         if (parts.length <= 1) {
-            // Open main menu GUI
+            // Open faction main dashboard GUI
             Player playerEntity = store.getComponent(ref, Player.getComponentType());
             if (playerEntity != null) {
-                hyperFactions.getGuiManager().openMainMenu(playerEntity, ref, store, player);
+                hyperFactions.getGuiManager().openFactionMain(playerEntity, ref, store, player);
             } else {
                 // Fallback to help if Player component not available (shouldn't happen)
                 showHelp(ctx, player);
@@ -614,8 +616,8 @@ public class FactionCommand extends AbstractPlayerCommand {
             hyperFactions::cancelTask,
             // Teleport executor
             faction -> executeTeleport(store, ref, world, faction),
-            // Message sender
-            message -> ctx.sendMessage(msg(message, COLOR_YELLOW)),
+            // Message sender - TeleportManager formats its own messages
+            message -> ctx.sendMessage(Message.raw(message)),
             // Combat tag checker
             () -> hyperFactions.getCombatTagManager().isTagged(playerUuid)
         );
@@ -627,18 +629,13 @@ public class FactionCommand extends AbstractPlayerCommand {
             case COMBAT_TAGGED -> ctx.sendMessage(prefix().insert(msg("You cannot teleport while in combat!", COLOR_RED)));
             case ON_COOLDOWN -> {} // Message sent by TeleportManager
             case SUCCESS_INSTANT -> ctx.sendMessage(prefix().insert(msg("Teleported to faction home!", COLOR_GREEN)));
-            case SUCCESS_WARMUP -> {
-                int warmup = HyperFactionsConfig.get().getWarmupSeconds();
-                ctx.sendMessage(prefix().insert(msg("Teleporting in ", COLOR_YELLOW))
-                    .insert(msg(warmup + " second" + (warmup == 1 ? "" : "s"), COLOR_CYAN))
-                    .insert(msg("...", COLOR_YELLOW)));
-            }
+            case SUCCESS_WARMUP -> {} // Message sent by TeleportManager
             default -> {}
         }
     }
 
     /**
-     * Executes the actual teleport to faction home.
+     * Executes the actual teleport to faction home using the proper Teleport component.
      */
     private TeleportManager.TeleportResult executeTeleport(Store<EntityStore> store, Ref<EntityStore> ref,
                                                            World currentWorld, Faction faction) {
@@ -647,19 +644,22 @@ public class FactionCommand extends AbstractPlayerCommand {
             return TeleportManager.TeleportResult.NO_HOME;
         }
 
-        // Check if same world (cross-world teleport needs different handling)
-        if (!currentWorld.getName().equals(home.world())) {
-            // For now, cross-world teleport is not supported
-            return TeleportManager.TeleportResult.WORLD_NOT_FOUND;
+        // Get target world (supports cross-world teleportation)
+        World targetWorld;
+        if (currentWorld.getName().equals(home.world())) {
+            targetWorld = currentWorld;
+        } else {
+            targetWorld = Universe.get().getWorld(home.world());
+            if (targetWorld == null) {
+                return TeleportManager.TeleportResult.WORLD_NOT_FOUND;
+            }
         }
 
-        TransformComponent transform = store.getComponent(ref, TransformComponent.getComponentType());
-        if (transform == null) {
-            return TeleportManager.TeleportResult.WORLD_NOT_FOUND;
-        }
-
-        // Teleport the player (position only - rotation would need platform-specific handling)
-        transform.setPosition(new Vector3d(home.x(), home.y(), home.z()));
+        // Create and apply teleport using the proper Teleport component
+        Vector3d position = new Vector3d(home.x(), home.y(), home.z());
+        Vector3f rotation = new Vector3f(home.pitch(), home.yaw(), 0);
+        Teleport teleport = new Teleport(targetWorld, position, rotation);
+        store.addComponent(ref, Teleport.getComponentType(), teleport);
 
         return TeleportManager.TeleportResult.SUCCESS_INSTANT;
     }
@@ -676,6 +676,7 @@ public class FactionCommand extends AbstractPlayerCommand {
         if (transform == null) return;
 
         Vector3d pos = transform.getPosition();
+        Vector3f rot = transform.getRotation();
         int chunkX = (int) Math.floor(pos.getX()) >> 4;
         int chunkZ = (int) Math.floor(pos.getZ()) >> 4;
         UUID claimOwner = hyperFactions.getClaimManager().getClaimOwner(world.getName(), chunkX, chunkZ);
@@ -685,8 +686,9 @@ public class FactionCommand extends AbstractPlayerCommand {
             return;
         }
 
+        // Capture player's look direction (yaw and pitch)
         Faction.FactionHome home = Faction.FactionHome.create(
-            world.getName(), pos.getX(), pos.getY(), pos.getZ(), 0, 0, player.getUuid()
+            world.getName(), pos.getX(), pos.getY(), pos.getZ(), rot.getYaw(), rot.getPitch(), player.getUuid()
         );
 
         FactionManager.FactionResult result = hyperFactions.getFactionManager().setHome(faction.id(), home, player.getUuid());
@@ -1458,8 +1460,12 @@ public class FactionCommand extends AbstractPlayerCommand {
             }
             hyperFactions.getTeleportManager().cancelPending(playerUuid, hyperFactions::cancelTask);
 
-            // Execute teleport
-            transform.setPosition(new Vector3d(finalTargetX, finalTargetY, finalTargetZ));
+            // Execute teleport using proper Teleport component
+            Vector3d position = new Vector3d(finalTargetX, finalTargetY, finalTargetZ);
+            Vector3f rotation = new Vector3f(0, 0, 0);
+            Teleport teleport = new Teleport(world, position, rotation);
+            store.addComponent(ref, Teleport.getComponentType(), teleport);
+
             player.sendMessage(prefix().insert(msg("Teleported to safety!", COLOR_GREEN)));
         });
 

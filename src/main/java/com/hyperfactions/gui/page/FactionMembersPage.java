@@ -2,7 +2,8 @@ package com.hyperfactions.gui.page;
 
 import com.hyperfactions.data.*;
 import com.hyperfactions.gui.GuiManager;
-import com.hyperfactions.gui.data.FactionMembersData;
+import com.hyperfactions.gui.NavBarHelper;
+import com.hyperfactions.gui.data.FactionPageData;
 import com.hyperfactions.manager.FactionManager;
 import com.hyperfactions.util.TimeUtil;
 import com.hypixel.hytale.component.Ref;
@@ -22,9 +23,11 @@ import java.util.*;
 
 /**
  * Faction Members page - displays member list with management actions.
+ * Uses the unified FactionPageData for event handling.
  */
-public class FactionMembersPage extends InteractiveCustomUIPage<FactionMembersData> {
+public class FactionMembersPage extends InteractiveCustomUIPage<FactionPageData> {
 
+    private static final String PAGE_ID = "members";
     private static final int MEMBERS_PER_PAGE = 8;
 
     private final PlayerRef playerRef;
@@ -37,7 +40,7 @@ public class FactionMembersPage extends InteractiveCustomUIPage<FactionMembersDa
                               FactionManager factionManager,
                               GuiManager guiManager,
                               Faction faction) {
-        super(playerRef, CustomPageLifetime.CanDismiss, FactionMembersData.CODEC);
+        super(playerRef, CustomPageLifetime.CanDismiss, FactionPageData.CODEC);
         this.playerRef = playerRef;
         this.factionManager = factionManager;
         this.guiManager = guiManager;
@@ -57,6 +60,8 @@ public class FactionMembersPage extends InteractiveCustomUIPage<FactionMembersDa
         // Load the main template
         cmd.append("HyperFactions/faction_members.ui");
 
+        // Setup navigation bar (AdminUI pattern with indexed selectors)
+        NavBarHelper.setupBar(playerRef, true, PAGE_ID, cmd, events);
 
         // Sort members by role priority (leader first) then by name
         List<FactionMember> sortedMembers = faction.members().values().stream()
@@ -74,6 +79,16 @@ public class FactionMembersPage extends InteractiveCustomUIPage<FactionMembersDa
         int startIdx = currentPage * MEMBERS_PER_PAGE;
 
         // Build member entries
+        buildMemberEntries(cmd, events, sortedMembers, startIdx, viewerUuid, viewerRole, canManage, isLeader);
+
+        // Pagination
+        setupPagination(cmd, events, totalPages);
+    }
+
+    private void buildMemberEntries(UICommandBuilder cmd, UIEventBuilder events,
+                                    List<FactionMember> sortedMembers, int startIdx,
+                                    UUID viewerUuid, FactionRole viewerRole,
+                                    boolean canManage, boolean isLeader) {
         for (int i = 0; i < MEMBERS_PER_PAGE; i++) {
             String entryId = "#MemberEntry" + i;
             int memberIdx = startIdx + i;
@@ -105,8 +120,8 @@ public class FactionMembersPage extends InteractiveCustomUIPage<FactionMembersDa
                                 CustomUIEventBindingType.Activating,
                                 prefix + "#PromoteBtn",
                                 EventData.of("Button", "Promote")
-                                        .append("MemberUuid", member.uuid().toString())
-                                        .append("MemberName", member.username()),
+                                        .append("PlayerUuid", member.uuid().toString())
+                                        .append("Target", member.username()),
                                 false
                         );
                     }
@@ -117,8 +132,8 @@ public class FactionMembersPage extends InteractiveCustomUIPage<FactionMembersDa
                                 CustomUIEventBindingType.Activating,
                                 prefix + "#DemoteBtn",
                                 EventData.of("Button", "Demote")
-                                        .append("MemberUuid", member.uuid().toString())
-                                        .append("MemberName", member.username()),
+                                        .append("PlayerUuid", member.uuid().toString())
+                                        .append("Target", member.username()),
                                 false
                         );
                     }
@@ -128,8 +143,8 @@ public class FactionMembersPage extends InteractiveCustomUIPage<FactionMembersDa
                             CustomUIEventBindingType.Activating,
                             prefix + "#KickBtn",
                             EventData.of("Button", "Kick")
-                                    .append("MemberUuid", member.uuid().toString())
-                                    .append("MemberName", member.username()),
+                                    .append("PlayerUuid", member.uuid().toString())
+                                    .append("Target", member.username()),
                             false
                     );
                 }
@@ -140,23 +155,23 @@ public class FactionMembersPage extends InteractiveCustomUIPage<FactionMembersDa
                             CustomUIEventBindingType.Activating,
                             prefix + "#TransferBtn",
                             EventData.of("Button", "Transfer")
-                                    .append("MemberUuid", member.uuid().toString())
-                                    .append("MemberName", member.username()),
+                                    .append("PlayerUuid", member.uuid().toString())
+                                    .append("Target", member.username()),
                             false
                     );
                 }
             }
         }
+    }
 
-        // Pagination
+    private void setupPagination(UICommandBuilder cmd, UIEventBuilder events, int totalPages) {
         cmd.set("#PageInfo.Text", (currentPage + 1) + "/" + totalPages);
 
         if (currentPage > 0) {
             events.addEventBinding(
                     CustomUIEventBindingType.Activating,
                     "#PrevBtn",
-                    EventData.of("Button", "PrevPage")
-                            .append("Page", String.valueOf(currentPage - 1)),
+                    EventData.of("Button", "Page").append("Page", String.valueOf(currentPage - 1)),
                     false
             );
         }
@@ -165,27 +180,10 @@ public class FactionMembersPage extends InteractiveCustomUIPage<FactionMembersDa
             events.addEventBinding(
                     CustomUIEventBindingType.Activating,
                     "#NextBtn",
-                    EventData.of("Button", "NextPage")
-                            .append("Page", String.valueOf(currentPage + 1)),
+                    EventData.of("Button", "Page").append("Page", String.valueOf(currentPage + 1)),
                     false
             );
         }
-
-        // Back button
-        events.addEventBinding(
-                CustomUIEventBindingType.Activating,
-                "#BackBtn",
-                EventData.of("Button", "Back"),
-                false
-        );
-    }
-
-    private String getRoleColor(FactionRole role) {
-        return switch (role) {
-            case LEADER -> "#FFD700";
-            case OFFICER -> "#87CEEB";
-            case MEMBER -> "#AAAAAA";
-        };
     }
 
     private String formatLastOnline(long lastOnlineMs) {
@@ -201,96 +199,109 @@ public class FactionMembersPage extends InteractiveCustomUIPage<FactionMembersDa
 
     @Override
     public void handleDataEvent(Ref<EntityStore> ref, Store<EntityStore> store,
-                                FactionMembersData data) {
+                                FactionPageData data) {
         super.handleDataEvent(ref, store, data);
 
         Player player = store.getComponent(ref, Player.getComponentType());
         PlayerRef playerRef = store.getComponent(ref, PlayerRef.getComponentType());
 
         if (player == null || playerRef == null || data.button == null) {
+            sendUpdate();
             return;
         }
 
-        UUID viewerUuid = playerRef.getUuid();
+        // Handle navigation
+        if (NavBarHelper.handleNavEvent(data, player, ref, store, playerRef, faction, guiManager)) {
+            return;
+        }
 
         switch (data.button) {
-            case "Back" -> guiManager.openFactionMain(player, ref, store, playerRef);
-
-            case "PrevPage" -> {
-                currentPage = Math.max(0, data.page);
-                refresh(player, ref, store, playerRef);
-            }
-
-            case "NextPage" -> {
+            case "Page" -> {
                 currentPage = data.page;
                 refresh(player, ref, store, playerRef);
             }
 
-            case "Promote" -> {
-                if (data.memberUuid != null) {
-                    try {
-                        UUID targetUuid = UUID.fromString(data.memberUuid);
-                        UUID actorUuid = playerRef.getUuid();
-                        FactionManager.FactionResult result = factionManager.promoteMember(
-                                faction.id(), targetUuid, actorUuid
-                        );
-                        if (result == FactionManager.FactionResult.SUCCESS) {
-                            player.sendMessage(Message.raw(data.memberName + " promoted to Officer!").color("#44CC44"));
-                        } else {
-                            player.sendMessage(Message.raw("Failed to promote: " + result).color("#FF5555"));
-                        }
-                        refresh(player, ref, store, playerRef);
-                    } catch (IllegalArgumentException e) {
-                        player.sendMessage(Message.raw("Invalid player.").color("#FF5555"));
-                    }
-                }
-            }
+            case "Promote" -> handlePromote(player, ref, store, playerRef, data);
 
-            case "Demote" -> {
-                if (data.memberUuid != null) {
-                    try {
-                        UUID targetUuid = UUID.fromString(data.memberUuid);
-                        UUID actorUuid = playerRef.getUuid();
-                        FactionManager.FactionResult result = factionManager.demoteMember(
-                                faction.id(), targetUuid, actorUuid
-                        );
-                        if (result == FactionManager.FactionResult.SUCCESS) {
-                            player.sendMessage(Message.raw(data.memberName + " demoted to Member.").color("#FFAA00"));
-                        } else {
-                            player.sendMessage(Message.raw("Failed to demote: " + result).color("#FF5555"));
-                        }
-                        refresh(player, ref, store, playerRef);
-                    } catch (IllegalArgumentException e) {
-                        player.sendMessage(Message.raw("Invalid player.").color("#FF5555"));
-                    }
-                }
-            }
+            case "Demote" -> handleDemote(player, ref, store, playerRef, data);
 
-            case "Kick" -> {
-                if (data.memberUuid != null) {
-                    try {
-                        UUID targetUuid = UUID.fromString(data.memberUuid);
-                        UUID actorUuid = playerRef.getUuid();
-                        FactionManager.FactionResult result = factionManager.removeMember(faction.id(), targetUuid, actorUuid, true);
-                        if (result == FactionManager.FactionResult.SUCCESS) {
-                            player.sendMessage(Message.raw(data.memberName + " kicked from faction.").color("#FF5555"));
-                        } else {
-                            player.sendMessage(Message.raw("Failed to kick: " + result).color("#FF5555"));
-                        }
-                        refresh(player, ref, store, playerRef);
-                    } catch (IllegalArgumentException e) {
-                        player.sendMessage(Message.raw("Invalid player.").color("#FF5555"));
-                    }
-                }
-            }
+            case "Kick" -> handleKick(player, ref, store, playerRef, data);
 
-            case "Transfer" -> {
-                if (data.memberUuid != null) {
-                    guiManager.closePage(player, ref, store);
-                    player.sendMessage(Message.raw("Use /f transfer " + data.memberName + " to confirm leadership transfer.").color("#FFAA00"));
-                }
-            }
+            case "Transfer" -> handleTransfer(player, ref, store, data);
+
+            default -> sendUpdate();
         }
+    }
+
+    private void handlePromote(Player player, Ref<EntityStore> ref, Store<EntityStore> store,
+                               PlayerRef playerRef, FactionPageData data) {
+        if (data.playerUuid == null) return;
+
+        try {
+            UUID targetUuid = UUID.fromString(data.playerUuid);
+            UUID actorUuid = playerRef.getUuid();
+            FactionManager.FactionResult result = factionManager.promoteMember(
+                    faction.id(), targetUuid, actorUuid
+            );
+            if (result == FactionManager.FactionResult.SUCCESS) {
+                player.sendMessage(Message.raw(data.target + " promoted to Officer!").color("#44CC44"));
+            } else {
+                player.sendMessage(Message.raw("Failed to promote: " + result).color("#FF5555"));
+            }
+            refresh(player, ref, store, playerRef);
+        } catch (IllegalArgumentException e) {
+            player.sendMessage(Message.raw("Invalid player.").color("#FF5555"));
+        }
+    }
+
+    private void handleDemote(Player player, Ref<EntityStore> ref, Store<EntityStore> store,
+                              PlayerRef playerRef, FactionPageData data) {
+        if (data.playerUuid == null) return;
+
+        try {
+            UUID targetUuid = UUID.fromString(data.playerUuid);
+            UUID actorUuid = playerRef.getUuid();
+            FactionManager.FactionResult result = factionManager.demoteMember(
+                    faction.id(), targetUuid, actorUuid
+            );
+            if (result == FactionManager.FactionResult.SUCCESS) {
+                player.sendMessage(Message.raw(data.target + " demoted to Member.").color("#FFAA00"));
+            } else {
+                player.sendMessage(Message.raw("Failed to demote: " + result).color("#FF5555"));
+            }
+            refresh(player, ref, store, playerRef);
+        } catch (IllegalArgumentException e) {
+            player.sendMessage(Message.raw("Invalid player.").color("#FF5555"));
+        }
+    }
+
+    private void handleKick(Player player, Ref<EntityStore> ref, Store<EntityStore> store,
+                            PlayerRef playerRef, FactionPageData data) {
+        if (data.playerUuid == null) return;
+
+        try {
+            UUID targetUuid = UUID.fromString(data.playerUuid);
+            UUID actorUuid = playerRef.getUuid();
+            FactionManager.FactionResult result = factionManager.removeMember(
+                    faction.id(), targetUuid, actorUuid, true
+            );
+            if (result == FactionManager.FactionResult.SUCCESS) {
+                player.sendMessage(Message.raw(data.target + " kicked from faction.").color("#FF5555"));
+            } else {
+                player.sendMessage(Message.raw("Failed to kick: " + result).color("#FF5555"));
+            }
+            refresh(player, ref, store, playerRef);
+        } catch (IllegalArgumentException e) {
+            player.sendMessage(Message.raw("Invalid player.").color("#FF5555"));
+        }
+    }
+
+    private void handleTransfer(Player player, Ref<EntityStore> ref, Store<EntityStore> store,
+                                FactionPageData data) {
+        if (data.playerUuid == null) return;
+
+        guiManager.closePage(player, ref, store);
+        player.sendMessage(Message.raw("Use /f transfer " + data.target + " to confirm leadership transfer.").color("#FFAA00"));
     }
 
     private void refresh(Player player, Ref<EntityStore> ref, Store<EntityStore> store, PlayerRef playerRef) {

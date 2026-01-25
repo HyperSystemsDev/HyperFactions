@@ -1,0 +1,46 @@
+// HyperFactions Navigation Bar
+// Following AdminUI pattern exactly
+
+@NavButton = MenuItem {
+  Padding: (Horizontal: 20);
+  Style: (
+    Default: (
+      LabelStyle: (FontSize: 14, TextColor: #7c8b99, VerticalAlignment: Center, RenderUppercase: true, RenderBold: true)
+    ),
+    Hovered: (
+      Background: #121a26,
+      LabelStyle: (FontSize: 14, TextColor: #00FFFF, VerticalAlignment: Center, RenderUppercase: true, RenderBold: true)
+    )
+  );
+  SelectedStyle: (
+    Default: (
+      LabelStyle: (FontSize: 14, TextColor: #00FFFF, VerticalAlignment: Center, RenderUppercase: true, RenderBold: true)
+    ),
+    Hovered: (
+      Background: #121a26,
+      LabelStyle: (FontSize: 14, TextColor: #00FFFF, VerticalAlignment: Center, RenderUppercase: true, RenderBold: true)
+    )
+  );
+};
+
+@HyperFactionsNavBar = Group {
+  Anchor: (Height: 45, Top: 0);
+  Background: #16212f;
+  LayoutMode: Left;
+
+  // Title instead of logo for now
+  Group #NavBarTitle {
+    Anchor: (Width: 120, Height: 45);
+    LayoutMode: Left;
+    Padding: (Left: 15);
+
+    Label {
+      Text: "Factions";
+      Style: (FontSize: 18, TextColor: #00FFFF, RenderBold: true, VerticalAlignment: Center);
+    }
+  }
+
+  Group #NavBarButtons {
+    LayoutMode: Left;
+  }
+};

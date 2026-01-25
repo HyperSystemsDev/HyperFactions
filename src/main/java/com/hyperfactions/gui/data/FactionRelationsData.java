@@ -12,6 +12,9 @@ public class FactionRelationsData {
     /** The button/action that triggered the event */
     public String button;
 
+    /** NavBar target (page ID when nav button clicked) */
+    public String navBar;
+
     /** Target faction ID (if any) */
     public String factionId;
 
@@ -31,6 +34,11 @@ public class FactionRelationsData {
                     new KeyedCodec<>("Button", Codec.STRING),
                     (data, value) -> data.button = value,
                     data -> data.button
+            )
+            .addField(
+                    new KeyedCodec<>("NavBar", Codec.STRING),
+                    (data, value) -> data.navBar = value,
+                    data -> data.navBar
             )
             .addField(
                     new KeyedCodec<>("FactionId", Codec.STRING),
