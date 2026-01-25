@@ -6,6 +6,30 @@
 
 ---
 
+## ⚠️ Important Note: Hytale-Specific Implementation
+
+**AI Assistant Notice:** This is a **Hytale server plugin**, not a Minecraft plugin. Do not reference Minecraft-specific mechanics that don't exist in Hytale:
+
+**Does NOT exist in Hytale:**
+- ❌ TNT / Explosions (use "explosive devices" if needed in future)
+- ❌ Pistons (use "mechanical blocks" if needed)
+- ❌ Hoppers (use "item transporters" if needed)
+- ❌ Redstone (use "logic circuits" or "power systems" if needed)
+- ❌ Enderpearls (use "teleportation items" if needed)
+- ❌ Chorus fruit (use "teleportation consumables" if needed)
+
+**Use generic Hytale terms:**
+- ✅ "Blocks" (generic)
+- ✅ "Items" (generic)
+- ✅ "Entities" (generic)
+- ✅ "Mobs" or "Creatures"
+- ✅ "Players"
+- ✅ "World" / "Chunks"
+
+When suggesting features, use Hytale API capabilities or generic placeholder terms for future game mechanics.
+
+---
+
 ## Table of Contents
 
 - [Project Status](#project-status)
@@ -46,9 +70,9 @@
 - [x] Ally request logging - Both factions now get proper actor attribution
 
 ### Not Working / Incomplete
-- [ ] Explosion protection
-- [ ] Piston protection
-- [ ] Hopper protection
+- [ ] Explosive device protection (if/when added to Hytale)
+- [ ] Mechanical block protection (if/when added to Hytale)
+- [ ] Item transporter protection (if/when added to Hytale)
 
 ---
 
@@ -80,15 +104,15 @@
 ### ❌ NOT Available (Hytale Doesn't Have These)
 
 **Game Mechanics:**
-- ❌ Explosions (no TNT in Hytale)
-- ❌ Pistons (not implemented)
-- ❌ Hoppers (not implemented)
-- ❌ Redstone (no power system)
+- ❌ Explosive devices (not yet implemented in Hytale)
+- ❌ Mechanical block movement (pushing/pulling - not implemented)
+- ❌ Automatic item transport (not implemented)
+- ❌ Logic circuits / power systems (not implemented)
 
 **Implications:**
-- Phase 2 tasks 2.2, 2.3, 2.4 (explosion/piston/hopper protection) marked as `:no_entry: NOT POSSIBLE`
-- Raid system cannot use explosion mechanics
-- Siege mechanics must use alternative approaches (block breaking only)
+- Phase 2 tasks 2.2, 2.3, 2.4 (explosive device/mechanical block/item transporter protection) marked as `:no_entry: NOT POSSIBLE`
+- Raid system cannot use explosive mechanics
+- Siege mechanics must use alternative approaches (manual block breaking only)
 
 ### 🔍 Needs Research
 
@@ -251,7 +275,7 @@ Players can pick up consumable items placed as entities in SafeZones, despite al
 
 > **STATUS: COMPLETE** :white_check_mark:
 > All implementable Phase 2 tasks have been completed.
-> Note: Explosion, Piston, and Hopper protection are NOT POSSIBLE in Hytale as these mechanics don't exist in the current API.
+> Note: Explosive device, mechanical block, and item transporter protection are NOT POSSIBLE in Hytale as these mechanics don't exist in the current API.
 
 ### 2.0 Wire Up Block Protection Events :white_check_mark:
 - **Priority:** P1
@@ -300,19 +324,19 @@ Hytale does not have explosion mechanics in the current API. This feature is def
 
 ---
 
-### 2.3 Piston Griefing Protection :no_entry:
+### 2.3 Mechanical Block Griefing Protection :no_entry:
 - **Priority:** P1
 - **Status:** :no_entry: **NOT POSSIBLE IN HYTALE**
 
-Hytale does not have piston mechanics in the current API. This feature is deferred until Hytale adds relevant events.
+Hytale does not have mechanical block pushing/pulling mechanics in the current API. This feature is deferred until Hytale adds relevant events.
 
 ---
 
-### 2.4 Hopper Extraction Protection :no_entry:
+### 2.4 Item Transporter Extraction Protection :no_entry:
 - **Priority:** P2
 - **Status:** :no_entry: **NOT POSSIBLE IN HYTALE**
 
-Hytale does not have hopper mechanics in the current API. This feature is deferred until Hytale adds relevant events.
+Hytale does not have automatic item extraction/transport mechanics in the current API. This feature is deferred until Hytale adds relevant events.
 
 ---
 
@@ -1399,7 +1423,7 @@ public class FactionContextCalculator implements ContextCalculator {
 ```
 
 This enables HyperPerms nodes like:
-- `minecraft.fly` granted only in own faction territory
+- `hytale.fly` or `flight.allow` granted only in own faction territory
 - `hyperfactions.build.ally` for ally territory building
 - Role-specific permissions: `hyperfactions.officer.claim`
 
@@ -1576,11 +1600,11 @@ Allow factions to configure different tax rates per role:
 Structured raiding with windows and cooldowns.
 
 **Hytale API Limitation:**
-Hytale does NOT have explosion mechanics (no TNT), so raid systems must use alternative approaches:
-- ✅ Block breaking (requires manual mining)
+Hytale does NOT have explosive mechanics currently, so raid systems must use alternative approaches:
+- ✅ Block breaking (requires manual mining/digging)
 - ✅ PvP combat mechanics
 - ✅ Objective-based systems (capture points, resource collection)
-- ❌ Explosion-based breaching (not possible)
+- ❌ Explosive-based breaching (not currently possible)
 
 **Features:**
 - Raid declaration period (30 min warning)
@@ -1847,10 +1871,10 @@ Faction B surrenders on day 5:
 - **Description:** Per-chunk or faction-wide toggles
 - **Flags:**
   - Fire spread
-  - Mob spawning
-  - Enderpearl usage
-  - Chorus fruit teleport
-  - Frost walker ice
+  - Mob/creature spawning
+  - Teleportation item usage
+  - Special ability teleportation
+  - Environmental interactions (ice formation, etc.)
   - Leaf decay
   - Crop trampling
 
@@ -2237,9 +2261,9 @@ Be explicit about units:
 - [x] Block break in enemy territory - verify blocked (**Implemented via ECS event system**)
 - [x] Block interact in enemy territory - verify blocked (**Implemented via ECS event system**)
 - [x] All actions in own territory - verify allowed (**Implemented**)
-- [ ] ~~Place TNT near faction border~~ (N/A - Hytale has no explosions)
-- [ ] ~~Push piston across boundary~~ (N/A - Hytale has no pistons)
-- [ ] ~~Place hopper under faction container~~ (N/A - Hytale has no hoppers)
+- [ ] ~~Place explosive devices near faction border~~ (N/A - Hytale doesn't have this mechanic yet)
+- [ ] ~~Mechanical block movement across boundary~~ (N/A - Hytale doesn't have this mechanic yet)
+- [ ] ~~Item transporter extraction from containers~~ (N/A - Hytale doesn't have this mechanic yet)
 
 ### Faction Settings
 - [ ] `/f rename NewName` as leader - verify success
@@ -2293,8 +2317,8 @@ Be explicit about units:
 ```
 
 **Technical Notes:**
-- Explosion, piston, and hopper protection are NOT POSSIBLE in Hytale (no such mechanics in API)
-- Block events use EntityEventSystem pattern (like HyperWarps damage system)
+- Explosive device, mechanical block, and item transporter protection are NOT POSSIBLE in current Hytale API (these game mechanics don't exist yet)
+- Block events use EntityEventSystem pattern (similar to entity-based event handling in other systems)
 
 ### Version 0.1.1 - January 24, 2026
 **Critical Bug Fixes:**
