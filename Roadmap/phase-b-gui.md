@@ -1011,14 +1011,12 @@ The territory map uses `InteractiveCustomUIPage<MapData>` to render a dynamic ch
 **Architecture**:
 ```java
 public class TerritoryMapPage extends InteractiveCustomUIPage<MapData> {
-    private int centerX, centerZ;  // Map center (player position at open)
-    private int selectedX, selectedZ;  // Currently selected chunk (-1 if none)
+    private final int centerX, centerZ;  // Map center (player position at open)
 
     public TerritoryMapPage(PlayerRef player) {
         super(player, CustomPageLifetime.CanDismiss, MapData.CODEC);
         this.centerX = player.getChunkX();
         this.centerZ = player.getChunkZ();
-        this.selectedX = this.selectedZ = -1;
     }
 }
 ```
@@ -1050,14 +1048,11 @@ public class TerritoryMapPage extends InteractiveCustomUIPage<MapData> {
 │   │                                                  W = WarZone        │   │
 │   └─────────────────────────────────────────────────────────────────────┘   │
 │                                                                             │
-│   SELECTED: (120, 340) - Your territory                                     │
-│   ┌────────────┐ ┌────────────┐                                             │
-│   │  UNCLAIM   │ │  SET HOME  │   (actions based on selected chunk)         │
-│   └────────────┘ └────────────┘                                             │
+│   Left-click: Claim wilderness  │  Right-click: Unclaim your territory     │
 │                                                                             │
-│   Navigation: [◀ W] [▲ N] [▼ S] [▶ E]  │  [CENTER ON ME]                    │
-│                                                                             │
-│   Claims: 23/78 (55 available)  │  Power needed to hold: 46                 │
+│   ┌────────────┐                                                            │
+│   │  SET HOME  │   Claims: 23/78 (55 available)                             │
+│   └────────────┘                                                            │
 │                                                                             │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                               [ESC] Back                    │
@@ -1095,20 +1090,34 @@ private void buildChunkGrid(UICommandBuilder cmd, UIEventBuilder events) {
             cmd.append("#ChunkCards[" + z + "]", "faction/chunk_cell.ui");
 
             // Set color based on ownership
-            int color = getColorForChunk(chunkX, chunkZ);
+            ChunkOwnership ownership = getChunkOwnership(chunkX, chunkZ);
             cmd.set("#ChunkCards[" + z + "][" + x + "].Background",
-                    "Solid { Color: " + color + "; }");
+                    "Solid { Color: " + ownership.color() + "; }");
 
-            // Setup click event (select chunk)
-            events.addEventBinding(
-                CustomUIEventBindingType.Activating,
-                "#ChunkCards[" + z + "][" + x + "]",
-                EventData.of("Action", "Select:" + chunkX + ":" + chunkZ),
-                false
-            );
+            String selector = "#ChunkCards[" + z + "][" + x + "]";
 
-            // Setup tooltip
-            setupChunkTooltip(cmd, z, x, chunkX, chunkZ);
+            // Bind click events based on ownership
+            if (ownership.isWilderness()) {
+                // Left-click wilderness to claim
+                events.addEventBinding(
+                    CustomUIEventBindingType.Activating,
+                    selector,
+                    EventData.of("Action", "Claim:" + chunkX + ":" + chunkZ),
+                    false
+                );
+            } else if (ownership.isOwnFaction()) {
+                // Right-click own territory to unclaim
+                events.addEventBinding(
+                    CustomUIEventBindingType.RightClicking,
+                    selector,
+                    EventData.of("Action", "Unclaim:" + chunkX + ":" + chunkZ),
+                    false
+                );
+            }
+            // Ally/enemy/zone chunks have no click actions
+
+            // Setup tooltip with action hints
+            setupChunkTooltip(cmd, z, x, chunkX, chunkZ, ownership);
         }
     }
 }
@@ -1119,25 +1128,21 @@ private void buildChunkGrid(UICommandBuilder cmd, UIEventBuilder events) {
 @Override
 public void handleDataEvent(Ref ref, Store store, MapData data) {
     String[] parts = data.action.split(":");
+    int chunkX = parts.length > 1 ? Integer.parseInt(parts[1]) : 0;
+    int chunkZ = parts.length > 2 ? Integer.parseInt(parts[2]) : 0;
 
     switch (parts[0]) {
-        case "Select" -> {
-            selectedX = Integer.parseInt(parts[1]);
-            selectedZ = Integer.parseInt(parts[2]);
-            rebuildAndSend(ref, store);  // Update to show selection
-        }
-        case "Claim" -> claimSelectedChunk();
-        case "Unclaim" -> unclaimSelectedChunk();
-        case "SetHome" -> setHomeAtSelected();
-        case "Pan" -> {
-            centerX += Integer.parseInt(parts[1]);
-            centerZ += Integer.parseInt(parts[2]);
+        case "Claim" -> {
+            claimChunk(chunkX, chunkZ);
             rebuildAndSend(ref, store);
         }
-        case "Center" -> {
-            centerX = player.getChunkX();
-            centerZ = player.getChunkZ();
+        case "Unclaim" -> {
+            unclaimChunk(chunkX, chunkZ);
             rebuildAndSend(ref, store);
+        }
+        case "SetHome" -> {
+            setFactionHome();
+            player.sendMessage(Message.raw("Faction home set!").color("#22c55e"));
         }
     }
 }
@@ -1150,13 +1155,8 @@ public void handleDataEvent(Ref ref, Store store, MapData data) {
 | `#MapGrid` | Container | Container for chunk grid |
 | `#ChunkCards` | Dynamic | Rows and cells generated via `appendInline()` |
 | `#CurrentCoords` | Text | Player's current chunk coordinates |
-| `#SelectedInfo` | Text | Details about selected chunk |
-| `#ActionButtons` | Container | Contextual action buttons for selected chunk |
-| `#ClaimBtn` | Button | Claim selected wilderness chunk |
-| `#UnclaimBtn` | Button | Unclaim selected owned chunk |
-| `#SetHomeBtn` | Button | Set faction home at selected owned chunk |
-| `#NavButtons` | ButtonGroup | Pan map N/S/E/W |
-| `#CenterBtn` | Button | Recenter map on player position |
+| `#ActionHint` | Text | "Left-click: Claim / Right-click: Unclaim" |
+| `#SetHomeBtn` | Button | Set faction home at current location |
 | `#Legend` | Container | Color legend |
 | `#ClaimStats` | Text | Current claims / max with available count |
 
@@ -1166,14 +1166,20 @@ public void handleDataEvent(Ref ref, Store store, MapData data) {
 
 **Interaction Flow**:
 1. Player opens map - grid renders centered on player position
-2. Click chunk to select - shows info panel with available actions
-3. Actions change based on chunk ownership:
-   - **Wilderness**: [CLAIM]
-   - **Own territory**: [UNCLAIM] [SET HOME]
-   - **Enemy territory**: [OVERCLAIM] (if raidable)
-   - **Ally/Zone**: No actions (info only)
-4. Navigation buttons pan the view
-5. Center button re-centers on player
+2. Hover over chunk - tooltip shows ownership and available action
+3. **Direct click actions** (no selection step):
+   - **Left-click wilderness**: Claim chunk immediately
+   - **Right-click own territory**: Unclaim chunk immediately
+   - **Enemy/Ally/Zone**: No click action (tooltip shows info only)
+4. Set Home button sets faction home at player's current chunk
+5. Map always centers on player position (reopening updates view)
+
+**Tooltip Content**:
+- Wilderness: "Wilderness - Left-click to claim"
+- Own territory: "[Faction Name] - Right-click to unclaim"
+- Ally: "[Faction Name] (Ally) - Protected"
+- Enemy: "[Faction Name] (Enemy) - Protected" (or "Raidable!" if overclaim possible)
+- SafeZone/WarZone: "[Zone Name] - Protected"
 
 ---
 
