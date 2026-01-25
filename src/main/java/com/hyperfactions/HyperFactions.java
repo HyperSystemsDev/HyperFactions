@@ -11,6 +11,7 @@ import com.hyperfactions.storage.ZoneStorage;
 import com.hyperfactions.storage.json.JsonFactionStorage;
 import com.hyperfactions.storage.json.JsonPlayerStorage;
 import com.hyperfactions.storage.json.JsonZoneStorage;
+import com.hyperfactions.update.UpdateChecker;
 import com.hyperfactions.util.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -53,6 +54,9 @@ public class HyperFactions {
 
     // GUI
     private GuiManager guiManager;
+
+    // Update checker
+    private UpdateChecker updateChecker;
 
     // Task management
     private final AtomicInteger taskIdCounter = new AtomicInteger(0);
@@ -160,6 +164,12 @@ public class HyperFactions {
             powerManager.applyDeathPenalty(playerUuid);
             Logger.info("Player %s combat logged - death penalty applied", playerUuid);
         });
+
+        // Initialize update checker if enabled
+        if (HyperFactionsConfig.get().isUpdateCheckEnabled()) {
+            updateChecker = new UpdateChecker(dataDir, VERSION, HyperFactionsConfig.get().getUpdateCheckUrl());
+            updateChecker.checkForUpdates();
+        }
 
         Logger.info("HyperFactions enabled");
     }
@@ -313,5 +323,15 @@ public class HyperFactions {
     @NotNull
     public GuiManager getGuiManager() {
         return guiManager;
+    }
+
+    /**
+     * Gets the update checker.
+     *
+     * @return the update checker, or null if update checking is disabled
+     */
+    @Nullable
+    public UpdateChecker getUpdateChecker() {
+        return updateChecker;
     }
 }

@@ -49,6 +49,12 @@ public class HyperFactionsConfig {
     private boolean factionDamage = false;
     private boolean taggedLogoutPenalty = true;
 
+    // Spawn protection settings
+    private boolean spawnProtectionEnabled = true;
+    private int spawnProtectionDurationSeconds = 5;
+    private boolean spawnProtectionBreakOnAttack = true;
+    private boolean spawnProtectionBreakOnMove = true;
+
     // Relation settings
     private int maxAllies = 10;      // -1 for unlimited
     private int maxEnemies = -1;     // -1 for unlimited
@@ -142,6 +148,15 @@ public class HyperFactionsConfig {
                 allyDamage = getBool(combat, "allyDamage", allyDamage);
                 factionDamage = getBool(combat, "factionDamage", factionDamage);
                 taggedLogoutPenalty = getBool(combat, "taggedLogoutPenalty", taggedLogoutPenalty);
+
+                // Spawn protection sub-section
+                if (combat.has("spawnProtection") && combat.get("spawnProtection").isJsonObject()) {
+                    JsonObject spawnProt = combat.getAsJsonObject("spawnProtection");
+                    spawnProtectionEnabled = getBool(spawnProt, "enabled", spawnProtectionEnabled);
+                    spawnProtectionDurationSeconds = getInt(spawnProt, "durationSeconds", spawnProtectionDurationSeconds);
+                    spawnProtectionBreakOnAttack = getBool(spawnProt, "breakOnAttack", spawnProtectionBreakOnAttack);
+                    spawnProtectionBreakOnMove = getBool(spawnProt, "breakOnMove", spawnProtectionBreakOnMove);
+                }
             }
 
             // Relation settings
@@ -238,6 +253,15 @@ public class HyperFactionsConfig {
             combat.addProperty("allyDamage", allyDamage);
             combat.addProperty("factionDamage", factionDamage);
             combat.addProperty("taggedLogoutPenalty", taggedLogoutPenalty);
+
+            // Spawn protection sub-section
+            JsonObject spawnProt = new JsonObject();
+            spawnProt.addProperty("enabled", spawnProtectionEnabled);
+            spawnProt.addProperty("durationSeconds", spawnProtectionDurationSeconds);
+            spawnProt.addProperty("breakOnAttack", spawnProtectionBreakOnAttack);
+            spawnProt.addProperty("breakOnMove", spawnProtectionBreakOnMove);
+            combat.add("spawnProtection", spawnProt);
+
             root.add("combat", combat);
 
             // Relation settings
@@ -317,6 +341,12 @@ public class HyperFactionsConfig {
     public boolean isAllyDamage() { return allyDamage; }
     public boolean isFactionDamage() { return factionDamage; }
     public boolean isTaggedLogoutPenalty() { return taggedLogoutPenalty; }
+
+    // === Spawn Protection Getters ===
+    public boolean isSpawnProtectionEnabled() { return spawnProtectionEnabled; }
+    public int getSpawnProtectionDurationSeconds() { return spawnProtectionDurationSeconds; }
+    public boolean isSpawnProtectionBreakOnAttack() { return spawnProtectionBreakOnAttack; }
+    public boolean isSpawnProtectionBreakOnMove() { return spawnProtectionBreakOnMove; }
 
     // === Relation Getters ===
     public int getMaxAllies() { return maxAllies; }

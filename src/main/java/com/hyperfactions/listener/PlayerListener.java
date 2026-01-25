@@ -113,11 +113,55 @@ public class PlayerListener {
 
     /**
      * Called when a player respawns.
+     * Clears combat tag and applies spawn protection.
+     *
+     * @param playerUuid the player's UUID
+     * @param world      the respawn world
+     * @param x          the respawn X coordinate
+     * @param z          the respawn Z coordinate
+     */
+    public void onPlayerRespawn(@NotNull UUID playerUuid, @NotNull String world, double x, double z) {
+        // Clear combat tag
+        hyperFactions.getCombatTagManager().clearTag(playerUuid);
+
+        // Apply spawn protection if enabled
+        HyperFactionsConfig config = HyperFactionsConfig.get();
+        if (config.isSpawnProtectionEnabled()) {
+            int chunkX = (int) Math.floor(x) >> 4;
+            int chunkZ = (int) Math.floor(z) >> 4;
+            int duration = config.getSpawnProtectionDurationSeconds();
+
+            hyperFactions.getCombatTagManager().applySpawnProtection(
+                playerUuid, duration, world, chunkX, chunkZ
+            );
+            Logger.debug("Applied %ds spawn protection to %s at chunk %d, %d",
+                duration, playerUuid, chunkX, chunkZ);
+        }
+    }
+
+    /**
+     * Called when a player respawns (legacy version without location).
      * Clears combat tag on respawn.
      *
      * @param playerUuid the player's UUID
+     * @deprecated Use {@link #onPlayerRespawn(UUID, String, double, double)} instead
      */
+    @Deprecated
     public void onPlayerRespawn(@NotNull UUID playerUuid) {
         hyperFactions.getCombatTagManager().clearTag(playerUuid);
+    }
+
+    /**
+     * Called when a player moves chunks.
+     * Checks if spawn protection should be broken.
+     *
+     * @param playerUuid the player's UUID
+     * @param world      the world name
+     * @param chunkX     the new chunk X
+     * @param chunkZ     the new chunk Z
+     * @return true if spawn protection was broken
+     */
+    public boolean onChunkEnter(@NotNull UUID playerUuid, @NotNull String world, int chunkX, int chunkZ) {
+        return hyperFactions.getCombatTagManager().checkSpawnProtectionMove(playerUuid, world, chunkX, chunkZ);
     }
 }
