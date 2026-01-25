@@ -14,6 +14,7 @@ import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 
 import java.nio.file.Path;
+import java.util.UUID;
 import java.util.function.Supplier;
 
 /**
@@ -250,6 +251,36 @@ public class GuiManager {
     }
 
     /**
+     * Opens the Faction Settings page.
+     * Requires officer or leader role.
+     *
+     * @param player    The Player entity
+     * @param ref       The entity reference
+     * @param store     The entity store
+     * @param playerRef The PlayerRef component
+     * @param faction   The faction to edit settings for
+     */
+    public void openFactionSettings(Player player, Ref<EntityStore> ref,
+                                    Store<EntityStore> store, PlayerRef playerRef,
+                                    Faction faction) {
+        Logger.debug("[GUI] Opening FactionSettingsPage for %s", playerRef.getUsername());
+        try {
+            PageManager pageManager = player.getPageManager();
+            FactionSettingsPage page = new FactionSettingsPage(
+                playerRef,
+                factionManager.get(),
+                this,
+                faction
+            );
+            pageManager.openCustomPage(ref, store, page);
+            Logger.debug("[GUI] FactionSettingsPage opened successfully");
+        } catch (Exception e) {
+            Logger.severe("[GUI] Failed to open FactionSettingsPage: %s", e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
      * Opens the Admin Main page.
      * Requires hyperfactions.admin permission.
      *
@@ -300,6 +331,67 @@ public class GuiManager {
             Logger.debug("[GUI] AdminZonePage opened successfully");
         } catch (Exception e) {
             Logger.severe("[GUI] Failed to open AdminZonePage: %s", e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Opens the Logs Viewer page.
+     *
+     * @param player    The Player entity
+     * @param ref       The entity reference
+     * @param store     The entity store
+     * @param playerRef The PlayerRef component
+     * @param faction   The faction to view logs for
+     */
+    public void openLogsViewer(Player player, Ref<EntityStore> ref,
+                               Store<EntityStore> store, PlayerRef playerRef,
+                               Faction faction) {
+        Logger.debug("[GUI] Opening LogsViewerPage for %s", playerRef.getUsername());
+        try {
+            PageManager pageManager = player.getPageManager();
+            LogsViewerPage page = new LogsViewerPage(
+                playerRef,
+                factionManager.get(),
+                this,
+                faction
+            );
+            pageManager.openCustomPage(ref, store, page);
+            Logger.debug("[GUI] LogsViewerPage opened successfully");
+        } catch (Exception e) {
+            Logger.severe("[GUI] Failed to open LogsViewerPage: %s", e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Opens the Player Info page.
+     *
+     * @param player          The Player entity
+     * @param ref             The entity reference
+     * @param store           The entity store
+     * @param playerRef       The PlayerRef component
+     * @param targetUuid      The UUID of the player to view
+     * @param targetName      The name of the player to view
+     */
+    public void openPlayerInfo(Player player, Ref<EntityStore> ref,
+                               Store<EntityStore> store, PlayerRef playerRef,
+                               UUID targetUuid, String targetName) {
+        Logger.debug("[GUI] Opening PlayerInfoPage for %s (viewing %s)", playerRef.getUsername(), targetName);
+        try {
+            PageManager pageManager = player.getPageManager();
+            PlayerInfoPage page = new PlayerInfoPage(
+                playerRef,
+                targetUuid,
+                targetName,
+                factionManager.get(),
+                powerManager.get(),
+                this
+            );
+            pageManager.openCustomPage(ref, store, page);
+            Logger.debug("[GUI] PlayerInfoPage opened successfully");
+        } catch (Exception e) {
+            Logger.severe("[GUI] Failed to open PlayerInfoPage: %s", e.getMessage());
             e.printStackTrace();
         }
     }
