@@ -61,11 +61,14 @@ public class HyperFactions {
     // Task management
     private final AtomicInteger taskIdCounter = new AtomicInteger(0);
     private final Map<Integer, ScheduledTask> scheduledTasks = new ConcurrentHashMap<>();
+    private int autoSaveTaskId = -1;
+    private int inviteCleanupTaskId = -1;
 
     // Platform callbacks (set by plugin)
     private Consumer<Runnable> asyncExecutor;
     private TaskSchedulerCallback taskScheduler;
     private TaskCancelCallback taskCanceller;
+    private RepeatingTaskSchedulerCallback repeatingTaskScheduler;
 
     /**
      * Functional interface for scheduling delayed tasks.
@@ -81,6 +84,14 @@ public class HyperFactions {
     @FunctionalInterface
     public interface TaskCancelCallback {
         void cancel(int taskId);
+    }
+
+    /**
+     * Functional interface for scheduling repeating tasks.
+     */
+    @FunctionalInterface
+    public interface RepeatingTaskSchedulerCallback {
+        int schedule(int delayTicks, int periodTicks, Runnable task);
     }
 
     /**
@@ -171,7 +182,20 @@ public class HyperFactions {
             updateChecker.checkForUpdates();
         }
 
+        // Start periodic tasks (auto-save, invite cleanup)
+        // Note: These are started after platform sets callbacks via setRepeatingTaskScheduler()
+        // The platform should call startPeriodicTasks() after setting up callbacks
+
         Logger.info("HyperFactions enabled");
+    }
+
+    /**
+     * Starts periodic tasks (auto-save, invite cleanup).
+     * Should be called by the platform after setting up task scheduler callbacks.
+     */
+    public void startPeriodicTasks() {
+        startAutoSaveTask();
+        startInviteCleanupTask();
     }
 
     /**
@@ -180,16 +204,18 @@ public class HyperFactions {
     public void disable() {
         Logger.info("HyperFactions disabling...");
 
+        // Cancel periodic tasks first
+        if (autoSaveTaskId > 0) {
+            cancelTask(autoSaveTaskId);
+            autoSaveTaskId = -1;
+        }
+        if (inviteCleanupTaskId > 0) {
+            cancelTask(inviteCleanupTaskId);
+            inviteCleanupTaskId = -1;
+        }
+
         // Save all data
-        if (factionManager != null) {
-            factionManager.saveAll().join();
-        }
-        if (powerManager != null) {
-            powerManager.saveAll().join();
-        }
-        if (zoneManager != null) {
-            zoneManager.saveAll().join();
-        }
+        saveAllData();
 
         // Shutdown storage
         if (factionStorage != null) {
@@ -202,7 +228,7 @@ public class HyperFactions {
             zoneStorage.shutdown().join();
         }
 
-        // Cancel all scheduled tasks
+        // Cancel remaining scheduled tasks
         for (int taskId : scheduledTasks.keySet()) {
             cancelTask(taskId);
         }
@@ -230,6 +256,10 @@ public class HyperFactions {
 
     public void setTaskCanceller(@NotNull TaskCancelCallback canceller) {
         this.taskCanceller = canceller;
+    }
+
+    public void setRepeatingTaskScheduler(@NotNull RepeatingTaskSchedulerCallback scheduler) {
+        this.repeatingTaskScheduler = scheduler;
     }
 
     // === Task scheduling ===
@@ -265,6 +295,83 @@ public class HyperFactions {
         ScheduledTask task = scheduledTasks.remove(taskId);
         if (task != null && taskCanceller != null) {
             taskCanceller.cancel(task.id());
+        }
+    }
+
+    /**
+     * Schedules a repeating task.
+     *
+     * @param delayTicks  initial delay in ticks
+     * @param periodTicks period in ticks
+     * @param task        the task
+     * @return the task ID
+     */
+    public int scheduleRepeatingTask(int delayTicks, int periodTicks, @NotNull Runnable task) {
+        if (repeatingTaskScheduler != null) {
+            int id = taskIdCounter.incrementAndGet();
+            int platformId = repeatingTaskScheduler.schedule(delayTicks, periodTicks, task);
+            scheduledTasks.put(id, new ScheduledTask(platformId, task));
+            return id;
+        }
+        return -1;
+    }
+
+    /**
+     * Performs a save of all data.
+     * Called periodically by auto-save and on shutdown.
+     */
+    public void saveAllData() {
+        Logger.info("Auto-saving data...");
+        if (factionManager != null) {
+            factionManager.saveAll().join();
+        }
+        if (powerManager != null) {
+            powerManager.saveAll().join();
+        }
+        if (zoneManager != null) {
+            zoneManager.saveAll().join();
+        }
+        Logger.info("Auto-save complete");
+    }
+
+    /**
+     * Starts the auto-save periodic task if enabled.
+     */
+    private void startAutoSaveTask() {
+        HyperFactionsConfig config = HyperFactionsConfig.get();
+        if (!config.isAutoSaveEnabled()) {
+            Logger.info("Auto-save is disabled in config");
+            return;
+        }
+
+        int intervalMinutes = config.getAutoSaveIntervalMinutes();
+        if (intervalMinutes <= 0) {
+            Logger.warn("Invalid auto-save interval: %d minutes, using default 5 minutes", intervalMinutes);
+            intervalMinutes = 5;
+        }
+
+        int periodTicks = intervalMinutes * 60 * 20; // Convert minutes to ticks (20 ticks per second)
+        autoSaveTaskId = scheduleRepeatingTask(periodTicks, periodTicks, this::saveAllData);
+
+        if (autoSaveTaskId > 0) {
+            Logger.info("Auto-save scheduled every %d minutes", intervalMinutes);
+        }
+    }
+
+    /**
+     * Starts the invite cleanup periodic task.
+     */
+    private void startInviteCleanupTask() {
+        // Run every 5 minutes (6000 ticks)
+        int periodTicks = 5 * 60 * 20;
+        inviteCleanupTaskId = scheduleRepeatingTask(periodTicks, periodTicks, () -> {
+            if (inviteManager != null) {
+                inviteManager.cleanupExpired();
+            }
+        });
+
+        if (inviteCleanupTaskId > 0) {
+            Logger.info("Invite cleanup task scheduled every 5 minutes");
         }
     }
 

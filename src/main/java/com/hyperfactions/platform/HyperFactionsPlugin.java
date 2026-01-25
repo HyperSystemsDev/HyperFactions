@@ -141,7 +141,7 @@ public class HyperFactionsPlugin extends JavaPlugin {
             java.util.concurrent.CompletableFuture.runAsync(task);
         });
 
-        // Task scheduler
+        // Task scheduler (for one-shot delayed tasks)
         hyperFactions.setTaskScheduler((delayTicks, task) -> {
             int id = taskIdCounter.incrementAndGet();
             java.util.Timer timer = new java.util.Timer();
@@ -153,6 +153,22 @@ public class HyperFactionsPlugin extends JavaPlugin {
                     task.run();
                 }
             }, delayMs);
+            scheduledTasks.put(id, timer);
+            return id;
+        });
+
+        // Repeating task scheduler (for periodic tasks like auto-save)
+        hyperFactions.setRepeatingTaskScheduler((delayTicks, periodTicks, task) -> {
+            int id = taskIdCounter.incrementAndGet();
+            java.util.Timer timer = new java.util.Timer();
+            long delayMs = delayTicks * 50L;
+            long periodMs = periodTicks * 50L;
+            timer.scheduleAtFixedRate(new java.util.TimerTask() {
+                @Override
+                public void run() {
+                    task.run();
+                }
+            }, delayMs, periodMs);
             scheduledTasks.put(id, timer);
             return id;
         });
@@ -219,7 +235,7 @@ public class HyperFactionsPlugin extends JavaPlugin {
     }
 
     /**
-     * Starts periodic tasks (power regen, combat tag decay).
+     * Starts periodic tasks (power regen, combat tag decay, auto-save, invite cleanup).
      */
     private void startPeriodicTasks() {
         tickExecutor = Executors.newSingleThreadScheduledExecutor(r -> {
@@ -251,6 +267,9 @@ public class HyperFactionsPlugin extends JavaPlugin {
             },
             1, 1, TimeUnit.SECONDS
         );
+
+        // Start core periodic tasks (auto-save, invite cleanup)
+        hyperFactions.startPeriodicTasks();
 
         getLogger().at(Level.INFO).log("Started periodic tasks");
     }

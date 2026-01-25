@@ -37,7 +37,8 @@ public record FactionLog(
         RELATION_NEUTRAL("Neutral"),
         LEADER_TRANSFER("Transfer"),
         SETTINGS_CHANGE("Settings"),
-        POWER_CHANGE("Power");
+        POWER_CHANGE("Power"),
+        ECONOMY("Economy");
 
         private final String displayName;
 

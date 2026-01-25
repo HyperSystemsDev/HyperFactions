@@ -2,6 +2,7 @@ package com.hyperfactions.manager;
 
 import com.hyperfactions.config.HyperFactionsConfig;
 import com.hyperfactions.data.Faction;
+import com.hyperfactions.data.TeleportContext;
 import com.hyperfactions.integration.HyperPermsIntegration;
 import com.hyperfactions.util.Logger;
 import com.hyperfactions.util.TimeUtil;
@@ -217,6 +218,25 @@ public class TeleportManager {
         pendingTeleports.put(playerUuid, pending);
 
         return TeleportResult.SUCCESS;
+    }
+
+    /**
+     * Initiates a teleport to faction home using a TeleportContext.
+     * This is the recommended method signature for cleaner code.
+     *
+     * @param context the teleport context containing all required parameters
+     * @return the initial result
+     */
+    public TeleportResult teleportToHome(@NotNull TeleportContext context) {
+        return teleportToHome(
+            context.playerUuid(),
+            context.startLocation(),
+            context.scheduleTask(),
+            context.cancelTask(),
+            context.doTeleport(),
+            context.sendMessage(),
+            context.isTagged()
+        );
     }
 
     /**

@@ -73,6 +73,17 @@ public class HyperFactionsConfig {
     private boolean updateCheckEnabled = true;
     private String updateCheckUrl = "https://api.github.com/repos/ZenithDevHQ/HyperFactions/releases/latest";
 
+    // Auto-save settings
+    private boolean autoSaveEnabled = true;
+    private int autoSaveIntervalMinutes = 5;
+
+    // Economy settings
+    private boolean economyEnabled = true;
+    private String economyCurrencyName = "dollar";
+    private String economyCurrencyNamePlural = "dollars";
+    private String economyCurrencySymbol = "$";
+    private double economyStartingBalance = 0.0;
+
     // Message settings
     private String prefix = "\u00A7b[HyperFactions]\u00A7r ";
     private String primaryColor = "#00FFFF";
@@ -189,6 +200,23 @@ public class HyperFactionsConfig {
                 updateCheckUrl = getString(updates, "url", updateCheckUrl);
             }
 
+            // Auto-save settings
+            if (root.has("autoSave") && root.get("autoSave").isJsonObject()) {
+                JsonObject autoSave = root.getAsJsonObject("autoSave");
+                autoSaveEnabled = getBool(autoSave, "enabled", autoSaveEnabled);
+                autoSaveIntervalMinutes = getInt(autoSave, "intervalMinutes", autoSaveIntervalMinutes);
+            }
+
+            // Economy settings
+            if (root.has("economy") && root.get("economy").isJsonObject()) {
+                JsonObject economy = root.getAsJsonObject("economy");
+                economyEnabled = getBool(economy, "enabled", economyEnabled);
+                economyCurrencyName = getString(economy, "currencyName", economyCurrencyName);
+                economyCurrencyNamePlural = getString(economy, "currencyNamePlural", economyCurrencyNamePlural);
+                economyCurrencySymbol = getString(economy, "currencySymbol", economyCurrencySymbol);
+                economyStartingBalance = getDouble(economy, "startingBalance", economyStartingBalance);
+            }
+
             // Message settings
             if (root.has("messages") && root.get("messages").isJsonObject()) {
                 JsonObject messages = root.getAsJsonObject("messages");
@@ -290,6 +318,21 @@ public class HyperFactionsConfig {
             updates.addProperty("url", updateCheckUrl);
             root.add("updates", updates);
 
+            // Auto-save settings
+            JsonObject autoSave = new JsonObject();
+            autoSave.addProperty("enabled", autoSaveEnabled);
+            autoSave.addProperty("intervalMinutes", autoSaveIntervalMinutes);
+            root.add("autoSave", autoSave);
+
+            // Economy settings
+            JsonObject economy = new JsonObject();
+            economy.addProperty("enabled", economyEnabled);
+            economy.addProperty("currencyName", economyCurrencyName);
+            economy.addProperty("currencyNamePlural", economyCurrencyNamePlural);
+            economy.addProperty("currencySymbol", economyCurrencySymbol);
+            economy.addProperty("startingBalance", economyStartingBalance);
+            root.add("economy", economy);
+
             // Message settings
             JsonObject messages = new JsonObject();
             messages.addProperty("prefix", prefix);
@@ -365,6 +408,17 @@ public class HyperFactionsConfig {
     // === Update Getters ===
     public boolean isUpdateCheckEnabled() { return updateCheckEnabled; }
     public String getUpdateCheckUrl() { return updateCheckUrl; }
+
+    // === Auto-save Getters ===
+    public boolean isAutoSaveEnabled() { return autoSaveEnabled; }
+    public int getAutoSaveIntervalMinutes() { return autoSaveIntervalMinutes; }
+
+    // === Economy Getters ===
+    public boolean isEconomyEnabled() { return economyEnabled; }
+    public String getEconomyCurrencyName() { return economyCurrencyName; }
+    public String getEconomyCurrencyNamePlural() { return economyCurrencyNamePlural; }
+    public String getEconomyCurrencySymbol() { return economyCurrencySymbol; }
+    public double getEconomyStartingBalance() { return economyStartingBalance; }
 
     // === Message Getters ===
     public String getPrefix() { return prefix; }

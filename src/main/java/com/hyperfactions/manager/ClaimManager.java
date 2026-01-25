@@ -23,6 +23,9 @@ public class ClaimManager {
     // Index: ChunkKey -> faction ID for fast lookups
     private final Map<ChunkKey, UUID> claimIndex = new ConcurrentHashMap<>();
 
+    // Reverse index: faction ID -> Set<ChunkKey> for O(1) getFactionClaims()
+    private final Map<UUID, Set<ChunkKey>> factionClaimsIndex = new ConcurrentHashMap<>();
+
     public ClaimManager(@NotNull FactionManager factionManager, @NotNull PowerManager powerManager) {
         this.factionManager = factionManager;
         this.powerManager = powerManager;
@@ -34,14 +37,21 @@ public class ClaimManager {
      */
     public void buildIndex() {
         claimIndex.clear();
+        factionClaimsIndex.clear();
 
         for (Faction faction : factionManager.getAllFactions()) {
+            Set<ChunkKey> factionClaims = ConcurrentHashMap.newKeySet();
             for (FactionClaim claim : faction.claims()) {
-                claimIndex.put(claim.toChunkKey(), faction.id());
+                ChunkKey key = claim.toChunkKey();
+                claimIndex.put(key, faction.id());
+                factionClaims.add(key);
+            }
+            if (!factionClaims.isEmpty()) {
+                factionClaimsIndex.put(faction.id(), factionClaims);
             }
         }
 
-        Logger.info("Built claim index with %d claims", claimIndex.size());
+        Logger.info("Built claim index with %d claims for %d factions", claimIndex.size(), factionClaimsIndex.size());
     }
 
     /**
@@ -193,8 +203,9 @@ public class ClaimManager {
             .withLog(FactionLog.create(FactionLog.LogType.CLAIM,
                 String.format("Claimed chunk at %d, %d in %s", chunkX, chunkZ, world), playerUuid));
 
-        // Update index and faction
+        // Update indices and faction
         claimIndex.put(key, faction.id());
+        factionClaimsIndex.computeIfAbsent(faction.id(), k -> ConcurrentHashMap.newKeySet()).add(key);
         factionManager.updateFaction(updated);
 
         return ClaimResult.SUCCESS;
@@ -247,6 +258,13 @@ public class ClaimManager {
                 String.format("Unclaimed chunk at %d, %d in %s", chunkX, chunkZ, world), playerUuid));
 
         claimIndex.remove(key);
+        Set<ChunkKey> factionClaims = factionClaimsIndex.get(faction.id());
+        if (factionClaims != null) {
+            factionClaims.remove(key);
+            if (factionClaims.isEmpty()) {
+                factionClaimsIndex.remove(faction.id());
+            }
+        }
         factionManager.updateFaction(updated);
 
         return ClaimResult.SUCCESS;
@@ -320,8 +338,20 @@ public class ClaimManager {
             .withLog(FactionLog.create(FactionLog.LogType.OVERCLAIM,
                 String.format("Overclaimed chunk at %d, %d from %s", chunkX, chunkZ, defenderFaction.name()), playerUuid));
 
-        // Update index and factions
+        // Update indices - remove from defender
+        Set<ChunkKey> defenderClaims = factionClaimsIndex.get(defenderId);
+        if (defenderClaims != null) {
+            defenderClaims.remove(key);
+            if (defenderClaims.isEmpty()) {
+                factionClaimsIndex.remove(defenderId);
+            }
+        }
+
+        // Update indices - add to attacker
         claimIndex.put(key, attackerFaction.id());
+        factionClaimsIndex.computeIfAbsent(attackerFaction.id(), k -> ConcurrentHashMap.newKeySet()).add(key);
+
+        // Update factions
         factionManager.updateFaction(updatedDefender);
         factionManager.updateFaction(updatedAttacker);
 
@@ -335,24 +365,27 @@ public class ClaimManager {
      * @param factionId the faction ID
      */
     public void unclaimAll(@NotNull UUID factionId) {
+        // Remove from main index
         claimIndex.entrySet().removeIf(entry -> entry.getValue().equals(factionId));
+        // Remove from reverse index
+        factionClaimsIndex.remove(factionId);
     }
 
     /**
      * Gets all claims for a faction.
+     * O(1) lookup using the reverse index.
      *
      * @param factionId the faction ID
-     * @return set of chunk keys
+     * @return set of chunk keys (unmodifiable view)
      */
     @NotNull
     public Set<ChunkKey> getFactionClaims(@NotNull UUID factionId) {
-        Set<ChunkKey> claims = new HashSet<>();
-        for (var entry : claimIndex.entrySet()) {
-            if (entry.getValue().equals(factionId)) {
-                claims.add(entry.getKey());
-            }
+        Set<ChunkKey> claims = factionClaimsIndex.get(factionId);
+        if (claims == null) {
+            return Collections.emptySet();
         }
-        return claims;
+        // Return unmodifiable view to prevent external modification
+        return Collections.unmodifiableSet(claims);
     }
 
     private ClaimResult forceClaimChunk(Faction faction, UUID playerUuid, String world, int chunkX, int chunkZ) {
@@ -363,7 +396,9 @@ public class ClaimManager {
             .withLog(FactionLog.create(FactionLog.LogType.CLAIM,
                 String.format("Claimed chunk at %d, %d in %s", chunkX, chunkZ, world), playerUuid));
 
+        // Update both indices
         claimIndex.put(key, faction.id());
+        factionClaimsIndex.computeIfAbsent(faction.id(), k -> ConcurrentHashMap.newKeySet()).add(key);
         factionManager.updateFaction(updated);
 
         return ClaimResult.SUCCESS;
