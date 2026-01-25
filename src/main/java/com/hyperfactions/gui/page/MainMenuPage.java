@@ -1,0 +1,223 @@
+package com.hyperfactions.gui.page;
+
+import com.hyperfactions.data.Faction;
+import com.hyperfactions.gui.GuiManager;
+import com.hyperfactions.gui.data.MainMenuData;
+import com.hyperfactions.integration.HyperPermsIntegration;
+import com.hyperfactions.manager.FactionManager;
+import com.hypixel.hytale.component.Ref;
+import com.hypixel.hytale.component.Store;
+import com.hypixel.hytale.protocol.packets.interface_.CustomPageLifetime;
+import com.hypixel.hytale.protocol.packets.interface_.CustomUIEventBindingType;
+import com.hypixel.hytale.server.core.entity.entities.Player;
+import com.hypixel.hytale.server.core.entity.entities.player.pages.InteractiveCustomUIPage;
+import com.hypixel.hytale.server.core.ui.builder.EventData;
+import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder;
+import com.hypixel.hytale.server.core.ui.builder.UIEventBuilder;
+import com.hypixel.hytale.server.core.universe.PlayerRef;
+import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+
+import java.util.UUID;
+
+/**
+ * Main Menu page - central navigation hub for HyperFactions.
+ * Displayed when player types /f alone.
+ */
+public class MainMenuPage extends InteractiveCustomUIPage<MainMenuData> {
+
+    private final PlayerRef playerRef;
+    private final FactionManager factionManager;
+    private final GuiManager guiManager;
+
+    public MainMenuPage(PlayerRef playerRef,
+                        FactionManager factionManager,
+                        GuiManager guiManager) {
+        super(playerRef, CustomPageLifetime.CanDismiss, MainMenuData.CODEC);
+        this.playerRef = playerRef;
+        this.factionManager = factionManager;
+        this.guiManager = guiManager;
+    }
+
+    @Override
+    public void build(Ref<EntityStore> ref, UICommandBuilder cmd,
+                      UIEventBuilder events, Store<EntityStore> store) {
+
+        UUID uuid = playerRef.getUuid();
+        Faction faction = factionManager.getPlayerFaction(uuid);
+        boolean hasAdmin = HyperPermsIntegration.hasPermission(uuid, "hyperfactions.admin");
+
+        // Load the main menu template
+        cmd.append("HyperFactions/main_menu.ui");
+
+        // Set title
+        cmd.set("#MenuTitle.Text", "HyperFactions");
+
+        // Section: My Faction
+        if (faction != null) {
+            cmd.append("#MyFactionSection", "HyperFactions/menu_section.ui");
+            cmd.set("#MyFactionSection #SectionTitle.Text", "My Faction");
+            cmd.append("#MyFactionSection #SectionContent", "HyperFactions/main_menu_faction.ui");
+            cmd.set("#MyFactionSection #FactionNameLabel.Text", faction.name());
+
+            events.addEventBinding(
+                    CustomUIEventBindingType.Activating,
+                    "#MyFactionSection #ViewFactionBtn",
+                    EventData.of("Button", "MyFaction"),
+                    false
+            );
+
+            events.addEventBinding(
+                    CustomUIEventBindingType.Activating,
+                    "#MyFactionSection #MembersBtn",
+                    EventData.of("Button", "Members"),
+                    false
+            );
+
+            events.addEventBinding(
+                    CustomUIEventBindingType.Activating,
+                    "#MyFactionSection #RelationsBtn",
+                    EventData.of("Button", "Relations"),
+                    false
+            );
+        } else {
+            cmd.append("#MyFactionSection", "HyperFactions/menu_section.ui");
+            cmd.set("#MyFactionSection #SectionTitle.Text", "Get Started");
+            cmd.append("#MyFactionSection #SectionContent", "HyperFactions/main_menu_no_faction.ui");
+
+            events.addEventBinding(
+                    CustomUIEventBindingType.Activating,
+                    "#MyFactionSection #CreateFactionBtn",
+                    EventData.of("Button", "CreateFaction"),
+                    false
+            );
+        }
+
+        // Section: Territory
+        cmd.append("#TerritorySection", "HyperFactions/menu_section.ui");
+        cmd.set("#TerritorySection #SectionTitle.Text", "Territory");
+        cmd.append("#TerritorySection #SectionContent", "HyperFactions/main_menu_territory.ui");
+
+        events.addEventBinding(
+                CustomUIEventBindingType.Activating,
+                "#TerritorySection #MapBtn",
+                EventData.of("Button", "Map"),
+                false
+        );
+
+        if (faction != null) {
+            events.addEventBinding(
+                    CustomUIEventBindingType.Activating,
+                    "#TerritorySection #ClaimBtn",
+                    EventData.of("Button", "Claim"),
+                    false
+            );
+        }
+
+        // Section: Browse
+        cmd.append("#BrowseSection", "HyperFactions/menu_section.ui");
+        cmd.set("#BrowseSection #SectionTitle.Text", "Browse");
+        cmd.append("#BrowseSection #SectionContent", "HyperFactions/main_menu_browse.ui");
+
+        events.addEventBinding(
+                CustomUIEventBindingType.Activating,
+                "#BrowseSection #BrowseFactionsBtn",
+                EventData.of("Button", "BrowseFactions"),
+                false
+        );
+
+        // Section: Admin (if permission)
+        if (hasAdmin) {
+            cmd.append("#AdminSection", "HyperFactions/menu_section.ui");
+            cmd.set("#AdminSection #SectionTitle.Text", "Admin");
+            cmd.append("#AdminSection #SectionContent", "HyperFactions/main_menu_admin.ui");
+
+            events.addEventBinding(
+                    CustomUIEventBindingType.Activating,
+                    "#AdminSection #AdminPanelBtn",
+                    EventData.of("Button", "AdminPanel"),
+                    false
+            );
+
+            events.addEventBinding(
+                    CustomUIEventBindingType.Activating,
+                    "#AdminSection #ZonesBtn",
+                    EventData.of("Button", "AdminZones"),
+                    false
+            );
+        }
+    }
+
+    @Override
+    public void handleDataEvent(Ref<EntityStore> ref, Store<EntityStore> store,
+                                MainMenuData data) {
+        super.handleDataEvent(ref, store, data);
+
+        Player player = store.getComponent(ref, Player.getComponentType());
+        PlayerRef playerRef = store.getComponent(ref, PlayerRef.getComponentType());
+
+        if (player == null || playerRef == null || data.button == null) {
+            return;
+        }
+
+        UUID uuid = playerRef.getUuid();
+        Faction faction = factionManager.getPlayerFaction(uuid);
+
+        switch (data.button) {
+            case "MyFaction" -> {
+                if (faction != null) {
+                    guiManager.openFactionMain(player, ref, store, playerRef);
+                }
+            }
+
+            case "Members" -> {
+                if (faction != null) {
+                    guiManager.openFactionMembers(player, ref, store, playerRef, faction);
+                }
+            }
+
+            case "Relations" -> {
+                if (faction != null) {
+                    guiManager.openFactionRelations(player, ref, store, playerRef, faction);
+                }
+            }
+
+            case "CreateFaction" -> {
+                guiManager.closePage(player, ref, store);
+                player.sendMessage(
+                    com.hypixel.hytale.server.core.Message.raw("Use ")
+                        .color("#AAAAAA")
+                        .insert(com.hypixel.hytale.server.core.Message.raw("/f create <name>").color("#55FF55"))
+                        .insert(com.hypixel.hytale.server.core.Message.raw(" to create a faction.").color("#AAAAAA"))
+                );
+            }
+
+            case "Map" -> guiManager.openChunkMap(player, ref, store, playerRef);
+
+            case "Claim" -> {
+                if (faction != null) {
+                    guiManager.closePage(player, ref, store);
+                    player.sendMessage(
+                        com.hypixel.hytale.server.core.Message.raw("Use ")
+                            .color("#AAAAAA")
+                            .insert(com.hypixel.hytale.server.core.Message.raw("/f claim").color("#55FF55"))
+                            .insert(com.hypixel.hytale.server.core.Message.raw(" to claim territory.").color("#AAAAAA"))
+                    );
+                }
+            }
+
+            case "BrowseFactions" -> guiManager.openFactionBrowser(player, ref, store, playerRef);
+
+            case "AdminPanel" -> {
+                if (HyperPermsIntegration.hasPermission(uuid, "hyperfactions.admin")) {
+                    guiManager.openAdminMain(player, ref, store, playerRef);
+                }
+            }
+
+            case "AdminZones" -> {
+                if (HyperPermsIntegration.hasPermission(uuid, "hyperfactions.admin.zones")) {
+                    guiManager.openAdminZone(player, ref, store, playerRef);
+                }
+            }
+        }
+    }
+}

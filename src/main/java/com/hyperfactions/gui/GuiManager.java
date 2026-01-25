@@ -53,6 +53,33 @@ public class GuiManager {
     }
 
     /**
+     * Opens the Main Menu page - central navigation hub.
+     * Displayed when player types /f alone.
+     *
+     * @param player    The Player entity
+     * @param ref       The entity reference
+     * @param store     The entity store
+     * @param playerRef The PlayerRef component
+     */
+    public void openMainMenu(Player player, Ref<EntityStore> ref,
+                             Store<EntityStore> store, PlayerRef playerRef) {
+        Logger.debug("[GUI] Opening MainMenuPage for %s", playerRef.getUsername());
+        try {
+            PageManager pageManager = player.getPageManager();
+            MainMenuPage page = new MainMenuPage(
+                playerRef,
+                factionManager.get(),
+                this
+            );
+            pageManager.openCustomPage(ref, store, page);
+            Logger.debug("[GUI] MainMenuPage opened successfully");
+        } catch (Exception e) {
+            Logger.severe("[GUI] Failed to open MainMenuPage: %s", e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
      * Opens the Faction Main page (dashboard) for a player.
      *
      * @param player    The Player entity

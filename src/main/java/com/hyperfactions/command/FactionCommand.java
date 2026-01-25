@@ -65,7 +65,14 @@ public class FactionCommand extends AbstractPlayerCommand {
 
         // parts[0] is "faction", "f", or "hf"
         if (parts.length <= 1) {
-            showHelp(ctx, player);
+            // Open main menu GUI
+            Player playerEntity = store.getComponent(ref, Player.getComponentType());
+            if (playerEntity != null) {
+                hyperFactions.getGuiManager().openMainMenu(playerEntity, ref, store, player);
+            } else {
+                // Fallback to help if Player component not available (shouldn't happen)
+                showHelp(ctx, player);
+            }
             return;
         }
 
