@@ -65,18 +65,49 @@ Items requiring investigation before implementation. These may reveal Hytale lim
 
 **Question**: How can we render an interactive chunk map in the Hytale UI?
 
-**Investigation Needed**:
-- [ ] Research CustomUI capabilities for dynamic grid rendering
-- [ ] Check if image generation is possible (chunk map image)
-- [ ] Investigate click coordinates for grid interactions
-- [ ] Look at minimap mods for patterns
+**Investigation Completed**:
+- [x] Research CustomUI capabilities for dynamic grid rendering
+- [x] Check if image generation is possible (chunk map image) - Not needed, use dynamic grid
+- [x] Investigate click coordinates for grid interactions
+- [x] Look at minimap mods for patterns - **ElbaphFactions analyzed**
 
-**Constraints**:
-- UI elements must be defined in templates
-- Dynamic style changes crash (per Technical Reference)
-- May need pre-generated cell templates
+**Solution Found** (via ElbaphFactions v1.3.40-SNAPSHOT analysis):
 
-**Status**: Not started
+See **[ElbaphFactions Analysis](../../../resources/ElbaphFactions.md)** for complete implementation details.
+
+**Key Patterns**:
+1. Use `InteractiveCustomUIPage<MapData>` with custom data codec
+2. Generate grid dynamically using `appendInline()` for rows and `append()` for cells
+3. Use indexed selectors `#ChunkCards[z][x]` to target specific cells
+4. Set colors via `.Background` property with `Solid { Color: <decimal>; }`
+5. Bind events per-cell with action strings encoding coordinates: `"ActionType:X:Z"`
+6. Use `TooltipTextSpans` for formatted hover information
+
+**Implementation Approach**:
+```java
+// Create row container
+cmd.appendInline("#ChunkCards", "Group { LayoutMode: Left; }");
+// Add cell to row
+cmd.append("#ChunkCards[z]", "faction/chunk_cell.ui");
+// Set cell color
+cmd.set("#ChunkCards[z][x].Background", "Solid { Color: 4176208; }");
+// Bind click event
+events.addEventBinding(CustomUIEventBindingType.Activating,
+    "#ChunkCards[z][x]",
+    EventData.of("Action", "Select:" + chunkX + ":" + chunkZ),
+    false);
+```
+
+**Constraints** (confirmed):
+- UI elements must be defined in templates (use minimal cell template)
+- Dynamic style changes work for `.Background` with `Solid` colors
+- Grid regeneration on each update is acceptable (289 cells for 17x17)
+
+**Remaining Questions**:
+- [ ] Performance testing with larger grids (17x17 vs 9x9)
+- [ ] Optimal refresh strategy (full rebuild vs partial updates)
+
+**Status**: **Partially Resolved** - Core patterns documented, implementation pending
 
 ---
 

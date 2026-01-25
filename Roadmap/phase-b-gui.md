@@ -1002,6 +1002,32 @@ See **Phase C** for full Help System specification. New Player context shows:
 
 ### B.2.3 Territory Map Page
 
+> **Reference Implementation**: See [ElbaphFactions Analysis](../../../resources/ElbaphFactions.md) for detailed patterns on interactive map rendering using `InteractiveCustomUIPage<T>`.
+
+**Implementation Approach** (based on ElbaphFactions patterns):
+
+The territory map uses `InteractiveCustomUIPage<MapData>` to render a dynamic chunk grid with click interactions.
+
+**Architecture**:
+```java
+public class TerritoryMapPage extends InteractiveCustomUIPage<MapData> {
+    private int centerX, centerZ;  // Map center (player position at open)
+    private int selectedX, selectedZ;  // Currently selected chunk (-1 if none)
+
+    public TerritoryMapPage(PlayerRef player) {
+        super(player, CustomPageLifetime.CanDismiss, MapData.CODEC);
+        this.centerX = player.getChunkX();
+        this.centerZ = player.getChunkZ();
+        this.selectedX = this.selectedZ = -1;
+    }
+}
+```
+
+**Grid Configuration**:
+- **Default Size**: 9x9 (81 chunks) for cleaner UI
+- **Cell Size**: 32x32 pixels per chunk
+- **Grid Dimensions**: 288x288 pixels (9 * 32)
+
 **Wireframe** (9x9 grid):
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -1038,29 +1064,116 @@ See **Phase C** for full Help System specification. New Player context shows:
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
+**Color Coding** (HyperUI palette):
+
+| Relation/Type | Color (Hex) | Color (Decimal) | HyperUI Token |
+|---------------|-------------|-----------------|---------------|
+| Your Faction | `#22c55e` | 2278750 | `--hs-accent-success` |
+| Ally | `#3b82f6` | 3899126 | `--hs-accent-info` |
+| Enemy | `#ef4444` | 15684676 | `--hs-accent-error` |
+| Other Faction | `#f59e0b` | 16096779 | `--hs-accent-warning` |
+| SafeZone | `#22d3d8` | 2282456 | (custom) |
+| WarZone | `#a855f7` | 11031031 | (custom) |
+| Wilderness | `#374151` | 3621201 | `--hs-bg-tertiary` |
+| Selected | `#ffffff` | - | White border |
+| Player Position | `#22c55e80` | - | Semi-transparent green |
+
+**Dynamic Grid Generation**:
+```java
+private void buildChunkGrid(UICommandBuilder cmd, UIEventBuilder events) {
+    int radius = 4;  // 9x9 grid
+
+    for (int z = 0; z <= radius * 2; z++) {
+        // Create row container
+        cmd.appendInline("#ChunkCards", "Group { LayoutMode: Left; }");
+
+        for (int x = 0; x <= radius * 2; x++) {
+            int chunkX = centerX - radius + x;
+            int chunkZ = centerZ - radius + z;
+
+            // Append cell template
+            cmd.append("#ChunkCards[" + z + "]", "faction/chunk_cell.ui");
+
+            // Set color based on ownership
+            int color = getColorForChunk(chunkX, chunkZ);
+            cmd.set("#ChunkCards[" + z + "][" + x + "].Background",
+                    "Solid { Color: " + color + "; }");
+
+            // Setup click event (select chunk)
+            events.addEventBinding(
+                CustomUIEventBindingType.Activating,
+                "#ChunkCards[" + z + "][" + x + "]",
+                EventData.of("Action", "Select:" + chunkX + ":" + chunkZ),
+                false
+            );
+
+            // Setup tooltip
+            setupChunkTooltip(cmd, z, x, chunkX, chunkZ);
+        }
+    }
+}
+```
+
+**Event Handling**:
+```java
+@Override
+public void handleDataEvent(Ref ref, Store store, MapData data) {
+    String[] parts = data.action.split(":");
+
+    switch (parts[0]) {
+        case "Select" -> {
+            selectedX = Integer.parseInt(parts[1]);
+            selectedZ = Integer.parseInt(parts[2]);
+            rebuildAndSend(ref, store);  // Update to show selection
+        }
+        case "Claim" -> claimSelectedChunk();
+        case "Unclaim" -> unclaimSelectedChunk();
+        case "SetHome" -> setHomeAtSelected();
+        case "Pan" -> {
+            centerX += Integer.parseInt(parts[1]);
+            centerZ += Integer.parseInt(parts[2]);
+            rebuildAndSend(ref, store);
+        }
+        case "Center" -> {
+            centerX = player.getChunkX();
+            centerZ = player.getChunkZ();
+            rebuildAndSend(ref, store);
+        }
+    }
+}
+```
+
 **Element Breakdown**:
 
 | Element ID | Type | Description |
 |------------|------|-------------|
-| `#MapGrid` | ChunkGrid | 9x9 interactive chunk map (81 chunks visible) |
+| `#MapGrid` | Container | Container for chunk grid |
+| `#ChunkCards` | Dynamic | Rows and cells generated via `appendInline()` |
 | `#CurrentCoords` | Text | Player's current chunk coordinates |
-| `#ChunkCell` | Clickable | Each cell shows owner symbol, click to select |
 | `#SelectedInfo` | Text | Details about selected chunk |
+| `#ActionButtons` | Container | Contextual action buttons for selected chunk |
 | `#ClaimBtn` | Button | Claim selected wilderness chunk |
 | `#UnclaimBtn` | Button | Unclaim selected owned chunk |
 | `#SetHomeBtn` | Button | Set faction home at selected owned chunk |
 | `#NavButtons` | ButtonGroup | Pan map N/S/E/W |
 | `#CenterBtn` | Button | Recenter map on player position |
-| `#Legend` | Container | Color/symbol legend |
+| `#Legend` | Container | Color legend |
 | `#ClaimStats` | Text | Current claims / max with available count |
 
-**Interaction**:
-- Click chunk to select, shows info and available actions
-- Actions change based on chunk ownership:
-  - **Wilderness**: [CLAIM]
-  - **Own territory**: [UNCLAIM] [SET HOME]
-  - **Enemy territory**: [OVERCLAIM] (if raidable)
-  - **Ally/Zone**: No actions
+**Template Files**:
+- `faction/map.ui` - Main map page layout
+- `faction/chunk_cell.ui` - Single chunk cell (32x32)
+
+**Interaction Flow**:
+1. Player opens map - grid renders centered on player position
+2. Click chunk to select - shows info panel with available actions
+3. Actions change based on chunk ownership:
+   - **Wilderness**: [CLAIM]
+   - **Own territory**: [UNCLAIM] [SET HOME]
+   - **Enemy territory**: [OVERCLAIM] (if raidable)
+   - **Ally/Zone**: No actions (info only)
+4. Navigation buttons pan the view
+5. Center button re-centers on player
 
 ---
 
