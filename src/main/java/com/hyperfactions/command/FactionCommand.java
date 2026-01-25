@@ -591,7 +591,13 @@ public class FactionCommand extends AbstractPlayerCommand {
             case NO_HOME -> ctx.sendMessage(prefix().insert(msg("Your faction has no home set.", COLOR_RED)));
             case COMBAT_TAGGED -> ctx.sendMessage(prefix().insert(msg("You cannot teleport while in combat!", COLOR_RED)));
             case ON_COOLDOWN -> {} // Message sent by TeleportManager
-            case SUCCESS -> {} // Either instant teleport completed or warmup started
+            case SUCCESS_INSTANT -> ctx.sendMessage(prefix().insert(msg("Teleported to faction home!", COLOR_GREEN)));
+            case SUCCESS_WARMUP -> {
+                int warmup = HyperFactionsConfig.get().getWarmupSeconds();
+                ctx.sendMessage(prefix().insert(msg("Teleporting in ", COLOR_YELLOW))
+                    .insert(msg(warmup + " second" + (warmup == 1 ? "" : "s"), COLOR_CYAN))
+                    .insert(msg("...", COLOR_YELLOW)));
+            }
             default -> {}
         }
     }
@@ -620,7 +626,7 @@ public class FactionCommand extends AbstractPlayerCommand {
         // Teleport the player (position only - rotation would need platform-specific handling)
         transform.setPosition(new Vector3d(home.x(), home.y(), home.z()));
 
-        return TeleportManager.TeleportResult.SUCCESS;
+        return TeleportManager.TeleportResult.SUCCESS_INSTANT;
     }
 
     // === SetHome ===
