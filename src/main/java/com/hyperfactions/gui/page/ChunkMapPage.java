@@ -108,24 +108,32 @@ public class ChunkMapPage extends InteractiveCustomUIPage<ChunkMapData> {
         buildChunkGrid(cmd, events, worldName, playerChunkX, playerChunkZ, viewerFaction);
         Logger.info("[ChunkMapPage] Chunk grid build complete");
 
-        // Set Home button binding (only if player is in a faction and is officer+)
+        // Claim and power stats
         if (viewerFaction != null) {
-            var member = viewerFaction.getMember(viewerUuid);
-            if (member != null && member.isOfficerOrHigher()) {
-                Logger.info("[ChunkMapPage] Binding SetHome button for officer");
-                events.addEventBinding(
-                        CustomUIEventBindingType.Activating,
-                        "#SetHomeBtn",
-                        EventData.of("Button", "SetHome"),
-                        false
-                );
-            }
-
-            // Claim stats
             PowerManager.FactionPowerStats stats = guiManager.getPowerManager().get().getFactionPowerStats(viewerFaction.id());
-            cmd.set("#ClaimStats.Text", String.format("Claims: %d/%d", viewerFaction.getClaimCount(), stats.maxClaims()));
+            int currentClaims = viewerFaction.getClaimCount();
+            int maxClaims = stats.maxClaims();
+            int available = Math.max(0, maxClaims - currentClaims);
+
+            // Claim stats: "Claims: 23/78 (55 Available)"
+            cmd.set("#ClaimStats.Text", String.format("Claims: %d/%d (%d Available)", currentClaims, maxClaims, available));
+
+            // Power status with overclaim warning
+            double currentPower = stats.currentPower();
+            double maxPower = stats.maxPower();
+            boolean isOverclaimed = currentClaims > currentPower;
+
+            if (isOverclaimed) {
+                // Show overclaim warning in red
+                int overclaimAmount = currentClaims - (int) currentPower;
+                cmd.set("#PowerStatus.Text", String.format("OVERCLAIMED by %d!", overclaimAmount));
+            } else {
+                // Normal power display
+                cmd.set("#PowerStatus.Text", String.format("Power: %.0f/%.0f", currentPower, maxPower));
+            }
         } else {
             cmd.set("#ClaimStats.Text", "Join a faction to claim");
+            cmd.set("#PowerStatus.Text", "");
         }
 
         Logger.info("[ChunkMapPage] build() completed successfully");
@@ -311,7 +319,6 @@ public class ChunkMapPage extends InteractiveCustomUIPage<ChunkMapData> {
             case "Claim" -> handleClaim(player, playerRef, worldName, data.chunkX, data.chunkZ, ref, store);
             case "Unclaim" -> handleUnclaim(player, playerRef, worldName, data.chunkX, data.chunkZ, ref, store);
             case "Overclaim" -> handleOverclaim(player, playerRef, worldName, data.chunkX, data.chunkZ, ref, store);
-            case "SetHome" -> handleSetHome(player, playerRef, ref, store);
             default -> {
                 Logger.info("[ChunkMapPage] handleDataEvent: unknown button '%s'", data.button);
                 sendUpdate();
@@ -388,59 +395,4 @@ public class ChunkMapPage extends InteractiveCustomUIPage<ChunkMapData> {
         guiManager.openChunkMap(player, ref, store, playerRef);
     }
 
-    private void handleSetHome(Player player, PlayerRef playerRef,
-                               Ref<EntityStore> ref, Store<EntityStore> store) {
-        Logger.info("[ChunkMapPage] handleSetHome started");
-        UUID viewerUuid = playerRef.getUuid();
-        Faction faction = factionManager.getPlayerFaction(viewerUuid);
-
-        if (faction == null) {
-            player.sendMessage(Message.raw("You must be in a faction to set home.").color("#ff5555"));
-            sendUpdate();
-            return;
-        }
-
-        var member = faction.getMember(viewerUuid);
-        if (member == null || !member.isOfficerOrHigher()) {
-            player.sendMessage(Message.raw("Only officers and leaders can set the faction home.").color("#ff5555"));
-            sendUpdate();
-            return;
-        }
-
-        // Get current position
-        TransformComponent transform = store.getComponent(ref, TransformComponent.getComponentType());
-        World world = player.getWorld();
-        if (transform == null || world == null) {
-            player.sendMessage(Message.raw("Failed to get your position.").color("#ff5555"));
-            sendUpdate();
-            return;
-        }
-
-        var pos = transform.getPosition();
-        String worldName = world.getName();
-        int chunkX = ChunkUtil.blockToChunk((int) pos.x);
-        int chunkZ = ChunkUtil.blockToChunk((int) pos.z);
-
-        // Check if standing in own territory
-        UUID claimOwner = claimManager.getClaimOwner(worldName, chunkX, chunkZ);
-        if (claimOwner == null || !claimOwner.equals(faction.id())) {
-            player.sendMessage(Message.raw("You must be standing in your faction's territory to set home.").color("#ff5555"));
-            sendUpdate();
-            return;
-        }
-
-        // Set the home
-        Faction.FactionHome home = Faction.FactionHome.create(worldName, pos.x, pos.y, pos.z, 0f, 0f, viewerUuid);
-        FactionManager.FactionResult result = factionManager.setHome(faction.id(), home, viewerUuid);
-        Logger.info("[ChunkMapPage] handleSetHome: result=%s", result);
-
-        if (result == FactionManager.FactionResult.SUCCESS) {
-            player.sendMessage(Message.raw("Faction home set at your current location!").color("#44cc44"));
-        } else {
-            player.sendMessage(Message.raw("Failed to set faction home.").color("#ff5555"));
-        }
-
-        // Refresh the map
-        guiManager.openChunkMap(player, ref, store, playerRef);
-    }
 }

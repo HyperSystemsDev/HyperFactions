@@ -13,7 +13,7 @@ Items requiring investigation before implementation. These may reveal Hytale lim
 - [ ] Check for spawn events or hooks in EventRegistry
 - [ ] Look for world/region-based spawn control APIs
 - [ ] Investigate if chunk-level spawn rules are possible
-- [ ] Check AdminUI or other mods for spawn control patterns
+- [ ] Check HytaleServerDocs for spawn control patterns
 
 **Use Cases**:
 - SafeZones: No hostile mob spawning (peaceful areas)
@@ -65,49 +65,48 @@ Items requiring investigation before implementation. These may reveal Hytale lim
 
 **Question**: How can we render an interactive chunk map in the Hytale UI?
 
+**Status**: **RESOLVED & IMPLEMENTED** (2026-01-25)
+
 **Investigation Completed**:
 - [x] Research CustomUI capabilities for dynamic grid rendering
 - [x] Check if image generation is possible (chunk map image) - Not needed, use dynamic grid
 - [x] Investigate click coordinates for grid interactions
-- [x] Look at minimap mods for patterns - **ElbaphFactions analyzed**
+- [x] Implement working 29x17 territory map
 
-**Solution Found** (via ElbaphFactions v1.3.40-SNAPSHOT analysis):
-
-See **[ElbaphFactions Analysis](../../../resources/ElbaphFactions.md)** for complete implementation details.
+**Solution Implemented** (see `ChunkMapPage.java`):
 
 **Key Patterns**:
-1. Use `InteractiveCustomUIPage<MapData>` with custom data codec
-2. Generate grid dynamically using `appendInline()` for rows and `append()` for cells
-3. Use indexed selectors `#ChunkCards[z][x]` to target specific cells
-4. Set colors via `.Background` property with `Solid { Color: <decimal>; }`
-5. Bind events per-cell with action strings encoding coordinates: `"ActionType:X:Z"`
-6. Use `TooltipTextSpans` for formatted hover information
+1. Use `InteractiveCustomUIPage<ChunkMapData>` with custom data codec
+2. Generate grid dynamically using `appendInline()` for rows with baked-in colors
+3. Use indexed selectors `#ChunkGrid[row][col]` to target specific cells
+4. Colors must be baked into template at creation time (cmd.set() for Background crashes)
+5. Bind events per-cell with action strings encoding coordinates
+6. Hytale uses 32-block chunks (shift 5), not 16-block
 
-**Implementation Approach**:
+**Implementation Pattern**:
 ```java
-// Create row container
-cmd.appendInline("#ChunkCards", "Group { LayoutMode: Left; }");
-// Add cell to row
-cmd.append("#ChunkCards[z]", "faction/chunk_cell.ui");
-// Set cell color
-cmd.set("#ChunkCards[z][x].Background", "Solid { Color: 4176208; }");
-// Bind click event
+// Create row container with inline template
+cmd.appendInline("#ChunkGrid", "Group { LayoutMode: Left; }");
+
+// Create cell with color BAKED IN (not set afterwards)
+cmd.appendInline("#ChunkGrid[" + row + "]",
+    "Group { Anchor: (Width: 16, Height: 16); Background: (Color: " + hexColor + "); }");
+
+// Append button template for click detection
+cmd.append("#ChunkGrid[" + row + "][" + col + "]", "HyperFactions/chunk_btn.ui");
+
+// Bind click event to button
 events.addEventBinding(CustomUIEventBindingType.Activating,
-    "#ChunkCards[z][x]",
-    EventData.of("Action", "Select:" + chunkX + ":" + chunkZ),
+    "#ChunkGrid[" + row + "][" + col + "] #Btn",
+    EventData.of("Button", "Chunk").append("X", chunkX).append("Z", chunkZ),
     false);
 ```
 
-**Constraints** (confirmed):
-- UI elements must be defined in templates (use minimal cell template)
-- Dynamic style changes work for `.Background` with `Solid` colors
-- Grid regeneration on each update is acceptable (289 cells for 17x17)
-
-**Remaining Questions**:
-- [ ] Performance testing with larger grids (17x17 vs 9x9)
-- [ ] Optimal refresh strategy (full rebuild vs partial updates)
-
-**Status**: **Partially Resolved** - Core patterns documented, implementation pending
+**Constraints Discovered**:
+- `cmd.set()` for `.Background` does NOT work - causes red X pattern
+- Colors must be in hex format (`#22c55e`) in inline templates
+- 29x17 grid (493 cells) performs acceptably
+- Full rebuild on each interaction is fine
 
 ---
 

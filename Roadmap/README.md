@@ -48,10 +48,27 @@ This roadmap is split into multiple files for easier collaboration and reduced m
 - [x] 27+ subcommands implemented
 - [x] HyperPerms integration
 
+### Completed (2026-01-25 Round 4)
+
+- [x] Territory Map page - 29x17 interactive chunk grid with click-to-claim/unclaim
+- [x] Relations page - sectioned layout (Allies, Enemies, Pending Requests)
+- [x] Set Relation modal - faction search with instant ally/enemy/neutral actions
+- [x] Settings page - full edit modals (name, tag, desc, color, recruitment), teleport with warmup, disband
+- [x] Leader succession - automatic promotion when leader leaves (priority: role level, then tenure)
+- [x] Chunk coordinate system - fixed to use Hytale 32-block chunks (was incorrectly using 16)
+- [x] Data deletion on disband - verified JSON file deletion works correctly
+
+**Technical Notes from Round 4:**
+- cmd.set() only works for `.Text` and `.TextSpans` - crashes for `.Style.*`, `.Visible`, `.Background.Color`
+- Hytale chunks are 32 blocks (shift 5), not 16 blocks (shift 4) like Minecraft
+- shadowJar `minimize()` removes Gson inner classes needed at runtime - don't use
+- Modal layouts need fixed heights on scrollable lists to prevent button overflow
+
 ### In Progress
 
 - [ ] Pitch/yaw orientation bug on `/f home` (TABLED)
 - [ ] Admin Zones page back button positioning
+- [ ] Territory map visual polish (wilderness contrast, player indicator elegance)
 
 ---
 
@@ -90,7 +107,6 @@ This roadmap is split into multiple files for easier collaboration and reduced m
 - [HytaleModding Community Docs](../resources/hytale-modding/content/docs/en/)
 - [CustomUI Guide](../resources/hytale-modding/content/docs/en/guides/plugin/ui.mdx)
 - [UI Patterns](../resources/UI-PATTERNS.md)
-- [AdminUI Analysis](../resources/AdminUI.md)
 
 ---
 

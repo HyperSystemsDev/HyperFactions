@@ -1,0 +1,88 @@
+// Recruitment Status Modal
+// Shows Open/Invite Only options
+
+$C = "../Common.ui";
+$S = "styles.ui";
+
+$C.@PageOverlay {
+  $C.@DecoratedContainer {
+    Anchor: (Width: 400, Height: 240);
+
+    #Title {
+      Group {
+        $C.@Title {
+          @Text = "Recruitment Status";
+        }
+      }
+    }
+
+    #Content {
+      LayoutMode: Top;
+      Padding: (Left: 20, Right: 20, Top: 15, Bottom: 15);
+
+      // Current status display
+      Group {
+        Anchor: (Height: 30, Bottom: 15);
+        LayoutMode: Left;
+
+        Label {
+          Text: "Current Status:";
+          Style: (FontSize: 12, TextColor: #888888, VerticalAlignment: Center);
+          Anchor: (Width: 100);
+        }
+
+        Label #CurrentStatus {
+          Text: "Open";
+          Style: (FontSize: 14, TextColor: #55FF55, RenderBold: true, VerticalAlignment: Center);
+          FlexWeight: 1;
+        }
+      }
+
+      // Instructions
+      Label {
+        Text: "Select new recruitment status:";
+        Style: (FontSize: 12, TextColor: #888888);
+        Anchor: (Height: 24, Bottom: 10);
+      }
+
+      // Button row for options
+      Group {
+        Anchor: (Height: 40, Bottom: 15);
+        LayoutMode: Left;
+
+        TextButton #OpenBtn {
+          Text: "OPEN";
+          Anchor: (Height: 36, Width: 160);
+          Style: $S.@GreenButtonStyle;
+        }
+
+        Label { FlexWeight: 1; }
+
+        TextButton #InviteOnlyBtn {
+          Text: "INVITE ONLY";
+          Anchor: (Height: 36, Width: 160);
+          Style: $S.@GoldButtonStyle;
+        }
+      }
+
+      // Cancel button
+      Group {
+        Anchor: (Height: 40);
+        LayoutMode: Left;
+
+        Group { FlexWeight: 1; }
+
+        TextButton #CancelBtn {
+          Text: "CANCEL";
+          Anchor: (Height: 32, Width: 100);
+          Style: $S.@ButtonStyle;
+        }
+
+        Group { FlexWeight: 1; }
+      }
+    }
+  }
+}
+
+// Native Hytale back button (bottom-left ESC)
+$C.@BackButton {}

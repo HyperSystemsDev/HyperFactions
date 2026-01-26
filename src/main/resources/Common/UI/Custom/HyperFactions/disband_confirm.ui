@@ -1,0 +1,64 @@
+// Disband Confirmation Modal
+// Shows warning and requires explicit confirmation to disband faction
+
+$C = "../Common.ui";
+$S = "styles.ui";
+
+$C.@PageOverlay {
+  $C.@DecoratedContainer {
+    Anchor: (Width: 380, Height: 200);
+
+    #Title {
+      Group {
+        $C.@Title {
+          @Text = "Disband Faction";
+        }
+      }
+    }
+
+    #Content {
+      LayoutMode: Top;
+      Padding: (Left: 20, Right: 20, Top: 15, Bottom: 15);
+
+      Label {
+        Text: "Are you sure you want to disband";
+        Style: (FontSize: 13, TextColor: #AAAAAA, HorizontalAlignment: Center);
+        Anchor: (Height: 22);
+      }
+
+      Label #FactionName {
+        Text: "Faction Name";
+        Style: (FontSize: 14, TextColor: #FF5555, RenderBold: true, HorizontalAlignment: Center);
+        Anchor: (Height: 24, Bottom: 8);
+      }
+
+      Label {
+        Text: "This action cannot be undone!";
+        Style: (FontSize: 12, TextColor: #AA5555, HorizontalAlignment: Center);
+        Anchor: (Height: 20, Bottom: 15);
+      }
+
+      Group {
+        Anchor: (Height: 40);
+        LayoutMode: Left;
+
+        TextButton #CancelBtn {
+          Text: "CANCEL";
+          Anchor: (Height: 32, Width: 120);
+          Style: $S.@ButtonStyle;
+        }
+
+        Label { FlexWeight: 1; }
+
+        TextButton #ConfirmBtn {
+          Text: "DISBAND";
+          Anchor: (Height: 32, Width: 120);
+          Style: $S.@RedButtonStyle;
+        }
+      }
+    }
+  }
+}
+
+// Native Hytale back button (bottom-left ESC)
+$C.@BackButton {}

@@ -497,7 +497,7 @@ The following design decisions have been finalized:
 
 #### Error Handling Implementation
 
-**Research Finding**: Hytale's CustomUI does not have built-in toast notification components. Based on analysis of UI-PATTERNS.md and AdminUI.md, the established pattern is:
+**Research Finding**: Hytale's CustomUI does not have built-in toast notification components. The established pattern is:
 
 1. **Chat-based feedback** for action results:
    ```java
@@ -606,78 +606,83 @@ These decisions are deferred until implementation:
 
 ### B.1.1 Browse Factions Page (Default Landing)
 
+> **STATUS: PARTIALLY IMPLEMENTED** (Basic version)
+> - Paginated list (8 factions per page) with sort buttons (power/members/name)
+> - Faction cards show: name, member count, power, claim count
+> - VIEW button opens faction info in chat (placeholder for detail page)
+> - Highlights viewer's own faction with "(Your Faction)" indicator
+> - **NOT IMPLEMENTED**: Search input, expandable cards, JOIN/REQUEST buttons
+
 **Design Decisions**:
-- **List Loading**: Pagination (research shows `LayoutMode: TopScrolling` builds all items at once - infinite scroll would require rebuilding the page which could cause performance issues on large servers)
-- **Card Display**: Faction tag (colored) + faction name. Example: `[DRG] Dragons` in cyan
-- **Color Picker**: 16 standard colors + custom hex input
+- **List Loading**: Pagination (research shows `LayoutMode: TopScrolling` builds all items at once - infinite scroll would cause page rebuild)
+- **Card Display**: Simple flat cards showing core stats with VIEW button
+- **Sort Method**: Three clickable text buttons (#SortPower, #SortMembers, #SortName) instead of dropdown
 
-> **Note**: Faction tags are NOT currently implemented in the data model. See task **B.1.7** for implementation.
+#### Browse Page Components
 
-**Wireframe**:
+| Component | File | Status | Description |
+|-----------|------|--------|-------------|
+| **Main Page** | `faction_browser.ui` | **DONE** | Nav bar, `#FactionCard0`-`#FactionCard7` slots, sort buttons, pagination |
+| **Faction Card** | `faction_card.ui` | **DONE** | Appended into slots: name, member count, power, claims, VIEW button |
+
+**Wireframe** (Implemented):
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│  [BROWSE]  CREATE   INVITES   HELP                    [?] Help Icon │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│   ╔═══════════════════════════════════════════════════════════════╗ │
-│   ║  FIND YOUR FACTION                                            ║ │
-│   ║  ┌─────────────────────────────────┐  [Sort: Members ▼]       ║ │
-│   ║  │ 🔍 Search factions...           │                          ║ │
-│   ║  └─────────────────────────────────┘                          ║ │
-│   ╚═══════════════════════════════════════════════════════════════╝ │
-│                                                                     │
-│   ┌─────────────────────────────────────────────────────────────┐   │
-│   │  ▶ [DRG] Dragons                                       [+]  │   │
-│   └─────────────────────────────────────────────────────────────┘   │
-│   ┌─────────────────────────────────────────────────────────────┐   │
-│   │  ▶ [PHX] Phoenix Rising                                [+]  │   │
-│   └─────────────────────────────────────────────────────────────┘   │
-│   ┌─────────────────────────────────────────────────────────────┐   │
-│   │  ▶ [TIC] The Ironclad                             [OPEN]    │   │
-│   └─────────────────────────────────────────────────────────────┘   │
-│   ┌─────────────────────────────────────────────────────────────┐   │
-│   │  ▼ [SHD] Shadow Collective                                  │   │
-│   │  ───────────────────────────────────────────────────────────│   │
-│   │    Members: 12/50  │  Power: 85  │  Claims: 23              │   │
-│   │    "We strike from the darkness..."                         │   │
-│   │    Leader: ShadowKing                                       │   │
-│   │    ┌──────────────┐                                         │   │
-│   │    │ REQUEST JOIN │  (faction is invite-only)               │   │
-│   │    └──────────────┘                                         │   │
-│   └─────────────────────────────────────────────────────────────┘   │
-│                                                                     │
-│   ─────────────────────────────────────────────────────────────     │
-│   Page 1 of 5  [< Prev]  [Next >]                                   │
-│   Server Stats: 24 factions │ 156 players │ 1,240 claimed chunks    │
-│                                                                     │
-├─────────────────────────────────────────────────────────────────────┤
-│                                           [ESC] Back                │
-└─────────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────────────┐
+│   DASHBOARD   MEMBERS   BROWSE   MAP   RELATIONS   SETTINGS                    │
+├────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                │
+│   BROWSE FACTIONS                                            12 factions       │
+│                                                                                │
+│   Sort by:  [POWER]  [MEMBERS]  [NAME]                                         │
+│                                                                                │
+│   ┌──────────────────────────────────────────────────────────────────────────┐ │
+│   │  Dragons                                                 (Your Faction)  │ │
+│   │  8 members  │  156 power  │  23 claims                          [VIEW]   │ │
+│   └──────────────────────────────────────────────────────────────────────────┘ │
+│   ┌──────────────────────────────────────────────────────────────────────────┐ │
+│   │  Phoenix Rising                                                          │ │
+│   │  12 members  │  140 power  │  18 claims                         [VIEW]   │ │
+│   └──────────────────────────────────────────────────────────────────────────┘ │
+│   ... (up to 8 cards per page)                                                 │
+│                                                                                │
+│       [<]                         1/2                            [>]          │
+│                                                                                │
+├────────────────────────────────────────────────────────────────────────────────┤
+│                                                      [ESC] Back                │
+└────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Element Breakdown**:
+**Element Breakdown** (Implemented):
 
 | Element ID | Type | Description |
 |------------|------|-------------|
-| `#NavBar` | Container | Navigation bar with 4 tabs |
-| `#SearchInput` | TextInput | Search factions by name or tag |
-| `#SortDropdown` | Dropdown | Sort by: Members, Power, Name, Newest |
-| `#FactionList` | ScrollContainer | List of faction cards (paginated, 10 per page) |
-| `#FactionCard` | Expandable | Collapsed: [TAG] name, Expanded: full details |
-| `#FactionTag` | Text | Colored faction tag (e.g., `[DRG]` in faction color) |
-| `#OpenBadge` | Badge | Shows [OPEN] for factions accepting direct joins |
-| `#ExpandBtn` | Button | ▶/▼ toggle to expand/collapse card |
-| `#RequestJoinBtn` | Button | Request to join (invite-only factions) |
-| `#JoinBtn` | Button | Direct join (open factions) |
-| `#Pagination` | Container | Page controls: Prev, Next, page indicator |
-| `#ServerStats` | Text | Footer with aggregate statistics |
+| `#FactionCount` | Text | "N factions" total count |
+| `#SortPower` | Button | Sort by power descending |
+| `#SortMembers` | Button | Sort by member count descending |
+| `#SortName` | Button | Sort alphabetically by name |
+| `#FactionCard0`-`#FactionCard7` | Container | 8 slots for faction card templates |
+| `#FactionName` | Text | Faction name (in card) |
+| `#MemberCount` | Text | "N members" (in card) |
+| `#PowerCount` | Text | "N power" (in card) |
+| `#ClaimCount` | Text | "N claims" (in card) |
+| `#OwnIndicator` | Text | "(Your Faction)" if viewer's faction |
+| `#ViewBtn` | Button | Opens faction info in chat |
+| `#PrevBtn` | Button | Previous page navigation |
+| `#NextBtn` | Button | Next page navigation |
+| `#PageInfo` | Text | "page/total" indicator |
 
-**Behaviors**:
-- Collapsed card shows only faction name + [OPEN] badge if applicable
-- Click ▶ or card to expand and show details
-- [OPEN] factions show "JOIN" button, others show "REQUEST JOIN"
-- Search filters in real-time as user types
-- Sort dropdown changes list order immediately
+**Technical Notes**:
+- Uses `cmd.append("#FactionCard" + i, "HyperFactions/faction_card.ui")` pattern
+- Sort buttons trigger `EventData.of("Button", "Sort").append("SortMode", mode)`
+- VIEW button sends `EventData.of("Button", "ViewFaction").append("FactionId", uuid.toString())`
+- Currently VIEW shows faction info in chat; future enhancement: detail modal
+
+**Future Enhancements** (Not Yet Implemented):
+- Search input with `#SearchInput` and `#SearchBtn`
+- Expandable cards showing description, leader, relations
+- JOIN button for open factions
+- REQUEST JOIN button for invite-only factions
+- Server stats footer
 
 ---
 
@@ -836,238 +841,483 @@ See **Phase C** for full Help System specification. New Player context shows:
 
 **Access**: `/f` (when in faction), `/f gui`, `/f menu`
 
-**Nav Bar**: `DASHBOARD` | `MEMBERS` | `MAP` | `RELATIONS` | `SETTINGS` | `HELP`
+**Nav Bar**: `DASHBOARD` | `MEMBERS` | `BROWSE` | `MAP` | `RELATIONS` | `SETTINGS`
 
-> **Note**: MODULES accessible from Settings page. Admin quick-switch is a floating button.
+> **Note**: MODULES accessible from Settings page. Admin quick-switch is a floating button. HELP removed from nav (accessible via command).
 
 **Design Decisions**:
-- **Quick Actions**: Keep 3 actions (Home, Claim, Chat) - focused and clean
+- **Quick Actions**: 5 actions (Home, Claim, F-Chat, A-Chat, Leave) - commonly used actions
 - **Member Sorting**: Role first (Leader > Officer > Member), then online status within each role
 - **Settings Access**: Read-only for Members (can view but not edit)
-- **Territory Map**: 9x9 grid (81 chunks) for better context
+- **Territory Map**: 29x17 grid for better context
+- **Browse Page**: Shows all factions with relation indicators for faction members
 
 ---
 
 ### B.2.1 Faction Dashboard (Default Landing)
 
-**Wireframe**:
+> **STATUS: NOT IMPLEMENTED** (Redesigned)
+> - New layout with faction identity banner, stat cards, quick actions, and activity feed
+> - Chat toggles for faction and ally chat
+> - Leave confirmation modal following disband_confirm pattern
+
+#### Dashboard Layout
+
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│  [DASHBOARD]  MEMBERS   MAP   RELATIONS   SETTINGS   HELP      [?] │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│   ╔═══════════════════════════════════════════════════════════════╗ │
-│   ║  🏰 DRAGONS                                             [b]   ║ │
-│   ║  "From the ashes we rise!"                                    ║ │
-│   ╚═══════════════════════════════════════════════════════════════╝ │
-│                                                                     │
-│   ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐       │
-│   │   ⚡ POWER      │ │   🗺️ CLAIMS     │ │   👥 MEMBERS    │       │
-│   │                 │ │                 │ │                 │       │
-│   │   156 / 200     │ │   23 / 78       │ │   8 / 50        │       │
-│   │   (78%)         │ │   (can claim    │ │   (4 online)    │       │
-│   │                 │ │    55 more)     │ │                 │       │
-│   └─────────────────┘ └─────────────────┘ └─────────────────┘       │
-│                                                                     │
-│   QUICK ACTIONS                                                     │
-│   ┌───────────┐ ┌───────────┐ ┌───────────┐                         │
-│   │  🏠 HOME  │ │ 📍 CLAIM  │ │ 💬 CHAT   │                         │
-│   │           │ │           │ │   [ON]    │                         │
-│   └───────────┘ └───────────┘ └───────────┘                         │
-│                                                                     │
-│   RECENT ACTIVITY                                                   │
-│   ┌─────────────────────────────────────────────────────────────┐   │
-│   │  • FireLord claimed chunk at (120, 340)           2 min ago │   │
-│   │  • ShadowBlade joined the faction                 5 min ago │   │
-│   │  • Alliance formed with Phoenix Rising           15 min ago │   │
-│   │  • DragonSlayer set faction home                  1 hr ago  │   │
-│   └─────────────────────────────────────────────────────────────┘   │
-│                                                                     │
-│                                                            ┌─────┐  │
-│                                                            │ ⚙️  │  │
-│                                                            │ADMIN│  │
-│                                                            └─────┘  │
-├─────────────────────────────────────────────────────────────────────┤
-│                                           [ESC] Back                │
-└─────────────────────────────────────────────────────────────────────┘
++--------------------------------------------------------------------------------+
+|  [DASHBOARD]   MEMBERS   BROWSE   MAP   RELATIONS   SETTINGS                   |
++--------------------------------------------------------------------------------+
+|                                                                                |
+|  +------------------------------------------------------------------------+   |
+|  |                     DRAGONS [DRG]                                      |   |
+|  |              "From the ashes we rise!"                                 |   |
+|  +------------------------------------------------------------------------+   |
+|                                                                                |
+|  +------------------------+  +------------------------+  +------------------+ |
+|  | POWER                  |  | CLAIMS                 |  | MEMBERS          | |
+|  | Current: 156           |  | Current: 23            |  | Total: 8         | |
+|  | Maximum: 200           |  | Maximum: 78            |  | Online: 3        | |
+|  | 78%                    |  | Available: 55          |  |                  | |
+|  +------------------------+  +------------------------+  +------------------+ |
+|                                                                                |
+|  QUICK ACTIONS                                                                 |
+|  [HOME]  [CLAIM]  [F-CHAT OFF]  [A-CHAT OFF]  [LEAVE]                         |
+|                                                                                |
+|  RECENT ACTIVITY                                                               |
+|  +------------------------------------------------------------------------+   |
+|  | DragonSlayer joined the faction                        5 minutes ago   |   |
+|  | FireLord promoted ShadowBlade to Officer               2 hours ago     |   |
+|  | Claimed chunk at (120, 340)                            3 hours ago     |   |
+|  +------------------------------------------------------------------------+   |
++--------------------------------------------------------------------------------+
 ```
 
-**Element Breakdown**:
+#### Dashboard Components
+
+| Component | File | Status | Description |
+|-----------|------|--------|-------------|
+| **Main Page** | `faction_dashboard.ui` | TODO | Full dashboard layout with identity, stats, actions, activity |
+| **Activity Entry** | `activity_entry.ui` | TODO | Activity log entry template |
+| **Leave Confirm** | `leave_confirm.ui` | TODO | Leave confirmation modal |
+
+#### Element Breakdown
 
 | Element ID | Type | Description |
 |------------|------|-------------|
-| `#FactionHeader` | Container | Faction name (colored), description |
-| `#PowerCard` | StatCard | Current power / max power with percentage |
-| `#ClaimsCard` | StatCard | Current claims / max claimable with "can claim X more" |
-| `#MembersCard` | StatCard | Member count / max with online count |
-| `#HomeBtn` | ActionButton | Teleport to faction home |
-| `#ClaimBtn` | ActionButton | Claim current chunk (context-aware) |
-| `#ChatToggle` | ToggleButton | Toggle faction chat on/off, shows current state |
-| `#ActivityFeed` | ScrollList | Recent faction events, newest first |
-| `#AdminFab` | FloatingButton | Bottom-right, only visible if player has admin perm |
+| `#FactionName` | Text | Faction name (large, colored) |
+| `#FactionTag` | Text | Tag in brackets "[DRG]" |
+| `#FactionDescription` | Text | Description text |
+| `#PowerCurrent` | Text | Current power value |
+| `#PowerMax` | Text | Maximum power value |
+| `#PowerPercent` | Text | Power percentage |
+| `#ClaimsCurrent` | Text | Current claims count |
+| `#ClaimsMax` | Text | Maximum claims allowed |
+| `#ClaimsAvailable` | Text | Available claims remaining |
+| `#MembersTotal` | Text | Total member count |
+| `#MembersOnline` | Text | Online member count |
+| `#HomeBtn` | Button | Teleport to faction home |
+| `#ClaimBtn` | Button | Claim current chunk |
+| `#FactionChatBtn` | Button | Toggle faction chat (shows ON/OFF state via text) |
+| `#AllyChatBtn` | Button | Toggle ally chat (shows ON/OFF state via text) |
+| `#LeaveBtn` | Button | Opens leave confirmation modal |
+| `#ActivityList` | Container | Scrollable recent activity entries |
 
-**Quick Action Behaviors**:
-- **Home**: Instant teleport if no warmup, else show warmup timer
-- **Claim**: Context-aware (see Phase A.4) - claims wilderness, opens map in own territory
-- **Chat**: Toggle faction chat mode, button shows [ON]/[OFF] state
+#### Chat Toggle Pattern
 
-**Admin FAB** (Floating Action Button):
-- Only visible to players with `hyperfactions.admin` permission
-- Click opens Admin GUI (B.3)
-- Circular button with gear icon, bottom-right corner
+Since `cmd.set()` only works for `.Text`:
+```java
+if (isFactionChatEnabled) {
+    cmd.set("#FactionChatBtn.Text", "F-CHAT ON");
+} else {
+    cmd.set("#FactionChatBtn.Text", "F-CHAT OFF");
+}
+```
+
+**Chat Toggles - Future Feature:**
+The F-CHAT and A-CHAT toggle buttons will be included in the wireframe but noted as requiring:
+- ChatManager integration (to be designed)
+- Per-player chat mode tracking
+- Message routing based on chat mode
+
+For now, buttons show static "F-CHAT OFF" / "A-CHAT OFF" text with no functionality.
+
+#### Leave Confirmation Modal
+
+Following `disband_confirm.ui` pattern:
+```
++-----------------------------------------------+
+|              LEAVE FACTION                    |
++-----------------------------------------------+
+|   Are you sure you want to leave              |
+|                                               |
+|                Dragons                        |
+|              (faction name)                   |
+|                                               |
+|   You will lose access to faction territory   |
+|   and resources.                              |
+|                                               |
+|         [CANCEL]          [LEAVE]             |
++-----------------------------------------------+
+```
+
+#### Activity Log - Event Tracking System
+
+**Data Model Addition:**
+```java
+public record FactionEvent(
+    long timestamp,
+    FactionEventType type,
+    String description,
+    @Nullable UUID actorUuid,
+    @Nullable String actorName
+) {}
+
+public enum FactionEventType {
+    MEMBER_JOIN, MEMBER_LEAVE, MEMBER_KICK,
+    MEMBER_PROMOTE, MEMBER_DEMOTE,
+    CHUNK_CLAIM, CHUNK_UNCLAIM,
+    RELATION_ALLY, RELATION_ENEMY, RELATION_NEUTRAL,
+    HOME_SET, SETTINGS_CHANGED
+}
+```
+
+**Storage:** Add `List<FactionEvent> recentEvents` to Faction record (keep last ~50 events)
+
+**Events to track:**
+- Player joined/left/kicked from faction
+- Player promoted/demoted
+- Chunk claimed/unclaimed
+- Relations changed (ally/enemy established)
+- Faction home set
+- Settings changed (name, tag, description, color, recruitment)
 
 ---
 
 ### B.2.2 Members Page
 
+> **STATUS: NOT IMPLEMENTED**
+> - Paginated member list (8 per page) sorted by role level then username
+> - Each entry shows: username, role, last online time
+> - Role-based action buttons: PROMOTE, DEMOTE, KICK, TRANSFER
+> - Pagination with < > buttons
+
+#### Members Page Components
+
+| Component | File | Status | Description |
+|-----------|------|--------|-------------|
+| **Main Page** | `faction_members.ui` | **DONE** | `#MemberEntry0`-`#MemberEntry7` slots, pagination controls |
+| **Member Entry** | `member_entry.ui` | **DONE** | Name, role, last online, action button areas |
+
 **Wireframe**:
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│   DASHBOARD  [MEMBERS]  MAP   RELATIONS   SETTINGS   HELP      [?] │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│   ╔═══════════════════════════════════════════════════════════════╗ │
-│   ║  FACTION MEMBERS (8/50)                    [+ INVITE PLAYER]  ║ │
-│   ╚═══════════════════════════════════════════════════════════════╝ │
-│                                                                     │
-│   ┌─────────────────────────────────────────────────────────────┐   │
-│   │  👑 FireLord (LEADER)                              🟢 Online │   │
-│   │     Power: 20/20  │  Joined: 30 days ago                    │   │
-│   └─────────────────────────────────────────────────────────────┘   │
-│                                                                     │
-│   ┌─────────────────────────────────────────────────────────────┐   │
-│   │  ⭐ DragonSlayer (OFFICER)                         🟢 Online │   │
-│   │     Power: 18/20  │  Joined: 25 days ago                    │   │
-│   │     [DEMOTE]  [KICK]  (Officer+ controls)                   │   │
-│   └─────────────────────────────────────────────────────────────┘   │
-│                                                                     │
-│   ┌─────────────────────────────────────────────────────────────┐   │
-│   │  ⭐ StormRider (OFFICER)                           🔴 Offline│   │
-│   │     Power: 15/20  │  Joined: 20 days ago                    │   │
-│   │     [DEMOTE]  [KICK]                                        │   │
-│   └─────────────────────────────────────────────────────────────┘   │
-│                                                                     │
-│   ┌─────────────────────────────────────────────────────────────┐   │
-│   │    ShadowBlade (MEMBER)                            🟢 Online │   │
-│   │     Power: 12/20  │  Joined: 5 minutes ago                  │   │
-│   │     [PROMOTE]  [KICK]                                       │   │
-│   └─────────────────────────────────────────────────────────────┘   │
-│                                                                     │
-│   ─────────────────────────────────────────────────────────────     │
-│   Your role: OFFICER  │  Total faction power: 156/200               │
-│                                                                     │
-├─────────────────────────────────────────────────────────────────────┤
-│                                           [ESC] Back                │
-└─────────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────────────┐
+│   DASHBOARD  [MEMBERS]   BROWSE   MAP   RELATIONS   SETTINGS                   │
+├────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                │
+│   FACTION MEMBERS                                                8 members     │
+│                                                                                │
+│   ┌──────────────────────────────────────────────────────────────────────────┐ │
+│   │  FireLord              LEADER          Online now                        │ │
+│   │                                   [TRANSFER]  (leader can see)           │ │
+│   └──────────────────────────────────────────────────────────────────────────┘ │
+│   ┌──────────────────────────────────────────────────────────────────────────┐ │
+│   │  DragonSlayer          OFFICER         2 hours ago                       │ │
+│   │                                   [DEMOTE]  [KICK]  (leader sees)        │ │
+│   └──────────────────────────────────────────────────────────────────────────┘ │
+│   ┌──────────────────────────────────────────────────────────────────────────┐ │
+│   │  ShadowBlade           MEMBER          5 mins ago                        │ │
+│   │                                   [PROMOTE]  [KICK]  (officers+ see)     │ │
+│   └──────────────────────────────────────────────────────────────────────────┘ │
+│   ... (up to 8 per page)                                                       │
+│                                                                                │
+│       [<]                         1/1                            [>]          │
+│                                                                                │
+├────────────────────────────────────────────────────────────────────────────────┤
+│                                                     [ESC] Back                 │
+└────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Element Breakdown**:
+**Element Breakdown** (Implemented):
 
 | Element ID | Type | Description |
 |------------|------|-------------|
-| `#MemberCount` | Text | "FACTION MEMBERS (X/Y)" |
-| `#InviteBtn` | Button | Opens invite dialog (Officer+ only) |
-| `#MemberList` | ScrollList | All members sorted by role then online status |
-| `#MemberCard` | Card | Player name, role badge, online status, power, join date |
-| `#RoleBadge` | Icon | 👑 Leader, ⭐ Officer, (none) Member |
-| `#OnlineStatus` | Indicator | 🟢 Online, 🔴 Offline |
-| `#PromoteBtn` | Button | Promote to Officer (Leader only, for Members) |
-| `#DemoteBtn` | Button | Demote to Member (Leader only, for Officers) |
-| `#KickBtn` | Button | Remove from faction (Officer+ for Members, Leader for Officers) |
-| `#YourRole` | Text | Shows current player's role |
+| `#MemberCount` | Text | "N members" total count |
+| `#MemberEntry0`-`#MemberEntry7` | Container | 8 slots for member entry templates |
+| `#MemberName` | Text | Member username (in entry) |
+| `#MemberRole` | Text | Role name: LEADER, OFFICER, MEMBER |
+| `#LastOnline` | Text | "Online now" or "X ago" (uses TimeUtil.formatDuration) |
+| `#PromoteBtn` | Button | Promote member to officer |
+| `#DemoteBtn` | Button | Demote officer to member |
+| `#KickBtn` | Button | Remove from faction |
+| `#TransferBtn` | Button | Transfer leadership |
+| `#PrevBtn` | Button | Previous page |
+| `#NextBtn` | Button | Next page |
+| `#PageInfo` | Text | "page/total" |
 
-**Role-Based Visibility**:
+**Permission Logic** (Implemented):
+```java
+boolean canManageThis = canManage && !isSelf &&
+    viewerRole.getLevel() > member.role().getLevel();
+```
+
 - **Members**: See list only, no action buttons
-- **Officers**: See Kick button for Members only
-- **Leader**: See all buttons, can Promote/Demote/Kick anyone except self
+- **Officers**: See PROMOTE + KICK for members (not self, not other officers)
+- **Leader**: See all buttons for everyone except self
 
-**Invite Dialog** (opens as modal):
-```
-┌─────────────────────────────────────────┐
-│  INVITE PLAYER                          │
-│  ┌─────────────────────────────────┐    │
-│  │ Enter player name...            │    │
-│  └─────────────────────────────────┘    │
-│                                         │
-│  Online players:                        │
-│  [Steve] [Alex] [Notch] [Herobrine]     │
-│                                         │
-│  ┌──────────┐  ┌──────────┐             │
-│  │  INVITE  │  │  CANCEL  │             │
-│  └──────────┘  └──────────┘             │
-└─────────────────────────────────────────┘
-```
+**Button Behaviors** (Implemented):
+- **PROMOTE**: `factionManager.promoteMember()` -> refreshes page
+- **DEMOTE**: `factionManager.demoteMember()` -> refreshes page
+- **KICK**: `factionManager.removeMember()` -> refreshes page
+- **TRANSFER**: Closes GUI, shows `/f transfer {name}` instruction in chat
+
+**NOT IMPLEMENTED** (Future enhancements):
+- INVITE button with player search modal
+- Online status indicators (green/red dots)
+- Power display per member
+- Join date display
 
 ---
 
-### B.2.3 Territory Map Page
+### B.2.3 Browse Factions Page (Faction Players)
 
-> **Reference Implementation**: See [ElbaphFactions Analysis](../../../resources/ElbaphFactions.md) for detailed patterns on interactive map rendering using `InteractiveCustomUIPage<T>`.
+> **STATUS: NOT IMPLEMENTED**
+> - Browse factions with relation indicators for faction members
+> - Shows relation to each faction (ALLY, ENEMY, NEUTRAL)
+> - No JOIN/REQUEST buttons (already in a faction)
+> - VIEW button shows faction info in chat
 
-**Implementation Approach** (based on ElbaphFactions patterns):
+#### Browse Layout (Faction Players)
 
-The territory map uses `InteractiveCustomUIPage<MapData>` to render a dynamic chunk grid with click interactions.
+```
++--------------------------------------------------------------------------------+
+|   DASHBOARD   MEMBERS  [BROWSE]   MAP   RELATIONS   SETTINGS                   |
++--------------------------------------------------------------------------------+
+|                                                                                |
+|   BROWSE FACTIONS                                          12 factions         |
+|                                                                                |
+|   Sort by:  [POWER]  [MEMBERS]  [NAME]                                         |
+|                                                                                |
+|   +------------------------------------------------------------------------+  |
+|   |  Phoenix Rising                                      [ALLY]            |  |
+|   |  12 members  |  140 power  |  18 claims                       [VIEW]   |  |
+|   +------------------------------------------------------------------------+  |
+|   +------------------------------------------------------------------------+  |
+|   |  Shadow Collective                                   [ENEMY]           |  |
+|   |  6 members  |  80 power  |  12 claims                         [VIEW]   |  |
+|   +------------------------------------------------------------------------+  |
+|   +------------------------------------------------------------------------+  |
+|   |  Dragons                                        (Your Faction)         |  |
+|   |  8 members  |  156 power  |  23 claims                        [VIEW]   |  |
+|   +------------------------------------------------------------------------+  |
+|   +------------------------------------------------------------------------+  |
+|   |  Iron Legion                                         [NEUTRAL]         |  |
+|   |  10 members  |  100 power  |  15 claims                       [VIEW]   |  |
+|   +------------------------------------------------------------------------+  |
+|   ... (8 per page)                                                            |
+|                                                                                |
+|       [<]                         1/2                           [>]           |
++--------------------------------------------------------------------------------+
+```
 
-**Architecture**:
+#### Key Differences from Non-Faction Browse (B.1.1)
+
+| Feature | Non-Faction Browse (B.1.1) | Faction Browse (B.2.3) |
+|---------|---------------------------|------------------------|
+| Relation Indicator | None | [ALLY], [ENEMY], [NEUTRAL] badges |
+| Own Faction | N/A | "(Your Faction)" indicator |
+| Action Buttons | JOIN, REQUEST JOIN | VIEW only |
+| Purpose | Find faction to join | View server factions, see relations |
+
+#### Browse Components
+
+| Component | File | Status | Description |
+|-----------|------|--------|-------------|
+| **Main Page** | `faction_browser.ui` | REUSE | Same template as B.1.1, with indicator slots |
+| **Faction Card** | `faction_card.ui` | MODIFY | Add `#IndicatorSlot` container for relation badges |
+| **Ally Indicator** | `indicator_ally.ui` | TODO | "[ALLY]" badge (blue text) |
+| **Enemy Indicator** | `indicator_enemy.ui` | TODO | "[ENEMY]" badge (red text) |
+| **Neutral Indicator** | `indicator_neutral.ui` | TODO | "[NEUTRAL]" badge (gray text) |
+
+#### Element Breakdown
+
+| Element ID | Type | Description |
+|------------|------|-------------|
+| `#FactionCount` | Text | "N factions" total count |
+| `#SortPower` | Button | Sort by power descending |
+| `#SortMembers` | Button | Sort by member count descending |
+| `#SortName` | Button | Sort alphabetically by name |
+| `#FactionCard0`-`#FactionCard7` | Container | 8 slots for faction card templates |
+| `#FactionName` | Text | Faction name (in card) |
+| `#MemberCount` | Text | "N members" (in card) |
+| `#PowerCount` | Text | "N power" (in card) |
+| `#ClaimCount` | Text | "N claims" (in card) |
+| `#IndicatorSlot` | Container | Container for relation indicator template |
+| `#OwnIndicator` | Text | "(Your Faction)" if viewer's faction |
+| `#ViewBtn` | Button | Opens faction info in chat |
+| `#PrevBtn` | Button | Previous page navigation |
+| `#NextBtn` | Button | Next page navigation |
+| `#PageInfo` | Text | "page/total" indicator |
+
+#### Relation Indicator Implementation
+
+Use conditional template appending (since colors can't be set dynamically):
 ```java
-public class TerritoryMapPage extends InteractiveCustomUIPage<MapData> {
-    private final int centerX, centerZ;  // Map center (player position at open)
+String prefix = "#FactionCard" + i;
+Faction targetFaction = factions.get(i);
 
-    public TerritoryMapPage(PlayerRef player) {
-        super(player, CustomPageLifetime.CanDismiss, MapData.CODEC);
-        this.centerX = player.getChunkX();
-        this.centerZ = player.getChunkZ();
-    }
+if (viewerFaction.isAlly(targetFaction)) {
+    cmd.append(prefix + "#IndicatorSlot", "HyperFactions/indicator_ally.ui");
+} else if (viewerFaction.isEnemy(targetFaction)) {
+    cmd.append(prefix + "#IndicatorSlot", "HyperFactions/indicator_enemy.ui");
+} else if (targetFaction.equals(viewerFaction)) {
+    // Own faction - show "(Your Faction)" via #OwnIndicator
+    cmd.set(prefix + "#OwnIndicator.Visible", "true");
+} else {
+    cmd.append(prefix + "#IndicatorSlot", "HyperFactions/indicator_neutral.ui");
 }
 ```
 
-**Grid Configuration**:
-- **Default Size**: 9x9 (81 chunks) for cleaner UI
-- **Cell Size**: 32x32 pixels per chunk
-- **Grid Dimensions**: 288x288 pixels (9 * 32)
+#### Technical Notes
 
-**Wireframe** (9x9 grid):
+- Reuses most of the `faction_browser.ui` template from B.1.1
+- `faction_card.ui` needs modification to add `#IndicatorSlot` container
+- Indicator templates contain styled text with preset colors (workaround for dynamic color limitation)
+- VIEW button behavior same as B.1.1 - shows faction info in chat
+
+---
+
+### B.2.4 Territory Map Page
+
+> **STATUS: IMPLEMENTED** (2026-01-25)
+> - 29x17 interactive chunk grid (GRID_RADIUS_X=14, GRID_RADIUS_Z=8) with click-to-claim (wilderness) / right-click-to-unclaim (own territory)
+> - Color-coded ownership (own, ally, enemy, neutral, safe zone, war zone, wilderness)
+> - Dynamic claim stats showing "Claims: X/Y (Z Available)" with power status
+> - Overclaim warning when power < claims
+> - Officer+ can left-click enemy territory to attempt overclaim
+> - **Note**: "Set Faction Home" button removed - use Settings page instead
+> - **Technical Discovery**: Hytale uses 32-block chunks (not 16-block like Minecraft)
+
+#### Territory Map Components
+
+| Component | File | Status | Description |
+|-----------|------|--------|-------------|
+| **Main Page** | `chunk_map.ui` | **DONE** | 29x17 grid container, position info, legend (7 colors), action hints, claim/power stats |
+| **Chunk Button** | `chunk_btn.ui` | **DONE** | Invisible button overlay for click detection on each chunk cell |
+| **Player Chunk** | `chunk_btn_player.ui` | **DONE** | Special styling for player's current position (white cell) |
+
+**Map Color Legend:**
+
+| Meaning | Hex Code | Description |
+|---------|----------|-------------|
+| Your Territory | `#4ade80` (bright green) | Chunks your faction owns |
+| Ally Territory | `#60a5fa` (bright blue) | Allied faction's chunks |
+| Enemy Territory | `#f87171` (bright red) | Enemy faction's chunks |
+| Other Faction | `#fbbf24` (yellow/gold) | Neutral faction's chunks |
+| Wilderness | `#1e293b` (dark slate) | Unclaimed chunks |
+| Safe Zone | `#2dd4bf` (teal) | Admin-protected safe areas |
+| War Zone | `#c084fc` (light purple) | Admin-designated PvP areas |
+| You Are Here | `#ffffff` (white) | Player's current chunk |
+
+**Technical Implementation:**
+- Grid built dynamically via `cmd.appendInline()` with colors baked into template
+- Uses `ChunkUtil.java` for coordinate conversion (32-block chunks, shift 5)
+- Event bindings on `#Btn` elements within each cell for click detection
+- No modals - direct click actions (claim/unclaim/overclaim) with chat feedback
+- Cell size: 16 pixels per cell
+
+**Architecture** (Implemented):
+```java
+public class ChunkMapPage extends InteractiveCustomUIPage<ChunkMapData> {
+    private static final int GRID_RADIUS_X = 14; // 29 columns (-14 to +14)
+    private static final int GRID_RADIUS_Z = 8;  // 17 rows (-8 to +8)
+    private static final int CELL_SIZE = 16;     // pixels per cell
+
+    // Colors
+    private static final String COLOR_OWN = "#4ade80";
+    private static final String COLOR_ALLY = "#60a5fa";
+    private static final String COLOR_ENEMY = "#f87171";
+    private static final String COLOR_OTHER = "#fbbf24";
+    private static final String COLOR_WILDERNESS = "#1e293b";
+    private static final String COLOR_SAFEZONE = "#2dd4bf";
+    private static final String COLOR_WARZONE = "#c084fc";
+    private static final String COLOR_PLAYER_POS = "#ffffff";
+}
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│   DASHBOARD   MEMBERS  [MAP]  RELATIONS   SETTINGS   HELP              [?] │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│   TERRITORY MAP                                      Current: (120, 340)    │
-│                                                                             │
-│   ┌─────────────────────────────────────────────────────────────────────┐   │
-│   │     -4   -3   -2   -1    0   +1   +2   +3   +4                      │   │
-│   │  +4  .    .    .    .    .    .    .    .    .                      │   │
-│   │  +3  .    .    .    .    .    .    .    .    .                      │   │
-│   │  +2  .    .    .    A    A    .    .    .    .                      │   │
-│   │  +1  .    .    .    A    ■    ■    .    .    .                      │   │
-│   │   0  .    .    E    E   [■]   ■    ■    .    .   ■ = Your faction   │   │
-│   │  -1  .    .    E    E    ■    ■    .    .    .   A = Ally           │   │
-│   │  -2  .    .    .    .    ■    .    .    .    .   E = Enemy          │   │
-│   │  -3  .    .    .    .    .    .    .    .    .   . = Wilderness     │   │
-│   │  -4  .    .    .    .    .    .    .    .    .   S = SafeZone       │   │
-│   │                                                  W = WarZone        │   │
-│   └─────────────────────────────────────────────────────────────────────┘   │
-│                                                                             │
-│   Left-click: Claim wilderness  │  Right-click: Unclaim your territory     │
-│                                                                             │
-│   ┌────────────┐                                                            │
-│   │  SET HOME  │   Claims: 23/78 (55 available)                             │
-│   └────────────┘                                                            │
-│                                                                             │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                               [ESC] Back                    │
-└─────────────────────────────────────────────────────────────────────────────┘
+
+**Wireframe** (Actual 29x17 grid - simplified view):
+```
+┌──────────────────────────────────────────────────────────────────────────────┐
+│   DASHBOARD   MEMBERS   BROWSE  [MAP]  RELATIONS   SETTINGS                  │
+├──────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│   Your Position: Chunk (120, 340)                                            │
+│                                                                              │
+│   ┌────────────────────────────────────────────────────────────────────────┐ │
+│   │ . . . . . . . . . . . . . . . . . . . . . . . . . . . . .              │ │
+│   │ . . . . . . . . . A A . . . . . . . . . . . . . . . . . .              │ │
+│   │ . . . . . . . . A ■ ■ . . . . . . . . . . . . . . . . . .              │ │
+│   │ . . . . . . E E ■ ■ ■ ■ . . . . . . . . . . . . . . . . .              │ │
+│   │ . . . . . . E E ■[⬜]■ ■ . . . . . . . . . . . . . . . . .  LEGEND:    │ │
+│   │ . . . . . . . . ■ ■ ■ . . . . . . . . . . . . . . . . . .  ■ = Own    │ │
+│   │ . . . . . . . . . ■ . . . . . . . . . . . . . . . . . . .  A = Ally   │ │
+│   │ . . . . . . . . . . . . . . . . . . . . . . . . . . . . .  E = Enemy  │ │
+│   │ . . . . . . . . . . . . . . . . . . . . . . . . . . . . .  . = Wild   │ │
+│   │                                                            S = Safe   │ │
+│   │                                                            W = War    │ │
+│   └────────────────────────────────────────────────────────────────────────┘ │
+│                                                                              │
+│   Claims: 23/78 (55 Available)                Power: 120/200                 │
+│   -- or if overclaimed: --                                                   │
+│   Claims: 23/78 (55 Available)                OVERCLAIMED by 5!              │
+│                                                                              │
+├──────────────────────────────────────────────────────────────────────────────┤
+│                                                [ESC] Back                    │
+└──────────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Color Coding** (HyperUI palette):
+**Interaction Flow** (Implemented):
+1. Player opens map - grid renders centered on player position
+2. **Direct click actions** (no selection step, officers only):
+   - **Left-click wilderness**: Claim chunk immediately
+   - **Right-click own territory**: Unclaim chunk immediately
+   - **Left-click enemy territory**: Attempt overclaim (if enemy is overclaimed)
+   - **Ally/Safezone/Warzone**: No click action
+3. Map refreshes after each claim/unclaim action
+4. Chat messages confirm success or explain failure
 
-| Relation/Type | Color (Hex) | Color (Decimal) | HyperUI Token |
-|---------------|-------------|-----------------|---------------|
-| Your Faction | `#22c55e` | 2278750 | `--hs-accent-success` |
-| Ally | `#3b82f6` | 3899126 | `--hs-accent-info` |
-| Enemy | `#ef4444` | 15684676 | `--hs-accent-error` |
-| Other Faction | `#f59e0b` | 16096779 | `--hs-accent-warning` |
-| SafeZone | `#22d3d8` | 2282456 | (custom) |
+**Event Binding** (Implemented):
+```java
+switch (info.type) {
+    case WILDERNESS:
+        // Left-click wilderness to claim
+        events.addEventBinding(CustomUIEventBindingType.Activating, cellSelector,
+            EventData.of("Button", "Claim").append("ChunkX", ...).append("ChunkZ", ...), false);
+        break;
+    case OWN:
+        // Right-click own territory to unclaim
+        events.addEventBinding(CustomUIEventBindingType.RightClicking, cellSelector,
+            EventData.of("Button", "Unclaim").append("ChunkX", ...).append("ChunkZ", ...), false);
+        break;
+    case ENEMY:
+        // Left-click enemy territory to attempt overclaim
+        events.addEventBinding(CustomUIEventBindingType.Activating, cellSelector,
+            EventData.of("Button", "Overclaim").append("ChunkX", ...).append("ChunkZ", ...), false);
+        break;
+}
+```
+
+**Element Breakdown** (Implemented):
+
+| Element ID | Type | Description |
+|------------|------|-------------|
+| `#ChunkGrid` | Container | Container for chunk rows (built dynamically) |
+| `#PositionInfo` | Text | Player's current chunk coordinates |
+| `#ClaimStats` | Text | "Claims: X/Y (Z Available)" or "Join a faction to claim" |
+| `#PowerStatus` | Text | "Power: X/Y" or "OVERCLAIMED by N!" |
+
+**Template Files**:
+- `chunk_map.ui` - Main map page layout with grid container, stats areas
+- `chunk_btn.ui` - Invisible button overlay for each cell
 | WarZone | `#a855f7` | 11031031 | (custom) |
 | Wilderness | `#374151` | 3621201 | `--hs-bg-tertiary` |
 | Selected | `#ffffff` | - | White border |
@@ -1183,138 +1433,347 @@ public void handleDataEvent(Ref ref, Store store, MapData data) {
 
 ---
 
-### B.2.4 Relations Page
+### B.2.5 Relations Page
 
-**Wireframe**:
+> **STATUS: IMPLEMENTED** (2026-01-25)
+> - Three sections visible at once: Allies, Enemies, Pending Requests (no tabs)
+> - Each section shows count in header (e.g., "ALLIES (2)")
+> - Relation entries show faction name, leader, date established, type badge, action buttons
+> - Officers+ can: set neutral, set enemy, request ally, accept/decline requests
+> - "+ SET RELATION" button visible only for officers+
+> - Set Relation modal for searching and setting relations with other factions
+> - **Technical Note**: Uses sectioned layout with dynamic `cmd.append()` for entries
+
+#### Relations Page Components
+
+| Component | File | Status | Description |
+|-----------|------|--------|-------------|
+| **Main Page** | `faction_relations.ui` | **DONE** | Sectioned layout with `#AlliesList`, `#EnemiesList`, `#RequestsList` containers |
+| **Relation Entry** | `relation_entry.ui` | **DONE** | Faction name, leader name, date established, type badge, `#ButtonsContainer` |
+| **Empty State** | `relation_empty.ui` | **DONE** | `#EmptyText` message template |
+| **Neutral Button** | `relation_btn_neutral.ui` | **DONE** | `#NeutralBtn` - sets relation to neutral |
+| **Ally Button** | `relation_btn_ally.ui` | **DONE** | `#AllyBtn` - requests alliance |
+| **Enemy Button** | `relation_btn_enemy.ui` | **DONE** | `#EnemyBtn` - declares enemy |
+| **Accept Button** | `relation_btn_accept.ui` | **DONE** | `#AcceptBtn` - accepts ally request |
+| **Decline Button** | `relation_btn_decline.ui` | **DONE** | `#DeclineBtn` - declines ally request |
+| **Set Relation Button** | `relation_set_btn.ui` | **DONE** | `#SetRelationBtn` in `#ActionBtnContainer` (officers+ only) |
+
+#### Set Relation Modal
+
+| Modal | File | Status | Description |
+|-------|------|--------|-------------|
+| **Set Relation** | `set_relation_modal.ui` | **DONE** | Search input with `#SearchBtn`, `#ResultsList` container, `#PrevBtn`/`#NextBtn` pagination, `#PageInfo` |
+| **Faction Card** | `set_relation_card.ui` | **DONE** | Faction name, leader, power, member count, `#AllyBtn`, `#EnemyBtn`, `#ViewBtn` |
+
+**Set Relation Modal Features:**
+- Search by faction name or tag (4 factions per page)
+- Results show: faction name, leader, power, member count
+- Each result has: ALLY (request), ENEMY (declare), VIEW (info to chat) buttons
+- Pagination with < > buttons and "page/total" indicator
+- Empty state: "Search for a faction to set relation" or "No factions found matching 'query'"
+- Results sorted by power (highest first)
+
+**Wireframe** (Implemented):
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│   DASHBOARD   MEMBERS   MAP  [RELATIONS]  SETTINGS   HELP      [?] │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│   ╔═══════════════════════════════════════════════════════════════╗ │
-│   ║  DIPLOMATIC RELATIONS                       [+ SET RELATION]  ║ │
-│   ╚═══════════════════════════════════════════════════════════════╝ │
-│                                                                     │
-│   ALLIES (2)                                                        │
-│   ┌─────────────────────────────────────────────────────────────┐   │
-│   │  🤝 Phoenix Rising                                          │   │
-│   │     Since: 15 days ago  │  Leader: PhoenixKing              │   │
-│   │     [NEUTRAL]  [ENEMY]  (change relation)                   │   │
-│   └─────────────────────────────────────────────────────────────┘   │
-│   ┌─────────────────────────────────────────────────────────────┐   │
-│   │  🤝 The Ironclad                                            │   │
-│   │     Since: 3 days ago  │  Leader: IronMaster                │   │
-│   │     [NEUTRAL]  [ENEMY]                                      │   │
-│   └─────────────────────────────────────────────────────────────┘   │
-│                                                                     │
-│   ENEMIES (1)                                                       │
-│   ┌─────────────────────────────────────────────────────────────┐   │
-│   │  ⚔️ Shadow Collective                                       │   │
-│   │     Since: 20 days ago  │  Leader: ShadowKing               │   │
-│   │     [NEUTRAL]  [ALLY]                                       │   │
-│   └─────────────────────────────────────────────────────────────┘   │
-│                                                                     │
-│   PENDING REQUESTS (1)                                              │
-│   ┌─────────────────────────────────────────────────────────────┐   │
-│   │  📨 Storm Legion wants to ally                              │   │
-│   │     Requested: 2 hours ago                                  │   │
-│   │     [ACCEPT]  [DECLINE]                                     │   │
-│   └─────────────────────────────────────────────────────────────┘   │
-│                                                                     │
-├─────────────────────────────────────────────────────────────────────┤
-│                                           [ESC] Back                │
-└─────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────────────────────┐
+│   DASHBOARD   MEMBERS   BROWSE   MAP  [RELATIONS]  SETTINGS                   │
+├───────────────────────────────────────────────────────────────────────────────┤
+│                                                                               │
+│   DIPLOMATIC RELATIONS                                  [+ SET RELATION]      │
+│                                                        (officers+ only)       │
+│                                                                               │
+│   ═══════════════════════════════════════════════════════════════════════════ │
+│   ALLIES (2)                                                                  │
+│   ═══════════════════════════════════════════════════════════════════════════ │
+│   ┌─────────────────────────────────────────────────────────────────────────┐ │
+│   │  Phoenix Rising              [ALLY]                                     │ │
+│   │  Leader: PhoenixKing                                                    │ │
+│   │  Since: 15 days ago                            [NEUTRAL]  [ENEMY]       │ │
+│   └─────────────────────────────────────────────────────────────────────────┘ │
+│   ┌─────────────────────────────────────────────────────────────────────────┐ │
+│   │  The Ironclad                [ALLY]                                     │ │
+│   │  Leader: IronMaster                                                     │ │
+│   │  Since: 3 days ago                             [NEUTRAL]  [ENEMY]       │ │
+│   └─────────────────────────────────────────────────────────────────────────┘ │
+│                                                                               │
+│   ═══════════════════════════════════════════════════════════════════════════ │
+│   ENEMIES (1)                                                                 │
+│   ═══════════════════════════════════════════════════════════════════════════ │
+│   ┌─────────────────────────────────────────────────────────────────────────┐ │
+│   │  Shadow Collective           [ENEMY]                                    │ │
+│   │  Leader: ShadowKing                                                     │ │
+│   │  Since: 20 days ago                            [NEUTRAL]  [ALLY]        │ │
+│   └─────────────────────────────────────────────────────────────────────────┘ │
+│                                                                               │
+│   ═══════════════════════════════════════════════════════════════════════════ │
+│   PENDING REQUESTS (1)                                                        │
+│   ═══════════════════════════════════════════════════════════════════════════ │
+│   ┌─────────────────────────────────────────────────────────────────────────┐ │
+│   │  Storm Legion                [PENDING]                                  │ │
+│   │  Leader: StormKing                                                      │ │
+│   │  Requested recently                            [ACCEPT]  [DECLINE]      │ │
+│   └─────────────────────────────────────────────────────────────────────────┘ │
+│                                                                               │
+├───────────────────────────────────────────────────────────────────────────────┤
+│                                                    [ESC] Back                 │
+└───────────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Element Breakdown**:
+**Set Relation Modal Wireframe**:
+```
+┌───────────────────────────────────────────────────────────────────────┐
+│                        SET RELATION                                   │
+├───────────────────────────────────────────────────────────────────────┤
+│                                                                       │
+│   ┌─────────────────────────────────────────┐  ┌──────────┐           │
+│   │  Search factions...                     │  │  SEARCH  │           │
+│   └─────────────────────────────────────────┘  └──────────┘           │
+│                                                                       │
+│   ┌─────────────────────────────────────────────────────────────────┐ │
+│   │  Phoenix Empire                                                 │ │
+│   │  Leader: PhoenixKing  │  150 power  │  12 members               │ │
+│   │  [ALLY]  [ENEMY]  [VIEW]                                        │ │
+│   └─────────────────────────────────────────────────────────────────┘ │
+│   ┌─────────────────────────────────────────────────────────────────┐ │
+│   │  Iron Legion                                                    │ │
+│   │  Leader: IronMaster  │  120 power  │  8 members                 │ │
+│   │  [ALLY]  [ENEMY]  [VIEW]                                        │ │
+│   └─────────────────────────────────────────────────────────────────┘ │
+│   ┌─────────────────────────────────────────────────────────────────┐ │
+│   │  Storm Raiders                                                  │ │
+│   │  Leader: StormChief  │  80 power  │  5 members                  │ │
+│   │  [ALLY]  [ENEMY]  [VIEW]                                        │ │
+│   └─────────────────────────────────────────────────────────────────┘ │
+│   ┌─────────────────────────────────────────────────────────────────┐ │
+│   │  Shadow Cult                                                    │ │
+│   │  Leader: ShadowLord  │  60 power  │  4 members                  │ │
+│   │  [ALLY]  [ENEMY]  [VIEW]                                        │ │
+│   └─────────────────────────────────────────────────────────────────┘ │
+│                                                                       │
+│       [<]                    1/3                           [>]        │
+│                                                                       │
+│                         [CANCEL]                                      │
+│                                                                       │
+└───────────────────────────────────────────────────────────────────────┘
+```
+
+**Element Breakdown** (Implemented):
 
 | Element ID | Type | Description |
 |------------|------|-------------|
-| `#SetRelationBtn` | Button | Opens faction picker to set new relation |
-| `#AlliesSection` | Container | List of allied factions |
-| `#EnemiesSection` | Container | List of enemy factions |
-| `#PendingSection` | Container | Incoming ally requests |
-| `#RelationCard` | Card | Faction name, relation date, leader |
-| `#NeutralBtn` | Button | Set relation to neutral |
-| `#AllyBtn` | Button | Request/set ally relation |
-| `#EnemyBtn` | Button | Set enemy relation |
-| `#AcceptBtn` | Button | Accept pending ally request |
-| `#DeclineBtn` | Button | Decline pending ally request |
+| `#AlliesHeader` | Text | "ALLIES (N)" section header |
+| `#AlliesList` | Container | List of allied factions (entries appended dynamically) |
+| `#EnemiesHeader` | Text | "ENEMIES (N)" section header |
+| `#EnemiesList` | Container | List of enemy factions |
+| `#RequestsHeader` | Text | "PENDING REQUESTS (N)" section header |
+| `#RequestsList` | Container | Incoming ally requests |
+| `#ActionBtnContainer` | Container | Container for "+ SET RELATION" button (officers+ only) |
+| `#FactionName` | Text | Faction name in entry |
+| `#LeaderName` | Text | "Leader: {name}" in entry |
+| `#DateEstablished` | Text | "Since: X days ago" or "Requested recently" |
+| `#RelationType` | Text | Type badge ("ALLY", "ENEMY", "PENDING") |
+| `#ButtonsContainer` | Container | Action buttons (dynamically appended based on entry type) |
+
+**Permission-Based Button Logic**:
+- **Allies**: NEUTRAL + ENEMY buttons (for officers+)
+- **Enemies**: NEUTRAL + ALLY buttons (for officers+)
+- **Pending Requests**: ACCEPT + DECLINE buttons (for officers+)
+- **Members**: No buttons visible (read-only view)
 
 ---
 
-### B.2.5 Settings Page (Officer+)
+### B.2.6 Settings Page (Officer+)
 
-**Wireframe**:
+> **STATUS: IMPLEMENTED** (2026-01-25)
+> - GENERAL section: Name, Tag, Description with EDIT buttons (each opens a modal)
+> - APPEARANCE section: Color preview + hex code with CHANGE button (opens color picker)
+> - RECRUITMENT section: Current status (Open/Invite Only) with CHANGE button (opens modal)
+> - HOME LOCATION section: SET HOME HERE and TELEPORT buttons
+>   - Teleport has warmup/cooldown and combat-tag support via TeleportManager
+>   - Set home requires being in faction territory
+> - MODULES section: VIEW MODULES button (opens FactionModulesPage)
+> - DANGER ZONE section: DISBAND button (Leader only, conditionally appended via `settings_danger_zone.ui`)
+> - Non-officers see error page: "Only officers and leaders can change faction settings."
+
+#### Settings Page Components
+
+| Component | File | Status | Description |
+|-----------|------|--------|-------------|
+| **Main Page** | `faction_settings.ui` | **DONE** | Sectioned layout with General, Appearance, Recruitment, Home, Modules sections |
+| **Danger Zone** | `settings_danger_zone.ui` | **DONE** | Conditionally appended to `#DangerZoneContainer` for leaders only |
+| **Error Page** | `error_page.ui` | **DONE** | Shown to non-officers with `#ErrorMessage` text |
+
+#### Settings Page Modals (All Implemented)
+
+| Modal | File | Status | Description |
+|-------|------|--------|-------------|
+| **Rename Faction** | `rename_modal.ui` | **DONE** | `#CurrentName` display, `#NameInput` text field, `#CancelBtn`/`#SaveBtn`. Validates 3-32 chars, uniqueness. |
+| **Edit Tag** | `tag_modal.ui` | **DONE** | `#CurrentTag` display (shows "[TAG]"), `#TagInput` text field, `#CancelBtn`/`#SaveBtn`. Validates 1-5 chars, alphanumeric, uniqueness. |
+| **Edit Description** | `description_modal.ui` | **DONE** | `#CurrentDesc` display (truncated to 100 chars), `#DescInput` text area, `#CancelBtn`/`#ClearBtn`/`#SaveBtn`. Max 256 chars. |
+| **Color Picker** | `color_picker.ui` | **DONE** | `#CurrentColorPreview` (background color set dynamically), `#CurrentColorName` text, 16 color buttons `#Color0`-`#Color15` with preset TextButtonStyle, `#CancelBtn`. |
+| **Recruitment Status** | `recruitment_modal.ui` | **DONE** | `#CurrentStatus` display, `#OpenBtn`, `#InviteOnlyBtn`, `#CancelBtn`. |
+| **Disband Confirm** | `disband_confirm.ui` | **DONE** | `#FactionName` display (set dynamically), warning text, `#CancelBtn`/`#ConfirmBtn`. |
+
+**Color Picker Details:**
+- 16 Minecraft colors (codes 0-f) in 4x4 grid
+- Each button has preset background color via TextButtonStyle (workaround for cmd.set() limitation)
+- Colors: Black, Dark Blue, Dark Green, Dark Aqua, Dark Red, Dark Purple, Gold, Gray, Dark Gray, Blue, Green, Aqua, Red, Light Purple, Yellow, White
+- On select: Updates faction color, shows chat message with color name
+
+**Wireframe** (Implemented):
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│   DASHBOARD   MEMBERS   MAP   RELATIONS  [SETTINGS]  HELP      [?] │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│   ╔═══════════════════════════════════════════════════════════════╗ │
-│   ║  FACTION SETTINGS                                             ║ │
-│   ╚═══════════════════════════════════════════════════════════════╝ │
-│                                                                     │
-│   BASIC INFORMATION                                                 │
-│   ┌─────────────────────────────────────────────────────────────┐   │
-│   │  Faction Name:  [Dragons                              ] [✓] │   │
-│   │  Description:   [From the ashes we rise!              ] [✓] │   │
-│   │  Color:         [b] Cyan  [CHANGE]                          │   │
-│   │  Tag:           [DRG] (shown in chat)                  [✓]  │   │
-│   └─────────────────────────────────────────────────────────────┘   │
-│                                                                     │
-│   RECRUITMENT                                                       │
-│   ┌─────────────────────────────────────────────────────────────┐   │
-│   │  ○ Open - Anyone can join                                   │   │
-│   │  ● Invite Only - Players must be invited                    │   │
-│   └─────────────────────────────────────────────────────────────┘   │
-│                                                                     │
-│   HOME LOCATION                                                     │
-│   ┌─────────────────────────────────────────────────────────────┐   │
-│   │  Current: Overworld (120, 64, 340)                          │   │
-│   │  Set: 5 days ago by FireLord                                │   │
-│   │  ┌───────────────────┐ ┌───────────────────┐                │   │
-│   │  │ SET HOME HERE     │ │ TELEPORT TO HOME  │                │   │
-│   │  └───────────────────┘ └───────────────────┘                │   │
-│   └─────────────────────────────────────────────────────────────┘   │
-│                                                                     │
-│   MODULES    [▶ Open Modules Page]                                  │
-│                                                                     │
-│   DANGER ZONE (Leader Only)                                         │
-│   ┌─────────────────────────────────────────────────────────────┐   │
-│   │  ┌───────────────────────────────────────────────────────┐  │   │
-│   │  │                 ☠️ DISBAND FACTION                    │  │   │
-│   │  └───────────────────────────────────────────────────────┘  │   │
-│   └─────────────────────────────────────────────────────────────┘   │
-│                                                                     │
-├─────────────────────────────────────────────────────────────────────┤
-│                                           [ESC] Back                │
-└─────────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────────────┐
+│   DASHBOARD   MEMBERS   BROWSE   MAP   RELATIONS  [SETTINGS]                   │
+├────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                │
+│   FACTION SETTINGS                                                             │
+│                                                                                │
+│   ═══════════════════════════════════════════════════════════════════════════  │
+│   GENERAL                                                                      │
+│   ═══════════════════════════════════════════════════════════════════════════  │
+│                                                                                │
+│   Name:        Dragons                                           [EDIT]        │
+│   Description: From the ashes we rise!                           [EDIT]        │
+│   Tag:         [DRG]                                             [EDIT]        │
+│                                                                                │
+│   ═══════════════════════════════════════════════════════════════════════════  │
+│   APPEARANCE                                                                   │
+│   ═══════════════════════════════════════════════════════════════════════════  │
+│                                                                                │
+│   Color:   [██]  #55FFFF                                        [CHANGE]       │
+│                                                                                │
+│   ═══════════════════════════════════════════════════════════════════════════  │
+│   RECRUITMENT                                                                  │
+│   ═══════════════════════════════════════════════════════════════════════════  │
+│                                                                                │
+│   Status:  Invite Only                                          [CHANGE]       │
+│                                                                                │
+│   ═══════════════════════════════════════════════════════════════════════════  │
+│   HOME LOCATION                                                                │
+│   ═══════════════════════════════════════════════════════════════════════════  │
+│                                                                                │
+│   Current:  world (120, 64, 340)                                               │
+│                                                                                │
+│   [SET HOME HERE]              [TELEPORT]                                      │
+│                                                                                │
+│   ═══════════════════════════════════════════════════════════════════════════  │
+│   MODULES                                                                      │
+│   ═══════════════════════════════════════════════════════════════════════════  │
+│                                                                                │
+│   [VIEW MODULES]                                                               │
+│                                                                                │
+│   ═══════════════════════════════════════════════════════════════════════════  │
+│   DANGER ZONE  (Leader only - conditionally shown)                             │
+│   ═══════════════════════════════════════════════════════════════════════════  │
+│                                                                                │
+│   [DISBAND FACTION]  (red, destructive)                                        │
+│                                                                                │
+├────────────────────────────────────────────────────────────────────────────────┤
+│                                                     [ESC] Back                 │
+└────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Element Breakdown**:
+**Modal Wireframes:**
+
+**Rename Modal:**
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    RENAME FACTION                               │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│   Current Name:  Dragons                                        │
+│                                                                 │
+│   New Name:                                                     │
+│   ┌─────────────────────────────────────────────────────────┐   │
+│   │                                                         │   │
+│   └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│   (3-32 characters, must be unique)                             │
+│                                                                 │
+│               [CANCEL]              [SAVE]                      │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Color Picker Modal:**
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    FACTION COLOR                                │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│   Current:  [██]  Aqua (#55FFFF)                                │
+│                                                                 │
+│   ┌────┬────┬────┬────┐                                         │
+│   │ 0  │ 1  │ 2  │ 3  │   0=Black   1=DkBlue  2=DkGreen 3=DkAqua│
+│   ├────┼────┼────┼────┤                                         │
+│   │ 4  │ 5  │ 6  │ 7  │   4=DkRed   5=DkPurp  6=Gold    7=Gray  │
+│   ├────┼────┼────┼────┤                                         │
+│   │ 8  │ 9  │ a  │ b  │   8=DkGray  9=Blue    a=Green   b=Aqua  │
+│   ├────┼────┼────┼────┤                                         │
+│   │ c  │ d  │ e  │ f  │   c=Red     d=LtPurp  e=Yellow  f=White │
+│   └────┴────┴────┴────┘                                         │
+│                                                                 │
+│                       [CANCEL]                                  │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Disband Confirmation Modal:**
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    DISBAND FACTION                              │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│   Are you sure you want to disband                              │
+│                                                                 │
+│                      Dragons                                    │
+│                   (shown in red)                                │
+│                                                                 │
+│   This action cannot be undone!                                 │
+│   All claims, members, and data will be lost.                   │
+│                                                                 │
+│             [CANCEL]              [DISBAND]                     │
+│                                  (red button)                   │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Element Breakdown** (Implemented):
 
 | Element ID | Type | Description |
 |------------|------|-------------|
-| `#NameInput` | TextInput | Editable faction name with save button |
-| `#DescInput` | TextInput | Editable description with save button |
-| `#ColorDisplay` | Text | Current color code with change button |
-| `#TagInput` | TextInput | Editable tag (2-4 chars) |
-| `#RecruitmentRadio` | RadioGroup | Open / Invite Only |
-| `#HomeInfo` | Container | Current home location and who set it |
-| `#SetHomeBtn` | Button | Set home at current location |
-| `#TeleportBtn` | Button | Teleport to faction home |
-| `#ModulesLink` | Button | Navigate to Modules page |
-| `#DisbandBtn` | Button | Disband faction (Leader only, requires confirmation) |
+| `#NameValue` | Text | Current faction name |
+| `#NameEditBtn` | Button | Opens rename modal |
+| `#DescValue` | Text | Current description (or "(None)") |
+| `#DescEditBtn` | Button | Opens description modal |
+| `#TagValue` | Text | Current tag as "[TAG]" (or "(None)") |
+| `#TagEditBtn` | Button | Opens tag modal |
+| `#ColorPreview` | Group | Background color set to current color hex |
+| `#ColorValue` | Text | Current color hex code |
+| `#ColorBtn` | Button | Opens color picker |
+| `#RecruitmentStatus` | Text | "Open" or "Invite Only" |
+| `#RecruitmentBtn` | Button | Opens recruitment modal |
+| `#HomeLocation` | Text | "world (X, Y, Z)" or "Not set" |
+| `#SetHomeBtn` | Button | Sets home at current location (requires faction territory) |
+| `#TeleportHomeBtn` | Button | Teleports to faction home (warmup/combat-tag) |
+| `#ModulesBtn` | Button | Opens modules page |
+| `#DangerZoneContainer` | Container | Danger zone appended here for leaders only |
+| `#DisbandBtn` | Button | Opens disband confirmation modal (in danger_zone.ui) |
 
 **Permission Visibility**:
-- **Members**: Cannot access Settings page (nav hidden or disabled)
-- **Officers**: Can edit name, desc, color, tag, recruitment, home
-- **Leader**: All above + Disband button
+- **Members**: See error page "Only officers and leaders can change faction settings."
+- **Officers**: See all sections except Danger Zone
+- **Leader**: See all sections including Danger Zone with DISBAND button
+
+**Teleport Implementation**:
+- Uses `TeleportManager` for warmup, cooldown, and combat-tag checking
+- Closes GUI before initiating teleport
+- Cross-world teleportation supported via `Universe.get().getWorld()`
+- Uses `Teleport` component for actual player movement
 
 ---
 
-### B.2.6 Modules Page (Coming Soon)
+### B.2.7 Modules Page (Coming Soon)
 
 **Wireframe**:
 ```
@@ -1739,16 +2198,17 @@ if (!moduleManager.isEnabled("treasury")) {
 
 **Faction Player GUI (B.2)**
 
-| Task | Description | Template Files |
-|------|-------------|----------------|
-| B.2.1 | Enhance Dashboard with admin FAB | `faction/dashboard.ui`, `faction/admin_fab.ui` |
-| B.2.2 | Add quick actions (Home, Claim, Chat) | Existing `faction/dashboard.ui` |
-| B.2.3 | Enhance Members page with invite dialog | `faction/members.ui`, `faction/invite_dialog.ui` |
-| B.2.4 | Implement interactive ChunkMapPage | `faction/map.ui`, `faction/chunk_cell.ui` |
-| B.2.5 | Create Relations page | `faction/relations.ui`, `faction/relation_card.ui` |
-| B.2.6 | Enhance Settings page | `faction/settings.ui` |
-| B.2.7 | Create Modules page (placeholders) | `faction/modules.ui`, `modules/coming_soon_card.ui` |
-| B.2.8 | Update FactionPageRegistry with HELP | - |
+| Task | Status | Description | Template Files |
+|------|--------|-------------|----------------|
+| B.2.1 | TODO | Redesigned Dashboard with identity, stat cards, quick actions, activity feed | `faction_dashboard.ui`, `activity_entry.ui`, `leave_confirm.ui` |
+| B.2.2 | TODO | Members page with paginated list, role-based actions | `faction_members.ui`, `member_entry.ui` |
+| B.2.3 | TODO | Browse Factions for faction players with relation indicators | `faction_browser.ui` (reuse), `indicator_*.ui` |
+| B.2.4 | **DONE** | Implement interactive ChunkMapPage (29x17 grid, click to claim/unclaim) | `chunk_map.ui`, `chunk_btn.ui` |
+| B.2.5 | **DONE** | Create Relations page (sectioned: Allies/Enemies/Requests) | `faction_relations.ui`, `relation_*.ui` |
+| B.2.6 | **DONE** | Settings page (edit modals, teleport, recruitment, disband) | `faction_settings.ui`, `*_modal.ui` |
+| B.2.7 | TODO | Create Modules page (placeholders) | `faction/modules.ui`, `modules/coming_soon_card.ui` |
+| B.2.8 | TODO | Activity log event tracking system | `FactionEvent.java`, `FactionEventType.java`, storage updates |
+| B.2.9 | TODO | Chat toggle system (F-CHAT, A-CHAT) | ChatManager integration (future) |
 
 **Admin GUI (B.3)**
 

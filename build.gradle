@@ -40,7 +40,7 @@ shadowJar {
     // Relocate dependencies to avoid conflicts
     relocate 'com.google.gson', 'com.hyperfactions.lib.gson'
 
-    minimize()
+    // Don't minimize - it removes Gson's inner classes needed at runtime
 }
 
 test {

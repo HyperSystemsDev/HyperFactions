@@ -11,6 +11,7 @@ import java.util.*;
  * @param id          unique faction identifier
  * @param name        the faction's display name
  * @param description optional faction description
+ * @param tag         optional short tag (1-5 chars, alphanumeric)
  * @param color       the faction's color code (e.g., "a" for green)
  * @param createdAt   when the faction was created (epoch millis)
  * @param home        the faction home location, if set
@@ -24,6 +25,7 @@ public record Faction(
     @NotNull UUID id,
     @NotNull String name,
     @Nullable String description,
+    @Nullable String tag,
     @NotNull String color,
     long createdAt,
     @Nullable FactionHome home,
@@ -71,6 +73,7 @@ public record Faction(
             UUID.randomUUID(),
             name,
             null,
+            null, // No tag by default
             "b", // Default cyan
             System.currentTimeMillis(),
             null,
@@ -106,6 +109,22 @@ public record Faction(
     public UUID getLeaderId() {
         FactionMember leader = getLeader();
         return leader != null ? leader.uuid() : null;
+    }
+
+    /**
+     * Finds the best successor for leadership when the current leader leaves.
+     * Priority: highest role (officer over member), then oldest joinedAt (most tenure).
+     *
+     * @return the best successor, or null if no other members exist
+     */
+    @Nullable
+    public FactionMember findSuccessor() {
+        return members.values().stream()
+                .filter(m -> !m.isLeader())  // Exclude current leader
+                .max(Comparator
+                        .comparingInt((FactionMember m) -> m.role().getLevel())  // Highest role first
+                        .thenComparingLong(m -> -m.joinedAt()))  // Then oldest joinedAt (negative for ascending)
+                .orElse(null);
     }
 
     /**
@@ -160,7 +179,7 @@ public record Faction(
     public Faction withMember(@NotNull FactionMember member) {
         Map<UUID, FactionMember> newMembers = new HashMap<>(members);
         newMembers.put(member.uuid(), member);
-        return new Faction(id, name, description, color, createdAt, home, newMembers, claims, relations, logs, open);
+        return new Faction(id, name, description, tag, color, createdAt, home, newMembers, claims, relations, logs, open);
     }
 
     /**
@@ -172,7 +191,7 @@ public record Faction(
     public Faction withoutMember(@NotNull UUID uuid) {
         Map<UUID, FactionMember> newMembers = new HashMap<>(members);
         newMembers.remove(uuid);
-        return new Faction(id, name, description, color, createdAt, home, newMembers, claims, relations, logs, open);
+        return new Faction(id, name, description, tag, color, createdAt, home, newMembers, claims, relations, logs, open);
     }
 
     // === Claim operations ===
@@ -207,7 +226,7 @@ public record Faction(
     public Faction withClaim(@NotNull FactionClaim claim) {
         Set<FactionClaim> newClaims = new HashSet<>(claims);
         newClaims.add(claim);
-        return new Faction(id, name, description, color, createdAt, home, members, newClaims, relations, logs, open);
+        return new Faction(id, name, description, tag, color, createdAt, home, members, newClaims, relations, logs, open);
     }
 
     /**
@@ -221,7 +240,7 @@ public record Faction(
     public Faction withoutClaimAt(@NotNull String world, int chunkX, int chunkZ) {
         Set<FactionClaim> newClaims = new HashSet<>(claims);
         newClaims.removeIf(c -> c.isAt(world, chunkX, chunkZ));
-        return new Faction(id, name, description, color, createdAt, home, members, newClaims, relations, logs, open);
+        return new Faction(id, name, description, tag, color, createdAt, home, members, newClaims, relations, logs, open);
     }
 
     // === Relation operations ===
@@ -282,7 +301,7 @@ public record Faction(
         } else {
             newRelations.put(relation.targetFactionId(), relation);
         }
-        return new Faction(id, name, description, color, createdAt, home, members, claims, newRelations, logs, open);
+        return new Faction(id, name, description, tag, color, createdAt, home, members, claims, newRelations, logs, open);
     }
 
     // === Home operations ===
@@ -294,7 +313,7 @@ public record Faction(
      * @return a new Faction with updated home
      */
     public Faction withHome(@Nullable FactionHome newHome) {
-        return new Faction(id, name, description, color, createdAt, newHome, members, claims, relations, logs, open);
+        return new Faction(id, name, description, tag, color, createdAt, newHome, members, claims, relations, logs, open);
     }
 
     /**
@@ -322,7 +341,7 @@ public record Faction(
         if (newLogs.size() > MAX_LOGS) {
             newLogs = newLogs.subList(0, MAX_LOGS);
         }
-        return new Faction(id, name, description, color, createdAt, home, members, claims, relations, newLogs, open);
+        return new Faction(id, name, description, tag, color, createdAt, home, members, claims, relations, newLogs, open);
     }
 
     // === Property updates ===
@@ -334,7 +353,7 @@ public record Faction(
      * @return a new Faction with updated name
      */
     public Faction withName(@NotNull String newName) {
-        return new Faction(id, newName, description, color, createdAt, home, members, claims, relations, logs, open);
+        return new Faction(id, newName, description, tag, color, createdAt, home, members, claims, relations, logs, open);
     }
 
     /**
@@ -344,7 +363,17 @@ public record Faction(
      * @return a new Faction with updated description
      */
     public Faction withDescription(@Nullable String newDescription) {
-        return new Faction(id, name, newDescription, color, createdAt, home, members, claims, relations, logs, open);
+        return new Faction(id, name, newDescription, tag, color, createdAt, home, members, claims, relations, logs, open);
+    }
+
+    /**
+     * Creates a copy with a new tag.
+     *
+     * @param newTag the new tag (1-5 alphanumeric chars, or null)
+     * @return a new Faction with updated tag
+     */
+    public Faction withTag(@Nullable String newTag) {
+        return new Faction(id, name, description, newTag, color, createdAt, home, members, claims, relations, logs, open);
     }
 
     /**
@@ -354,7 +383,7 @@ public record Faction(
      * @return a new Faction with updated color
      */
     public Faction withColor(@NotNull String newColor) {
-        return new Faction(id, name, description, newColor, createdAt, home, members, claims, relations, logs, open);
+        return new Faction(id, name, description, tag, newColor, createdAt, home, members, claims, relations, logs, open);
     }
 
     /**
@@ -364,7 +393,7 @@ public record Faction(
      * @return a new Faction with updated open status
      */
     public Faction withOpen(boolean isOpen) {
-        return new Faction(id, name, description, color, createdAt, home, members, claims, relations, logs, isOpen);
+        return new Faction(id, name, description, tag, color, createdAt, home, members, claims, relations, logs, isOpen);
     }
 
     /**

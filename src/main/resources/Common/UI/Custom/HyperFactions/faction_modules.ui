@@ -1,0 +1,254 @@
+// Faction Modules Page
+// 2x2 grid of module cards showing available/upcoming features
+
+$C = "../Common.ui";
+$S = "styles.ui";
+$Nav = "nav/nav_bar.ui";
+
+$C.@PageOverlay {
+  $Nav.@HyperFactionsNavBar #HyperFactionsNavBar {}
+
+  $C.@DecoratedContainer {
+    Anchor: (Width: 480, Height: 440);
+
+    #Title {
+      Group {
+        $C.@Title {
+          @Text = "Faction Modules";
+        }
+      }
+    }
+
+    #Content {
+      LayoutMode: Top;
+      Padding: (Left: 20, Right: 20, Top: 15, Bottom: 15);
+
+      // Description
+      Group {
+        Anchor: (Height: 35, Bottom: 10);
+
+        Label {
+          Text: "Optional features to enhance your faction";
+          Style: (FontSize: 12, TextColor: #888888, VerticalAlignment: Center);
+        }
+      }
+
+      // Module Grid (2x2)
+      Group #ModuleGrid {
+        LayoutMode: Top;
+        FlexWeight: 1;
+
+        // Row 1: Treasury and Raids
+        Group {
+          Anchor: (Height: 130, Bottom: 10);
+          LayoutMode: Left;
+
+          // Treasury Card
+          Group #ModuleCard0 {
+            Anchor: (Width: 200);
+            Background: (Color: #1e293b);
+            LayoutMode: Left;
+
+            // Color bar on left
+            Group #ColorBar {
+              Anchor: (Width: 4, Height: 125);
+              Background: (Color: #fbbf24);
+            }
+
+            // Card content
+            Group {
+              Padding: (Left: 12, Right: 12, Top: 12, Bottom: 12);
+              LayoutMode: Top;
+              FlexWeight: 1;
+
+              Label #ModuleName {
+                Text: "Treasury";
+                Style: (FontSize: 14, TextColor: #FFFFFF, RenderBold: true);
+                Anchor: (Height: 20, Bottom: 4);
+              }
+
+              Label #ModuleDesc {
+                Text: "Faction bank & economy system";
+                Style: (FontSize: 11, TextColor: #888888);
+                Anchor: (Height: 32, Bottom: 8);
+              }
+
+              Label #StatusBadge {
+                Text: "COMING SOON";
+                Style: (FontSize: 10, TextColor: #888888, RenderBold: true);
+                Anchor: (Height: 16, Bottom: 8);
+              }
+
+              TextButton #ModuleBtn {
+                Text: "CONFIGURE";
+                Anchor: (Height: 26, Width: 100);
+                Style: $S.@SmallButtonStyle;
+                Visible: false;
+              }
+            }
+          }
+
+          Label { FlexWeight: 1; }
+
+          // Raids Card
+          Group #ModuleCard1 {
+            Anchor: (Width: 200);
+            Background: (Color: #1e293b);
+            LayoutMode: Left;
+
+            // Color bar on left
+            Group #ColorBar {
+              Anchor: (Width: 4, Height: 125);
+              Background: (Color: #ef4444);
+            }
+
+            // Card content
+            Group {
+              Padding: (Left: 12, Right: 12, Top: 12, Bottom: 12);
+              LayoutMode: Top;
+              FlexWeight: 1;
+
+              Label #ModuleName {
+                Text: "Raids";
+                Style: (FontSize: 14, TextColor: #FFFFFF, RenderBold: true);
+                Anchor: (Height: 20, Bottom: 4);
+              }
+
+              Label #ModuleDesc {
+                Text: "Scheduled faction battles";
+                Style: (FontSize: 11, TextColor: #888888);
+                Anchor: (Height: 32, Bottom: 8);
+              }
+
+              Label #StatusBadge {
+                Text: "COMING SOON";
+                Style: (FontSize: 10, TextColor: #888888, RenderBold: true);
+                Anchor: (Height: 16, Bottom: 8);
+              }
+
+              TextButton #ModuleBtn {
+                Text: "CONFIGURE";
+                Anchor: (Height: 26, Width: 100);
+                Style: $S.@SmallButtonStyle;
+                Visible: false;
+              }
+            }
+          }
+        }
+
+        // Row 2: Levels and War
+        Group {
+          Anchor: (Height: 130);
+          LayoutMode: Left;
+
+          // Levels Card
+          Group #ModuleCard2 {
+            Anchor: (Width: 200);
+            Background: (Color: #1e293b);
+            LayoutMode: Left;
+
+            // Color bar on left
+            Group #ColorBar {
+              Anchor: (Width: 4, Height: 125);
+              Background: (Color: #22c55e);
+            }
+
+            // Card content
+            Group {
+              Padding: (Left: 12, Right: 12, Top: 12, Bottom: 12);
+              LayoutMode: Top;
+              FlexWeight: 1;
+
+              Label #ModuleName {
+                Text: "Levels";
+                Style: (FontSize: 14, TextColor: #FFFFFF, RenderBold: true);
+                Anchor: (Height: 20, Bottom: 4);
+              }
+
+              Label #ModuleDesc {
+                Text: "Faction progression & XP";
+                Style: (FontSize: 11, TextColor: #888888);
+                Anchor: (Height: 32, Bottom: 8);
+              }
+
+              Label #StatusBadge {
+                Text: "COMING SOON";
+                Style: (FontSize: 10, TextColor: #888888, RenderBold: true);
+                Anchor: (Height: 16, Bottom: 8);
+              }
+
+              TextButton #ModuleBtn {
+                Text: "CONFIGURE";
+                Anchor: (Height: 26, Width: 100);
+                Style: $S.@SmallButtonStyle;
+                Visible: false;
+              }
+            }
+          }
+
+          Label { FlexWeight: 1; }
+
+          // War Card
+          Group #ModuleCard3 {
+            Anchor: (Width: 200);
+            Background: (Color: #1e293b);
+            LayoutMode: Left;
+
+            // Color bar on left
+            Group #ColorBar {
+              Anchor: (Width: 4, Height: 125);
+              Background: (Color: #a855f7);
+            }
+
+            // Card content
+            Group {
+              Padding: (Left: 12, Right: 12, Top: 12, Bottom: 12);
+              LayoutMode: Top;
+              FlexWeight: 1;
+
+              Label #ModuleName {
+                Text: "War";
+                Style: (FontSize: 14, TextColor: #FFFFFF, RenderBold: true);
+                Anchor: (Height: 20, Bottom: 4);
+              }
+
+              Label #ModuleDesc {
+                Text: "Formal war declarations";
+                Style: (FontSize: 11, TextColor: #888888);
+                Anchor: (Height: 32, Bottom: 8);
+              }
+
+              Label #StatusBadge {
+                Text: "COMING SOON";
+                Style: (FontSize: 10, TextColor: #888888, RenderBold: true);
+                Anchor: (Height: 16, Bottom: 8);
+              }
+
+              TextButton #ModuleBtn {
+                Text: "CONFIGURE";
+                Anchor: (Height: 26, Width: 100);
+                Style: $S.@SmallButtonStyle;
+                Visible: false;
+              }
+            }
+          }
+        }
+      }
+
+      // Back button
+      Group {
+        Anchor: (Height: 40);
+        LayoutMode: Left;
+
+        TextButton #BackBtn {
+          Text: "< BACK TO SETTINGS";
+          Anchor: (Height: 30, Width: 160);
+          Style: $S.@ButtonStyle;
+        }
+      }
+    }
+  }
+}
+
+// Native Hytale back button (bottom-left ESC)
+$C.@BackButton {}

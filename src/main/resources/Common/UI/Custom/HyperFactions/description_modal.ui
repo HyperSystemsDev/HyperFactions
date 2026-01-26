@@ -1,0 +1,87 @@
+// Description Modal - test with CurrentDesc
+
+$C = "../Common.ui";
+$S = "styles.ui";
+
+$C.@PageOverlay {
+  $C.@DecoratedContainer {
+    Anchor: (Width: 450, Height: 290);
+
+    #Title {
+      Group {
+        $C.@Title {
+          @Text = "Edit Description";
+        }
+      }
+    }
+
+    #Content {
+      LayoutMode: Top;
+      Padding: (Left: 20, Right: 20, Top: 15, Bottom: 15);
+
+      // Current description display
+      Group {
+        Anchor: (Height: 36, Bottom: 10);
+        LayoutMode: Left;
+
+        Label {
+          Text: "Current:";
+          Style: (FontSize: 12, TextColor: #888888, VerticalAlignment: Center);
+          Anchor: (Width: 70);
+        }
+
+        Label #CurrentDesc {
+          Text: "(None)";
+          Style: (FontSize: 12, TextColor: #AAAAAA, VerticalAlignment: Center);
+          FlexWeight: 1;
+        }
+      }
+
+      // New description input
+      Label {
+        Text: "New Description:";
+        Style: (FontSize: 12, TextColor: #888888);
+        Anchor: (Height: 24, Bottom: 4);
+      }
+
+      $C.@TextField #DescInput {
+        FlexWeight: 1;
+        Anchor: (Height: 60, Bottom: 8);
+        Style: (
+          FontSize: 14,
+          TextColor: #ffffff(0.85)
+        );
+      }
+
+      // Button row
+      Group {
+        Anchor: (Height: 40);
+        LayoutMode: Left;
+
+        TextButton #CancelBtn {
+          Text: "CANCEL";
+          Anchor: (Height: 32, Width: 100);
+          Style: $S.@ButtonStyle;
+        }
+
+        Label { FlexWeight: 1; }
+
+        TextButton #ClearBtn {
+          Text: "CLEAR";
+          Anchor: (Height: 32, Width: 80);
+          Style: $S.@SmallRedButtonStyle;
+        }
+
+        Label { Anchor: (Width: 10); }
+
+        TextButton #SaveBtn {
+          Text: "SAVE";
+          Anchor: (Height: 32, Width: 100);
+          Style: $S.@CyanButtonStyle;
+        }
+      }
+    }
+  }
+}
+
+$C.@BackButton {}

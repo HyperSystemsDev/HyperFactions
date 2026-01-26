@@ -24,6 +24,9 @@ public class FactionSettingsData {
     /** Whether faction is open */
     public String isOpen;
 
+    /** Navigation target from NavBar button */
+    public String navBar;
+
     /** Codec for serialization/deserialization */
     public static final BuilderCodec<FactionSettingsData> CODEC = BuilderCodec
             .builder(FactionSettingsData.class, FactionSettingsData::new)
@@ -36,6 +39,11 @@ public class FactionSettingsData {
                     new KeyedCodec<>("Name", Codec.STRING),
                     (data, value) -> data.name = value,
                     data -> data.name
+            )
+            .addField(
+                    new KeyedCodec<>("NavBar", Codec.STRING),
+                    (data, value) -> data.navBar = value,
+                    data -> data.navBar
             )
             .addField(
                     new KeyedCodec<>("Description", Codec.STRING),

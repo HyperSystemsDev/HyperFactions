@@ -140,25 +140,25 @@ $C.@PageOverlay {
         Background: (Color: #00AAAA);
       }
 
-      // Bottom row: Set Home button and claim stats
+      // Bottom row: Claim and power info
       Group #BottomRow {
         LayoutMode: Left;
         Anchor: (Height: 32);
 
-        // Set Home button
-        TextButton #SetHomeBtn {
-          Text: "Set Faction Home";
-          Anchor: (Width: 140, Height: 28);
-          Style: $S.@CyanButtonStyle;
+        // Claim stats (left side)
+        Label #ClaimStats {
+          Text: "Claims: 0/0 (0 Available)";
+          Style: (FontSize: 12, TextColor: #FFAA00, RenderBold: true, VerticalAlignment: Center);
+          Anchor: (Width: 220);
         }
 
         Label { FlexWeight: 1; }
 
-        // Claim stats
-        Label #ClaimStats {
-          Text: "Claims: 0/0";
-          Style: (FontSize: 12, TextColor: #888888, VerticalAlignment: Center);
-          Anchor: (Width: 120);
+        // Power status (right side)
+        Label #PowerStatus {
+          Text: "Power: 0/0";
+          Style: (FontSize: 12, TextColor: #44CC44, VerticalAlignment: Center);
+          Anchor: (Width: 180);
         }
       }
     }

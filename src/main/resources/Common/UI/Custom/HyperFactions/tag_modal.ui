@@ -1,0 +1,88 @@
+// Tag Modal
+// Text input for entering faction tag (max 5 chars, alphanumeric)
+
+$C = "../Common.ui";
+$S = "styles.ui";
+
+$C.@PageOverlay {
+  $C.@DecoratedContainer {
+    Anchor: (Width: 400, Height: 270);
+
+    #Title {
+      Group {
+        $C.@Title {
+          @Text = "Edit Tag";
+        }
+      }
+    }
+
+    #Content {
+      LayoutMode: Top;
+      Padding: (Left: 20, Right: 20, Top: 15, Bottom: 15);
+
+      // Current tag display
+      Group {
+        Anchor: (Height: 28, Bottom: 10);
+        LayoutMode: Left;
+
+        Label {
+          Text: "Current:";
+          Style: (FontSize: 12, TextColor: #888888, VerticalAlignment: Center);
+          Anchor: (Width: 70);
+        }
+
+        Label #CurrentTag {
+          Text: "(None)";
+          Style: (FontSize: 14, TextColor: #FFAA00, RenderBold: true, VerticalAlignment: Center);
+          FlexWeight: 1;
+        }
+      }
+
+      // Instructions
+      Label {
+        Text: "Tag (1-5 chars, letters and numbers only):";
+        Style: (FontSize: 12, TextColor: #888888);
+        Anchor: (Height: 24, Bottom: 4);
+      }
+
+      $C.@TextField #TagInput {
+        FlexWeight: 1;
+        Anchor: (Height: 36, Bottom: 8);
+        Style: (
+          FontSize: 14,
+          TextColor: #ffffff(0.85)
+        );
+      }
+
+      // Help text
+      Label {
+        Text: "Tags appear in chat and on the map";
+        Style: (FontSize: 10, TextColor: #555555, HorizontalAlignment: Center);
+        Anchor: (Height: 16, Bottom: 10);
+      }
+
+      // Button row
+      Group {
+        Anchor: (Height: 40);
+        LayoutMode: Left;
+
+        TextButton #CancelBtn {
+          Text: "CANCEL";
+          Anchor: (Height: 32, Width: 100);
+          Style: $S.@ButtonStyle;
+        }
+
+        Label { FlexWeight: 1; }
+
+        TextButton #SaveBtn {
+          Text: "SAVE";
+          Anchor: (Height: 32, Width: 100);
+          Style: $S.@CyanButtonStyle;
+        }
+      }
+    }
+  }
+}
+
+// Native Hytale back button (bottom-left ESC)
+$C.@BackButton {}

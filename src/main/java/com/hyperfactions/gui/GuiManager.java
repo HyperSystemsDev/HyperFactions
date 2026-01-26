@@ -132,6 +132,20 @@ public class GuiManager {
                 4
         ));
 
+        // Settings page (officers+)
+        registry.registerEntry(new Entry(
+                "settings",
+                "Settings",
+                null,
+                (player, ref, store, playerRef, faction, guiManager) -> {
+                    if (faction == null) return null;
+                    return new FactionSettingsPage(playerRef, factionManager.get(), claimManager.get(), guiManager, plugin.get(), faction);
+                },
+                true, // Show in nav bar
+                true, // Requires faction
+                5
+        ));
+
         // Admin page (requires permission) - accessed via /f admin, not in main nav bar
         registry.registerEntry(new Entry(
                 "admin",
@@ -364,13 +378,268 @@ public class GuiManager {
             FactionSettingsPage page = new FactionSettingsPage(
                 playerRef,
                 factionManager.get(),
+                claimManager.get(),
                 this,
+                plugin.get(),
                 faction
             );
             pageManager.openCustomPage(ref, store, page);
             Logger.debug("[GUI] FactionSettingsPage opened successfully");
         } catch (Exception e) {
             Logger.severe("[GUI] Failed to open FactionSettingsPage: %s", e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Opens the Set Relation modal.
+     *
+     * @param player    The Player entity
+     * @param ref       The entity reference
+     * @param store     The entity store
+     * @param playerRef The PlayerRef component
+     * @param faction   The faction to set relations for
+     */
+    public void openSetRelationModal(Player player, Ref<EntityStore> ref,
+                                     Store<EntityStore> store, PlayerRef playerRef,
+                                     Faction faction) {
+        openSetRelationModal(player, ref, store, playerRef, faction, "", 0);
+    }
+
+    /**
+     * Opens the Set Relation modal with search state.
+     *
+     * @param player      The Player entity
+     * @param ref         The entity reference
+     * @param store       The entity store
+     * @param playerRef   The PlayerRef component
+     * @param faction     The faction to set relations for
+     * @param searchQuery The current search query
+     * @param page        The current page
+     */
+    public void openSetRelationModal(Player player, Ref<EntityStore> ref,
+                                     Store<EntityStore> store, PlayerRef playerRef,
+                                     Faction faction, String searchQuery, int page) {
+        Logger.debug("[GUI] Opening SetRelationModalPage for %s", playerRef.getUsername());
+        try {
+            PageManager pageManager = player.getPageManager();
+            SetRelationModalPage modalPage = new SetRelationModalPage(
+                playerRef,
+                factionManager.get(),
+                powerManager.get(),
+                relationManager.get(),
+                this,
+                faction,
+                searchQuery,
+                page
+            );
+            pageManager.openCustomPage(ref, store, modalPage);
+            Logger.debug("[GUI] SetRelationModalPage opened successfully");
+        } catch (Exception e) {
+            Logger.severe("[GUI] Failed to open SetRelationModalPage: %s", e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Opens the Tag modal.
+     *
+     * @param player    The Player entity
+     * @param ref       The entity reference
+     * @param store     The entity store
+     * @param playerRef The PlayerRef component
+     * @param faction   The faction to edit tag for
+     */
+    public void openTagModal(Player player, Ref<EntityStore> ref,
+                             Store<EntityStore> store, PlayerRef playerRef,
+                             Faction faction) {
+        Logger.debug("[GUI] Opening TagModalPage for %s", playerRef.getUsername());
+        try {
+            PageManager pageManager = player.getPageManager();
+            TagModalPage page = new TagModalPage(
+                playerRef,
+                factionManager.get(),
+                this,
+                faction
+            );
+            pageManager.openCustomPage(ref, store, page);
+            Logger.debug("[GUI] TagModalPage opened successfully");
+        } catch (Exception e) {
+            Logger.severe("[GUI] Failed to open TagModalPage: %s", e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Opens the Description modal.
+     *
+     * @param player    The Player entity
+     * @param ref       The entity reference
+     * @param store     The entity store
+     * @param playerRef The PlayerRef component
+     * @param faction   The faction to edit description for
+     */
+    public void openDescriptionModal(Player player, Ref<EntityStore> ref,
+                                     Store<EntityStore> store, PlayerRef playerRef,
+                                     Faction faction) {
+        Logger.debug("[GUI] Opening DescriptionModalPage for %s", playerRef.getUsername());
+        try {
+            PageManager pageManager = player.getPageManager();
+            DescriptionModalPage page = new DescriptionModalPage(
+                playerRef,
+                factionManager.get(),
+                this,
+                faction
+            );
+            pageManager.openCustomPage(ref, store, page);
+            Logger.debug("[GUI] DescriptionModalPage opened successfully");
+        } catch (Exception e) {
+            Logger.severe("[GUI] Failed to open DescriptionModalPage: %s", e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Opens the Rename Faction modal.
+     *
+     * @param player    The Player entity
+     * @param ref       The entity reference
+     * @param store     The entity store
+     * @param playerRef The PlayerRef component
+     * @param faction   The faction to rename
+     */
+    public void openRenameModal(Player player, Ref<EntityStore> ref,
+                                Store<EntityStore> store, PlayerRef playerRef,
+                                Faction faction) {
+        Logger.debug("[GUI] Opening RenameModalPage for %s", playerRef.getUsername());
+        try {
+            PageManager pageManager = player.getPageManager();
+            RenameModalPage page = new RenameModalPage(
+                playerRef,
+                factionManager.get(),
+                this,
+                faction
+            );
+            pageManager.openCustomPage(ref, store, page);
+            Logger.debug("[GUI] RenameModalPage opened successfully");
+        } catch (Exception e) {
+            Logger.severe("[GUI] Failed to open RenameModalPage: %s", e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Opens the Recruitment Status modal.
+     *
+     * @param player    The Player entity
+     * @param ref       The entity reference
+     * @param store     The entity store
+     * @param playerRef The PlayerRef component
+     * @param faction   The faction to edit recruitment for
+     */
+    public void openRecruitmentModal(Player player, Ref<EntityStore> ref,
+                                     Store<EntityStore> store, PlayerRef playerRef,
+                                     Faction faction) {
+        Logger.debug("[GUI] Opening RecruitmentModalPage for %s", playerRef.getUsername());
+        try {
+            PageManager pageManager = player.getPageManager();
+            RecruitmentModalPage page = new RecruitmentModalPage(
+                playerRef,
+                factionManager.get(),
+                this,
+                faction
+            );
+            pageManager.openCustomPage(ref, store, page);
+            Logger.debug("[GUI] RecruitmentModalPage opened successfully");
+        } catch (Exception e) {
+            Logger.severe("[GUI] Failed to open RecruitmentModalPage: %s", e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Opens the Color Picker page.
+     *
+     * @param player    The Player entity
+     * @param ref       The entity reference
+     * @param store     The entity store
+     * @param playerRef The PlayerRef component
+     * @param faction   The faction to edit color for
+     */
+    public void openColorPicker(Player player, Ref<EntityStore> ref,
+                                Store<EntityStore> store, PlayerRef playerRef,
+                                Faction faction) {
+        Logger.debug("[GUI] Opening ColorPickerPage for %s", playerRef.getUsername());
+        try {
+            PageManager pageManager = player.getPageManager();
+            ColorPickerPage page = new ColorPickerPage(
+                playerRef,
+                factionManager.get(),
+                this,
+                faction
+            );
+            pageManager.openCustomPage(ref, store, page);
+            Logger.debug("[GUI] ColorPickerPage opened successfully");
+        } catch (Exception e) {
+            Logger.severe("[GUI] Failed to open ColorPickerPage: %s", e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Opens the Disband Confirmation modal.
+     *
+     * @param player    The Player entity
+     * @param ref       The entity reference
+     * @param store     The entity store
+     * @param playerRef The PlayerRef component
+     * @param faction   The faction to disband
+     */
+    public void openDisbandConfirm(Player player, Ref<EntityStore> ref,
+                                   Store<EntityStore> store, PlayerRef playerRef,
+                                   Faction faction) {
+        Logger.debug("[GUI] Opening DisbandConfirmPage for %s", playerRef.getUsername());
+        try {
+            PageManager pageManager = player.getPageManager();
+            DisbandConfirmPage page = new DisbandConfirmPage(
+                playerRef,
+                factionManager.get(),
+                this,
+                faction
+            );
+            pageManager.openCustomPage(ref, store, page);
+            Logger.debug("[GUI] DisbandConfirmPage opened successfully");
+        } catch (Exception e) {
+            Logger.severe("[GUI] Failed to open DisbandConfirmPage: %s", e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Opens the Faction Modules page.
+     *
+     * @param player    The Player entity
+     * @param ref       The entity reference
+     * @param store     The entity store
+     * @param playerRef The PlayerRef component
+     * @param faction   The faction to show modules for
+     */
+    public void openFactionModules(Player player, Ref<EntityStore> ref,
+                                   Store<EntityStore> store, PlayerRef playerRef,
+                                   Faction faction) {
+        Logger.debug("[GUI] Opening FactionModulesPage for %s", playerRef.getUsername());
+        try {
+            PageManager pageManager = player.getPageManager();
+            FactionModulesPage page = new FactionModulesPage(
+                playerRef,
+                factionManager.get(),
+                this,
+                faction
+            );
+            pageManager.openCustomPage(ref, store, page);
+            Logger.debug("[GUI] FactionModulesPage opened successfully");
+        } catch (Exception e) {
+            Logger.severe("[GUI] Failed to open FactionModulesPage: %s", e.getMessage());
             e.printStackTrace();
         }
     }

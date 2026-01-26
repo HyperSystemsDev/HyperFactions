@@ -96,6 +96,21 @@ public class FactionManager {
     }
 
     /**
+     * Gets a faction by tag (case-insensitive).
+     *
+     * @param tag the faction tag
+     * @return the faction, or null if not found
+     */
+    @Nullable
+    public Faction getFactionByTag(@NotNull String tag) {
+        String lowerTag = tag.toLowerCase();
+        return factions.values().stream()
+                .filter(f -> f.tag() != null && f.tag().equalsIgnoreCase(lowerTag))
+                .findFirst()
+                .orElse(null);
+    }
+
+    /**
      * Gets a player's faction.
      *
      * @param playerUuid the player's UUID
@@ -218,8 +233,10 @@ public class FactionManager {
             return FactionResult.NAME_TAKEN;
         }
 
-        // Create faction
+        // Create faction with auto-generated tag
         Faction faction = Faction.create(name, leaderUuid, leaderName);
+        String generatedTag = generateUniqueTag(name);
+        faction = faction.withTag(generatedTag);
 
         // Update caches
         factions.put(faction.id(), faction);
@@ -229,8 +246,57 @@ public class FactionManager {
         // Save async
         storage.saveFaction(faction);
 
-        Logger.info("Faction '%s' created by %s", name, leaderName);
+        Logger.info("Faction '%s' [%s] created by %s", name, generatedTag, leaderName);
         return FactionResult.SUCCESS;
+    }
+
+    /**
+     * Generates a unique faction tag from the faction name.
+     * Takes first 3 alphanumeric characters (uppercase), appends numbers if collision exists.
+     *
+     * @param factionName the faction name to generate a tag from
+     * @return a unique tag (1-5 chars)
+     */
+    @NotNull
+    public String generateUniqueTag(@NotNull String factionName) {
+        // Extract alphanumeric characters only, uppercase
+        StringBuilder baseBuilder = new StringBuilder();
+        for (char c : factionName.toCharArray()) {
+            if (Character.isLetterOrDigit(c)) {
+                baseBuilder.append(Character.toUpperCase(c));
+                if (baseBuilder.length() >= 3) {
+                    break;
+                }
+            }
+        }
+
+        // Ensure at least 1 character
+        if (baseBuilder.isEmpty()) {
+            baseBuilder.append("F"); // Fallback to 'F' for Faction
+        }
+
+        String baseTag = baseBuilder.toString();
+
+        // Check if base tag is unique
+        if (getFactionByTag(baseTag) == null) {
+            return baseTag;
+        }
+
+        // Append numbers until unique (max 5 chars total)
+        for (int suffix = 2; suffix <= 99; suffix++) {
+            String candidate = baseTag + suffix;
+            if (candidate.length() > 5) {
+                // Shorten base to make room for suffix
+                int maxBaseLen = 5 - String.valueOf(suffix).length();
+                candidate = baseTag.substring(0, Math.min(baseTag.length(), maxBaseLen)) + suffix;
+            }
+            if (getFactionByTag(candidate) == null) {
+                return candidate;
+            }
+        }
+
+        // Fallback: random suffix (very unlikely to reach here)
+        return baseTag.substring(0, Math.min(baseTag.length(), 2)) + UUID.randomUUID().toString().substring(0, 3).toUpperCase();
     }
 
     /**
@@ -305,6 +371,8 @@ public class FactionManager {
 
     /**
      * Removes a member from a faction.
+     * If the leader leaves and other members exist, promotes the highest-ranked member with most tenure.
+     * If the leader leaves and no other members exist, disbands the faction.
      *
      * @param factionId  the faction ID
      * @param playerUuid the player's UUID
@@ -324,12 +392,34 @@ public class FactionManager {
             return FactionResult.TARGET_NOT_IN_FACTION;
         }
 
-        // Can't kick the leader
+        // Handle leader removal with succession
         if (target.isLeader()) {
-            return FactionResult.CANNOT_KICK_LEADER;
+            // Find successor
+            FactionMember successor = faction.findSuccessor();
+
+            if (successor == null) {
+                // No other members - disband the faction
+                return disbandFactionInternal(factionId, "Leader left with no remaining members");
+            }
+
+            // Promote successor to leader
+            FactionMember promoted = successor.withRole(FactionRole.LEADER);
+            Faction updated = faction
+                    .withoutMember(playerUuid)
+                    .withMember(promoted)
+                    .withLog(FactionLog.create(FactionLog.LogType.LEADER_TRANSFER,
+                            target.username() + " left, " + promoted.username() + " is now leader", playerUuid));
+
+            factions.put(factionId, updated);
+            playerToFaction.remove(playerUuid);
+            storage.saveFaction(updated);
+
+            Logger.info("Leader %s left faction '%s', %s promoted to leader",
+                    target.username(), faction.name(), promoted.username());
+            return FactionResult.SUCCESS;
         }
 
-        // If kicking, check permissions
+        // If kicking (non-leader), check permissions
         if (isKick && !actorUuid.equals(playerUuid)) {
             FactionMember actor = faction.getMember(actorUuid);
             if (actor == null || !actor.role().canManage(target.role())) {
@@ -351,6 +441,34 @@ public class FactionManager {
         // Save async
         storage.saveFaction(updated);
 
+        return FactionResult.SUCCESS;
+    }
+
+    /**
+     * Disbands a faction internally (system-initiated).
+     * Used when leader leaves with no remaining members, or for ban-triggered dissolution.
+     *
+     * @param factionId the faction ID
+     * @param reason    the reason for disbanding (logged)
+     * @return the result
+     */
+    private FactionResult disbandFactionInternal(@NotNull UUID factionId, @NotNull String reason) {
+        Faction faction = factions.get(factionId);
+        if (faction == null) {
+            return FactionResult.FACTION_NOT_FOUND;
+        }
+
+        // Remove from caches
+        factions.remove(factionId);
+        nameToFaction.remove(faction.name().toLowerCase());
+        for (UUID memberUuid : faction.members().keySet()) {
+            playerToFaction.remove(memberUuid);
+        }
+
+        // Delete from storage
+        storage.deleteFaction(factionId);
+
+        Logger.info("Faction '%s' disbanded: %s", faction.name(), reason);
         return FactionResult.SUCCESS;
     }
 

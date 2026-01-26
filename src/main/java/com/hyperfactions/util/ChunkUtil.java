@@ -5,8 +5,14 @@ import org.jetbrains.annotations.NotNull;
 
 /**
  * Utility class for chunk coordinate calculations.
+ * Hytale uses 32-block chunks (shift by 5).
  */
 public final class ChunkUtil {
+
+    /** Hytale chunk size in blocks */
+    public static final int CHUNK_SIZE = 32;
+    /** Bit shift for chunk calculations (log2 of CHUNK_SIZE) */
+    private static final int CHUNK_SHIFT = 5;
 
     private ChunkUtil() {}
 
@@ -17,7 +23,7 @@ public final class ChunkUtil {
      * @return the chunk coordinate
      */
     public static int toChunkCoord(double coord) {
-        return (int) Math.floor(coord) >> 4;
+        return (int) Math.floor(coord) >> CHUNK_SHIFT;
     }
 
     /**
@@ -27,7 +33,7 @@ public final class ChunkUtil {
      * @return the chunk coordinate
      */
     public static int blockToChunk(int blockCoord) {
-        return blockCoord >> 4;
+        return blockCoord >> CHUNK_SHIFT;
     }
 
     /**
@@ -37,7 +43,7 @@ public final class ChunkUtil {
      * @return the minimum block coordinate
      */
     public static int chunkToBlockMin(int chunkCoord) {
-        return chunkCoord << 4;
+        return chunkCoord << CHUNK_SHIFT;
     }
 
     /**
@@ -47,7 +53,7 @@ public final class ChunkUtil {
      * @return the maximum block coordinate
      */
     public static int chunkToBlockMax(int chunkCoord) {
-        return (chunkCoord << 4) + 15;
+        return (chunkCoord << CHUNK_SHIFT) + (CHUNK_SIZE - 1);
     }
 
     /**
@@ -57,7 +63,7 @@ public final class ChunkUtil {
      * @return the center coordinate
      */
     public static double chunkToCenter(int chunkCoord) {
-        return (chunkCoord << 4) + 8.0;
+        return (chunkCoord << CHUNK_SHIFT) + (CHUNK_SIZE / 2.0);
     }
 
     /**
