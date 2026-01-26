@@ -102,6 +102,15 @@ $C = "../Common.ui";
 // BUTTON STYLES
 // =============================================================================
 
+// Invisible button style - fully transparent background for click overlays
+@InvisibleButtonStyle = TextButtonStyle(
+  Default: (Background: (Color: #00000000), LabelStyle: @ButtonLabelStyle),
+  Hovered: (Background: (Color: #00000000), LabelStyle: @ButtonLabelStyle),
+  Pressed: (Background: (Color: #00000000), LabelStyle: @ButtonLabelStyle),
+  Disabled: (Background: (Color: #00000000), LabelStyle: @ButtonLabelStyle),
+  Sounds: $C.@ButtonSounds,
+);
+
 @ButtonStyle = TextButtonStyle(
   Default: (Background: $C.@DefaultSquareButtonDefaultBackground, LabelStyle: @ButtonLabelStyle),
   Hovered: (Background: $C.@DefaultSquareButtonHoveredBackground, LabelStyle: @ButtonLabelStyle),
@@ -173,3 +182,21 @@ $C = "../Common.ui";
   Disabled: (Background: $C.@DefaultSquareButtonDisabledBackground, LabelStyle: @SmallRedLabelStyle),
   Sounds: $C.@ButtonSounds,
 );
+
+// Player marker style - white bold text for visibility on any background
+@PlayerMarkerLabelStyle = LabelStyle(
+  FontSize: 14,
+  TextColor: #FFFFFF,
+  RenderBold: true,
+  HorizontalAlignment: Center,
+  VerticalAlignment: Center
+);
+
+@PlayerMarkerButtonStyle = TextButtonStyle(
+  Default: (Background: (Color: #00000000), LabelStyle: @PlayerMarkerLabelStyle),
+  Hovered: (Background: (Color: #00000000), LabelStyle: @PlayerMarkerLabelStyle),
+  Pressed: (Background: (Color: #00000000), LabelStyle: @PlayerMarkerLabelStyle),
+  Disabled: (Background: (Color: #00000000), LabelStyle: @PlayerMarkerLabelStyle),
+  Sounds: $C.@ButtonSounds,
+);
+

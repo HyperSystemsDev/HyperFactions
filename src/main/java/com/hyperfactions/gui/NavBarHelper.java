@@ -1,6 +1,7 @@
 package com.hyperfactions.gui;
 
 import com.hyperfactions.data.Faction;
+import com.hyperfactions.gui.data.ChunkMapData;
 import com.hyperfactions.gui.data.FactionPageData;
 import com.hyperfactions.integration.HyperPermsIntegration;
 import com.hypixel.hytale.component.Ref;
@@ -92,6 +93,61 @@ public final class NavBarHelper {
      */
     public static boolean handleNavEvent(
             @NotNull FactionPageData data,
+            @NotNull Player player,
+            @NotNull Ref<EntityStore> ref,
+            @NotNull Store<EntityStore> store,
+            @NotNull PlayerRef playerRef,
+            @Nullable Faction faction,
+            @NotNull GuiManager guiManager
+    ) {
+        // Check if we have navBar data (AdminUI pattern uses navBar field)
+        String targetId = data.navBar;
+        if (targetId == null || targetId.isEmpty()) {
+            return false;
+        }
+
+        // Get the target entry
+        FactionPageRegistry.Entry entry = FactionPageRegistry.getInstance().getEntry(targetId);
+        if (entry == null) {
+            return true; // Consumed but invalid target
+        }
+
+        // Check permission
+        if (entry.permission() != null && !HyperPermsIntegration.hasPermission(playerRef.getUuid(), entry.permission())) {
+            return true; // Consumed but no permission
+        }
+
+        // Check faction requirement
+        if (entry.requiresFaction() && faction == null) {
+            return true; // Consumed but needs faction
+        }
+
+        // Create and open the target page
+        InteractiveCustomUIPage<?> page = entry.guiSupplier().create(
+                player, ref, store, playerRef, faction, guiManager
+        );
+
+        if (page != null) {
+            player.getPageManager().openCustomPage(ref, store, page);
+        }
+
+        return true;
+    }
+
+    /**
+     * Handles navigation events from the nav bar (ChunkMapData overload).
+     *
+     * @param data       The event data
+     * @param player     The player entity
+     * @param ref        Entity reference
+     * @param store      Entity store
+     * @param playerRef  Player reference
+     * @param faction    The player's faction (may be null)
+     * @param guiManager The GUI manager
+     * @return true if the event was handled, false otherwise
+     */
+    public static boolean handleNavEvent(
+            @NotNull ChunkMapData data,
             @NotNull Player player,
             @NotNull Ref<EntityStore> ref,
             @NotNull Store<EntityStore> store,

@@ -1,0 +1,7 @@
+// Invisible button overlay for chunk cell click events
+$S = "styles.ui";
+
+TextButton #Btn {
+  Anchor: (Width: 16, Height: 16);
+  Style: $S.@InvisibleButtonStyle;
+}

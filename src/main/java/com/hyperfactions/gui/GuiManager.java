@@ -111,7 +111,7 @@ public class GuiManager {
                 null,
                 (player, ref, store, playerRef, faction, guiManager) ->
                         new ChunkMapPage(playerRef, factionManager.get(), claimManager.get(),
-                                zoneManager.get(), guiManager),
+                                relationManager.get(), zoneManager.get(), guiManager),
                 true,
                 false,
                 3
@@ -234,7 +234,7 @@ public class GuiManager {
     }
 
     /**
-     * Opens the Chunk Map page (territory view).
+     * Opens the Chunk Map page (interactive territory view).
      *
      * @param player    The Player entity
      * @param ref       The entity reference
@@ -250,6 +250,7 @@ public class GuiManager {
                 playerRef,
                 factionManager.get(),
                 claimManager.get(),
+                relationManager.get(),
                 zoneManager.get(),
                 this
             );

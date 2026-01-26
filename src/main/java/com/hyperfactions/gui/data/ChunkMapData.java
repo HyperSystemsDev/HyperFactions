@@ -5,12 +5,15 @@ import com.hypixel.hytale.codec.KeyedCodec;
 import com.hypixel.hytale.codec.builder.BuilderCodec;
 
 /**
- * Event data for the Chunk Map page (15x15 territory grid).
+ * Event data for the Chunk Map page (9x9 interactive territory grid).
  */
 public class ChunkMapData {
 
     /** The button/action that triggered the event */
     public String button;
+
+    /** NavBar target (AdminUI pattern - page ID when nav button clicked) */
+    public String navBar;
 
     /** Target chunk X coordinate */
     public int chunkX;
@@ -31,6 +34,11 @@ public class ChunkMapData {
                     new KeyedCodec<>("Button", Codec.STRING),
                     (data, value) -> data.button = value,
                     data -> data.button
+            )
+            .addField(
+                    new KeyedCodec<>("NavBar", Codec.STRING),
+                    (data, value) -> data.navBar = value,
+                    data -> data.navBar
             )
             .addField(
                     new KeyedCodec<>("ChunkX", Codec.STRING),

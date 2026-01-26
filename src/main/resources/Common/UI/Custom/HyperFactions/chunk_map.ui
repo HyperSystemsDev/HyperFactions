@@ -1,5 +1,6 @@
 // Territory Map Page
-// Following AdminUI pattern with nav bar
+// Interactive 29x17 chunk grid with claim/unclaim functionality
+// Left-click wilderness to claim, right-click own territory to unclaim
 
 $C = "../Common.ui";
 $S = "styles.ui";
@@ -9,7 +10,7 @@ $C.@PageOverlay {
   $Nav.@HyperFactionsNavBar #HyperFactionsNavBar {}
 
   $C.@DecoratedContainer {
-    Anchor: (Width: 400, Height: 300);
+    Anchor: (Width: 520, Height: 550);
 
     #Title {
       Group {
@@ -21,40 +22,144 @@ $C.@PageOverlay {
 
     #Content {
       LayoutMode: Top;
-      Padding: (Left: 20, Right: 20, Top: 20, Bottom: 20);
+      Padding: (Left: 15, Right: 15, Top: 15, Bottom: 15);
 
+      // Position info at top
       Label #PositionInfo {
         Text: "Your Position: Chunk (0, 0)";
-        Style: (FontSize: 16, TextColor: #00FFFF, RenderBold: true, HorizontalAlignment: Center);
-        Anchor: (Height: 30, Bottom: 15);
+        Style: (FontSize: 14, TextColor: #00FFFF, RenderBold: true, HorizontalAlignment: Center);
+        Anchor: (Height: 22, Bottom: 10);
       }
 
+      // Grid container - 29 columns x 17 rows at 16px (464x272 + 10px padding)
+      Group #ChunkGrid {
+        LayoutMode: Top;
+        Anchor: (Height: 285);
+        Background: (Color: #1a2a3a);
+        Padding: (Left: 5, Right: 5, Top: 5, Bottom: 5);
+      }
+
+      // Action hints
+      Label #ActionHint {
+        Text: "Left-click: Claim | Right-click: Unclaim";
+        Style: (FontSize: 11, TextColor: #888888, HorizontalAlignment: Center);
+        Anchor: (Height: 18, Top: 8, Bottom: 5);
+      }
+
+      // Divider
       Group {
-        Anchor: (Height: 1, Bottom: 15);
+        Anchor: (Height: 1, Bottom: 8);
         Background: (Color: #00AAAA);
       }
 
-      Label #ChunkStatus {
-        Text: "Wilderness (Unclaimed)";
-        Style: (FontSize: 14, TextColor: #AAAAAA, HorizontalAlignment: Center);
-        Anchor: (Height: 25, Bottom: 10);
+      // Legend container
+      Group #LegendContainer {
+        LayoutMode: Left;
+        Anchor: (Height: 50);
+
+        // Column 1
+        Group {
+          LayoutMode: Top;
+          Anchor: (Width: 120);
+
+          Group {
+            LayoutMode: Left;
+            Anchor: (Height: 16);
+            Group { Anchor: (Width: 12, Height: 12); Background: (Color: #4ade80); }
+            Label { Text: " Your Territory"; Style: (FontSize: 10, TextColor: #cccccc, VerticalAlignment: Center); }
+          }
+          Group {
+            LayoutMode: Left;
+            Anchor: (Height: 16);
+            Group { Anchor: (Width: 12, Height: 12); Background: (Color: #60a5fa); }
+            Label { Text: " Ally Territory"; Style: (FontSize: 10, TextColor: #cccccc, VerticalAlignment: Center); }
+          }
+          Group {
+            LayoutMode: Left;
+            Anchor: (Height: 16);
+            Group { Anchor: (Width: 12, Height: 12); Background: (Color: #f87171); }
+            Label { Text: " Enemy Territory"; Style: (FontSize: 10, TextColor: #cccccc, VerticalAlignment: Center); }
+          }
+        }
+
+        // Column 2
+        Group {
+          LayoutMode: Top;
+          Anchor: (Width: 120);
+
+          Group {
+            LayoutMode: Left;
+            Anchor: (Height: 16);
+            Group { Anchor: (Width: 12, Height: 12); Background: (Color: #fbbf24); }
+            Label { Text: " Other Faction"; Style: (FontSize: 10, TextColor: #cccccc, VerticalAlignment: Center); }
+          }
+          Group {
+            LayoutMode: Left;
+            Anchor: (Height: 16);
+            Group { Anchor: (Width: 12, Height: 12); Background: (Color: #1e293b); }
+            Label { Text: " Wilderness"; Style: (FontSize: 10, TextColor: #cccccc, VerticalAlignment: Center); }
+          }
+        }
+
+        // Column 3
+        Group {
+          LayoutMode: Top;
+          Anchor: (Width: 120);
+
+          Group {
+            LayoutMode: Left;
+            Anchor: (Height: 16);
+            Group { Anchor: (Width: 12, Height: 12); Background: (Color: #2dd4bf); }
+            Label { Text: " Safe Zone"; Style: (FontSize: 10, TextColor: #cccccc, VerticalAlignment: Center); }
+          }
+          Group {
+            LayoutMode: Left;
+            Anchor: (Height: 16);
+            Group { Anchor: (Width: 12, Height: 12); Background: (Color: #c084fc); }
+            Label { Text: " War Zone"; Style: (FontSize: 10, TextColor: #cccccc, VerticalAlignment: Center); }
+          }
+        }
+
+        // Column 4 - Player marker
+        Group {
+          LayoutMode: Top;
+          Anchor: (Width: 100);
+
+          Group {
+            LayoutMode: Left;
+            Anchor: (Height: 16);
+            Group { Anchor: (Width: 12, Height: 12); Background: (Color: #ffffff); }
+            Label { Text: " You are here"; Style: (FontSize: 10, TextColor: #cccccc, VerticalAlignment: Center); }
+          }
+        }
       }
 
-      Label #FactionClaims {
-        Text: "Your Claims: 0";
-        Style: (FontSize: 14, TextColor: #888888, HorizontalAlignment: Center);
-        Anchor: (Height: 25, Bottom: 20);
-      }
-
+      // Divider
       Group {
-        Anchor: (Height: 1, Bottom: 15);
+        Anchor: (Height: 1, Top: 8, Bottom: 8);
         Background: (Color: #00AAAA);
       }
 
-      Label #MapHint {
-        Text: "Use /f map in chat for a visual territory map";
-        Style: (FontSize: 12, TextColor: #666666, HorizontalAlignment: Center);
-        Anchor: (Height: 20);
+      // Bottom row: Set Home button and claim stats
+      Group #BottomRow {
+        LayoutMode: Left;
+        Anchor: (Height: 32);
+
+        // Set Home button
+        TextButton #SetHomeBtn {
+          Text: "Set Faction Home";
+          Anchor: (Width: 140, Height: 28);
+          Style: $S.@CyanButtonStyle;
+        }
+
+        Label { FlexWeight: 1; }
+
+        // Claim stats
+        Label #ClaimStats {
+          Text: "Claims: 0/0";
+          Style: (FontSize: 12, TextColor: #888888, VerticalAlignment: Center);
+          Anchor: (Width: 120);
+        }
       }
     }
   }
