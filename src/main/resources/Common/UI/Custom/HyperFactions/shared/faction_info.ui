@@ -47,7 +47,7 @@ $C.@PageOverlay {
           // Status indicator
           Label #StatusIndicator {
             Text: "";
-            Style: (FontSize: 12, TextColor: #44cc44, RenderBold: true, VerticalAlignment: Center, HorizontalAlignment: Right);
+            Style: (FontSize: 12, TextColor: #44cc44, RenderBold: true, VerticalAlignment: Center);
           }
         }
 
