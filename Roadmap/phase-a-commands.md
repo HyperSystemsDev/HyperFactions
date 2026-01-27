@@ -1,5 +1,9 @@
 # Phase A: Command System Overhaul
 
+> **Status**: NOT STARTED
+> **Target Version**: v1.1.0
+> **Last Updated**: January 27, 2026
+
 **Goal**: Transform from monolithic switch-based routing to modular, GUI-first command architecture with context-aware defaults and configurable aliases.
 
 **Design Decisions**:
@@ -9,9 +13,31 @@
 
 ---
 
+## Current State Analysis (2026-01-27)
+
+| Metric | Value |
+|--------|-------|
+| FactionCommand.java | 2,678 lines |
+| Subcommands | 39+ |
+| Architecture | Monolithic switch statement |
+| Helper Classes | FactionCommandContext (157 lines), CommandHelp, HelpFormatter |
+
+**Current Files:**
+- `command/FactionCommand.java` (2,678 lines) - All 39+ subcommands in one file
+- `command/FactionCommandContext.java` (157 lines) - Flag parsing utility (`--text` / `-t`)
+- `util/CommandHelp.java` (45 lines) - Help entry record
+- `util/HelpFormatter.java` - Chat help formatting
+
+**Existing Patterns:**
+- GUI-first design already exists (commands default to GUI, `--text` flag for CLI)
+- Handler methods organized by category but all in one file
+- FactionCommandContext.shouldOpenGui() and shouldOpenGuiAfterAction() determine GUI behavior
+
+---
+
 ## A.1 Command Architecture
 
-**Current State**: Single `FactionCommand.java` (1533 lines) with switch statement routing.
+**Current State**: Single `FactionCommand.java` (2,678 lines) with switch statement routing to 39+ private handler methods.
 
 **Target Package Structure**:
 ```

@@ -1,5 +1,9 @@
 # Phase D: Testing Infrastructure
 
+> **Status**: PARTIAL - Foundation implemented
+> **Target Version**: v1.2.0
+> **Last Updated**: January 27, 2026
+
 **Goal**: Establish comprehensive automated and manual testing processes.
 
 **Design Decisions**:
@@ -9,11 +13,65 @@
 
 ---
 
+## Current State (2026-01-27)
+
+### Implemented Test Infrastructure
+
+| Component | Status | File |
+|-----------|--------|------|
+| MockStorage | Done | `testutil/MockStorage.java` |
+| TestPlayerFactory | Done | `testutil/TestPlayerFactory.java` |
+| TestFactionFactory | Done | `testutil/TestFactionFactory.java` |
+
+### Implemented Unit Tests (12 files)
+
+| Test | Purpose | Status |
+|------|---------|--------|
+| PlayerPowerTest | Power data model | Done |
+| CombatTagTest | Combat tag data model | Done |
+| ChunkKeyTest | Chunk coordinate handling | Done |
+| FactionTest | Faction data model | Done |
+| CombatTagManagerTest | Combat tag business logic | Done |
+| RelationManagerTest | Relation management | Done |
+| ClaimManagerTest | Territory claiming | Done |
+| PowerManagerTest | Power mechanics | Done |
+| ProtectionCheckerTest | Protection rules | Done |
+
+### Not Yet Implemented
+
+- [ ] Full mock infrastructure (MockPlayerRef, MockWorld, MockStore, MockCommandContext)
+- [ ] Integration tests
+- [ ] QA scripts
+- [ ] Coverage reporting (JaCoCo)
+
+---
+
 ## D.1 Mock Infrastructure
 
 **Overview**: Create mock implementations of Hytale APIs to enable testing without a running server.
 
-**Mock Package Structure**:
+**Current Package Structure**:
+```
+src/test/java/com/hyperfactions/
+├── testutil/                        # IMPLEMENTED
+│   ├── MockStorage.java             # In-memory storage mock
+│   ├── TestPlayerFactory.java       # Player creation helper
+│   └── TestFactionFactory.java      # Faction creation helper
+├── data/                            # IMPLEMENTED
+│   ├── PlayerPowerTest.java
+│   ├── CombatTagTest.java
+│   ├── ChunkKeyTest.java
+│   └── FactionTest.java
+├── manager/                         # IMPLEMENTED
+│   ├── CombatTagManagerTest.java
+│   ├── RelationManagerTest.java
+│   ├── ClaimManagerTest.java
+│   └── PowerManagerTest.java
+└── protection/                      # IMPLEMENTED
+    └── ProtectionCheckerTest.java
+```
+
+**Planned Mock Package Structure** (not yet implemented):
 ```
 src/test/java/com/hyperfactions/
 ├── mock/

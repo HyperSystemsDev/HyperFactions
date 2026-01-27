@@ -1,5 +1,9 @@
 # Phase C: Help System & Documentation
 
+> **Status**: PARTIAL - Text help implemented, GUI help started
+> **Target Version**: v1.1.0 (C.1), v1.2.0 (C.2)
+> **Last Updated**: January 27, 2026
+
 **Goal**: Provide contextual, accessible help for all player types. Help is accessible from ALL three GUI systems.
 
 **Design Decisions**:
@@ -11,6 +15,43 @@
 - **Category structure**: By player journey (not by handler groups)
 - **Locked commands**: Visible but grayed with lock icon + requirement tooltip
 - **State persistence**: Remember last viewed category within session
+
+---
+
+## Current State (2026-01-27)
+
+### Implemented
+
+| Component | Status | File |
+|-----------|--------|------|
+| HelpFormatter | Done | `util/HelpFormatter.java` |
+| CommandHelp | Done | `util/CommandHelp.java` (record) |
+| Section-based help data | Done | `FactionCommand.java` (lines 146-200) |
+| HelpPage (New Player GUI) | Done | `gui/page/newplayer/HelpPage.java` |
+
+### Help System Overview
+
+**Text-based help** (C.1 partial):
+- `/f help` - Shows grouped command list via HelpFormatter
+- 42 commands organized into 7 sections:
+  - Core (7), Management (8), Territory (4), Relations (3)
+  - Teleport (3), Information (7), Other (4)
+
+**GUI-based help** (C.2 partial):
+- Basic HelpPage for new players (static template)
+- No searchable command wiki yet
+- No contextual help system yet
+
+### Not Yet Implemented
+
+- [ ] `/f help <category>` - Category-specific chat help
+- [ ] `/f help <command>` - Command-specific detail help
+- [ ] HelpRegistry with categories and commands
+- [ ] HelpMainPage with search
+- [ ] HelpCategoryPage
+- [ ] HelpCommandPage with full details
+- [ ] Permission-filtered help
+- [ ] Session state persistence
 
 ---
 

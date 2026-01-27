@@ -1,6 +1,20 @@
 # Research & Future Investigation
 
+> **Last Updated**: January 27, 2026
+
 Items requiring investigation before implementation. These may reveal Hytale limitations or API requirements.
+
+## Summary
+
+| Item | Topic | Status |
+|------|-------|--------|
+| R.1 | Mob Spawning Control | Not started |
+| R.2 | Block Protection Events | Partially complete |
+| R.3 | HyperPerms Context Providers | Not started |
+| R.4 | Interactive Map Rendering | **RESOLVED** |
+| R.5 | Clipboard/Copy Command | Not started |
+| R.6 | Caching System | Not started |
+| R.7 | Chat Input Pre-Fill | Not started |
 
 ---
 

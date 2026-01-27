@@ -1,6 +1,10 @@
 # Known Issues
 
-## Pitch/Yaw Bug (TABLED)
+> **Last Updated**: January 27, 2026
+
+## Open Issues
+
+### Pitch/Yaw Bug (TABLED)
 
 - **Symptom**: `/f home` teleport has wrong camera orientation
 - **Investigation Done**:
@@ -8,13 +12,15 @@
   - Checked FactionHome record field mapping
 - **Likely Cause**: Issue in how home orientation is saved or applied
 - **Status**: Tabled for later investigation - not blocking release
+- **Priority**: P3
 
 ---
 
-## Admin Zones Page Back Button
+### Admin Zones Page Back Button (TABLED)
 
 - **Symptom**: Back button positioned incorrectly
 - **Fix**: Update AdminZonePage template positioning
+- **Status**: Tabled with Admin GUI (B.3) deferred to v1.3+
 - **Priority**: P2
 
 ---
