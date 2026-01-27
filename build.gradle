@@ -28,6 +28,7 @@ dependencies {
 
     // Null safety annotations
     compileOnly 'org.jetbrains:annotations:24.1.0'
+    testCompileOnly 'org.jetbrains:annotations:24.1.0'
 
     // Testing
     testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'

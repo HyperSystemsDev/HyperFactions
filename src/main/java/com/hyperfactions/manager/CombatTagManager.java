@@ -3,6 +3,7 @@ package com.hyperfactions.manager;
 import com.hyperfactions.config.HyperFactionsConfig;
 import com.hyperfactions.data.CombatTag;
 import com.hyperfactions.data.SpawnProtection;
+import com.hyperfactions.util.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -156,8 +157,11 @@ public class CombatTagManager {
      * @param defender the defender's UUID
      */
     public void tagCombat(@NotNull UUID attacker, @NotNull UUID defender) {
+        int duration = HyperFactionsConfig.get().getTagDurationSeconds();
         tagPlayer(attacker);
         tagPlayer(defender);
+        Logger.debugCombat("Combat tag: attacker=%s, defender=%s, duration=%ds",
+            attacker, defender, duration);
     }
 
     /**
@@ -179,6 +183,8 @@ public class CombatTagManager {
     public boolean handleDisconnect(@NotNull UUID playerUuid) {
         CombatTag tag = tags.remove(playerUuid);
         if (tag != null && !tag.isExpired()) {
+            Logger.debugCombat("Combat logout: player=%s, remainingSeconds=%d, penaltyEnabled=%b",
+                playerUuid, tag.getRemainingSeconds(), HyperFactionsConfig.get().isTaggedLogoutPenalty());
             if (HyperFactionsConfig.get().isTaggedLogoutPenalty() && onCombatLogout != null) {
                 onCombatLogout.accept(playerUuid);
             }

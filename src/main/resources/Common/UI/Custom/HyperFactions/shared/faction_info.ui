@@ -1,0 +1,336 @@
+// Faction Info Page
+// Displays detailed information about a specific faction
+// Used for /f info [faction] command (GUI mode)
+
+$C = "../../Common.ui";
+$S = "styles.ui";
+
+$C.@PageOverlay {
+  $C.@DecoratedContainer {
+    Anchor: (Width: 550, Height: 500);
+
+    #Title {
+      Group {
+        $C.@Title {
+          @Text = "Faction Info";
+        }
+      }
+    }
+
+    #Content {
+      LayoutMode: Top;
+      Padding: (Left: 25, Right: 25, Top: 15, Bottom: 15);
+
+      // === Header Section ===
+      Group #HeaderSection {
+        Anchor: (Height: 70, Bottom: 15);
+        LayoutMode: Top;
+
+        // Faction name and tag row
+        Group {
+          LayoutMode: Left;
+          Anchor: (Height: 28);
+
+          Label #FactionName {
+            Text: "Faction Name";
+            Style: (FontSize: 20, TextColor: #00FFFF, RenderBold: true, VerticalAlignment: Center);
+          }
+
+          Label #FactionTag {
+            Text: "";
+            Style: (FontSize: 14, TextColor: #FFD700, RenderBold: true, VerticalAlignment: Center);
+            Anchor: (Left: 10);
+          }
+
+          Label { FlexWeight: 1; }
+
+          // Status indicator
+          Label #StatusIndicator {
+            Text: "";
+            Style: (FontSize: 12, TextColor: #44cc44, RenderBold: true, VerticalAlignment: Center, HorizontalAlignment: Right);
+          }
+        }
+
+        // Description
+        Label #FactionDescription {
+          Text: "No description set.";
+          Style: (FontSize: 12, TextColor: #888888);
+          Anchor: (Height: 36);
+        }
+      }
+
+      // Divider
+      Group {
+        Anchor: (Height: 1, Bottom: 12);
+        Background: (Color: #00AAAA);
+      }
+
+      // === Stats Section ===
+      Group {
+        Anchor: (Height: 20, Bottom: 5);
+        Label {
+          Text: "FACTION STATS";
+          Style: (FontSize: 11, TextColor: #666666, RenderBold: true);
+        }
+      }
+
+      // Stats grid
+      Group #StatsGrid {
+        Anchor: (Height: 90, Bottom: 15);
+        LayoutMode: Left;
+
+        // Left column
+        Group {
+          Anchor: (Width: 240);
+          LayoutMode: Top;
+
+          // Power
+          Group {
+            Anchor: (Height: 22);
+            LayoutMode: Left;
+
+            Label {
+              Text: "Power:";
+              Style: (FontSize: 12, TextColor: #AAAAAA, VerticalAlignment: Center);
+              Anchor: (Width: 100);
+            }
+
+            Label #PowerValue {
+              Text: "0.0 / 0.0";
+              Style: (FontSize: 12, TextColor: #FFFFFF, VerticalAlignment: Center);
+            }
+          }
+
+          // Claims
+          Group {
+            Anchor: (Height: 22);
+            LayoutMode: Left;
+
+            Label {
+              Text: "Claims:";
+              Style: (FontSize: 12, TextColor: #AAAAAA, VerticalAlignment: Center);
+              Anchor: (Width: 100);
+            }
+
+            Label #ClaimsValue {
+              Text: "0 / 0";
+              Style: (FontSize: 12, TextColor: #FFFFFF, VerticalAlignment: Center);
+            }
+          }
+
+          // Members
+          Group {
+            Anchor: (Height: 22);
+            LayoutMode: Left;
+
+            Label {
+              Text: "Members:";
+              Style: (FontSize: 12, TextColor: #AAAAAA, VerticalAlignment: Center);
+              Anchor: (Width: 100);
+            }
+
+            Label #MembersValue {
+              Text: "0 / 0";
+              Style: (FontSize: 12, TextColor: #FFFFFF, VerticalAlignment: Center);
+            }
+          }
+
+          // Status
+          Group {
+            Anchor: (Height: 22);
+            LayoutMode: Left;
+
+            Label {
+              Text: "Recruitment:";
+              Style: (FontSize: 12, TextColor: #AAAAAA, VerticalAlignment: Center);
+              Anchor: (Width: 100);
+            }
+
+            Label #RecruitmentValue {
+              Text: "Invite Only";
+              Style: (FontSize: 12, TextColor: #FFFFFF, VerticalAlignment: Center);
+            }
+          }
+        }
+
+        // Spacer
+        Label { Anchor: (Width: 20); }
+
+        // Right column
+        Group {
+          Anchor: (Width: 230);
+          LayoutMode: Top;
+
+          // Founded
+          Group {
+            Anchor: (Height: 22);
+            LayoutMode: Left;
+
+            Label {
+              Text: "Founded:";
+              Style: (FontSize: 12, TextColor: #AAAAAA, VerticalAlignment: Center);
+              Anchor: (Width: 80);
+            }
+
+            Label #FoundedValue {
+              Text: "Unknown";
+              Style: (FontSize: 12, TextColor: #FFFFFF, VerticalAlignment: Center);
+            }
+          }
+
+          // Allies
+          Group {
+            Anchor: (Height: 22);
+            LayoutMode: Left;
+
+            Label {
+              Text: "Allies:";
+              Style: (FontSize: 12, TextColor: #AAAAAA, VerticalAlignment: Center);
+              Anchor: (Width: 80);
+            }
+
+            Label #AlliesValue {
+              Text: "0";
+              Style: (FontSize: 12, TextColor: #00AAFF, VerticalAlignment: Center);
+            }
+          }
+
+          // Enemies
+          Group {
+            Anchor: (Height: 22);
+            LayoutMode: Left;
+
+            Label {
+              Text: "Enemies:";
+              Style: (FontSize: 12, TextColor: #AAAAAA, VerticalAlignment: Center);
+              Anchor: (Width: 80);
+            }
+
+            Label #EnemiesValue {
+              Text: "0";
+              Style: (FontSize: 12, TextColor: #FF5555, VerticalAlignment: Center);
+            }
+          }
+
+          // Raidable status
+          Group {
+            Anchor: (Height: 22);
+            LayoutMode: Left;
+
+            Label {
+              Text: "Status:";
+              Style: (FontSize: 12, TextColor: #AAAAAA, VerticalAlignment: Center);
+              Anchor: (Width: 80);
+            }
+
+            Label #RaidableValue {
+              Text: "Protected";
+              Style: (FontSize: 12, TextColor: #44cc44, VerticalAlignment: Center);
+            }
+          }
+        }
+      }
+
+      // Divider
+      Group {
+        Anchor: (Height: 1, Bottom: 12);
+        Background: (Color: #333333);
+      }
+
+      // === Leadership Section ===
+      Group {
+        Anchor: (Height: 20, Bottom: 5);
+        Label {
+          Text: "LEADERSHIP";
+          Style: (FontSize: 11, TextColor: #666666, RenderBold: true);
+        }
+      }
+
+      Group #LeadershipSection {
+        Anchor: (Height: 50, Bottom: 15);
+        LayoutMode: Left;
+
+        // Leader
+        Group {
+          Anchor: (Width: 240);
+          LayoutMode: Top;
+
+          Group {
+            Anchor: (Height: 22);
+            LayoutMode: Left;
+
+            Label {
+              Text: "Leader:";
+              Style: (FontSize: 12, TextColor: #FFD700, RenderBold: true, VerticalAlignment: Center);
+              Anchor: (Width: 80);
+            }
+
+            Label #LeaderName {
+              Text: "Unknown";
+              Style: (FontSize: 12, TextColor: #FFFFFF, VerticalAlignment: Center);
+            }
+          }
+        }
+
+        // Spacer
+        Label { Anchor: (Width: 20); }
+
+        // Officers
+        Group {
+          Anchor: (Width: 230);
+          LayoutMode: Top;
+
+          Group {
+            Anchor: (Height: 22);
+            LayoutMode: Left;
+
+            Label {
+              Text: "Officers:";
+              Style: (FontSize: 12, TextColor: #87CEEB, RenderBold: true, VerticalAlignment: Center);
+              Anchor: (Width: 80);
+            }
+
+            Label #OfficersValue {
+              Text: "None";
+              Style: (FontSize: 12, TextColor: #FFFFFF, VerticalAlignment: Center);
+            }
+          }
+        }
+      }
+
+      // Spacer to push buttons down
+      Label { FlexWeight: 1; }
+
+      // === Action Buttons ===
+      Group #ActionButtons {
+        Anchor: (Height: 35);
+        LayoutMode: Left;
+
+        TextButton #ViewMembersBtn {
+          Text: "VIEW MEMBERS";
+          Anchor: (Height: 30, Width: 130);
+          Style: $S.@SmallCyanButtonStyle;
+        }
+
+        Label { Anchor: (Width: 10); }
+
+        TextButton #ViewRelationsBtn {
+          Text: "RELATIONS";
+          Anchor: (Height: 30, Width: 100);
+          Style: $S.@SmallButtonStyle;
+        }
+
+        Label { FlexWeight: 1; }
+
+        TextButton #BackBtn {
+          Text: "BACK";
+          Anchor: (Height: 30, Width: 80);
+          Style: $S.@SmallButtonStyle;
+        }
+      }
+    }
+  }
+}
+
+// Native Hytale back button (bottom-left ESC)
+$C.@BackButton {}

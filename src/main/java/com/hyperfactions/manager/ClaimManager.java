@@ -208,6 +208,8 @@ public class ClaimManager {
         factionClaimsIndex.computeIfAbsent(faction.id(), k -> ConcurrentHashMap.newKeySet()).add(key);
         factionManager.updateFaction(updated);
 
+        Logger.debugClaim("Claim success: chunk=%s, faction=%s, player=%s, claimCount=%d/%d",
+            key, faction.name(), playerUuid, updated.getClaimCount(), maxClaims);
         return ClaimResult.SUCCESS;
     }
 
@@ -267,6 +269,8 @@ public class ClaimManager {
         }
         factionManager.updateFaction(updated);
 
+        Logger.debugClaim("Unclaim success: chunk=%s, faction=%s, player=%s",
+            key, faction.name(), playerUuid);
         return ClaimResult.SUCCESS;
     }
 
@@ -355,6 +359,8 @@ public class ClaimManager {
         factionManager.updateFaction(updatedDefender);
         factionManager.updateFaction(updatedAttacker);
 
+        Logger.debugClaim("Overclaim success: chunk=%s, attacker=%s, defender=%s, defenderClaims=%d/%d",
+            key, attackerFaction.name(), defenderFaction.name(), defenderFaction.getClaimCount() - 1, defenderMaxClaims);
         Logger.info("Faction '%s' overclaimed chunk from '%s'", attackerFaction.name(), defenderFaction.name());
         return ClaimResult.SUCCESS;
     }

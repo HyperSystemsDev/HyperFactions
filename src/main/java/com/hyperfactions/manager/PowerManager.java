@@ -137,7 +137,8 @@ public class PowerManager {
         powerCache.put(playerUuid, updated);
         storage.savePlayerPower(updated);
 
-        Logger.debug("Applied death penalty to %s: %.2f -> %.2f", playerUuid, power.power(), updated.power());
+        Logger.debugPower("Death penalty: player=%s, before=%.2f, after=%.2f, penalty=%.2f, max=%.2f",
+            playerUuid, power.power(), updated.power(), penalty, power.maxPower());
         return updated.power();
     }
 
@@ -155,6 +156,9 @@ public class PowerManager {
 
         PlayerPower updated = power.withRegen(amount);
         powerCache.put(playerUuid, updated);
+
+        Logger.debugPower("Regen: player=%s, before=%.2f, after=%.2f, amount=%.2f, max=%.2f",
+            playerUuid, power.power(), updated.power(), amount, power.maxPower());
         // Don't save immediately - batch save periodically
     }
 

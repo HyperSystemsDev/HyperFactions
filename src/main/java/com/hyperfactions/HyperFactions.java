@@ -50,6 +50,7 @@ public class HyperFactions {
     private InviteManager inviteManager;
     private JoinRequestManager joinRequestManager;
     private ChatManager chatManager;
+    private ConfirmationManager confirmationManager;
 
     // Protection
     private ProtectionChecker protectionChecker;
@@ -155,6 +156,9 @@ public class HyperFactions {
         // Initialize invite/request managers (loads persisted data)
         inviteManager.init();
         joinRequestManager.init();
+
+        // Initialize confirmation manager (for text-mode command confirmations)
+        confirmationManager = new ConfirmationManager();
 
         // Load data
         factionManager.loadAll().join();
@@ -507,6 +511,10 @@ public class HyperFactions {
     @NotNull
     public ChatManager getChatManager() {
         return chatManager;
+    }
+
+    public ConfirmationManager getConfirmationManager() {
+        return confirmationManager;
     }
 
     @NotNull

@@ -7,6 +7,7 @@ import com.hyperfactions.data.Zone;
 import com.hyperfactions.data.ZoneFlags;
 import com.hyperfactions.integration.HyperPermsIntegration;
 import com.hyperfactions.manager.*;
+import com.hyperfactions.util.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -177,10 +178,14 @@ public class ProtectionChecker {
         if (playerFactionId != null) {
             RelationType relation = relationManager.getRelation(playerFactionId, claimOwner);
             if (relation == RelationType.ENEMY) {
+                Logger.debugProtection("Interaction denied: player=%s, chunk=%s/%d/%d, type=%s, result=ENEMY_CLAIM, claimOwner=%s",
+                    playerUuid, world, chunkX, chunkZ, type, claimOwner);
                 return ProtectionResult.DENIED_ENEMY_CLAIM;
             }
         }
 
+        Logger.debugProtection("Interaction denied: player=%s, chunk=%s/%d/%d, type=%s, result=NEUTRAL_CLAIM, claimOwner=%s",
+            playerUuid, world, chunkX, chunkZ, type, claimOwner);
         return ProtectionResult.DENIED_NEUTRAL_CLAIM;
     }
 
@@ -271,11 +276,15 @@ public class ProtectionChecker {
         RelationType relation = relationManager.getPlayerRelation(attackerUuid, defenderUuid);
         if (relation == RelationType.ALLY) {
             if (!config.isAllyDamage()) {
+                Logger.debugProtection("PvP denied: attacker=%s, defender=%s, chunk=%s/%d/%d, result=ALLY",
+                    attackerUuid, defenderUuid, world, chunkX, chunkZ);
                 return PvPResult.DENIED_ALLY;
             }
         }
 
         // 4. Default: allow PvP
+        Logger.debugProtection("PvP allowed: attacker=%s, defender=%s, chunk=%s/%d/%d, relation=%s",
+            attackerUuid, defenderUuid, world, chunkX, chunkZ, relation);
         return PvPResult.ALLOWED;
     }
 

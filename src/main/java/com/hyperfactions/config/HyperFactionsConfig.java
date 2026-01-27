@@ -92,6 +92,15 @@ public class HyperFactionsConfig {
     private String prefix = "\u00A7b[HyperFactions]\u00A7r ";
     private String primaryColor = "#00FFFF";
 
+    // Debug settings
+    private boolean debugEnabledByDefault = false;
+    private boolean debugLogToConsole = true;
+    private boolean debugPower = false;
+    private boolean debugClaim = false;
+    private boolean debugCombat = false;
+    private boolean debugProtection = false;
+    private boolean debugRelation = false;
+
     private HyperFactionsConfig() {}
 
     /**
@@ -235,6 +244,25 @@ public class HyperFactionsConfig {
                 primaryColor = getString(messages, "primaryColor", primaryColor);
             }
 
+            // Debug settings
+            if (root.has("debug") && root.get("debug").isJsonObject()) {
+                JsonObject debug = root.getAsJsonObject("debug");
+                debugEnabledByDefault = getBool(debug, "enabledByDefault", debugEnabledByDefault);
+                debugLogToConsole = getBool(debug, "logToConsole", debugLogToConsole);
+
+                if (debug.has("categories") && debug.get("categories").isJsonObject()) {
+                    JsonObject categories = debug.getAsJsonObject("categories");
+                    debugPower = getBool(categories, "power", debugPower);
+                    debugClaim = getBool(categories, "claim", debugClaim);
+                    debugCombat = getBool(categories, "combat", debugCombat);
+                    debugProtection = getBool(categories, "protection", debugProtection);
+                    debugRelation = getBool(categories, "relation", debugRelation);
+                }
+            }
+
+            // Apply debug settings to Logger
+            applyDebugSettings();
+
             Logger.info("Configuration loaded");
         } catch (Exception e) {
             Logger.severe("Failed to load configuration", e);
@@ -356,6 +384,20 @@ public class HyperFactionsConfig {
             messages.addProperty("primaryColor", primaryColor);
             root.add("messages", messages);
 
+            // Debug settings
+            JsonObject debug = new JsonObject();
+            debug.addProperty("enabledByDefault", debugEnabledByDefault);
+            debug.addProperty("logToConsole", debugLogToConsole);
+
+            JsonObject categories = new JsonObject();
+            categories.addProperty("power", debugPower);
+            categories.addProperty("claim", debugClaim);
+            categories.addProperty("combat", debugCombat);
+            categories.addProperty("protection", debugProtection);
+            categories.addProperty("relation", debugRelation);
+            debug.add("categories", categories);
+            root.add("debug", debug);
+
             Gson gson = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
             Files.writeString(configFile, gson.toJson(root));
 
@@ -446,6 +488,58 @@ public class HyperFactionsConfig {
     // === Message Getters ===
     public String getPrefix() { return prefix; }
     public String getPrimaryColor() { return primaryColor; }
+
+    // === Debug Getters ===
+    public boolean isDebugEnabledByDefault() { return debugEnabledByDefault; }
+    public boolean isDebugLogToConsole() { return debugLogToConsole; }
+    public boolean isDebugPower() { return debugPower; }
+    public boolean isDebugClaim() { return debugClaim; }
+    public boolean isDebugCombat() { return debugCombat; }
+    public boolean isDebugProtection() { return debugProtection; }
+    public boolean isDebugRelation() { return debugRelation; }
+
+    // === Debug Setters (for runtime toggle) ===
+    public void setDebugPower(boolean enabled) { this.debugPower = enabled; applyDebugSettings(); }
+    public void setDebugClaim(boolean enabled) { this.debugClaim = enabled; applyDebugSettings(); }
+    public void setDebugCombat(boolean enabled) { this.debugCombat = enabled; applyDebugSettings(); }
+    public void setDebugProtection(boolean enabled) { this.debugProtection = enabled; applyDebugSettings(); }
+    public void setDebugRelation(boolean enabled) { this.debugRelation = enabled; applyDebugSettings(); }
+
+    /**
+     * Applies debug settings to the Logger.
+     */
+    public void applyDebugSettings() {
+        Logger.setLogToConsole(debugLogToConsole);
+        Logger.setDebugEnabled(Logger.DebugCategory.POWER, debugEnabledByDefault || debugPower);
+        Logger.setDebugEnabled(Logger.DebugCategory.CLAIM, debugEnabledByDefault || debugClaim);
+        Logger.setDebugEnabled(Logger.DebugCategory.COMBAT, debugEnabledByDefault || debugCombat);
+        Logger.setDebugEnabled(Logger.DebugCategory.PROTECTION, debugEnabledByDefault || debugProtection);
+        Logger.setDebugEnabled(Logger.DebugCategory.RELATION, debugEnabledByDefault || debugRelation);
+    }
+
+    /**
+     * Enables all debug categories at runtime.
+     */
+    public void enableAllDebug() {
+        debugPower = true;
+        debugClaim = true;
+        debugCombat = true;
+        debugProtection = true;
+        debugRelation = true;
+        Logger.enableAll();
+    }
+
+    /**
+     * Disables all debug categories at runtime.
+     */
+    public void disableAllDebug() {
+        debugPower = false;
+        debugClaim = false;
+        debugCombat = false;
+        debugProtection = false;
+        debugRelation = false;
+        Logger.disableAll();
+    }
 
     /**
      * Checks if a world is allowed for claiming.

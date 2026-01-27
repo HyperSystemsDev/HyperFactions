@@ -6,10 +6,13 @@ import com.hyperfactions.data.*;
 import com.hyperfactions.data.ZoneFlags;
 import com.hyperfactions.integration.HyperPermsIntegration;
 import com.hyperfactions.manager.*;
+import com.hyperfactions.manager.ConfirmationManager.ConfirmationResult;
+import com.hyperfactions.manager.ConfirmationManager.ConfirmationType;
 import com.hyperfactions.platform.HyperFactionsPlugin;
 import com.hyperfactions.util.ChunkUtil;
 import com.hyperfactions.util.CommandHelp;
 import com.hyperfactions.util.HelpFormatter;
+import com.hyperfactions.util.Logger;
 import com.hyperfactions.util.TimeUtil;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
@@ -79,42 +82,49 @@ public class FactionCommand extends AbstractPlayerCommand {
         }
 
         String subcommand = parts[1].toLowerCase();
-        String[] subArgs = parts.length > 2 ? Arrays.copyOfRange(parts, 2, parts.length) : new String[0];
+        String[] rawSubArgs = parts.length > 2 ? Arrays.copyOfRange(parts, 2, parts.length) : new String[0];
+
+        // Parse flags (--text, -t) from arguments
+        FactionCommandContext fctx = FactionCommandContext.parse(rawSubArgs);
 
         switch (subcommand) {
-            case "create" -> handleCreate(ctx, player, subArgs);
-            case "disband" -> handleDisband(ctx, player);
-            case "invite" -> handleInvite(ctx, player, subArgs);
-            case "accept", "join" -> handleAccept(ctx, player, subArgs);
-            case "leave" -> handleLeave(ctx, player);
-            case "kick" -> handleKick(ctx, player, subArgs);
-            case "promote" -> handlePromote(ctx, player, subArgs);
-            case "demote" -> handleDemote(ctx, player, subArgs);
-            case "transfer" -> handleTransfer(ctx, player, subArgs);
-            case "claim" -> handleClaim(ctx, store, ref, player, currentWorld);
-            case "unclaim" -> handleUnclaim(ctx, store, ref, player, currentWorld);
-            case "overclaim" -> handleOverclaim(ctx, store, ref, player, currentWorld);
+            case "create" -> handleCreate(ctx, store, ref, player, fctx);
+            case "disband" -> handleDisband(ctx, store, ref, player, fctx);
+            case "invite" -> handleInvite(ctx, store, ref, player, fctx);
+            case "accept", "join" -> handleAccept(ctx, store, ref, player, fctx);
+            case "leave" -> handleLeave(ctx, store, ref, player, fctx);
+            case "kick" -> handleKick(ctx, store, ref, player, fctx);
+            case "promote" -> handlePromote(ctx, store, ref, player, fctx);
+            case "demote" -> handleDemote(ctx, store, ref, player, fctx);
+            case "transfer" -> handleTransfer(ctx, store, ref, player, fctx);
+            case "claim" -> handleClaim(ctx, store, ref, player, currentWorld, fctx);
+            case "unclaim" -> handleUnclaim(ctx, store, ref, player, currentWorld, fctx);
+            case "overclaim" -> handleOverclaim(ctx, store, ref, player, currentWorld, fctx);
             case "home" -> handleHome(ctx, store, ref, player, currentWorld);
             case "sethome" -> handleSetHome(ctx, store, ref, player, currentWorld);
-            case "ally" -> handleAlly(ctx, player, subArgs);
-            case "enemy" -> handleEnemy(ctx, player, subArgs);
-            case "neutral" -> handleNeutral(ctx, player, subArgs);
-            case "info", "show" -> handleInfo(ctx, player, subArgs);
-            case "list" -> handleList(ctx, player);
-            case "map" -> handleMap(ctx, store, ref, player, currentWorld);
-            case "who" -> handleWho(ctx, player, subArgs);
-            case "power" -> handlePower(ctx, player, subArgs);
-            case "chat", "c" -> handleChat(ctx, player, subArgs);
+            case "ally" -> handleAlly(ctx, store, ref, player, fctx);
+            case "enemy" -> handleEnemy(ctx, store, ref, player, fctx);
+            case "neutral" -> handleNeutral(ctx, store, ref, player, fctx);
+            case "relations" -> handleRelations(ctx, store, ref, player, fctx);
+            case "info", "show" -> handleInfo(ctx, store, ref, player, fctx);
+            case "list" -> handleList(ctx, store, ref, player, fctx);
+            case "map" -> handleMap(ctx, store, ref, player, currentWorld, fctx);
+            case "members" -> handleMembers(ctx, store, ref, player, fctx);
+            case "invites" -> handleInvites(ctx, store, ref, player, fctx);
+            case "who" -> handleWho(ctx, store, ref, player, fctx);
+            case "power" -> handlePower(ctx, store, ref, player, fctx);
+            case "chat", "c" -> handleChat(ctx, player, fctx.getArgs());
             case "help", "?" -> showHelp(ctx, player);
             case "gui", "menu" -> handleGui(ctx, store, ref, player);
-            case "admin" -> handleAdmin(ctx, store, ref, player, currentWorld, subArgs);
+            case "admin" -> handleAdmin(ctx, store, ref, player, currentWorld, fctx.getArgs());
+            case "debug" -> handleDebug(ctx, store, ref, player, currentWorld, fctx.getArgs());
             case "reload" -> handleReload(ctx, player);
-            case "rename" -> handleRename(ctx, player, subArgs);
-            case "desc", "description" -> handleDesc(ctx, player, subArgs);
-            case "color" -> handleColor(ctx, player, subArgs);
-            case "open" -> handleOpen(ctx, player);
-            case "close" -> handleClose(ctx, player);
-            case "request" -> handleRequest(ctx, player, subArgs);
+            case "rename" -> handleRename(ctx, store, ref, player, fctx);
+            case "desc", "description" -> handleDesc(ctx, store, ref, player, fctx);
+            case "color" -> handleColor(ctx, store, ref, player, fctx);
+            case "open" -> handleOpen(ctx, store, ref, player, fctx);
+            case "close" -> handleClose(ctx, store, ref, player, fctx);
+            case "request" -> handleRequest(ctx, store, ref, player, fctx);
             case "stuck" -> handleStuck(ctx, store, ref, player, currentWorld);
             default -> {
                 ctx.sendMessage(prefix().insert(msg("Unknown subcommand: " + subcommand, COLOR_RED)));
@@ -174,6 +184,8 @@ public class FactionCommand extends AbstractPlayerCommand {
         // Information - Viewing faction data
         commands.add(new CommandHelp("/f info [faction]", "View faction info", "Information"));
         commands.add(new CommandHelp("/f list", "List all factions", "Information"));
+        commands.add(new CommandHelp("/f members", "View faction members", "Information"));
+        commands.add(new CommandHelp("/f invites", "Manage invites/requests", "Information"));
         commands.add(new CommandHelp("/f who <player>", "View player info", "Information"));
         commands.add(new CommandHelp("/f power [player]", "View power level", "Information"));
         commands.add(new CommandHelp("/f gui", "Open faction GUI", "Information"));
@@ -181,32 +193,64 @@ public class FactionCommand extends AbstractPlayerCommand {
         // Other
         commands.add(new CommandHelp("/f chat [mode]", "Toggle faction chat", "Other"));
         commands.add(new CommandHelp("/f admin", "Admin commands", "Other"));
+        commands.add(new CommandHelp("/f debug", "Debug commands", "Other"));
         commands.add(new CommandHelp("/f reload", "Reload config", "Other"));
 
         ctx.sendMessage(HelpFormatter.buildHelp("HyperFactions", "Faction management and territory control", commands, "Use /f <command> for more details"));
     }
 
     // === Create ===
-    private void handleCreate(CommandContext ctx, PlayerRef player, String[] args) {
+    private void handleCreate(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
+                              PlayerRef player, FactionCommandContext fctx) {
         if (!hasPermission(player, "hyperfactions.create")) {
             ctx.sendMessage(prefix().insert(msg("You don't have permission to create factions.", COLOR_RED)));
             return;
         }
 
-        if (args.length == 0) {
+        // GUI mode: open CreateFactionStep1Page when no name provided
+        if (!fctx.hasArgs() && !fctx.isTextMode()) {
+            Player playerEntity = store.getComponent(ref, Player.getComponentType());
+            if (playerEntity != null) {
+                hyperFactions.getGuiManager().openCreateFactionWizard(playerEntity, ref, store, player);
+                return;
+            }
+        }
+
+        // Text mode or with args: create directly
+        if (!fctx.hasArgs()) {
             ctx.sendMessage(prefix().insert(msg("Usage: /f create <name>", COLOR_RED)));
             return;
         }
 
-        String name = String.join(" ", args);
+        String name = fctx.joinArgs();
         FactionManager.FactionResult result = hyperFactions.getFactionManager().createFaction(
             name, player.getUuid(), player.getUsername()
         );
 
         switch (result) {
-            case SUCCESS -> ctx.sendMessage(prefix().insert(msg("Faction '", COLOR_GREEN))
-                .insert(msg(name, COLOR_CYAN)).insert(msg("' created!", COLOR_GREEN)));
-            case ALREADY_IN_FACTION -> ctx.sendMessage(prefix().insert(msg("You are already in a faction.", COLOR_RED)));
+            case SUCCESS -> {
+                ctx.sendMessage(prefix().insert(msg("Faction '", COLOR_GREEN))
+                    .insert(msg(name, COLOR_CYAN)).insert(msg("' created!", COLOR_GREEN)));
+                // Open dashboard after creation (if not text mode)
+                if (!fctx.isTextMode()) {
+                    Player playerEntity = store.getComponent(ref, Player.getComponentType());
+                    Faction newFaction = hyperFactions.getFactionManager().getPlayerFaction(player.getUuid());
+                    if (playerEntity != null && newFaction != null) {
+                        hyperFactions.getGuiManager().openFactionDashboard(playerEntity, ref, store, player, newFaction);
+                    }
+                }
+            }
+            case ALREADY_IN_FACTION -> {
+                Faction existingFaction = hyperFactions.getFactionManager().getPlayerFaction(player.getUuid());
+                if (existingFaction != null) {
+                    ctx.sendMessage(prefix().insert(msg("You are already in ", COLOR_RED))
+                        .insert(msg(existingFaction.name(), COLOR_CYAN))
+                        .insert(msg(".", COLOR_RED)));
+                    ctx.sendMessage(prefix().insert(msg("Use /f leave first if you want to create a new faction.", COLOR_YELLOW)));
+                } else {
+                    ctx.sendMessage(prefix().insert(msg("You are already in a faction.", COLOR_RED)));
+                }
+            }
             case NAME_TAKEN -> ctx.sendMessage(prefix().insert(msg("That faction name is already taken.", COLOR_RED)));
             case NAME_TOO_SHORT -> ctx.sendMessage(prefix().insert(msg("Faction name is too short.", COLOR_RED)));
             case NAME_TOO_LONG -> ctx.sendMessage(prefix().insert(msg("Faction name is too long.", COLOR_RED)));
@@ -215,37 +259,67 @@ public class FactionCommand extends AbstractPlayerCommand {
     }
 
     // === Disband ===
-    private void handleDisband(CommandContext ctx, PlayerRef player) {
-        UUID factionId = hyperFactions.getFactionManager().getPlayerFactionId(player.getUuid());
-        if (factionId == null) {
+    private void handleDisband(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
+                               PlayerRef player, FactionCommandContext fctx) {
+        Faction faction = hyperFactions.getFactionManager().getPlayerFaction(player.getUuid());
+        if (faction == null) {
             ctx.sendMessage(prefix().insert(msg("You are not in a faction.", COLOR_RED)));
             return;
         }
 
-        FactionManager.FactionResult result = hyperFactions.getFactionManager().disbandFaction(
-            factionId, player.getUuid()
+        // Check if leader
+        FactionMember member = faction.getMember(player.getUuid());
+        if (member == null || !member.isLeader()) {
+            ctx.sendMessage(prefix().insert(msg("Only the faction leader can disband.", COLOR_RED)));
+            return;
+        }
+
+        // GUI mode: open DisbandConfirmPage
+        if (!fctx.isTextMode()) {
+            Player playerEntity = store.getComponent(ref, Player.getComponentType());
+            if (playerEntity != null) {
+                hyperFactions.getGuiManager().openDisbandConfirm(playerEntity, ref, store, player, faction);
+                return;
+            }
+        }
+
+        // Text mode: require confirmation
+        ConfirmationManager confirmManager = hyperFactions.getConfirmationManager();
+        ConfirmationResult confirmResult = confirmManager.checkOrCreate(
+            player.getUuid(), ConfirmationType.DISBAND, null
         );
 
-        switch (result) {
-            case SUCCESS -> {
-                hyperFactions.getClaimManager().unclaimAll(factionId);
-                hyperFactions.getInviteManager().clearFactionInvites(factionId);
-                hyperFactions.getJoinRequestManager().clearFactionRequests(factionId);
-                hyperFactions.getRelationManager().clearAllRelations(factionId);
-                ctx.sendMessage(prefix().insert(msg("Your faction has been disbanded.", COLOR_GREEN)));
+        switch (confirmResult) {
+            case NEEDS_CONFIRMATION, EXPIRED_RECREATED -> {
+                ctx.sendMessage(prefix().insert(msg("Are you sure you want to disband your faction?", COLOR_YELLOW)));
+                ctx.sendMessage(prefix().insert(msg("Type ", COLOR_YELLOW))
+                    .insert(msg("/f disband --text", COLOR_WHITE))
+                    .insert(msg(" again within " + confirmManager.getTimeoutSeconds() + " seconds to confirm.", COLOR_YELLOW)));
             }
-            case NOT_LEADER -> ctx.sendMessage(prefix().insert(msg("Only the faction leader can disband.", COLOR_RED)));
-            default -> ctx.sendMessage(prefix().insert(msg("Failed to disband faction.", COLOR_RED)));
+            case CONFIRMED -> {
+                UUID factionId = faction.id();
+                FactionManager.FactionResult result = hyperFactions.getFactionManager().disbandFaction(
+                    factionId, player.getUuid()
+                );
+                if (result == FactionManager.FactionResult.SUCCESS) {
+                    hyperFactions.getClaimManager().unclaimAll(factionId);
+                    hyperFactions.getInviteManager().clearFactionInvites(factionId);
+                    hyperFactions.getJoinRequestManager().clearFactionRequests(factionId);
+                    hyperFactions.getRelationManager().clearAllRelations(factionId);
+                    ctx.sendMessage(prefix().insert(msg("Your faction has been disbanded.", COLOR_GREEN)));
+                } else {
+                    ctx.sendMessage(prefix().insert(msg("Failed to disband faction.", COLOR_RED)));
+                }
+            }
+            case DIFFERENT_ACTION -> {
+                ctx.sendMessage(prefix().insert(msg("Previous confirmation cancelled. Type again to confirm disband.", COLOR_YELLOW)));
+            }
         }
     }
 
     // === Invite ===
-    private void handleInvite(CommandContext ctx, PlayerRef player, String[] args) {
-        if (args.length == 0) {
-            ctx.sendMessage(prefix().insert(msg("Usage: /f invite <player>", COLOR_RED)));
-            return;
-        }
-
+    private void handleInvite(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
+                              PlayerRef player, FactionCommandContext fctx) {
         Faction faction = hyperFactions.getFactionManager().getPlayerFaction(player.getUuid());
         if (faction == null) {
             ctx.sendMessage(prefix().insert(msg("You are not in a faction.", COLOR_RED)));
@@ -258,7 +332,21 @@ public class FactionCommand extends AbstractPlayerCommand {
             return;
         }
 
-        String targetName = args[0];
+        // GUI mode: open FactionInvitesPage when no player specified
+        if (!fctx.hasArgs() && !fctx.isTextMode()) {
+            Player playerEntity = store.getComponent(ref, Player.getComponentType());
+            if (playerEntity != null) {
+                hyperFactions.getGuiManager().openFactionInvites(playerEntity, ref, store, player, faction);
+                return;
+            }
+        }
+
+        if (!fctx.hasArgs()) {
+            ctx.sendMessage(prefix().insert(msg("Usage: /f invite <player>", COLOR_RED)));
+            return;
+        }
+
+        String targetName = fctx.getArg(0);
         PlayerRef target = findOnlinePlayer(targetName);
         if (target == null) {
             ctx.sendMessage(prefix().insert(msg("Player '" + targetName + "' not found or offline.", COLOR_RED)));
@@ -278,24 +366,51 @@ public class FactionCommand extends AbstractPlayerCommand {
             .insert(msg(faction.name(), COLOR_CYAN)).insert(msg("!", COLOR_YELLOW)));
         target.sendMessage(prefix().insert(msg("Type ", COLOR_YELLOW))
             .insert(msg("/f accept " + faction.name(), COLOR_GREEN)).insert(msg(" to join.", COLOR_YELLOW)));
+
+        // Show invites page after sending invite (if not text mode)
+        if (!fctx.isTextMode()) {
+            Player playerEntity = store.getComponent(ref, Player.getComponentType());
+            if (playerEntity != null) {
+                hyperFactions.getGuiManager().openFactionInvites(playerEntity, ref, store, player, faction);
+            }
+        }
     }
 
     // === Accept ===
-    private void handleAccept(CommandContext ctx, PlayerRef player, String[] args) {
+    private void handleAccept(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
+                              PlayerRef player, FactionCommandContext fctx) {
         if (hyperFactions.getFactionManager().isInFaction(player.getUuid())) {
-            ctx.sendMessage(prefix().insert(msg("You are already in a faction.", COLOR_RED)));
+            Faction existingFaction = hyperFactions.getFactionManager().getPlayerFaction(player.getUuid());
+            if (existingFaction != null) {
+                ctx.sendMessage(prefix().insert(msg("You are already in ", COLOR_RED))
+                    .insert(msg(existingFaction.name(), COLOR_CYAN))
+                    .insert(msg(".", COLOR_RED)));
+                ctx.sendMessage(prefix().insert(msg("Use /f leave first if you want to join another faction.", COLOR_YELLOW)));
+            } else {
+                ctx.sendMessage(prefix().insert(msg("You are already in a faction.", COLOR_RED)));
+            }
             return;
         }
 
         List<PendingInvite> invites = hyperFactions.getInviteManager().getPlayerInvites(player.getUuid());
+
+        // GUI mode: open InvitesPage when no faction specified
+        if (!fctx.hasArgs() && !fctx.isTextMode()) {
+            Player playerEntity = store.getComponent(ref, Player.getComponentType());
+            if (playerEntity != null) {
+                hyperFactions.getGuiManager().openInvitesPage(playerEntity, ref, store, player);
+                return;
+            }
+        }
+
         if (invites.isEmpty()) {
             ctx.sendMessage(prefix().insert(msg("You have no pending invites.", COLOR_RED)));
             return;
         }
 
         PendingInvite invite;
-        if (args.length > 0) {
-            String factionName = String.join(" ", args);
+        if (fctx.hasArgs()) {
+            String factionName = fctx.joinArgs();
             Faction targetFaction = hyperFactions.getFactionManager().getFactionByName(factionName);
             if (targetFaction == null) {
                 ctx.sendMessage(prefix().insert(msg("Faction '" + factionName + "' not found.", COLOR_RED)));
@@ -336,15 +451,36 @@ public class FactionCommand extends AbstractPlayerCommand {
     }
 
     // === Request ===
-    private void handleRequest(CommandContext ctx, PlayerRef player, String[] args) {
-        if (args.length == 0) {
-            ctx.sendMessage(prefix().insert(msg("Usage: /f request <faction> [message]", COLOR_RED)));
+    private void handleRequest(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
+                                PlayerRef player, FactionCommandContext fctx) {
+        // Check if player is already in a faction
+        if (hyperFactions.getFactionManager().isInFaction(player.getUuid())) {
+            Faction existingFaction = hyperFactions.getFactionManager().getPlayerFaction(player.getUuid());
+            if (existingFaction != null) {
+                ctx.sendMessage(prefix().insert(msg("You are already in ", COLOR_RED))
+                    .insert(msg(existingFaction.name(), COLOR_CYAN))
+                    .insert(msg(".", COLOR_RED)));
+                ctx.sendMessage(prefix().insert(msg("Use /f leave first if you want to join another faction.", COLOR_YELLOW)));
+            } else {
+                ctx.sendMessage(prefix().insert(msg("You are already in a faction.", COLOR_RED)));
+            }
             return;
         }
 
-        // Check if player is already in a faction
-        if (hyperFactions.getFactionManager().isInFaction(player.getUuid())) {
-            ctx.sendMessage(prefix().insert(msg("You are already in a faction.", COLOR_RED)));
+        String[] args = fctx.getArgs();
+
+        // GUI mode: Open faction browser if no args and not text mode
+        if (!fctx.hasArgs() && !fctx.isTextMode()) {
+            Player playerEntity = store.getComponent(ref, Player.getComponentType());
+            if (playerEntity != null) {
+                hyperFactions.getGuiManager().openFactionBrowser(playerEntity, ref, store, player);
+            }
+            return;
+        }
+
+        // Text mode requires faction name
+        if (args.length == 0) {
+            ctx.sendMessage(prefix().insert(msg("Usage: /f request <faction> [message]", COLOR_RED)));
             return;
         }
 
@@ -413,45 +549,88 @@ public class FactionCommand extends AbstractPlayerCommand {
                 }
             }
         }
+
+        // After action, open faction info page if not text mode (to show the faction they requested to join)
+        if (fctx.shouldOpenGuiAfterAction()) {
+            Player playerEntity = store.getComponent(ref, Player.getComponentType());
+            if (playerEntity != null) {
+                hyperFactions.getGuiManager().openFactionInfo(playerEntity, ref, store, player, faction);
+            }
+        }
     }
 
     // === Leave ===
-    private void handleLeave(CommandContext ctx, PlayerRef player) {
-        UUID factionId = hyperFactions.getFactionManager().getPlayerFactionId(player.getUuid());
-        if (factionId == null) {
-            ctx.sendMessage(prefix().insert(msg("You are not in a faction.", COLOR_RED)));
-            return;
-        }
-
-        FactionManager.FactionResult result = hyperFactions.getFactionManager().removeMember(
-            factionId, player.getUuid(), player.getUuid(), false
-        );
-
-        switch (result) {
-            case SUCCESS -> {
-                ctx.sendMessage(prefix().insert(msg("You have left your faction.", COLOR_GREEN)));
-                broadcastToFaction(factionId, prefix().insert(msg(player.getUsername(), COLOR_YELLOW))
-                    .insert(msg(" has left the faction.", COLOR_RED)));
-            }
-            case CANNOT_KICK_LEADER -> ctx.sendMessage(prefix().insert(msg("You cannot leave as leader. Transfer leadership or disband first.", COLOR_RED)));
-            default -> ctx.sendMessage(prefix().insert(msg("Failed to leave faction.", COLOR_RED)));
-        }
-    }
-
-    // === Kick ===
-    private void handleKick(CommandContext ctx, PlayerRef player, String[] args) {
-        if (args.length == 0) {
-            ctx.sendMessage(prefix().insert(msg("Usage: /f kick <player>", COLOR_RED)));
-            return;
-        }
-
+    private void handleLeave(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
+                             PlayerRef player, FactionCommandContext fctx) {
         Faction faction = hyperFactions.getFactionManager().getPlayerFaction(player.getUuid());
         if (faction == null) {
             ctx.sendMessage(prefix().insert(msg("You are not in a faction.", COLOR_RED)));
             return;
         }
 
-        String targetName = args[0];
+        // Check if leader (cannot leave)
+        FactionMember member = faction.getMember(player.getUuid());
+        if (member != null && member.isLeader()) {
+            ctx.sendMessage(prefix().insert(msg("You cannot leave as leader. Transfer leadership or disband first.", COLOR_RED)));
+            return;
+        }
+
+        // GUI mode: open LeaveConfirmPage
+        if (!fctx.isTextMode()) {
+            Player playerEntity = store.getComponent(ref, Player.getComponentType());
+            if (playerEntity != null) {
+                hyperFactions.getGuiManager().openLeaveConfirm(playerEntity, ref, store, player, faction);
+                return;
+            }
+        }
+
+        // Text mode: require confirmation
+        ConfirmationManager confirmManager = hyperFactions.getConfirmationManager();
+        ConfirmationResult confirmResult = confirmManager.checkOrCreate(
+            player.getUuid(), ConfirmationType.LEAVE, null
+        );
+
+        switch (confirmResult) {
+            case NEEDS_CONFIRMATION, EXPIRED_RECREATED -> {
+                ctx.sendMessage(prefix().insert(msg("Are you sure you want to leave your faction?", COLOR_YELLOW)));
+                ctx.sendMessage(prefix().insert(msg("Type ", COLOR_YELLOW))
+                    .insert(msg("/f leave --text", COLOR_WHITE))
+                    .insert(msg(" again within " + confirmManager.getTimeoutSeconds() + " seconds to confirm.", COLOR_YELLOW)));
+            }
+            case CONFIRMED -> {
+                UUID factionId = faction.id();
+                FactionManager.FactionResult result = hyperFactions.getFactionManager().removeMember(
+                    factionId, player.getUuid(), player.getUuid(), false
+                );
+                if (result == FactionManager.FactionResult.SUCCESS) {
+                    ctx.sendMessage(prefix().insert(msg("You have left your faction.", COLOR_GREEN)));
+                    broadcastToFaction(factionId, prefix().insert(msg(player.getUsername(), COLOR_YELLOW))
+                        .insert(msg(" has left the faction.", COLOR_RED)));
+                } else {
+                    ctx.sendMessage(prefix().insert(msg("Failed to leave faction.", COLOR_RED)));
+                }
+            }
+            case DIFFERENT_ACTION -> {
+                ctx.sendMessage(prefix().insert(msg("Previous confirmation cancelled. Type again to confirm leave.", COLOR_YELLOW)));
+            }
+        }
+    }
+
+    // === Kick ===
+    private void handleKick(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
+                            PlayerRef player, FactionCommandContext fctx) {
+        Faction faction = hyperFactions.getFactionManager().getPlayerFaction(player.getUuid());
+        if (faction == null) {
+            ctx.sendMessage(prefix().insert(msg("You are not in a faction.", COLOR_RED)));
+            return;
+        }
+
+        if (!fctx.hasArgs()) {
+            ctx.sendMessage(prefix().insert(msg("Usage: /f kick <player>", COLOR_RED)));
+            return;
+        }
+
+        String targetName = fctx.getArg(0);
         FactionMember target = faction.members().values().stream()
             .filter(m -> m.username().equalsIgnoreCase(targetName))
             .findFirst().orElse(null);
@@ -475,6 +654,13 @@ public class FactionCommand extends AbstractPlayerCommand {
                 if (targetPlayer != null) {
                     targetPlayer.sendMessage(prefix().insert(msg("You have been kicked from the faction.", COLOR_RED)));
                 }
+                // Show members page after action (if not text mode)
+                if (!fctx.isTextMode()) {
+                    Player playerEntity = store.getComponent(ref, Player.getComponentType());
+                    if (playerEntity != null) {
+                        hyperFactions.getGuiManager().openFactionMembers(playerEntity, ref, store, player, faction);
+                    }
+                }
             }
             case NOT_OFFICER -> ctx.sendMessage(prefix().insert(msg("You don't have permission to kick that player.", COLOR_RED)));
             case CANNOT_KICK_LEADER -> ctx.sendMessage(prefix().insert(msg("You cannot kick the faction leader.", COLOR_RED)));
@@ -483,19 +669,20 @@ public class FactionCommand extends AbstractPlayerCommand {
     }
 
     // === Promote ===
-    private void handlePromote(CommandContext ctx, PlayerRef player, String[] args) {
-        if (args.length == 0) {
-            ctx.sendMessage(prefix().insert(msg("Usage: /f promote <player>", COLOR_RED)));
-            return;
-        }
-
+    private void handlePromote(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
+                               PlayerRef player, FactionCommandContext fctx) {
         Faction faction = hyperFactions.getFactionManager().getPlayerFaction(player.getUuid());
         if (faction == null) {
             ctx.sendMessage(prefix().insert(msg("You are not in a faction.", COLOR_RED)));
             return;
         }
 
-        String targetName = args[0];
+        if (!fctx.hasArgs()) {
+            ctx.sendMessage(prefix().insert(msg("Usage: /f promote <player>", COLOR_RED)));
+            return;
+        }
+
+        String targetName = fctx.getArg(0);
         FactionMember target = faction.members().values().stream()
             .filter(m -> m.username().equalsIgnoreCase(targetName))
             .findFirst().orElse(null);
@@ -515,6 +702,13 @@ public class FactionCommand extends AbstractPlayerCommand {
                     .insert(msg(target.username(), COLOR_YELLOW)).insert(msg(" to Officer!", COLOR_GREEN)));
                 broadcastToFaction(faction.id(), prefix().insert(msg(target.username(), COLOR_YELLOW))
                     .insert(msg(" was promoted to Officer!", COLOR_GREEN)));
+                // Show members page after action (if not text mode)
+                if (!fctx.isTextMode()) {
+                    Player playerEntity = store.getComponent(ref, Player.getComponentType());
+                    if (playerEntity != null) {
+                        hyperFactions.getGuiManager().openFactionMembers(playerEntity, ref, store, player, faction);
+                    }
+                }
             }
             case NOT_LEADER -> ctx.sendMessage(prefix().insert(msg("Only the leader can promote members.", COLOR_RED)));
             case CANNOT_PROMOTE_LEADER -> ctx.sendMessage(prefix().insert(msg("Cannot promote further. Use /f transfer to change leader.", COLOR_RED)));
@@ -523,19 +717,20 @@ public class FactionCommand extends AbstractPlayerCommand {
     }
 
     // === Demote ===
-    private void handleDemote(CommandContext ctx, PlayerRef player, String[] args) {
-        if (args.length == 0) {
-            ctx.sendMessage(prefix().insert(msg("Usage: /f demote <player>", COLOR_RED)));
-            return;
-        }
-
+    private void handleDemote(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
+                              PlayerRef player, FactionCommandContext fctx) {
         Faction faction = hyperFactions.getFactionManager().getPlayerFaction(player.getUuid());
         if (faction == null) {
             ctx.sendMessage(prefix().insert(msg("You are not in a faction.", COLOR_RED)));
             return;
         }
 
-        String targetName = args[0];
+        if (!fctx.hasArgs()) {
+            ctx.sendMessage(prefix().insert(msg("Usage: /f demote <player>", COLOR_RED)));
+            return;
+        }
+
+        String targetName = fctx.getArg(0);
         FactionMember target = faction.members().values().stream()
             .filter(m -> m.username().equalsIgnoreCase(targetName))
             .findFirst().orElse(null);
@@ -555,6 +750,13 @@ public class FactionCommand extends AbstractPlayerCommand {
                     .insert(msg(target.username(), COLOR_YELLOW)).insert(msg(" to Member.", COLOR_GREEN)));
                 broadcastToFaction(faction.id(), prefix().insert(msg(target.username(), COLOR_YELLOW))
                     .insert(msg(" was demoted to Member.", COLOR_RED)));
+                // Show members page after action (if not text mode)
+                if (!fctx.isTextMode()) {
+                    Player playerEntity = store.getComponent(ref, Player.getComponentType());
+                    if (playerEntity != null) {
+                        hyperFactions.getGuiManager().openFactionMembers(playerEntity, ref, store, player, faction);
+                    }
+                }
             }
             case NOT_LEADER -> ctx.sendMessage(prefix().insert(msg("Only the leader can demote members.", COLOR_RED)));
             case CANNOT_DEMOTE_MEMBER -> ctx.sendMessage(prefix().insert(msg("That player is already a Member.", COLOR_RED)));
@@ -563,19 +765,27 @@ public class FactionCommand extends AbstractPlayerCommand {
     }
 
     // === Transfer ===
-    private void handleTransfer(CommandContext ctx, PlayerRef player, String[] args) {
-        if (args.length == 0) {
-            ctx.sendMessage(prefix().insert(msg("Usage: /f transfer <player>", COLOR_RED)));
-            return;
-        }
-
+    private void handleTransfer(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
+                                PlayerRef player, FactionCommandContext fctx) {
         Faction faction = hyperFactions.getFactionManager().getPlayerFaction(player.getUuid());
         if (faction == null) {
             ctx.sendMessage(prefix().insert(msg("You are not in a faction.", COLOR_RED)));
             return;
         }
 
-        String targetName = args[0];
+        // Check if leader
+        FactionMember member = faction.getMember(player.getUuid());
+        if (member == null || !member.isLeader()) {
+            ctx.sendMessage(prefix().insert(msg("Only the leader can transfer leadership.", COLOR_RED)));
+            return;
+        }
+
+        if (!fctx.hasArgs()) {
+            ctx.sendMessage(prefix().insert(msg("Usage: /f transfer <player>", COLOR_RED)));
+            return;
+        }
+
+        String targetName = fctx.getArg(0);
         FactionMember target = faction.members().values().stream()
             .filter(m -> m.username().equalsIgnoreCase(targetName))
             .findFirst().orElse(null);
@@ -585,24 +795,59 @@ public class FactionCommand extends AbstractPlayerCommand {
             return;
         }
 
-        FactionManager.FactionResult result = hyperFactions.getFactionManager().transferLeadership(
-            faction.id(), target.uuid(), player.getUuid()
+        // GUI mode: open TransferConfirmPage
+        if (!fctx.isTextMode()) {
+            Player playerEntity = store.getComponent(ref, Player.getComponentType());
+            if (playerEntity != null) {
+                hyperFactions.getGuiManager().openTransferConfirm(playerEntity, ref, store, player, faction,
+                        target.uuid(), target.username());
+                return;
+            }
+        }
+
+        // Text mode: require confirmation
+        ConfirmationManager confirmManager = hyperFactions.getConfirmationManager();
+        ConfirmationResult confirmResult = confirmManager.checkOrCreate(
+            player.getUuid(), ConfirmationType.TRANSFER, target.uuid()
         );
 
-        switch (result) {
-            case SUCCESS -> {
-                ctx.sendMessage(prefix().insert(msg("Transferred leadership to ", COLOR_GREEN))
-                    .insert(msg(target.username(), COLOR_YELLOW)).insert(msg("!", COLOR_GREEN)));
-                broadcastToFaction(faction.id(), prefix().insert(msg(target.username(), COLOR_YELLOW))
-                    .insert(msg(" is now the faction leader!", COLOR_GREEN)));
+        switch (confirmResult) {
+            case NEEDS_CONFIRMATION, EXPIRED_RECREATED -> {
+                ctx.sendMessage(prefix().insert(msg("Are you sure you want to transfer leadership to ", COLOR_YELLOW))
+                    .insert(msg(target.username(), COLOR_WHITE)).insert(msg("?", COLOR_YELLOW)));
+                ctx.sendMessage(prefix().insert(msg("Type ", COLOR_YELLOW))
+                    .insert(msg("/f transfer " + target.username() + " --text", COLOR_WHITE))
+                    .insert(msg(" again within " + confirmManager.getTimeoutSeconds() + " seconds to confirm.", COLOR_YELLOW)));
             }
-            case NOT_LEADER -> ctx.sendMessage(prefix().insert(msg("Only the leader can transfer leadership.", COLOR_RED)));
-            default -> ctx.sendMessage(prefix().insert(msg("Failed to transfer leadership.", COLOR_RED)));
+            case CONFIRMED -> {
+                FactionManager.FactionResult result = hyperFactions.getFactionManager().transferLeadership(
+                    faction.id(), target.uuid(), player.getUuid()
+                );
+                if (result == FactionManager.FactionResult.SUCCESS) {
+                    ctx.sendMessage(prefix().insert(msg("Transferred leadership to ", COLOR_GREEN))
+                        .insert(msg(target.username(), COLOR_YELLOW)).insert(msg("!", COLOR_GREEN)));
+                    broadcastToFaction(faction.id(), prefix().insert(msg(target.username(), COLOR_YELLOW))
+                        .insert(msg(" is now the faction leader!", COLOR_GREEN)));
+                } else {
+                    ctx.sendMessage(prefix().insert(msg("Failed to transfer leadership.", COLOR_RED)));
+                }
+            }
+            case DIFFERENT_ACTION -> {
+                ctx.sendMessage(prefix().insert(msg("Previous confirmation cancelled. Type again to confirm transfer.", COLOR_YELLOW)));
+            }
         }
     }
 
     // === Claim ===
-    private void handleClaim(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref, PlayerRef player, World world) {
+    private void handleClaim(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
+                             PlayerRef player, World world, FactionCommandContext fctx) {
+        // Upfront faction check - consistent error handling
+        Faction faction = hyperFactions.getFactionManager().getPlayerFaction(player.getUuid());
+        if (faction == null) {
+            ctx.sendMessage(prefix().insert(msg("You are not in a faction.", COLOR_RED)));
+            return;
+        }
+
         TransformComponent transform = store.getComponent(ref, TransformComponent.getComponentType());
         if (transform == null) return;
 
@@ -610,12 +855,53 @@ public class FactionCommand extends AbstractPlayerCommand {
         int chunkX = (int) Math.floor(pos.getX()) >> 4;
         int chunkZ = (int) Math.floor(pos.getZ()) >> 4;
 
+        // Context-aware behavior - check current chunk status
+        UUID playerFactionId = faction.id();
+        UUID chunkOwner = hyperFactions.getClaimManager().getClaimOwner(world.getName(), chunkX, chunkZ);
+
+        // If own territory and not text mode, just show map
+        if (playerFactionId != null && playerFactionId.equals(chunkOwner) && !fctx.isTextMode()) {
+            Player playerEntity = store.getComponent(ref, Player.getComponentType());
+            if (playerEntity != null) {
+                ctx.sendMessage(prefix().insert(msg("Your faction already owns this chunk.", COLOR_GRAY)));
+                hyperFactions.getGuiManager().openChunkMap(playerEntity, ref, store, player);
+                return;
+            }
+        }
+
+        // If enemy territory and not text mode, suggest overclaim via map
+        if (chunkOwner != null && !chunkOwner.equals(playerFactionId) && !fctx.isTextMode()) {
+            boolean isAlly = playerFactionId != null && hyperFactions.getRelationManager().areAllies(playerFactionId, chunkOwner);
+            if (isAlly) {
+                ctx.sendMessage(prefix().insert(msg("You cannot claim ally territory.", COLOR_RED)));
+            } else {
+                ctx.sendMessage(prefix().insert(msg("This chunk is claimed. Use ", COLOR_RED))
+                    .insert(msg("/f overclaim", COLOR_WHITE))
+                    .insert(msg(" if they are raidable.", COLOR_RED)));
+            }
+            Player playerEntity = store.getComponent(ref, Player.getComponentType());
+            if (playerEntity != null) {
+                hyperFactions.getGuiManager().openChunkMap(playerEntity, ref, store, player);
+            }
+            return;
+        }
+
+        // Execute claim
         ClaimManager.ClaimResult result = hyperFactions.getClaimManager().claim(
             player.getUuid(), world.getName(), chunkX, chunkZ
         );
 
         switch (result) {
-            case SUCCESS -> ctx.sendMessage(prefix().insert(msg("Claimed chunk at " + chunkX + ", " + chunkZ + "!", COLOR_GREEN)));
+            case SUCCESS -> {
+                ctx.sendMessage(prefix().insert(msg("Claimed chunk at " + chunkX + ", " + chunkZ + "!", COLOR_GREEN)));
+                // Show map after claiming (if not text mode)
+                if (!fctx.isTextMode()) {
+                    Player playerEntity = store.getComponent(ref, Player.getComponentType());
+                    if (playerEntity != null) {
+                        hyperFactions.getGuiManager().openChunkMap(playerEntity, ref, store, player);
+                    }
+                }
+            }
             case NOT_IN_FACTION -> ctx.sendMessage(prefix().insert(msg("You are not in a faction.", COLOR_RED)));
             case NOT_OFFICER -> ctx.sendMessage(prefix().insert(msg("You must be an officer to claim land.", COLOR_RED)));
             case ALREADY_CLAIMED_SELF -> ctx.sendMessage(prefix().insert(msg("Your faction already owns this chunk.", COLOR_RED)));
@@ -628,7 +914,15 @@ public class FactionCommand extends AbstractPlayerCommand {
     }
 
     // === Unclaim ===
-    private void handleUnclaim(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref, PlayerRef player, World world) {
+    private void handleUnclaim(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
+                               PlayerRef player, World world, FactionCommandContext fctx) {
+        // Upfront faction check - consistent error handling
+        Faction faction = hyperFactions.getFactionManager().getPlayerFaction(player.getUuid());
+        if (faction == null) {
+            ctx.sendMessage(prefix().insert(msg("You are not in a faction.", COLOR_RED)));
+            return;
+        }
+
         TransformComponent transform = store.getComponent(ref, TransformComponent.getComponentType());
         if (transform == null) return;
 
@@ -641,7 +935,16 @@ public class FactionCommand extends AbstractPlayerCommand {
         );
 
         switch (result) {
-            case SUCCESS -> ctx.sendMessage(prefix().insert(msg("Unclaimed chunk at " + chunkX + ", " + chunkZ + ".", COLOR_GREEN)));
+            case SUCCESS -> {
+                ctx.sendMessage(prefix().insert(msg("Unclaimed chunk at " + chunkX + ", " + chunkZ + ".", COLOR_GREEN)));
+                // Show map after unclaiming (if not text mode)
+                if (!fctx.isTextMode()) {
+                    Player playerEntity = store.getComponent(ref, Player.getComponentType());
+                    if (playerEntity != null) {
+                        hyperFactions.getGuiManager().openChunkMap(playerEntity, ref, store, player);
+                    }
+                }
+            }
             case NOT_IN_FACTION -> ctx.sendMessage(prefix().insert(msg("You are not in a faction.", COLOR_RED)));
             case NOT_OFFICER -> ctx.sendMessage(prefix().insert(msg("You must be an officer to unclaim land.", COLOR_RED)));
             case CHUNK_NOT_CLAIMED -> ctx.sendMessage(prefix().insert(msg("This chunk is not claimed.", COLOR_RED)));
@@ -652,7 +955,15 @@ public class FactionCommand extends AbstractPlayerCommand {
     }
 
     // === Overclaim ===
-    private void handleOverclaim(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref, PlayerRef player, World world) {
+    private void handleOverclaim(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
+                                 PlayerRef player, World world, FactionCommandContext fctx) {
+        // Upfront faction check - consistent error handling
+        Faction faction = hyperFactions.getFactionManager().getPlayerFaction(player.getUuid());
+        if (faction == null) {
+            ctx.sendMessage(prefix().insert(msg("You are not in a faction.", COLOR_RED)));
+            return;
+        }
+
         TransformComponent transform = store.getComponent(ref, TransformComponent.getComponentType());
         if (transform == null) return;
 
@@ -665,7 +976,16 @@ public class FactionCommand extends AbstractPlayerCommand {
         );
 
         switch (result) {
-            case SUCCESS -> ctx.sendMessage(prefix().insert(msg("Overclaimed enemy territory!", COLOR_GREEN)));
+            case SUCCESS -> {
+                ctx.sendMessage(prefix().insert(msg("Overclaimed enemy territory!", COLOR_GREEN)));
+                // Show map after overclaiming (if not text mode)
+                if (!fctx.isTextMode()) {
+                    Player playerEntity = store.getComponent(ref, Player.getComponentType());
+                    if (playerEntity != null) {
+                        hyperFactions.getGuiManager().openChunkMap(playerEntity, ref, store, player);
+                    }
+                }
+            }
             case NOT_IN_FACTION -> ctx.sendMessage(prefix().insert(msg("You are not in a faction.", COLOR_RED)));
             case NOT_OFFICER -> ctx.sendMessage(prefix().insert(msg("You must be an officer to overclaim.", COLOR_RED)));
             case CHUNK_NOT_CLAIMED -> ctx.sendMessage(prefix().insert(msg("This chunk is not claimed. Use /f claim.", COLOR_RED)));
@@ -679,6 +999,13 @@ public class FactionCommand extends AbstractPlayerCommand {
 
     // === Home ===
     private void handleHome(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref, PlayerRef player, World world) {
+        // Upfront faction check - consistent error handling
+        Faction faction = hyperFactions.getFactionManager().getPlayerFaction(player.getUuid());
+        if (faction == null) {
+            ctx.sendMessage(prefix().insert(msg("You are not in a faction.", COLOR_RED)));
+            return;
+        }
+
         TransformComponent transform = store.getComponent(ref, TransformComponent.getComponentType());
         if (transform == null) return;
 
@@ -699,7 +1026,7 @@ public class FactionCommand extends AbstractPlayerCommand {
             // Task canceller
             hyperFactions::cancelTask,
             // Teleport executor
-            faction -> executeTeleport(store, ref, world, faction),
+            targetFaction -> executeTeleport(store, ref, world, targetFaction),
             // Message sender - TeleportManager formats its own messages
             message -> ctx.sendMessage(Message.raw(message)),
             // Combat tag checker
@@ -789,13 +1116,29 @@ public class FactionCommand extends AbstractPlayerCommand {
     }
 
     // === Ally ===
-    private void handleAlly(CommandContext ctx, PlayerRef player, String[] args) {
-        if (args.length == 0) {
+    private void handleAlly(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
+                            PlayerRef player, FactionCommandContext fctx) {
+        Faction myFaction = hyperFactions.getFactionManager().getPlayerFaction(player.getUuid());
+        if (myFaction == null) {
+            ctx.sendMessage(prefix().insert(msg("You are not in a faction.", COLOR_RED)));
+            return;
+        }
+
+        // GUI mode: open SetRelationModal when no faction specified
+        if (!fctx.hasArgs() && !fctx.isTextMode()) {
+            Player playerEntity = store.getComponent(ref, Player.getComponentType());
+            if (playerEntity != null) {
+                hyperFactions.getGuiManager().openSetRelationModal(playerEntity, ref, store, player, myFaction);
+                return;
+            }
+        }
+
+        if (!fctx.hasArgs()) {
             ctx.sendMessage(prefix().insert(msg("Usage: /f ally <faction>", COLOR_RED)));
             return;
         }
 
-        String factionName = String.join(" ", args);
+        String factionName = fctx.joinArgs();
         Faction targetFaction = hyperFactions.getFactionManager().getFactionByName(factionName);
         if (targetFaction == null) {
             ctx.sendMessage(prefix().insert(msg("Faction '" + factionName + "' not found.", COLOR_RED)));
@@ -823,13 +1166,29 @@ public class FactionCommand extends AbstractPlayerCommand {
     }
 
     // === Enemy ===
-    private void handleEnemy(CommandContext ctx, PlayerRef player, String[] args) {
-        if (args.length == 0) {
+    private void handleEnemy(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
+                             PlayerRef player, FactionCommandContext fctx) {
+        Faction myFaction = hyperFactions.getFactionManager().getPlayerFaction(player.getUuid());
+        if (myFaction == null) {
+            ctx.sendMessage(prefix().insert(msg("You are not in a faction.", COLOR_RED)));
+            return;
+        }
+
+        // GUI mode: open SetRelationModal when no faction specified
+        if (!fctx.hasArgs() && !fctx.isTextMode()) {
+            Player playerEntity = store.getComponent(ref, Player.getComponentType());
+            if (playerEntity != null) {
+                hyperFactions.getGuiManager().openSetRelationModal(playerEntity, ref, store, player, myFaction);
+                return;
+            }
+        }
+
+        if (!fctx.hasArgs()) {
             ctx.sendMessage(prefix().insert(msg("Usage: /f enemy <faction>", COLOR_RED)));
             return;
         }
 
-        String factionName = String.join(" ", args);
+        String factionName = fctx.joinArgs();
         Faction targetFaction = hyperFactions.getFactionManager().getFactionByName(factionName);
         if (targetFaction == null) {
             ctx.sendMessage(prefix().insert(msg("Faction '" + factionName + "' not found.", COLOR_RED)));
@@ -850,13 +1209,29 @@ public class FactionCommand extends AbstractPlayerCommand {
     }
 
     // === Neutral ===
-    private void handleNeutral(CommandContext ctx, PlayerRef player, String[] args) {
-        if (args.length == 0) {
+    private void handleNeutral(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
+                               PlayerRef player, FactionCommandContext fctx) {
+        Faction myFaction = hyperFactions.getFactionManager().getPlayerFaction(player.getUuid());
+        if (myFaction == null) {
+            ctx.sendMessage(prefix().insert(msg("You are not in a faction.", COLOR_RED)));
+            return;
+        }
+
+        // GUI mode: open SetRelationModal when no faction specified
+        if (!fctx.hasArgs() && !fctx.isTextMode()) {
+            Player playerEntity = store.getComponent(ref, Player.getComponentType());
+            if (playerEntity != null) {
+                hyperFactions.getGuiManager().openSetRelationModal(playerEntity, ref, store, player, myFaction);
+                return;
+            }
+        }
+
+        if (!fctx.hasArgs()) {
             ctx.sendMessage(prefix().insert(msg("Usage: /f neutral <faction>", COLOR_RED)));
             return;
         }
 
-        String factionName = String.join(" ", args);
+        String factionName = fctx.joinArgs();
         Faction targetFaction = hyperFactions.getFactionManager().getFactionByName(factionName);
         if (targetFaction == null) {
             ctx.sendMessage(prefix().insert(msg("Faction '" + factionName + "' not found.", COLOR_RED)));
@@ -874,11 +1249,61 @@ public class FactionCommand extends AbstractPlayerCommand {
         }
     }
 
+    // === Relations ===
+    private void handleRelations(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
+                                 PlayerRef player, FactionCommandContext fctx) {
+        Faction faction = hyperFactions.getFactionManager().getPlayerFaction(player.getUuid());
+        if (faction == null) {
+            ctx.sendMessage(prefix().insert(msg("You are not in a faction.", COLOR_RED)));
+            return;
+        }
+
+        // GUI mode: open FactionRelationsPage
+        if (fctx.shouldOpenGui()) {
+            Player playerEntity = store.getComponent(ref, Player.getComponentType());
+            if (playerEntity != null) {
+                hyperFactions.getGuiManager().openFactionRelations(playerEntity, ref, store, player, faction);
+                return;
+            }
+        }
+
+        // Text mode: list relations
+        List<UUID> allies = hyperFactions.getRelationManager().getAllies(faction.id());
+        List<UUID> enemies = hyperFactions.getRelationManager().getEnemies(faction.id());
+
+        ctx.sendMessage(msg("=== Faction Relations ===", COLOR_CYAN).bold(true));
+
+        ctx.sendMessage(msg("Allies (" + allies.size() + "):", COLOR_GREEN));
+        if (allies.isEmpty()) {
+            ctx.sendMessage(msg("  (none)", COLOR_GRAY));
+        } else {
+            for (UUID allyId : allies) {
+                Faction ally = hyperFactions.getFactionManager().getFaction(allyId);
+                if (ally != null) {
+                    ctx.sendMessage(msg("  - ", COLOR_GRAY).insert(msg(ally.name(), COLOR_GREEN)));
+                }
+            }
+        }
+
+        ctx.sendMessage(msg("Enemies (" + enemies.size() + "):", COLOR_RED));
+        if (enemies.isEmpty()) {
+            ctx.sendMessage(msg("  (none)", COLOR_GRAY));
+        } else {
+            for (UUID enemyId : enemies) {
+                Faction enemy = hyperFactions.getFactionManager().getFaction(enemyId);
+                if (enemy != null) {
+                    ctx.sendMessage(msg("  - ", COLOR_GRAY).insert(msg(enemy.name(), COLOR_RED)));
+                }
+            }
+        }
+    }
+
     // === Info ===
-    private void handleInfo(CommandContext ctx, PlayerRef player, String[] args) {
+    private void handleInfo(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
+                            PlayerRef player, FactionCommandContext fctx) {
         Faction faction;
-        if (args.length > 0) {
-            String factionName = String.join(" ", args);
+        if (fctx.hasArgs()) {
+            String factionName = fctx.joinArgs();
             faction = hyperFactions.getFactionManager().getFactionByName(factionName);
             if (faction == null) {
                 ctx.sendMessage(prefix().insert(msg("Faction '" + factionName + "' not found.", COLOR_RED)));
@@ -892,6 +1317,16 @@ public class FactionCommand extends AbstractPlayerCommand {
             }
         }
 
+        // GUI mode: open FactionInfoPage (default when no args and no --text flag)
+        if (!fctx.isTextMode()) {
+            Player playerEntity = store.getComponent(ref, Player.getComponentType());
+            if (playerEntity != null) {
+                hyperFactions.getGuiManager().openFactionInfo(playerEntity, ref, store, player, faction);
+                return;
+            }
+        }
+
+        // Text mode: output to chat
         PowerManager.FactionPowerStats stats = hyperFactions.getPowerManager().getFactionPowerStats(faction.id());
         FactionMember leader = faction.getLeader();
 
@@ -906,7 +1341,18 @@ public class FactionCommand extends AbstractPlayerCommand {
     }
 
     // === List ===
-    private void handleList(CommandContext ctx, PlayerRef player) {
+    private void handleList(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
+                            PlayerRef player, FactionCommandContext fctx) {
+        // GUI mode: open FactionBrowserPage
+        if (fctx.shouldOpenGui()) {
+            Player playerEntity = store.getComponent(ref, Player.getComponentType());
+            if (playerEntity != null) {
+                hyperFactions.getGuiManager().openFactionBrowser(playerEntity, ref, store, player);
+                return;
+            }
+        }
+
+        // Text mode: output to chat
         Collection<Faction> factions = hyperFactions.getFactionManager().getAllFactions();
         if (factions.isEmpty()) {
             ctx.sendMessage(prefix().insert(msg("There are no factions.", COLOR_GRAY)));
@@ -923,7 +1369,18 @@ public class FactionCommand extends AbstractPlayerCommand {
     }
 
     // === Map ===
-    private void handleMap(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref, PlayerRef player, World world) {
+    private void handleMap(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
+                           PlayerRef player, World world, FactionCommandContext fctx) {
+        // GUI mode: open ChunkMapPage
+        if (fctx.shouldOpenGui()) {
+            Player playerEntity = store.getComponent(ref, Player.getComponentType());
+            if (playerEntity != null) {
+                hyperFactions.getGuiManager().openChunkMap(playerEntity, ref, store, player);
+                return;
+            }
+        }
+
+        // Text mode: ASCII map
         TransformComponent transform = store.getComponent(ref, TransformComponent.getComponentType());
         if (transform == null) return;
 
@@ -975,18 +1432,141 @@ public class FactionCommand extends AbstractPlayerCommand {
         hyperFactions.getGuiManager().openFactionMain(player, ref, store, playerRef);
     }
 
+    // === Members ===
+    private void handleMembers(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
+                               PlayerRef player, FactionCommandContext fctx) {
+        Faction faction = hyperFactions.getFactionManager().getPlayerFaction(player.getUuid());
+        if (faction == null) {
+            ctx.sendMessage(prefix().insert(msg("You are not in a faction.", COLOR_RED)));
+            return;
+        }
+
+        // GUI mode: open FactionMembersPage
+        if (fctx.shouldOpenGui()) {
+            Player playerEntity = store.getComponent(ref, Player.getComponentType());
+            if (playerEntity != null) {
+                hyperFactions.getGuiManager().openFactionMembers(playerEntity, ref, store, player, faction);
+                return;
+            }
+        }
+
+        // Text mode: output member list to chat
+        List<FactionMember> members = faction.getMembersSorted();
+        ctx.sendMessage(msg("=== " + faction.name() + " Members (" + members.size() + ") ===", COLOR_CYAN).bold(true));
+
+        for (FactionMember member : members) {
+            String roleColor = switch (member.role()) {
+                case LEADER -> COLOR_YELLOW;
+                case OFFICER -> COLOR_GREEN;
+                default -> COLOR_GRAY;
+            };
+            boolean isOnline = plugin.getTrackedPlayer(member.uuid()) != null;
+            String status = isOnline ? " [Online]" : "";
+            ctx.sendMessage(msg(member.role().getDisplayName() + " ", roleColor)
+                .insert(msg(member.username(), COLOR_WHITE))
+                .insert(msg(status, isOnline ? COLOR_GREEN : COLOR_GRAY)));
+        }
+    }
+
+    // === Invites ===
+    private void handleInvites(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
+                               PlayerRef player, FactionCommandContext fctx) {
+        Faction faction = hyperFactions.getFactionManager().getPlayerFaction(player.getUuid());
+
+        // Player has a faction - show FactionInvitesPage (outgoing invites, incoming requests)
+        if (faction != null) {
+            FactionMember member = faction.getMember(player.getUuid());
+            if (member == null || !member.isOfficerOrHigher()) {
+                ctx.sendMessage(prefix().insert(msg("You must be an officer to manage invites.", COLOR_RED)));
+                return;
+            }
+
+            // GUI mode: open FactionInvitesPage
+            if (fctx.shouldOpenGui()) {
+                Player playerEntity = store.getComponent(ref, Player.getComponentType());
+                if (playerEntity != null) {
+                    hyperFactions.getGuiManager().openFactionInvites(playerEntity, ref, store, player, faction);
+                    return;
+                }
+            }
+
+            // Text mode: show outgoing invites and incoming requests
+            List<PendingInvite> invites = hyperFactions.getInviteManager().getFactionInvitesList(faction.id());
+            List<JoinRequest> requests = hyperFactions.getJoinRequestManager().getFactionRequests(faction.id());
+
+            ctx.sendMessage(msg("=== Faction Invites ===", COLOR_CYAN).bold(true));
+
+            if (invites.isEmpty() && requests.isEmpty()) {
+                ctx.sendMessage(msg("No pending invites or requests.", COLOR_GRAY));
+                return;
+            }
+
+            if (!invites.isEmpty()) {
+                ctx.sendMessage(msg("Outgoing Invites:", COLOR_YELLOW));
+                for (PendingInvite invite : invites) {
+                    String inviterName = plugin.getTrackedPlayer(invite.invitedBy()) != null
+                        ? plugin.getTrackedPlayer(invite.invitedBy()).getUsername()
+                        : "Unknown";
+                    ctx.sendMessage(msg("  - ", COLOR_GRAY)
+                        .insert(msg(invite.playerUuid().toString().substring(0, 8), COLOR_WHITE))
+                        .insert(msg(" (invited by " + inviterName + ")", COLOR_GRAY)));
+                }
+            }
+
+            if (!requests.isEmpty()) {
+                ctx.sendMessage(msg("Join Requests:", COLOR_GREEN));
+                for (JoinRequest request : requests) {
+                    String message = request.message() != null ? " \"" + request.message() + "\"" : "";
+                    ctx.sendMessage(msg("  - ", COLOR_GRAY)
+                        .insert(msg(request.playerName(), COLOR_WHITE))
+                        .insert(msg(message, COLOR_GRAY)));
+                }
+            }
+        } else {
+            // Player has no faction - show InvitesPage (incoming invites)
+            // GUI mode: open InvitesPage
+            if (fctx.shouldOpenGui()) {
+                Player playerEntity = store.getComponent(ref, Player.getComponentType());
+                if (playerEntity != null) {
+                    hyperFactions.getGuiManager().openInvitesPage(playerEntity, ref, store, player);
+                    return;
+                }
+            }
+
+            // Text mode: show incoming invites
+            List<PendingInvite> invites = hyperFactions.getInviteManager().getPlayerInvites(player.getUuid());
+
+            ctx.sendMessage(msg("=== Your Invites ===", COLOR_CYAN).bold(true));
+
+            if (invites.isEmpty()) {
+                ctx.sendMessage(msg("You have no pending invites.", COLOR_GRAY));
+                return;
+            }
+
+            for (PendingInvite invite : invites) {
+                Faction invitingFaction = hyperFactions.getFactionManager().getFaction(invite.factionId());
+                if (invitingFaction != null) {
+                    ctx.sendMessage(msg("  - ", COLOR_GRAY)
+                        .insert(msg(invitingFaction.name(), COLOR_YELLOW))
+                        .insert(msg(" - Use /f accept " + invitingFaction.name(), COLOR_GRAY)));
+                }
+            }
+        }
+    }
+
     // === Who ===
-    private void handleWho(CommandContext ctx, PlayerRef player, String[] args) {
+    private void handleWho(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
+                           PlayerRef player, FactionCommandContext fctx) {
         String targetName;
         UUID targetUuid = null;
 
-        if (args.length == 0) {
+        if (!fctx.hasArgs()) {
             // Show own info
             targetName = player.getUsername();
             targetUuid = player.getUuid();
         } else {
             // Look up target player
-            targetName = args[0];
+            targetName = fctx.getArg(0);
 
             // First check online players
             for (PlayerRef online : plugin.getTrackedPlayers().values()) {
@@ -1017,6 +1597,16 @@ public class FactionCommand extends AbstractPlayerCommand {
             return;
         }
 
+        // GUI mode: open PlayerInfoPage
+        if (!fctx.isTextMode()) {
+            Player playerEntity = store.getComponent(ref, Player.getComponentType());
+            if (playerEntity != null) {
+                hyperFactions.getGuiManager().openPlayerInfo(playerEntity, ref, store, player, targetUuid, targetName);
+                return;
+            }
+        }
+
+        // Text mode: output to chat
         // Get faction info
         Faction faction = hyperFactions.getFactionManager().getPlayerFaction(targetUuid);
         FactionMember member = faction != null ? faction.getMember(targetUuid) : null;
@@ -1047,17 +1637,18 @@ public class FactionCommand extends AbstractPlayerCommand {
     }
 
     // === Power ===
-    private void handlePower(CommandContext ctx, PlayerRef player, String[] args) {
+    private void handlePower(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
+                             PlayerRef player, FactionCommandContext fctx) {
         UUID targetUuid;
         String targetName;
 
-        if (args.length == 0) {
+        if (!fctx.hasArgs()) {
             // Show own power
             targetUuid = player.getUuid();
             targetName = player.getUsername();
         } else {
             // Look up target player
-            targetName = args[0];
+            targetName = fctx.getArg(0);
             targetUuid = null;
 
             // First check online players
@@ -1089,6 +1680,16 @@ public class FactionCommand extends AbstractPlayerCommand {
             }
         }
 
+        // GUI mode: open PlayerInfoPage (same as /f who, but focused on power)
+        if (!fctx.isTextMode()) {
+            Player playerEntity = store.getComponent(ref, Player.getComponentType());
+            if (playerEntity != null) {
+                hyperFactions.getGuiManager().openPlayerInfo(playerEntity, ref, store, player, targetUuid, targetName);
+                return;
+            }
+        }
+
+        // Text mode: output power to chat
         PlayerPower power = hyperFactions.getPowerManager().getPlayerPower(targetUuid);
         ctx.sendMessage(msg(targetName + "'s Power:", COLOR_CYAN));
         ctx.sendMessage(msg("Current: ", COLOR_GRAY).insert(msg(String.format("%.1f/%.1f (%d%%)",
@@ -1265,6 +1866,356 @@ public class FactionCommand extends AbstractPlayerCommand {
         }
     }
 
+    // === Debug ===
+    private void handleDebug(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
+                              PlayerRef player, World world, String[] args) {
+        if (!hasPermission(player, "hyperfactions.admin.debug")) {
+            ctx.sendMessage(prefix().insert(msg("You don't have permission.", COLOR_RED)));
+            return;
+        }
+
+        if (args.length == 0) {
+            showDebugHelp(ctx);
+            return;
+        }
+
+        String debugCmd = args[0].toLowerCase();
+        String[] subArgs = args.length > 1 ? Arrays.copyOfRange(args, 1, args.length) : new String[0];
+
+        switch (debugCmd) {
+            case "help", "?" -> showDebugHelp(ctx);
+            case "toggle" -> handleDebugToggle(ctx, subArgs);
+            case "status" -> handleDebugStatus(ctx);
+            case "power" -> handleDebugPower(ctx, subArgs);
+            case "claim" -> handleDebugClaim(ctx, store, ref, world, subArgs);
+            case "protection" -> handleDebugProtection(ctx, store, ref, world, subArgs);
+            case "combat" -> handleDebugCombat(ctx, subArgs);
+            case "relation" -> handleDebugRelation(ctx, subArgs);
+            default -> {
+                ctx.sendMessage(prefix().insert(msg("Unknown debug command: " + debugCmd, COLOR_RED)));
+                showDebugHelp(ctx);
+            }
+        }
+    }
+
+    private void showDebugHelp(CommandContext ctx) {
+        List<CommandHelp> debugCommands = new ArrayList<>();
+        debugCommands.add(new CommandHelp("/f debug toggle <category|all>", "Toggle debug logging"));
+        debugCommands.add(new CommandHelp("/f debug status", "Show debug status"));
+        debugCommands.add(new CommandHelp("/f debug power <player>", "Show player/faction power details"));
+        debugCommands.add(new CommandHelp("/f debug claim [x z]", "Show claim info at location"));
+        debugCommands.add(new CommandHelp("/f debug protection <player>", "Show protection at location"));
+        debugCommands.add(new CommandHelp("/f debug combat <player>", "Show combat tag status"));
+        debugCommands.add(new CommandHelp("/f debug relation <f1> <f2>", "Show relation between factions"));
+        ctx.sendMessage(HelpFormatter.buildHelp("HyperFactions Debug", "Server diagnostics", debugCommands, null));
+    }
+
+    private void handleDebugToggle(CommandContext ctx, String[] args) {
+        if (args.length == 0) {
+            ctx.sendMessage(prefix().insert(msg("Usage: /f debug toggle <category|all>", COLOR_YELLOW)));
+            ctx.sendMessage(msg("Categories: power, claim, combat, protection, relation, all", COLOR_GRAY));
+            return;
+        }
+
+        String category = args[0].toLowerCase();
+
+        if (category.equals("all")) {
+            // Toggle all - if any are enabled, disable all. Otherwise enable all.
+            boolean anyEnabled = false;
+            for (Logger.DebugCategory cat : Logger.DebugCategory.values()) {
+                if (Logger.isDebugEnabled(cat)) {
+                    anyEnabled = true;
+                    break;
+                }
+            }
+
+            if (anyEnabled) {
+                Logger.disableAll();
+                ctx.sendMessage(prefix().insert(msg("Disabled all debug categories.", COLOR_RED)));
+            } else {
+                Logger.enableAll();
+                ctx.sendMessage(prefix().insert(msg("Enabled all debug categories.", COLOR_GREEN)));
+            }
+        } else {
+            // Toggle specific category
+            try {
+                Logger.DebugCategory cat = Logger.DebugCategory.valueOf(category.toUpperCase());
+                boolean newState = !Logger.isDebugEnabled(cat);
+                Logger.setDebugEnabled(cat, newState);
+                ctx.sendMessage(prefix().insert(msg((newState ? "Enabled" : "Disabled") + " debug for: " + cat.name(),
+                    newState ? COLOR_GREEN : COLOR_RED)));
+            } catch (IllegalArgumentException e) {
+                ctx.sendMessage(prefix().insert(msg("Unknown category: " + category, COLOR_RED)));
+                ctx.sendMessage(msg("Valid categories: power, claim, combat, protection, relation", COLOR_GRAY));
+            }
+        }
+    }
+
+    private void handleDebugStatus(CommandContext ctx) {
+        ctx.sendMessage(msg("=== Debug Status ===", COLOR_CYAN).bold(true));
+
+        for (Logger.DebugCategory cat : Logger.DebugCategory.values()) {
+            boolean enabled = Logger.isDebugEnabled(cat);
+            String status = enabled ? "ENABLED" : "disabled";
+            String color = enabled ? COLOR_GREEN : COLOR_GRAY;
+            ctx.sendMessage(msg("  " + cat.name() + ": ", COLOR_WHITE).insert(msg(status, color)));
+        }
+
+        ctx.sendMessage(msg("", COLOR_GRAY));
+        ctx.sendMessage(msg("Use /f debug toggle <category> to toggle", COLOR_GRAY));
+    }
+
+    private void handleDebugPower(CommandContext ctx, String[] args) {
+        if (args.length == 0) {
+            ctx.sendMessage(prefix().insert(msg("Usage: /f debug power <player>", COLOR_YELLOW)));
+            return;
+        }
+
+        String playerName = args[0];
+        PlayerRef targetRef = findOnlinePlayer(playerName);
+
+        if (targetRef == null) {
+            ctx.sendMessage(prefix().insert(msg("Player not found or offline: " + playerName, COLOR_RED)));
+            return;
+        }
+
+        UUID playerUuid = targetRef.getUuid();
+        PlayerPower power = hyperFactions.getPowerManager().getPlayerPower(playerUuid);
+
+        ctx.sendMessage(msg("=== Power Debug: " + playerName + " ===", COLOR_CYAN).bold(true));
+        ctx.sendMessage(msg("  UUID: ", COLOR_GRAY).insert(msg(playerUuid.toString(), COLOR_WHITE)));
+        ctx.sendMessage(msg("  Power: ", COLOR_GRAY).insert(msg(String.format("%.2f / %.2f", power.power(), power.maxPower()), COLOR_GREEN)));
+        ctx.sendMessage(msg("  Percent: ", COLOR_GRAY).insert(msg(String.format("%.1f%%", power.getPowerPercent() * 100), COLOR_YELLOW)));
+
+        // Faction info
+        Faction faction = hyperFactions.getFactionManager().getPlayerFaction(playerUuid);
+        if (faction != null) {
+            ctx.sendMessage(msg("", COLOR_GRAY));
+            ctx.sendMessage(msg("  Faction: ", COLOR_GRAY).insert(msg(faction.name(), COLOR_CYAN)));
+            double factionPower = hyperFactions.getPowerManager().getFactionPower(faction.id());
+            double factionMaxPower = hyperFactions.getPowerManager().getFactionMaxPower(faction.id());
+            int claimCap = hyperFactions.getPowerManager().getFactionClaimCapacity(faction.id());
+            int claimCount = faction.claims().size();
+            boolean raidable = hyperFactions.getPowerManager().isFactionRaidable(faction.id());
+
+            ctx.sendMessage(msg("  Faction Power: ", COLOR_GRAY).insert(msg(String.format("%.2f / %.2f", factionPower, factionMaxPower), COLOR_GREEN)));
+            ctx.sendMessage(msg("  Claims: ", COLOR_GRAY).insert(msg(claimCount + " / " + claimCap, claimCount > claimCap ? COLOR_RED : COLOR_GREEN)));
+            ctx.sendMessage(msg("  Raidable: ", COLOR_GRAY).insert(msg(raidable ? "YES" : "NO", raidable ? COLOR_RED : COLOR_GREEN)));
+        } else {
+            ctx.sendMessage(msg("  Faction: ", COLOR_GRAY).insert(msg("None", COLOR_GRAY)));
+        }
+    }
+
+    private void handleDebugClaim(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref, World world, String[] args) {
+        int chunkX, chunkZ;
+
+        if (args.length >= 2) {
+            try {
+                chunkX = Integer.parseInt(args[0]);
+                chunkZ = Integer.parseInt(args[1]);
+            } catch (NumberFormatException e) {
+                ctx.sendMessage(prefix().insert(msg("Invalid coordinates.", COLOR_RED)));
+                return;
+            }
+        } else {
+            // Use player's current location
+            TransformComponent transform = store.getComponent(ref, TransformComponent.getComponentType());
+            if (transform == null) {
+                ctx.sendMessage(prefix().insert(msg("Cannot determine location.", COLOR_RED)));
+                return;
+            }
+            Vector3d pos = transform.getPosition();
+            chunkX = (int) Math.floor(pos.getX()) >> 4;
+            chunkZ = (int) Math.floor(pos.getZ()) >> 4;
+        }
+
+        String worldName = world.getName();
+        ctx.sendMessage(msg("=== Claim Debug: " + worldName + " @ " + chunkX + ", " + chunkZ + " ===", COLOR_CYAN).bold(true));
+
+        // Check zone
+        Zone zone = hyperFactions.getZoneManager().getZone(worldName, chunkX, chunkZ);
+        if (zone != null) {
+            ctx.sendMessage(msg("  Zone: ", COLOR_GRAY).insert(msg(zone.name() + " (" + zone.type().getDisplayName() + ")", COLOR_YELLOW)));
+            ctx.sendMessage(msg("  Zone ID: ", COLOR_GRAY).insert(msg(zone.id().toString(), COLOR_WHITE)));
+            return;
+        }
+
+        // Check claim
+        UUID claimOwner = hyperFactions.getClaimManager().getClaimOwner(worldName, chunkX, chunkZ);
+        if (claimOwner == null) {
+            ctx.sendMessage(msg("  Status: ", COLOR_GRAY).insert(msg("Wilderness (unclaimed)", COLOR_GREEN)));
+            return;
+        }
+
+        Faction faction = hyperFactions.getFactionManager().getFaction(claimOwner);
+        if (faction == null) {
+            ctx.sendMessage(msg("  Status: ", COLOR_GRAY).insert(msg("ERROR - Unknown faction: " + claimOwner, COLOR_RED)));
+            return;
+        }
+
+        ctx.sendMessage(msg("  Owner: ", COLOR_GRAY).insert(msg(faction.name(), COLOR_CYAN)));
+        ctx.sendMessage(msg("  Faction ID: ", COLOR_GRAY).insert(msg(claimOwner.toString(), COLOR_WHITE)));
+
+        // Find claim details
+        for (FactionClaim claim : faction.claims()) {
+            if (claim.world().equals(worldName) && claim.chunkX() == chunkX && claim.chunkZ() == chunkZ) {
+                ctx.sendMessage(msg("  Claimed at: ", COLOR_GRAY).insert(msg(TimeUtil.formatDateTime(claim.claimedAt()), COLOR_WHITE)));
+                PlayerRef claimerRef = plugin.getTrackedPlayer(claim.claimedBy());
+                String claimerName = claimerRef != null ? claimerRef.getUsername() : claim.claimedBy().toString();
+                ctx.sendMessage(msg("  Claimed by: ", COLOR_GRAY).insert(msg(claimerName, COLOR_WHITE)));
+                break;
+            }
+        }
+
+        // Check if raidable
+        boolean raidable = hyperFactions.getPowerManager().isFactionRaidable(claimOwner);
+        ctx.sendMessage(msg("  Raidable: ", COLOR_GRAY).insert(msg(raidable ? "YES - Can be overclaimed" : "NO - Protected", raidable ? COLOR_RED : COLOR_GREEN)));
+    }
+
+    private void handleDebugProtection(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref, World world, String[] args) {
+        if (args.length == 0) {
+            ctx.sendMessage(prefix().insert(msg("Usage: /f debug protection <player>", COLOR_YELLOW)));
+            return;
+        }
+
+        String playerName = args[0];
+        PlayerRef targetRef = findOnlinePlayer(playerName);
+
+        if (targetRef == null) {
+            ctx.sendMessage(prefix().insert(msg("Player not found or offline: " + playerName, COLOR_RED)));
+            return;
+        }
+
+        UUID playerUuid = targetRef.getUuid();
+
+        // Get player's current location (from executor's perspective for now)
+        TransformComponent transform = store.getComponent(ref, TransformComponent.getComponentType());
+        if (transform == null) {
+            ctx.sendMessage(prefix().insert(msg("Cannot determine location.", COLOR_RED)));
+            return;
+        }
+        Vector3d pos = transform.getPosition();
+        int chunkX = (int) Math.floor(pos.getX()) >> 4;
+        int chunkZ = (int) Math.floor(pos.getZ()) >> 4;
+        String worldName = world.getName();
+
+        ctx.sendMessage(msg("=== Protection Debug: " + playerName + " ===", COLOR_CYAN).bold(true));
+        ctx.sendMessage(msg("  Location: ", COLOR_GRAY).insert(msg(worldName + " @ " + chunkX + ", " + chunkZ, COLOR_WHITE)));
+
+        // Test different interaction types
+        for (var type : com.hyperfactions.protection.ProtectionChecker.InteractionType.values()) {
+            var result = hyperFactions.getProtectionChecker().canInteractChunk(playerUuid, worldName, chunkX, chunkZ, type);
+            boolean allowed = hyperFactions.getProtectionChecker().isAllowed(result);
+            ctx.sendMessage(msg("  " + type.name() + ": ", COLOR_GRAY)
+                .insert(msg(result.name(), allowed ? COLOR_GREEN : COLOR_RED)));
+        }
+
+        // Player's faction context
+        Faction playerFaction = hyperFactions.getFactionManager().getPlayerFaction(playerUuid);
+        ctx.sendMessage(msg("", COLOR_GRAY));
+        ctx.sendMessage(msg("  Player Faction: ", COLOR_GRAY).insert(msg(playerFaction != null ? playerFaction.name() : "None", COLOR_CYAN)));
+
+        // Claim owner context
+        UUID claimOwner = hyperFactions.getClaimManager().getClaimOwner(worldName, chunkX, chunkZ);
+        if (claimOwner != null && playerFaction != null) {
+            Faction ownerFaction = hyperFactions.getFactionManager().getFaction(claimOwner);
+            RelationType relation = hyperFactions.getRelationManager().getRelation(playerFaction.id(), claimOwner);
+            ctx.sendMessage(msg("  Claim Owner: ", COLOR_GRAY).insert(msg(ownerFaction != null ? ownerFaction.name() : "Unknown", COLOR_CYAN)));
+            ctx.sendMessage(msg("  Relation: ", COLOR_GRAY).insert(msg(relation.name(), COLOR_YELLOW)));
+        }
+    }
+
+    private void handleDebugCombat(CommandContext ctx, String[] args) {
+        if (args.length == 0) {
+            ctx.sendMessage(prefix().insert(msg("Usage: /f debug combat <player>", COLOR_YELLOW)));
+            return;
+        }
+
+        String playerName = args[0];
+        PlayerRef targetRef = findOnlinePlayer(playerName);
+
+        if (targetRef == null) {
+            ctx.sendMessage(prefix().insert(msg("Player not found or offline: " + playerName, COLOR_RED)));
+            return;
+        }
+
+        UUID playerUuid = targetRef.getUuid();
+        CombatTagManager ctm = hyperFactions.getCombatTagManager();
+
+        ctx.sendMessage(msg("=== Combat Debug: " + playerName + " ===", COLOR_CYAN).bold(true));
+        ctx.sendMessage(msg("  UUID: ", COLOR_GRAY).insert(msg(playerUuid.toString(), COLOR_WHITE)));
+
+        // Combat tag status
+        boolean isTagged = ctm.isTagged(playerUuid);
+        ctx.sendMessage(msg("  Combat Tagged: ", COLOR_GRAY).insert(msg(isTagged ? "YES" : "NO", isTagged ? COLOR_RED : COLOR_GREEN)));
+        if (isTagged) {
+            int remaining = ctm.getRemainingSeconds(playerUuid);
+            ctx.sendMessage(msg("  Tag Expires In: ", COLOR_GRAY).insert(msg(remaining + " seconds", COLOR_YELLOW)));
+        }
+
+        // Spawn protection status
+        boolean hasSpawnProt = ctm.hasSpawnProtection(playerUuid);
+        ctx.sendMessage(msg("  Spawn Protected: ", COLOR_GRAY).insert(msg(hasSpawnProt ? "YES" : "NO", hasSpawnProt ? COLOR_GREEN : COLOR_GRAY)));
+        if (hasSpawnProt) {
+            int remaining = ctm.getSpawnProtectionRemainingSeconds(playerUuid);
+            ctx.sendMessage(msg("  Protection Expires In: ", COLOR_GRAY).insert(msg(remaining + " seconds", COLOR_YELLOW)));
+        }
+    }
+
+    private void handleDebugRelation(CommandContext ctx, String[] args) {
+        if (args.length < 2) {
+            ctx.sendMessage(prefix().insert(msg("Usage: /f debug relation <faction1> <faction2>", COLOR_YELLOW)));
+            return;
+        }
+
+        String name1 = args[0];
+        String name2 = args[1];
+
+        Faction faction1 = hyperFactions.getFactionManager().getFactionByName(name1);
+        Faction faction2 = hyperFactions.getFactionManager().getFactionByName(name2);
+
+        if (faction1 == null) {
+            ctx.sendMessage(prefix().insert(msg("Faction not found: " + name1, COLOR_RED)));
+            return;
+        }
+        if (faction2 == null) {
+            ctx.sendMessage(prefix().insert(msg("Faction not found: " + name2, COLOR_RED)));
+            return;
+        }
+
+        RelationType relation1to2 = hyperFactions.getRelationManager().getRelation(faction1.id(), faction2.id());
+        RelationType relation2to1 = hyperFactions.getRelationManager().getRelation(faction2.id(), faction1.id());
+
+        ctx.sendMessage(msg("=== Relation Debug ===", COLOR_CYAN).bold(true));
+        ctx.sendMessage(msg("  " + faction1.name() + " -> " + faction2.name() + ": ", COLOR_GRAY)
+            .insert(msg(relation1to2.name(), getRelationColor(relation1to2))));
+        ctx.sendMessage(msg("  " + faction2.name() + " -> " + faction1.name() + ": ", COLOR_GRAY)
+            .insert(msg(relation2to1.name(), getRelationColor(relation2to1))));
+
+        // Check for pending ally requests
+        boolean pending1to2 = hyperFactions.getRelationManager().hasPendingRequest(faction1.id(), faction2.id());
+        boolean pending2to1 = hyperFactions.getRelationManager().hasPendingRequest(faction2.id(), faction1.id());
+
+        if (pending1to2 || pending2to1) {
+            ctx.sendMessage(msg("", COLOR_GRAY));
+            ctx.sendMessage(msg("  Pending Requests:", COLOR_YELLOW));
+            if (pending1to2) {
+                ctx.sendMessage(msg("    " + faction1.name() + " sent ally request to " + faction2.name(), COLOR_GRAY));
+            }
+            if (pending2to1) {
+                ctx.sendMessage(msg("    " + faction2.name() + " sent ally request to " + faction1.name(), COLOR_GRAY));
+            }
+        }
+    }
+
+    private String getRelationColor(RelationType relation) {
+        return switch (relation) {
+            case ALLY -> COLOR_GREEN;
+            case ENEMY -> COLOR_RED;
+            case NEUTRAL -> COLOR_GRAY;
+        };
+    }
+
     // === Reload ===
     private void handleReload(CommandContext ctx, PlayerRef player) {
         if (!hasPermission(player, "hyperfactions.admin")) {
@@ -1277,14 +2228,10 @@ public class FactionCommand extends AbstractPlayerCommand {
     }
 
     // === Rename ===
-    private void handleRename(CommandContext ctx, PlayerRef player, String[] args) {
+    private void handleRename(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
+                               PlayerRef player, FactionCommandContext fctx) {
         if (!hasPermission(player, "hyperfactions.rename")) {
             ctx.sendMessage(prefix().insert(msg("You don't have permission.", COLOR_RED)));
-            return;
-        }
-
-        if (args.length == 0) {
-            ctx.sendMessage(prefix().insert(msg("Usage: /f rename <name>", COLOR_RED)));
             return;
         }
 
@@ -1297,6 +2244,23 @@ public class FactionCommand extends AbstractPlayerCommand {
         FactionMember member = faction.getMember(player.getUuid());
         if (member == null || !member.isLeader()) {
             ctx.sendMessage(prefix().insert(msg("Only the leader can rename the faction.", COLOR_RED)));
+            return;
+        }
+
+        String[] args = fctx.getArgs();
+
+        // GUI mode: Open settings page if no args and not text mode
+        if (!fctx.hasArgs() && !fctx.isTextMode()) {
+            Player playerEntity = store.getComponent(ref, Player.getComponentType());
+            if (playerEntity != null) {
+                hyperFactions.getGuiManager().openFactionSettings(playerEntity, ref, store, player, faction);
+            }
+            return;
+        }
+
+        // Text mode requires args
+        if (args.length == 0) {
+            ctx.sendMessage(prefix().insert(msg("Usage: /f rename <name>", COLOR_RED)));
             return;
         }
 
@@ -1328,10 +2292,23 @@ public class FactionCommand extends AbstractPlayerCommand {
         broadcastToFaction(faction.id(), prefix().insert(msg(player.getUsername(), COLOR_YELLOW))
             .insert(msg(" renamed the faction to ", COLOR_GREEN))
             .insert(msg(newName, COLOR_CYAN)));
+
+        // After action, open settings page if not text mode
+        if (fctx.shouldOpenGuiAfterAction()) {
+            Player playerEntity = store.getComponent(ref, Player.getComponentType());
+            if (playerEntity != null) {
+                // Refresh faction to get updated data
+                Faction refreshed = hyperFactions.getFactionManager().getFaction(faction.id());
+                if (refreshed != null) {
+                    hyperFactions.getGuiManager().openFactionSettings(playerEntity, ref, store, player, refreshed);
+                }
+            }
+        }
     }
 
     // === Description ===
-    private void handleDesc(CommandContext ctx, PlayerRef player, String[] args) {
+    private void handleDesc(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
+                            PlayerRef player, FactionCommandContext fctx) {
         if (!hasPermission(player, "hyperfactions.desc")) {
             ctx.sendMessage(prefix().insert(msg("You don't have permission.", COLOR_RED)));
             return;
@@ -1349,6 +2326,18 @@ public class FactionCommand extends AbstractPlayerCommand {
             return;
         }
 
+        String[] args = fctx.getArgs();
+
+        // GUI mode: Open settings page if no args and not text mode
+        if (!fctx.hasArgs() && !fctx.isTextMode()) {
+            Player playerEntity = store.getComponent(ref, Player.getComponentType());
+            if (playerEntity != null) {
+                hyperFactions.getGuiManager().openFactionSettings(playerEntity, ref, store, player, faction);
+            }
+            return;
+        }
+
+        // Text mode without args clears description
         String description = args.length > 0 ? String.join(" ", args) : null;
 
         Faction updated = faction.withDescription(description)
@@ -1362,10 +2351,22 @@ public class FactionCommand extends AbstractPlayerCommand {
         } else {
             ctx.sendMessage(prefix().insert(msg("Faction description cleared.", COLOR_GREEN)));
         }
+
+        // After action, open settings page if not text mode
+        if (fctx.shouldOpenGuiAfterAction()) {
+            Player playerEntity = store.getComponent(ref, Player.getComponentType());
+            if (playerEntity != null) {
+                Faction refreshed = hyperFactions.getFactionManager().getFaction(faction.id());
+                if (refreshed != null) {
+                    hyperFactions.getGuiManager().openFactionSettings(playerEntity, ref, store, player, refreshed);
+                }
+            }
+        }
     }
 
     // === Color ===
-    private void handleColor(CommandContext ctx, PlayerRef player, String[] args) {
+    private void handleColor(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
+                             PlayerRef player, FactionCommandContext fctx) {
         if (!hasPermission(player, "hyperfactions.color")) {
             ctx.sendMessage(prefix().insert(msg("You don't have permission.", COLOR_RED)));
             return;
@@ -1388,6 +2389,18 @@ public class FactionCommand extends AbstractPlayerCommand {
             return;
         }
 
+        String[] args = fctx.getArgs();
+
+        // GUI mode: Open settings page if no args and not text mode
+        if (!fctx.hasArgs() && !fctx.isTextMode()) {
+            Player playerEntity = store.getComponent(ref, Player.getComponentType());
+            if (playerEntity != null) {
+                hyperFactions.getGuiManager().openFactionSettings(playerEntity, ref, store, player, faction);
+            }
+            return;
+        }
+
+        // Text mode requires args
         if (args.length == 0) {
             ctx.sendMessage(prefix().insert(msg("Usage: /f color <code>", COLOR_RED)));
             ctx.sendMessage(msg("Valid codes: 0-9, a-f", COLOR_GRAY));
@@ -1409,10 +2422,22 @@ public class FactionCommand extends AbstractPlayerCommand {
         ctx.sendMessage(prefix().insert(msg("Faction color updated to ", COLOR_GREEN))
             .insert(msg("\u00A7" + colorCode + "this color", null))
             .insert(msg("!", COLOR_GREEN)));
+
+        // After action, open settings page if not text mode
+        if (fctx.shouldOpenGuiAfterAction()) {
+            Player playerEntity = store.getComponent(ref, Player.getComponentType());
+            if (playerEntity != null) {
+                Faction refreshed = hyperFactions.getFactionManager().getFaction(faction.id());
+                if (refreshed != null) {
+                    hyperFactions.getGuiManager().openFactionSettings(playerEntity, ref, store, player, refreshed);
+                }
+            }
+        }
     }
 
     // === Open ===
-    private void handleOpen(CommandContext ctx, PlayerRef player) {
+    private void handleOpen(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
+                            PlayerRef player, FactionCommandContext fctx) {
         if (!hasPermission(player, "hyperfactions.open")) {
             ctx.sendMessage(prefix().insert(msg("You don't have permission.", COLOR_RED)));
             return;
@@ -1444,10 +2469,22 @@ public class FactionCommand extends AbstractPlayerCommand {
         ctx.sendMessage(prefix().insert(msg("Your faction is now open! Anyone can join with /f join.", COLOR_GREEN)));
         broadcastToFaction(faction.id(), prefix().insert(msg(player.getUsername(), COLOR_YELLOW))
             .insert(msg(" opened the faction to public joining.", COLOR_GREEN)));
+
+        // After action, open settings page if not text mode
+        if (!fctx.isTextMode()) {
+            Player playerEntity = store.getComponent(ref, Player.getComponentType());
+            if (playerEntity != null) {
+                Faction refreshed = hyperFactions.getFactionManager().getFaction(faction.id());
+                if (refreshed != null) {
+                    hyperFactions.getGuiManager().openFactionSettings(playerEntity, ref, store, player, refreshed);
+                }
+            }
+        }
     }
 
     // === Close ===
-    private void handleClose(CommandContext ctx, PlayerRef player) {
+    private void handleClose(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
+                             PlayerRef player, FactionCommandContext fctx) {
         if (!hasPermission(player, "hyperfactions.close")) {
             ctx.sendMessage(prefix().insert(msg("You don't have permission.", COLOR_RED)));
             return;
@@ -1479,6 +2516,17 @@ public class FactionCommand extends AbstractPlayerCommand {
         ctx.sendMessage(prefix().insert(msg("Your faction is now invite-only.", COLOR_GREEN)));
         broadcastToFaction(faction.id(), prefix().insert(msg(player.getUsername(), COLOR_YELLOW))
             .insert(msg(" closed the faction to invite-only.", COLOR_GREEN)));
+
+        // After action, open settings page if not text mode
+        if (!fctx.isTextMode()) {
+            Player playerEntity = store.getComponent(ref, Player.getComponentType());
+            if (playerEntity != null) {
+                Faction refreshed = hyperFactions.getFactionManager().getFaction(faction.id());
+                if (refreshed != null) {
+                    hyperFactions.getGuiManager().openFactionSettings(playerEntity, ref, store, player, refreshed);
+                }
+            }
+        }
     }
 
     // === Stuck ===

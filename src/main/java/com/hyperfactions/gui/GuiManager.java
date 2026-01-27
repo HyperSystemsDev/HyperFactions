@@ -968,6 +968,39 @@ public class GuiManager {
     }
 
     /**
+     * Opens the Faction Info page.
+     * Displays detailed information about a specific faction.
+     *
+     * @param player        The Player entity
+     * @param ref           The entity reference
+     * @param store         The entity store
+     * @param playerRef     The PlayerRef component
+     * @param targetFaction The faction to view info for
+     */
+    public void openFactionInfo(Player player, Ref<EntityStore> ref,
+                                Store<EntityStore> store, PlayerRef playerRef,
+                                Faction targetFaction) {
+        Logger.debug("[GUI] Opening FactionInfoPage for %s (viewing %s)",
+                playerRef.getUsername(), targetFaction.name());
+        try {
+            PageManager pageManager = player.getPageManager();
+            FactionInfoPage page = new FactionInfoPage(
+                playerRef,
+                targetFaction,
+                factionManager.get(),
+                powerManager.get(),
+                relationManager.get(),
+                this
+            );
+            pageManager.openCustomPage(ref, store, page);
+            Logger.debug("[GUI] FactionInfoPage opened successfully");
+        } catch (Exception e) {
+            Logger.severe("[GUI] Failed to open FactionInfoPage: %s", e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
      * Opens the Player Info page.
      *
      * @param player          The Player entity
