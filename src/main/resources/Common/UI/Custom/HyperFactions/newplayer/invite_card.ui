@@ -2,7 +2,7 @@
 // Shows a single pending invitation
 
 $C = "../../Common.ui";
-$S = "../styles.ui";
+$S = "../shared/styles.ui";
 
 Group {
   Anchor: (Height: 115, Bottom: 8);

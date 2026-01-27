@@ -4,8 +4,8 @@ import com.hyperfactions.data.Faction;
 import com.hyperfactions.data.Zone;
 import com.hyperfactions.data.ZoneType;
 import com.hyperfactions.gui.GuiManager;
-import com.hyperfactions.gui.NewPlayerNavBarHelper;
-import com.hyperfactions.gui.data.NewPlayerPageData;
+import com.hyperfactions.gui.nav.NewPlayerNavBarHelper;
+import com.hyperfactions.gui.shared.data.NewPlayerPageData;
 import com.hyperfactions.manager.*;
 import com.hyperfactions.util.ChunkUtil;
 import com.hypixel.hytale.component.Ref;
@@ -82,7 +82,7 @@ public class NewPlayerMapPage extends InteractiveCustomUIPage<NewPlayerPageData>
         }
 
         // Use the same template as ChunkMapPage
-        cmd.append("HyperFactions/chunk_map.ui");
+        cmd.append("HyperFactions/faction/chunk_map.ui");
 
         // Setup navigation bar for new players (instead of faction nav bar)
         NewPlayerNavBarHelper.setupBar(playerRef, PAGE_ID, cmd, events);
@@ -130,7 +130,7 @@ public class NewPlayerMapPage extends InteractiveCustomUIPage<NewPlayerPageData>
 
                 // Add button overlay for visual consistency (but no events bound)
                 String cellSelector = "#ChunkGrid[" + rowIndex + "][" + colIndex + "]";
-                cmd.append(cellSelector, "HyperFactions/chunk_btn.ui");
+                cmd.append(cellSelector, "HyperFactions/faction/chunk_btn.ui");
             }
         }
     }

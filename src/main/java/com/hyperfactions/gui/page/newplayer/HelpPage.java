@@ -1,8 +1,8 @@
 package com.hyperfactions.gui.page.newplayer;
 
 import com.hyperfactions.gui.GuiManager;
-import com.hyperfactions.gui.NewPlayerNavBarHelper;
-import com.hyperfactions.gui.data.NewPlayerPageData;
+import com.hyperfactions.gui.nav.NewPlayerNavBarHelper;
+import com.hyperfactions.gui.shared.data.NewPlayerPageData;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.protocol.packets.interface_.CustomPageLifetime;

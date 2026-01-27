@@ -1,7 +1,0 @@
-$S = "styles.ui";
-
-TextButton #SetRelationBtn {
-  Text: "+ SET RELATION";
-  Anchor: (Height: 28, Width: 120);
-  Style: $S.@SmallCyanButtonStyle;
-}

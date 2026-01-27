@@ -1,7 +1,0 @@
-$S = "styles.ui";
-
-TextButton #EnemyBtn {
-  Text: "ENEMY";
-  Anchor: (Height: 26, Width: 70);
-  Style: $S.@SmallRedButtonStyle;
-}

@@ -2,7 +2,7 @@ package com.hyperfactions.gui.page.admin;
 
 import com.hyperfactions.data.*;
 import com.hyperfactions.gui.GuiManager;
-import com.hyperfactions.gui.data.AdminMainData;
+import com.hyperfactions.gui.admin.data.AdminMainData;
 import com.hyperfactions.manager.FactionManager;
 import com.hyperfactions.manager.PowerManager;
 import com.hypixel.hytale.component.Ref;
@@ -50,7 +50,7 @@ public class AdminMainPage extends InteractiveCustomUIPage<AdminMainData> {
                       UIEventBuilder events, Store<EntityStore> store) {
 
         // Load the main template
-        cmd.append("HyperFactions/admin_main.ui");
+        cmd.append("HyperFactions/admin/admin_main.ui");
 
 
         // Stats overview
@@ -104,7 +104,7 @@ public class AdminMainPage extends InteractiveCustomUIPage<AdminMainData> {
                 Faction faction = factions.get(factionIdx);
                 PowerManager.FactionPowerStats stats = powerManager.getFactionPowerStats(faction.id());
 
-                cmd.append(entryId, "HyperFactions/admin_faction_entry.ui");
+                cmd.append(entryId, "HyperFactions/admin/admin_faction_entry.ui");
 
                 String prefix = entryId + " ";
 

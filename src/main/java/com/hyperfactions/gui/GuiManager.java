@@ -2,7 +2,9 @@ package com.hyperfactions.gui;
 
 import com.hyperfactions.HyperFactions;
 import com.hyperfactions.data.Faction;
-import com.hyperfactions.gui.page.*;
+import com.hyperfactions.gui.faction.*;
+import com.hyperfactions.gui.faction.page.*;
+import com.hyperfactions.gui.shared.page.*;
 import com.hyperfactions.gui.page.admin.*;
 import com.hyperfactions.gui.page.newplayer.*;
 import com.hyperfactions.manager.*;
@@ -18,7 +20,7 @@ import java.nio.file.Path;
 import java.util.UUID;
 import java.util.function.Supplier;
 
-import static com.hyperfactions.gui.FactionPageRegistry.Entry;
+import static com.hyperfactions.gui.faction.FactionPageRegistry.Entry;
 
 /**
  * Central manager for HyperFactions GUI pages.

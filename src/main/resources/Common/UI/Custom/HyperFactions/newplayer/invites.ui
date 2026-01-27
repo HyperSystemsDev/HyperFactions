@@ -2,7 +2,7 @@
 // Shows pending faction invitations
 
 $C = "../../Common.ui";
-$S = "../styles.ui";
+$S = "../shared/styles.ui";
 $Nav = "../nav/nav_bar.ui";
 
 $C.@PageOverlay {

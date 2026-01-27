@@ -1,7 +1,0 @@
-$S = "styles.ui";
-
-TextButton #DeclineBtn {
-  Text: "DECLINE";
-  Anchor: (Height: 26, Width: 70);
-  Style: $S.@SmallRedButtonStyle;
-}

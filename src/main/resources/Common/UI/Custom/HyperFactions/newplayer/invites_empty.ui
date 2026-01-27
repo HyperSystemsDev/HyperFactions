@@ -2,7 +2,7 @@
 // Shown when player has no pending invitations
 
 $C = "../../Common.ui";
-$S = "../styles.ui";
+$S = "../shared/styles.ui";
 
 Group {
   Anchor: (Height: 200);

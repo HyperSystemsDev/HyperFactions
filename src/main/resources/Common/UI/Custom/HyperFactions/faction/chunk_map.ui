@@ -1,0 +1,169 @@
+// Territory Map Page
+// Interactive 29x17 chunk grid with claim/unclaim functionality
+// Left-click wilderness to claim, right-click own territory to unclaim
+
+$C = "../../Common.ui";
+$S = "../shared/styles.ui";
+$Nav = "../nav/nav_bar.ui";
+
+$C.@PageOverlay {
+  $Nav.@HyperFactionsNavBar #HyperFactionsNavBar {}
+
+  $C.@DecoratedContainer {
+    Anchor: (Width: 520, Height: 550);
+
+    #Title {
+      Group {
+        $C.@Title {
+          @Text = "Territory Map";
+        }
+      }
+    }
+
+    #Content {
+      LayoutMode: Top;
+      Padding: (Left: 15, Right: 15, Top: 15, Bottom: 15);
+
+      // Position info at top
+      Label #PositionInfo {
+        Text: "Your Position: Chunk (0, 0)";
+        Style: (FontSize: 14, TextColor: #00FFFF, RenderBold: true, HorizontalAlignment: Center);
+        Anchor: (Height: 22, Bottom: 10);
+      }
+
+      // Grid container - 29 columns x 17 rows at 16px (464x272 + 10px padding)
+      Group #ChunkGrid {
+        LayoutMode: Top;
+        Anchor: (Height: 285);
+        Background: (Color: #1a2a3a);
+        Padding: (Left: 5, Right: 5, Top: 5, Bottom: 5);
+      }
+
+      // Action hints
+      Label #ActionHint {
+        Text: "Left-click: Claim | Right-click: Unclaim";
+        Style: (FontSize: 11, TextColor: #888888, HorizontalAlignment: Center);
+        Anchor: (Height: 18, Top: 8, Bottom: 5);
+      }
+
+      // Divider
+      Group {
+        Anchor: (Height: 1, Bottom: 8);
+        Background: (Color: #00AAAA);
+      }
+
+      // Legend container
+      Group #LegendContainer {
+        LayoutMode: Left;
+        Anchor: (Height: 50);
+
+        // Column 1
+        Group {
+          LayoutMode: Top;
+          Anchor: (Width: 120);
+
+          Group {
+            LayoutMode: Left;
+            Anchor: (Height: 16);
+            Group { Anchor: (Width: 12, Height: 12); Background: (Color: #4ade80); }
+            Label { Text: " Your Territory"; Style: (FontSize: 10, TextColor: #cccccc, VerticalAlignment: Center); }
+          }
+          Group {
+            LayoutMode: Left;
+            Anchor: (Height: 16);
+            Group { Anchor: (Width: 12, Height: 12); Background: (Color: #60a5fa); }
+            Label { Text: " Ally Territory"; Style: (FontSize: 10, TextColor: #cccccc, VerticalAlignment: Center); }
+          }
+          Group {
+            LayoutMode: Left;
+            Anchor: (Height: 16);
+            Group { Anchor: (Width: 12, Height: 12); Background: (Color: #f87171); }
+            Label { Text: " Enemy Territory"; Style: (FontSize: 10, TextColor: #cccccc, VerticalAlignment: Center); }
+          }
+        }
+
+        // Column 2
+        Group {
+          LayoutMode: Top;
+          Anchor: (Width: 120);
+
+          Group {
+            LayoutMode: Left;
+            Anchor: (Height: 16);
+            Group { Anchor: (Width: 12, Height: 12); Background: (Color: #fbbf24); }
+            Label { Text: " Other Faction"; Style: (FontSize: 10, TextColor: #cccccc, VerticalAlignment: Center); }
+          }
+          Group {
+            LayoutMode: Left;
+            Anchor: (Height: 16);
+            Group { Anchor: (Width: 12, Height: 12); Background: (Color: #1e293b); }
+            Label { Text: " Wilderness"; Style: (FontSize: 10, TextColor: #cccccc, VerticalAlignment: Center); }
+          }
+        }
+
+        // Column 3
+        Group {
+          LayoutMode: Top;
+          Anchor: (Width: 120);
+
+          Group {
+            LayoutMode: Left;
+            Anchor: (Height: 16);
+            Group { Anchor: (Width: 12, Height: 12); Background: (Color: #2dd4bf); }
+            Label { Text: " Safe Zone"; Style: (FontSize: 10, TextColor: #cccccc, VerticalAlignment: Center); }
+          }
+          Group {
+            LayoutMode: Left;
+            Anchor: (Height: 16);
+            Group { Anchor: (Width: 12, Height: 12); Background: (Color: #c084fc); }
+            Label { Text: " War Zone"; Style: (FontSize: 10, TextColor: #cccccc, VerticalAlignment: Center); }
+          }
+        }
+
+        // Column 4 - Player marker
+        Group {
+          LayoutMode: Top;
+          Anchor: (Width: 100);
+
+          Group {
+            LayoutMode: Left;
+            Anchor: (Height: 16);
+            Group { Anchor: (Width: 12, Height: 12); Background: (Color: #ffffff); }
+            Label { Text: " You are here"; Style: (FontSize: 10, TextColor: #cccccc, VerticalAlignment: Center); }
+          }
+        }
+      }
+
+      // Divider
+      Group {
+        Anchor: (Height: 1, Top: 8, Bottom: 8);
+        Background: (Color: #00AAAA);
+      }
+
+      // Bottom row: Claim and power info
+      Group #BottomRow {
+        LayoutMode: Left;
+        Anchor: (Height: 32);
+
+        // Claim stats (left side)
+        Label #ClaimStats {
+          Text: "Claims: 0/0 (0 Available)";
+          Style: (FontSize: 12, TextColor: #FFAA00, RenderBold: true, VerticalAlignment: Center);
+          Anchor: (Width: 220);
+        }
+
+        Label { FlexWeight: 1; }
+
+        // Power status (right side)
+        Label #PowerStatus {
+          Text: "Power: 0/0";
+          Style: (FontSize: 12, TextColor: #44CC44, VerticalAlignment: Center);
+          Anchor: (Width: 180);
+        }
+      }
+    }
+  }
+}
+
+// Native Hytale back button (bottom-left ESC)
+$C.@BackButton {}

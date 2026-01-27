@@ -2,7 +2,7 @@
 // Shows faction info with recruitment status and JOIN/REQUEST button
 
 $C = "../../Common.ui";
-$S = "../styles.ui";
+$S = "../shared/styles.ui";
 
 Group {
   Anchor: (Height: 65, Bottom: 5);

@@ -1,0 +1,10 @@
+// Shared TextField reference
+// Use $C.@TextField template from Common.ui:
+//
+// $C.@TextField #MyInput {
+//   FlexWeight: 1;
+//   Anchor: (Height: 28);
+//   Style: (FontSize: 14, TextColor: #ffffff(0.85));
+// }
+
+$C = "../../Common.ui";

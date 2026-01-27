@@ -2,8 +2,8 @@ package com.hyperfactions.gui.page.newplayer;
 
 import com.hyperfactions.data.*;
 import com.hyperfactions.gui.GuiManager;
-import com.hyperfactions.gui.NewPlayerNavBarHelper;
-import com.hyperfactions.gui.data.NewPlayerPageData;
+import com.hyperfactions.gui.nav.NewPlayerNavBarHelper;
+import com.hyperfactions.gui.shared.data.NewPlayerPageData;
 import com.hyperfactions.manager.FactionManager;
 import com.hyperfactions.manager.InviteManager;
 import com.hyperfactions.manager.PowerManager;

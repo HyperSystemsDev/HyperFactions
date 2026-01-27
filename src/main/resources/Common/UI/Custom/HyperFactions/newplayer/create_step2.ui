@@ -2,7 +2,7 @@
 // Shows preview, optional description, and recruitment setting
 
 $C = "../../Common.ui";
-$S = "../styles.ui";
+$S = "../shared/styles.ui";
 $Nav = "../nav/nav_bar.ui";
 
 $C.@PageOverlay {

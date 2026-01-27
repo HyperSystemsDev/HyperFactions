@@ -1,0 +1,260 @@
+// Color Picker Page
+// Simple 16-color grid for faction color selection
+// Note: Button colors are defined in template because cmd.set() crashes on Style properties
+
+$C = "../../Common.ui";
+$S = "styles.ui";
+
+// Color button styles - each color gets its own style definition
+// Row 1: Black, Dark Blue, Dark Green, Dark Aqua
+@Color0Style = TextButtonStyle(
+  Default: (Background: (Color: #000000)),
+  Hovered: (Background: (Color: #222222)),
+  Pressed: (Background: (Color: #111111)),
+  Disabled: (Background: (Color: #000000)),
+  Sounds: $C.@ButtonSounds,
+);
+@Color1Style = TextButtonStyle(
+  Default: (Background: (Color: #0000AA)),
+  Hovered: (Background: (Color: #2222CC)),
+  Pressed: (Background: (Color: #000088)),
+  Disabled: (Background: (Color: #0000AA)),
+  Sounds: $C.@ButtonSounds,
+);
+@Color2Style = TextButtonStyle(
+  Default: (Background: (Color: #00AA00)),
+  Hovered: (Background: (Color: #22CC22)),
+  Pressed: (Background: (Color: #008800)),
+  Disabled: (Background: (Color: #00AA00)),
+  Sounds: $C.@ButtonSounds,
+);
+@Color3Style = TextButtonStyle(
+  Default: (Background: (Color: #00AAAA)),
+  Hovered: (Background: (Color: #22CCCC)),
+  Pressed: (Background: (Color: #008888)),
+  Disabled: (Background: (Color: #00AAAA)),
+  Sounds: $C.@ButtonSounds,
+);
+
+// Row 2: Dark Red, Dark Purple, Gold, Gray
+@Color4Style = TextButtonStyle(
+  Default: (Background: (Color: #AA0000)),
+  Hovered: (Background: (Color: #CC2222)),
+  Pressed: (Background: (Color: #880000)),
+  Disabled: (Background: (Color: #AA0000)),
+  Sounds: $C.@ButtonSounds,
+);
+@Color5Style = TextButtonStyle(
+  Default: (Background: (Color: #AA00AA)),
+  Hovered: (Background: (Color: #CC22CC)),
+  Pressed: (Background: (Color: #880088)),
+  Disabled: (Background: (Color: #AA00AA)),
+  Sounds: $C.@ButtonSounds,
+);
+@Color6Style = TextButtonStyle(
+  Default: (Background: (Color: #FFAA00)),
+  Hovered: (Background: (Color: #FFCC22)),
+  Pressed: (Background: (Color: #DD8800)),
+  Disabled: (Background: (Color: #FFAA00)),
+  Sounds: $C.@ButtonSounds,
+);
+@Color7Style = TextButtonStyle(
+  Default: (Background: (Color: #AAAAAA)),
+  Hovered: (Background: (Color: #CCCCCC)),
+  Pressed: (Background: (Color: #888888)),
+  Disabled: (Background: (Color: #AAAAAA)),
+  Sounds: $C.@ButtonSounds,
+);
+
+// Row 3: Dark Gray, Blue, Green, Aqua
+@Color8Style = TextButtonStyle(
+  Default: (Background: (Color: #555555)),
+  Hovered: (Background: (Color: #777777)),
+  Pressed: (Background: (Color: #333333)),
+  Disabled: (Background: (Color: #555555)),
+  Sounds: $C.@ButtonSounds,
+);
+@Color9Style = TextButtonStyle(
+  Default: (Background: (Color: #5555FF)),
+  Hovered: (Background: (Color: #7777FF)),
+  Pressed: (Background: (Color: #3333DD)),
+  Disabled: (Background: (Color: #5555FF)),
+  Sounds: $C.@ButtonSounds,
+);
+@Color10Style = TextButtonStyle(
+  Default: (Background: (Color: #55FF55)),
+  Hovered: (Background: (Color: #77FF77)),
+  Pressed: (Background: (Color: #33DD33)),
+  Disabled: (Background: (Color: #55FF55)),
+  Sounds: $C.@ButtonSounds,
+);
+@Color11Style = TextButtonStyle(
+  Default: (Background: (Color: #55FFFF)),
+  Hovered: (Background: (Color: #77FFFF)),
+  Pressed: (Background: (Color: #33DDDD)),
+  Disabled: (Background: (Color: #55FFFF)),
+  Sounds: $C.@ButtonSounds,
+);
+
+// Row 4: Red, Light Purple, Yellow, White
+@Color12Style = TextButtonStyle(
+  Default: (Background: (Color: #FF5555)),
+  Hovered: (Background: (Color: #FF7777)),
+  Pressed: (Background: (Color: #DD3333)),
+  Disabled: (Background: (Color: #FF5555)),
+  Sounds: $C.@ButtonSounds,
+);
+@Color13Style = TextButtonStyle(
+  Default: (Background: (Color: #FF55FF)),
+  Hovered: (Background: (Color: #FF77FF)),
+  Pressed: (Background: (Color: #DD33DD)),
+  Disabled: (Background: (Color: #FF55FF)),
+  Sounds: $C.@ButtonSounds,
+);
+@Color14Style = TextButtonStyle(
+  Default: (Background: (Color: #FFFF55)),
+  Hovered: (Background: (Color: #FFFF77)),
+  Pressed: (Background: (Color: #DDDD33)),
+  Disabled: (Background: (Color: #FFFF55)),
+  Sounds: $C.@ButtonSounds,
+);
+@Color15Style = TextButtonStyle(
+  Default: (Background: (Color: #FFFFFF)),
+  Hovered: (Background: (Color: #EEEEEE)),
+  Pressed: (Background: (Color: #DDDDDD)),
+  Disabled: (Background: (Color: #FFFFFF)),
+  Sounds: $C.@ButtonSounds,
+);
+
+$C.@PageOverlay {
+  $C.@DecoratedContainer {
+    Anchor: (Width: 340, Height: 360);
+
+    #Title {
+      Group {
+        $C.@Title {
+          @Text = "Choose Color";
+        }
+      }
+    }
+
+    #Content {
+      LayoutMode: Top;
+      Padding: (Left: 20, Right: 20, Top: 15, Bottom: 15);
+
+      // Current color preview
+      Group {
+        Anchor: (Height: 45, Bottom: 15);
+        LayoutMode: Left;
+
+        Label {
+          Text: "Current:";
+          Style: (FontSize: 12, TextColor: #888888, VerticalAlignment: Center);
+          Anchor: (Width: 70);
+        }
+
+        Group #CurrentColorPreview {
+          Anchor: (Width: 32, Height: 32);
+          Background: (Color: #00FFFF);
+        }
+
+        Label { Anchor: (Width: 15); }
+
+        Label #CurrentColorName {
+          Text: "Aqua";
+          Style: (FontSize: 14, TextColor: #CCCCCC, RenderBold: true, VerticalAlignment: Center);
+          FlexWeight: 1;
+        }
+      }
+
+      // Color grid (4x4) with pre-styled buttons
+      Group #ColorGrid {
+        LayoutMode: Top;
+        Anchor: (Bottom: 15);
+
+        // Row 1: Black, Dark Blue, Dark Green, Dark Aqua
+        Group #Row0 {
+          Anchor: (Height: 42);
+          LayoutMode: Left;
+
+          Group { FlexWeight: 1; }
+          TextButton #Color0 { Anchor: (Width: 40, Height: 40); Style: @Color0Style; }
+          Label { Anchor: (Width: 8); }
+          TextButton #Color1 { Anchor: (Width: 40, Height: 40); Style: @Color1Style; }
+          Label { Anchor: (Width: 8); }
+          TextButton #Color2 { Anchor: (Width: 40, Height: 40); Style: @Color2Style; }
+          Label { Anchor: (Width: 8); }
+          TextButton #Color3 { Anchor: (Width: 40, Height: 40); Style: @Color3Style; }
+          Group { FlexWeight: 1; }
+        }
+
+        // Row 2: Dark Red, Dark Purple, Gold, Gray
+        Group #Row1 {
+          Anchor: (Height: 42);
+          LayoutMode: Left;
+
+          Group { FlexWeight: 1; }
+          TextButton #Color4 { Anchor: (Width: 40, Height: 40); Style: @Color4Style; }
+          Label { Anchor: (Width: 8); }
+          TextButton #Color5 { Anchor: (Width: 40, Height: 40); Style: @Color5Style; }
+          Label { Anchor: (Width: 8); }
+          TextButton #Color6 { Anchor: (Width: 40, Height: 40); Style: @Color6Style; }
+          Label { Anchor: (Width: 8); }
+          TextButton #Color7 { Anchor: (Width: 40, Height: 40); Style: @Color7Style; }
+          Group { FlexWeight: 1; }
+        }
+
+        // Row 3: Dark Gray, Blue, Green, Aqua
+        Group #Row2 {
+          Anchor: (Height: 42);
+          LayoutMode: Left;
+
+          Group { FlexWeight: 1; }
+          TextButton #Color8 { Anchor: (Width: 40, Height: 40); Style: @Color8Style; }
+          Label { Anchor: (Width: 8); }
+          TextButton #Color9 { Anchor: (Width: 40, Height: 40); Style: @Color9Style; }
+          Label { Anchor: (Width: 8); }
+          TextButton #Color10 { Anchor: (Width: 40, Height: 40); Style: @Color10Style; }
+          Label { Anchor: (Width: 8); }
+          TextButton #Color11 { Anchor: (Width: 40, Height: 40); Style: @Color11Style; }
+          Group { FlexWeight: 1; }
+        }
+
+        // Row 4: Red, Light Purple, Yellow, White
+        Group #Row3 {
+          Anchor: (Height: 42);
+          LayoutMode: Left;
+
+          Group { FlexWeight: 1; }
+          TextButton #Color12 { Anchor: (Width: 40, Height: 40); Style: @Color12Style; }
+          Label { Anchor: (Width: 8); }
+          TextButton #Color13 { Anchor: (Width: 40, Height: 40); Style: @Color13Style; }
+          Label { Anchor: (Width: 8); }
+          TextButton #Color14 { Anchor: (Width: 40, Height: 40); Style: @Color14Style; }
+          Label { Anchor: (Width: 8); }
+          TextButton #Color15 { Anchor: (Width: 40, Height: 40); Style: @Color15Style; }
+          Group { FlexWeight: 1; }
+        }
+      }
+
+      // Cancel button
+      Group {
+        Anchor: (Height: 35);
+        LayoutMode: Left;
+
+        Group { FlexWeight: 1; }
+
+        TextButton #CancelBtn {
+          Text: "CANCEL";
+          Anchor: (Height: 30, Width: 100);
+          Style: $S.@ButtonStyle;
+        }
+
+        Group { FlexWeight: 1; }
+      }
+    }
+  }
+}
+
+// Native Hytale back button (bottom-left ESC)
+$C.@BackButton {}

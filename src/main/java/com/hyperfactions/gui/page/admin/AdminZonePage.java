@@ -2,7 +2,7 @@ package com.hyperfactions.gui.page.admin;
 
 import com.hyperfactions.data.*;
 import com.hyperfactions.gui.GuiManager;
-import com.hyperfactions.gui.data.AdminZoneData;
+import com.hyperfactions.gui.admin.data.AdminZoneData;
 import com.hyperfactions.manager.ZoneManager;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
@@ -47,7 +47,7 @@ public class AdminZonePage extends InteractiveCustomUIPage<AdminZoneData> {
                       UIEventBuilder events, Store<EntityStore> store) {
 
         // Load the main template
-        cmd.append("HyperFactions/admin_zones.ui");
+        cmd.append("HyperFactions/admin/admin_zones.ui");
 
 
         // Tab buttons
@@ -97,7 +97,7 @@ public class AdminZonePage extends InteractiveCustomUIPage<AdminZoneData> {
             if (zoneIdx < zones.size()) {
                 Zone zone = zones.get(zoneIdx);
 
-                cmd.append(entryId, "HyperFactions/admin_zone_entry.ui");
+                cmd.append(entryId, "HyperFactions/admin/admin_zone_entry.ui");
 
                 String prefix = entryId + " ";
 

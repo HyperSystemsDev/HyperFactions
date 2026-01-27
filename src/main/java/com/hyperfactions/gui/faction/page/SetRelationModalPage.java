@@ -1,0 +1,358 @@
+package com.hyperfactions.gui.faction.page;
+
+import com.hyperfactions.data.Faction;
+import com.hyperfactions.data.FactionMember;
+import com.hyperfactions.data.FactionRole;
+import com.hyperfactions.gui.GuiManager;
+import com.hyperfactions.gui.faction.data.SetRelationModalData;
+import com.hyperfactions.manager.FactionManager;
+import com.hyperfactions.manager.PowerManager;
+import com.hyperfactions.manager.RelationManager;
+import com.hypixel.hytale.component.Ref;
+import com.hypixel.hytale.component.Store;
+import com.hypixel.hytale.protocol.packets.interface_.CustomPageLifetime;
+import com.hypixel.hytale.protocol.packets.interface_.CustomUIEventBindingType;
+import com.hypixel.hytale.server.core.Message;
+import com.hypixel.hytale.server.core.entity.entities.Player;
+import com.hypixel.hytale.server.core.entity.entities.player.pages.InteractiveCustomUIPage;
+import com.hypixel.hytale.server.core.ui.builder.EventData;
+import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder;
+import com.hypixel.hytale.server.core.ui.builder.UIEventBuilder;
+import com.hypixel.hytale.server.core.universe.PlayerRef;
+import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+
+import java.util.*;
+
+/**
+ * Modal for searching and setting relations with other factions.
+ * Supports search, pagination, and setting ally/enemy relations.
+ */
+public class SetRelationModalPage extends InteractiveCustomUIPage<SetRelationModalData> {
+
+    private static final int FACTIONS_PER_PAGE = 4;
+
+    private final PlayerRef playerRef;
+    private final FactionManager factionManager;
+    private final PowerManager powerManager;
+    private final RelationManager relationManager;
+    private final GuiManager guiManager;
+    private final Faction faction;
+
+    private String searchQuery = "";
+    private int currentPage = 0;
+
+    public SetRelationModalPage(PlayerRef playerRef,
+                                FactionManager factionManager,
+                                PowerManager powerManager,
+                                RelationManager relationManager,
+                                GuiManager guiManager,
+                                Faction faction) {
+        super(playerRef, CustomPageLifetime.CanDismiss, SetRelationModalData.CODEC);
+        this.playerRef = playerRef;
+        this.factionManager = factionManager;
+        this.powerManager = powerManager;
+        this.relationManager = relationManager;
+        this.guiManager = guiManager;
+        this.faction = faction;
+    }
+
+    public SetRelationModalPage(PlayerRef playerRef,
+                                FactionManager factionManager,
+                                PowerManager powerManager,
+                                RelationManager relationManager,
+                                GuiManager guiManager,
+                                Faction faction,
+                                String searchQuery,
+                                int currentPage) {
+        this(playerRef, factionManager, powerManager, relationManager, guiManager, faction);
+        this.searchQuery = searchQuery != null ? searchQuery : "";
+        this.currentPage = currentPage;
+    }
+
+    @Override
+    public void build(Ref<EntityStore> ref, UICommandBuilder cmd,
+                      UIEventBuilder events, Store<EntityStore> store) {
+
+        // Load the modal template
+        cmd.append("HyperFactions/faction/set_relation_modal.ui");
+
+        // Search button
+        events.addEventBinding(
+                CustomUIEventBindingType.Activating,
+                "#SearchBtn",
+                EventData.of("Button", "Search").append("@SearchQuery", "#SearchInput.Value"),
+                false
+        );
+
+        // Cancel button
+        events.addEventBinding(
+                CustomUIEventBindingType.Activating,
+                "#CancelBtn",
+                EventData.of("Button", "Cancel"),
+                false
+        );
+
+        // Build search results
+        List<FactionEntry> results = getSearchResults();
+
+        if (results.isEmpty()) {
+            // Show empty state
+            if (searchQuery.isEmpty()) {
+                cmd.set("#EmptyText.Text", "Search for a faction to set relation");
+            } else {
+                cmd.set("#EmptyText.Text", "No factions found matching '" + searchQuery + "'");
+            }
+        } else {
+            // Hide empty state by setting text to empty
+            cmd.set("#EmptyText.Text", "");
+
+            // Calculate pagination
+            int totalPages = Math.max(1, (int) Math.ceil((double) results.size() / FACTIONS_PER_PAGE));
+            currentPage = Math.min(currentPage, totalPages - 1);
+            int startIdx = currentPage * FACTIONS_PER_PAGE;
+
+            // Build faction cards
+            buildFactionCards(cmd, events, results, startIdx);
+
+            // Pagination
+            cmd.set("#PageInfo.Text", (currentPage + 1) + "/" + totalPages);
+
+            if (currentPage > 0) {
+                events.addEventBinding(
+                        CustomUIEventBindingType.Activating,
+                        "#PrevBtn",
+                        EventData.of("Button", "Page").append("Page", String.valueOf(currentPage - 1)),
+                        false
+                );
+            }
+
+            if (currentPage < totalPages - 1) {
+                events.addEventBinding(
+                        CustomUIEventBindingType.Activating,
+                        "#NextBtn",
+                        EventData.of("Button", "Page").append("Page", String.valueOf(currentPage + 1)),
+                        false
+                );
+            }
+        }
+    }
+
+    private List<FactionEntry> getSearchResults() {
+        List<FactionEntry> entries = new ArrayList<>();
+
+        for (Faction f : factionManager.getAllFactions()) {
+            // Skip own faction
+            if (f.id().equals(faction.id())) {
+                continue;
+            }
+
+            // Filter by search query
+            if (!searchQuery.isEmpty()) {
+                boolean matches = f.name().toLowerCase().contains(searchQuery.toLowerCase());
+                if (f.tag() != null) {
+                    matches = matches || f.tag().toLowerCase().contains(searchQuery.toLowerCase());
+                }
+                if (!matches) {
+                    continue;
+                }
+            }
+
+            PowerManager.FactionPowerStats stats = powerManager.getFactionPowerStats(f.id());
+            FactionMember leader = f.getLeader();
+            String leaderName = leader != null ? leader.username() : "Unknown";
+
+            entries.add(new FactionEntry(
+                    f.id(),
+                    f.name(),
+                    leaderName,
+                    stats.currentPower(),
+                    f.members().size()
+            ));
+        }
+
+        // Sort by power (highest first)
+        entries.sort(Comparator.comparingDouble(FactionEntry::power).reversed());
+
+        return entries;
+    }
+
+    private void buildFactionCards(UICommandBuilder cmd, UIEventBuilder events,
+                                   List<FactionEntry> entries, int startIdx) {
+        for (int i = 0; i < FACTIONS_PER_PAGE; i++) {
+            int factionIdx = startIdx + i;
+
+            if (factionIdx < entries.size()) {
+                FactionEntry entry = entries.get(factionIdx);
+
+                cmd.append("#ResultsList", "HyperFactions/faction/set_relation_card.ui");
+
+                String prefix = "#ResultsList[" + i + "] ";
+
+                // Faction info
+                cmd.set(prefix + "#FactionName.Text", entry.name);
+                cmd.set(prefix + "#LeaderName.Text", "Leader: " + entry.leaderName);
+                cmd.set(prefix + "#PowerCount.Text", String.format("%.0f power", entry.power));
+                cmd.set(prefix + "#MemberCount.Text", entry.memberCount + " members");
+
+                // Ally button
+                events.addEventBinding(
+                        CustomUIEventBindingType.Activating,
+                        prefix + "#AllyBtn",
+                        EventData.of("Button", "RequestAlly")
+                                .append("FactionId", entry.id.toString())
+                                .append("FactionName", entry.name),
+                        false
+                );
+
+                // Enemy button
+                events.addEventBinding(
+                        CustomUIEventBindingType.Activating,
+                        prefix + "#EnemyBtn",
+                        EventData.of("Button", "SetEnemy")
+                                .append("FactionId", entry.id.toString())
+                                .append("FactionName", entry.name),
+                        false
+                );
+
+                // View button
+                events.addEventBinding(
+                        CustomUIEventBindingType.Activating,
+                        prefix + "#ViewBtn",
+                        EventData.of("Button", "ViewFaction")
+                                .append("FactionId", entry.id.toString())
+                                .append("FactionName", entry.name),
+                        false
+                );
+            }
+        }
+    }
+
+    private record FactionEntry(UUID id, String name, String leaderName, double power, int memberCount) {}
+
+    @Override
+    public void handleDataEvent(Ref<EntityStore> ref, Store<EntityStore> store,
+                                SetRelationModalData data) {
+        super.handleDataEvent(ref, store, data);
+
+        Player player = store.getComponent(ref, Player.getComponentType());
+        PlayerRef playerRef = store.getComponent(ref, PlayerRef.getComponentType());
+
+        if (player == null || playerRef == null || data.button == null) {
+            return;
+        }
+
+        UUID uuid = playerRef.getUuid();
+        FactionMember member = faction.getMember(uuid);
+
+        // Verify officer permission for relation changes
+        boolean canManage = member != null && member.role().getLevel() >= FactionRole.OFFICER.getLevel();
+
+        switch (data.button) {
+            case "Cancel" -> {
+                guiManager.openFactionRelations(player, ref, store, playerRef,
+                        factionManager.getFaction(faction.id()));
+            }
+
+            case "Search" -> {
+                searchQuery = data.searchQuery != null ? data.searchQuery.trim() : "";
+                currentPage = 0;
+                reopenModal(player, ref, store, playerRef);
+            }
+
+            case "Page" -> {
+                currentPage = data.page;
+                reopenModal(player, ref, store, playerRef);
+            }
+
+            case "RequestAlly" -> {
+                if (!canManage) {
+                    player.sendMessage(Message.raw("You don't have permission to manage relations.").color("#FF5555"));
+                    sendUpdate();
+                    return;
+                }
+
+                if (data.factionId != null) {
+                    try {
+                        UUID targetId = UUID.fromString(data.factionId);
+                        RelationManager.RelationResult result = relationManager.requestAlly(uuid, targetId);
+
+                        if (result == RelationManager.RelationResult.REQUEST_SENT) {
+                            player.sendMessage(Message.raw("Alliance request sent to " + data.factionName + ".").color("#00AAFF"));
+                        } else if (result == RelationManager.RelationResult.REQUEST_ACCEPTED) {
+                            player.sendMessage(Message.raw("Now allied with " + data.factionName + "!").color("#00AAFF"));
+                        } else {
+                            player.sendMessage(Message.raw("Failed: " + result).color("#FF5555"));
+                        }
+
+                        guiManager.openFactionRelations(player, ref, store, playerRef,
+                                factionManager.getFaction(faction.id()));
+                    } catch (IllegalArgumentException e) {
+                        player.sendMessage(Message.raw("Invalid faction.").color("#FF5555"));
+                        sendUpdate();
+                    }
+                }
+            }
+
+            case "SetEnemy" -> {
+                if (!canManage) {
+                    player.sendMessage(Message.raw("You don't have permission to manage relations.").color("#FF5555"));
+                    sendUpdate();
+                    return;
+                }
+
+                if (data.factionId != null) {
+                    try {
+                        UUID targetId = UUID.fromString(data.factionId);
+                        RelationManager.RelationResult result = relationManager.setEnemy(uuid, targetId);
+
+                        if (result == RelationManager.RelationResult.SUCCESS) {
+                            player.sendMessage(Message.raw("Now enemies with " + data.factionName + "!").color("#FF5555"));
+                        } else {
+                            player.sendMessage(Message.raw("Failed: " + result).color("#FF5555"));
+                        }
+
+                        guiManager.openFactionRelations(player, ref, store, playerRef,
+                                factionManager.getFaction(faction.id()));
+                    } catch (IllegalArgumentException e) {
+                        player.sendMessage(Message.raw("Invalid faction.").color("#FF5555"));
+                        sendUpdate();
+                    }
+                }
+            }
+
+            case "ViewFaction" -> {
+                if (data.factionId != null) {
+                    try {
+                        UUID targetId = UUID.fromString(data.factionId);
+                        Faction targetFaction = factionManager.getFaction(targetId);
+
+                        if (targetFaction != null) {
+                            PowerManager.FactionPowerStats stats = powerManager.getFactionPowerStats(targetId);
+                            player.sendMessage(Message.raw("=== " + targetFaction.name() + " ===").color("#00FFFF"));
+                            player.sendMessage(Message.raw("Members: " + targetFaction.members().size()).color("#AAAAAA"));
+                            player.sendMessage(Message.raw("Power: " + String.format("%.0f/%.0f", stats.currentPower(), stats.maxPower())).color("#AAAAAA"));
+                            player.sendMessage(Message.raw("Claims: " + targetFaction.claims().size()).color("#AAAAAA"));
+
+                            // Current relation
+                            String relationStr = faction.isAlly(targetId) ? "Ally"
+                                    : faction.isEnemy(targetId) ? "Enemy"
+                                    : "Neutral";
+                            player.sendMessage(Message.raw("Relation: " + relationStr).color("#888888"));
+                        }
+                    } catch (IllegalArgumentException e) {
+                        player.sendMessage(Message.raw("Invalid faction.").color("#FF5555"));
+                    }
+                }
+                sendUpdate();
+            }
+
+            default -> sendUpdate();
+        }
+    }
+
+    private void reopenModal(Player player, Ref<EntityStore> ref,
+                             Store<EntityStore> store, PlayerRef playerRef) {
+        guiManager.openSetRelationModal(player, ref, store, playerRef,
+                factionManager.getFaction(faction.id()), searchQuery, currentPage);
+    }
+}

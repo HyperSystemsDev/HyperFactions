@@ -1,7 +1,0 @@
-$S = "styles.ui";
-
-TextButton #AllyBtn {
-  Text: "ALLY";
-  Anchor: (Height: 26, Width: 70);
-  Style: $S.@SmallGreenButtonStyle;
-}

@@ -1,0 +1,88 @@
+// Rename Faction Modal
+// Text input for entering new faction name with validation
+
+$C = "../../Common.ui";
+$S = "styles.ui";
+
+$C.@PageOverlay {
+  $C.@DecoratedContainer {
+    Anchor: (Width: 420, Height: 270);
+
+    #Title {
+      Group {
+        $C.@Title {
+          @Text = "Rename Faction";
+        }
+      }
+    }
+
+    #Content {
+      LayoutMode: Top;
+      Padding: (Left: 20, Right: 20, Top: 15, Bottom: 15);
+
+      // Current name display
+      Group {
+        Anchor: (Height: 24, Bottom: 10);
+        LayoutMode: Left;
+
+        Label {
+          Text: "Current:";
+          Style: (FontSize: 12, TextColor: #888888, VerticalAlignment: Center);
+          Anchor: (Width: 70);
+        }
+
+        Label #CurrentName {
+          Text: "Faction Name";
+          Style: (FontSize: 13, TextColor: #00FFFF, RenderBold: true, VerticalAlignment: Center);
+          FlexWeight: 1;
+        }
+      }
+
+      // New name input
+      Label {
+        Text: "New Name:";
+        Style: (FontSize: 12, TextColor: #888888);
+        Anchor: (Height: 24, Bottom: 4);
+      }
+
+      $C.@TextField #NameInput {
+        FlexWeight: 1;
+        Anchor: (Height: 36, Bottom: 8);
+        Style: (
+          FontSize: 14,
+          TextColor: #ffffff(0.85)
+        );
+      }
+
+      // Error message area
+      Label #ErrorMessage {
+        Text: "";
+        Style: (FontSize: 11, TextColor: #FF5555, HorizontalAlignment: Center);
+        Anchor: (Height: 18, Bottom: 10);
+      }
+
+      // Button row
+      Group {
+        Anchor: (Height: 40);
+        LayoutMode: Left;
+
+        TextButton #CancelBtn {
+          Text: "CANCEL";
+          Anchor: (Height: 32, Width: 100);
+          Style: $S.@ButtonStyle;
+        }
+
+        Label { FlexWeight: 1; }
+
+        TextButton #SaveBtn {
+          Text: "SAVE";
+          Anchor: (Height: 32, Width: 100);
+          Style: $S.@CyanButtonStyle;
+        }
+      }
+    }
+  }
+}
+
+// Native Hytale back button (bottom-left ESC)
+$C.@BackButton {}

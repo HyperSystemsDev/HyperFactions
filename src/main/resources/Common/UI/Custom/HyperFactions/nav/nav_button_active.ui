@@ -2,7 +2,7 @@
 // Button for current page with cyan styling
 
 $C = "../../Common.ui";
-$S = "../styles.ui";
+$S = "../shared/styles.ui";
 
 Group {
   Anchor: (Right: 5);
