@@ -124,6 +124,11 @@ public class HyperFactions {
         // Initialize HyperPerms integration
         HyperPermsIntegration.init();
 
+        // Preload Gson classes to avoid ClassNotFoundException on Timer threads
+        // The Hytale PluginClassLoader doesn't properly propagate to Timer threads,
+        // so we need to load all Gson inner classes on the main thread at startup.
+        preloadGsonClasses();
+
         // Initialize storage
         factionStorage = new JsonFactionStorage(dataDir);
         playerStorage = new JsonPlayerStorage(dataDir);
@@ -234,6 +239,49 @@ public class HyperFactions {
         }
 
         Logger.info("HyperFactions disabled");
+    }
+
+    /**
+     * Preloads Gson classes to avoid ClassNotFoundException on Timer threads.
+     * The Hytale PluginClassLoader doesn't properly propagate class visibility
+     * to Timer threads, so we load all needed Gson inner classes at startup.
+     */
+    private void preloadGsonClasses() {
+        try {
+            // Create a test object and serialize/deserialize it
+            // This forces all Gson internal classes to be loaded
+            com.google.gson.Gson gson = new com.google.gson.GsonBuilder()
+                    .setPrettyPrinting()
+                    .create();
+
+            // Create a JsonObject with various types to trigger class loading
+            com.google.gson.JsonObject testObj = new com.google.gson.JsonObject();
+            testObj.addProperty("string", "test");
+            testObj.addProperty("number", 42);
+            testObj.addProperty("boolean", true);
+
+            com.google.gson.JsonArray testArray = new com.google.gson.JsonArray();
+            testArray.add("item1");
+            testArray.add("item2");
+            testObj.add("array", testArray);
+
+            // Serialize to JSON string (triggers LinkedTreeMap$EntrySet and related classes)
+            String json = gson.toJson(testObj);
+
+            // Also iterate over entries (triggers entrySet inner classes)
+            for (var entry : testObj.entrySet()) {
+                // Force class loading
+                @SuppressWarnings("unused")
+                String key = entry.getKey();
+            }
+
+            // Parse back (triggers other internal classes)
+            gson.fromJson(json, com.google.gson.JsonObject.class);
+
+            Logger.debug("Gson classes preloaded successfully");
+        } catch (Exception e) {
+            Logger.warn("Failed to preload Gson classes: %s", e.getMessage());
+        }
     }
 
     /**

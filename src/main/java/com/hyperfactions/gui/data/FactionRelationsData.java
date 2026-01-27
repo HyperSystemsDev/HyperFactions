@@ -7,7 +7,7 @@ import com.hypixel.hytale.codec.builder.BuilderCodec;
 /**
  * Event data for the Faction Relations page.
  */
-public class FactionRelationsData {
+public class FactionRelationsData implements NavAwareData {
 
     /** The button/action that triggered the event */
     public String button;
@@ -69,5 +69,10 @@ public class FactionRelationsData {
             .build();
 
     public FactionRelationsData() {
+    }
+
+    @Override
+    public String getNavBar() {
+        return navBar;
     }
 }

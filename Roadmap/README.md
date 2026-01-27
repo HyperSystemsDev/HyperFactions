@@ -1,6 +1,6 @@
 # HyperFactions Development Roadmap
 
-> Last Updated: January 25, 2026
+> Last Updated: January 26, 2026
 > Current Version: 1.0.0 (dev/phase1 branch)
 
 ---
@@ -64,9 +64,24 @@ This roadmap is split into multiple files for easier collaboration and reduced m
 - shadowJar `minimize()` removes Gson inner classes needed at runtime - don't use
 - Modal layouts need fixed heights on scrollable lists to prevent button overflow
 
-### In Progress
+### Completed (2026-01-26 GUI System)
 
-- [ ] Pitch/yaw orientation bug on `/f home` (TABLED)
+- [x] **New Player GUI (B.1) - Complete**
+  - Browse page with sorting/pagination
+  - Create wizard (2-step: Step 1 name/tag/color, Step 2 recruitment/confirm)
+  - Invites page for pending invitations
+  - Read-only territory map
+  - Help page
+  - NewPlayerNavBarHelper + NewPlayerPageRegistry navigation
+- [x] **Faction Player GUI (B.2) - Complete**
+  - Dashboard, Members, Browse, Map, Relations, Settings (8 main pages)
+  - 6 modals (Rename, Tag, Description, Color, Recruitment, Disband/Leave confirms)
+  - 2 utilities (ColorPicker, LogsViewer)
+
+### Tabled
+
+- [ ] Admin GUI (B.3) - Moved to v1.3+ (basic Main + Zone pages exist)
+- [ ] Pitch/yaw orientation bug on `/f home`
 - [ ] Admin Zones page back button positioning
 - [ ] Territory map visual polish (wilderness contrast, player indicator elegance)
 
@@ -79,21 +94,20 @@ This roadmap is split into multiple files for easier collaboration and reduced m
 - Basic GUI system working
 - Production ready pending remaining fixes
 
-### v1.1.0 - Command & GUI Overhaul
-- Phase A: Command system refactor
-- Phase B.1: New Player GUI
-- Phase B.2: Enhanced Faction Player GUI
+### v1.1.0 - Command Refactoring & Polish
+- Phase A: Command system refactor (modular commands, improved validation)
+- Gameplay mechanic refinement
 - Phase C.1: Chat help improvements
+- *(B.1 New Player GUI and B.2 Faction Player GUI already complete)*
 
-### v1.2.0 - Admin & Testing
-- Phase B.3: Admin GUI
+### v1.2.0 - Testing & Help System
 - Phase D: Testing infrastructure
-- Phase C.2: Help GUI
+- Phase C.2: Help GUI enhancements
 
-### v1.3.0 - Modules
+### v1.3.0 - Admin & Modules
+- Phase B.3: Admin GUI (deferred from v1.2)
 - Phase E.1: Treasury system
 - Phase E.2: Role permissions
-- Interactive chunk map (from Phase B)
 
 ### v1.4.0+ (Future)
 - Phase E.3: Raid system
@@ -106,7 +120,7 @@ This roadmap is split into multiple files for easier collaboration and reduced m
 
 - [HytaleModding Community Docs](../resources/hytale-modding/content/docs/en/)
 - [CustomUI Guide](../resources/hytale-modding/content/docs/en/guides/plugin/ui.mdx)
-- [UI Patterns](../resources/UI-PATTERNS.md)
+- [UI Patterns](../resources/docs/HYTALE-CUSTOMUI-REFERENCE.md)
 
 ---
 

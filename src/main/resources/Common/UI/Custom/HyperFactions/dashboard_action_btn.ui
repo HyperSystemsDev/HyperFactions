@@ -1,0 +1,11 @@
+// Dashboard Action Button Template
+
+$S = "styles.ui";
+
+Group {
+  TextButton #ActionBtn {
+    Text: "ACTION";
+    Anchor: (Height: 32, Width: 80);
+    Style: $S.@ButtonStyle;
+  }
+}

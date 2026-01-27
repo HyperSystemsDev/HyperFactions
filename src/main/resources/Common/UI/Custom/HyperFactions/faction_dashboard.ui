@@ -1,0 +1,154 @@
+// Faction Dashboard Page
+// Main dashboard for faction members with stats, quick actions, and activity feed
+
+$C = "../Common.ui";
+$S = "styles.ui";
+$Nav = "nav/nav_bar.ui";
+
+$C.@PageOverlay {
+  $Nav.@HyperFactionsNavBar #HyperFactionsNavBar {}
+
+  $C.@DecoratedContainer {
+    Anchor: (Width: 600, Height: 480);
+
+    #Title {
+      Group {
+        $C.@Title {
+          @Text = "Faction Dashboard";
+        }
+      }
+    }
+
+    #Content {
+      LayoutMode: Top;
+      Padding: (Left: 20, Right: 20, Top: 10, Bottom: 10);
+
+      // Faction header (name, tag, description)
+      Group #FactionHeader {
+        Anchor: (Height: 50, Bottom: 10);
+        LayoutMode: Top;
+
+        Group {
+          LayoutMode: Left;
+          Anchor: (Height: 24);
+
+          Label #FactionName {
+            Text: "Faction Name";
+            Style: (FontSize: 18, TextColor: #00FFFF, RenderBold: true, VerticalAlignment: Center);
+          }
+
+          Label #FactionTag {
+            Text: "";
+            Style: (FontSize: 14, TextColor: #FFD700, RenderBold: true, VerticalAlignment: Center);
+            Anchor: (Left: 8);
+          }
+        }
+
+        Label #FactionDescription {
+          Text: "";
+          Style: (FontSize: 12, TextColor: #888888);
+          Anchor: (Height: 20);
+        }
+      }
+
+      // Stat cards row
+      Group #StatCardsRow {
+        Anchor: (Height: 90, Bottom: 15);
+        LayoutMode: Left;
+
+        Group #PowerCard {
+          Anchor: (Width: 155);
+        }
+
+        Label { Anchor: (Width: 15); }
+
+        Group #ClaimsCard {
+          Anchor: (Width: 155);
+        }
+
+        Label { Anchor: (Width: 15); }
+
+        Group #MembersCard {
+          Anchor: (Width: 155);
+        }
+      }
+
+      // Quick actions section
+      Group {
+        Anchor: (Height: 25, Bottom: 5);
+
+        Label {
+          Text: "QUICK ACTIONS";
+          Style: (FontSize: 11, TextColor: #666666, RenderBold: true);
+        }
+      }
+
+      Group #QuickActionsRow {
+        Anchor: (Height: 40, Bottom: 15);
+        LayoutMode: Left;
+
+        Group #HomeBtnContainer {
+          Anchor: (Width: 85);
+        }
+
+        Group #ClaimBtnContainer {
+          Anchor: (Width: 85);
+        }
+
+        Group #FChatBtnContainer {
+          Anchor: (Width: 85);
+        }
+
+        Group #AChatBtnContainer {
+          Anchor: (Width: 85);
+        }
+
+        Label { FlexWeight: 1; }
+
+        Group #LeaveBtnContainer {
+          Anchor: (Width: 85);
+        }
+      }
+
+      // Divider
+      Group {
+        Anchor: (Height: 1, Bottom: 10);
+        Background: (Color: #00AAAA);
+      }
+
+      // Activity feed section
+      Group {
+        Anchor: (Height: 25, Bottom: 5);
+        LayoutMode: Left;
+
+        Label {
+          Text: "RECENT ACTIVITY";
+          Style: (FontSize: 11, TextColor: #666666, RenderBold: true);
+        }
+
+        Label { FlexWeight: 1; }
+
+        TextButton #ViewLogsBtn {
+          Text: "VIEW ALL";
+          Anchor: (Height: 22, Width: 70);
+          Style: $S.@SmallButtonStyle;
+        }
+      }
+
+      // Activity entries container
+      Group #ActivityFeed {
+        LayoutMode: Top;
+        Anchor: (Height: 130);
+
+        Group #ActivityEntry0 { Anchor: (Height: 26); }
+        Group #ActivityEntry1 { Anchor: (Height: 26); }
+        Group #ActivityEntry2 { Anchor: (Height: 26); }
+        Group #ActivityEntry3 { Anchor: (Height: 26); }
+        Group #ActivityEntry4 { Anchor: (Height: 26); }
+      }
+    }
+  }
+}
+
+// Native Hytale back button (bottom-left ESC)
+$C.@BackButton {}

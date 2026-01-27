@@ -1,0 +1,46 @@
+// Empty State for Invites Page
+// Shown when player has no pending invitations
+
+$C = "../../Common.ui";
+$S = "../styles.ui";
+
+Group {
+  Anchor: (Height: 200);
+  LayoutMode: Top;
+  Padding: (Top: 40);
+
+  // Empty icon/message
+  Label {
+    Text: "No pending invitations";
+    Style: (FontSize: 16, TextColor: #888888, HorizontalAlignment: Center, RenderBold: true);
+    Anchor: (Height: 30);
+  }
+
+  Label {
+    Text: "Browse factions to find one to join,";
+    Style: (FontSize: 13, TextColor: #666666, HorizontalAlignment: Center);
+    Anchor: (Height: 22);
+  }
+
+  Label {
+    Text: "or create your own faction!";
+    Style: (FontSize: 13, TextColor: #666666, HorizontalAlignment: Center);
+    Anchor: (Height: 22, Bottom: 20);
+  }
+
+  // Browse Factions button
+  Group {
+    LayoutMode: Left;
+    Anchor: (Height: 40);
+
+    Label { FlexWeight: 1; }
+
+    TextButton #BrowseBtn {
+      Text: "BROWSE FACTIONS";
+      Anchor: (Height: 36, Width: 180);
+      Style: $S.@CyanButtonStyle;
+    }
+
+    Label { FlexWeight: 1; }
+  }
+}

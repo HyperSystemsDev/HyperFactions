@@ -7,7 +7,7 @@ import com.hypixel.hytale.codec.builder.BuilderCodec;
 /**
  * Event data for the Chunk Map page (9x9 interactive territory grid).
  */
-public class ChunkMapData {
+public class ChunkMapData implements NavAwareData {
 
     /** The button/action that triggered the event */
     public String button;
@@ -87,5 +87,10 @@ public class ChunkMapData {
             .build();
 
     public ChunkMapData() {
+    }
+
+    @Override
+    public String getNavBar() {
+        return navBar;
     }
 }

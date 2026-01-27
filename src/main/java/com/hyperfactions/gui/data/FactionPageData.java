@@ -8,7 +8,7 @@ import com.hypixel.hytale.codec.builder.BuilderCodec;
  * Unified event data class for HyperFactions GUI pages.
  * Consolidates common fields used across multiple pages.
  */
-public class FactionPageData {
+public class FactionPageData implements NavAwareData {
 
     /** The button/action that triggered the event (e.g., "Nav", "Members", "Teleport") */
     public String button;
@@ -86,6 +86,11 @@ public class FactionPageData {
             .build();
 
     public FactionPageData() {
+    }
+
+    @Override
+    public String getNavBar() {
+        return navBar;
     }
 
     @Override

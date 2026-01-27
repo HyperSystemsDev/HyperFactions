@@ -1038,8 +1038,23 @@ public class FactionCommand extends AbstractPlayerCommand {
             return;
         }
 
+        // No args - open admin GUI
         if (args.length == 0) {
+            Player playerEntity = store.getComponent(ref, Player.getComponentType());
+            if (playerEntity == null) {
+                ctx.sendMessage(prefix().insert(msg("Could not find player entity.", COLOR_RED)));
+                return;
+            }
+            hyperFactions.getGuiManager().openAdminMain(playerEntity, ref, store, player);
+            return;
+        }
+
+        String adminCmd = args[0].toLowerCase();
+
+        // Show help for admin commands
+        if (adminCmd.equals("help") || adminCmd.equals("?")) {
             List<CommandHelp> adminCommands = new ArrayList<>();
+            adminCommands.add(new CommandHelp("/f admin", "Open admin GUI"));
             adminCommands.add(new CommandHelp("/f admin safezone", "Create SafeZone at current chunk"));
             adminCommands.add(new CommandHelp("/f admin warzone", "Create WarZone at current chunk"));
             adminCommands.add(new CommandHelp("/f admin removezone", "Remove zone at current chunk"));
@@ -1048,8 +1063,6 @@ public class FactionCommand extends AbstractPlayerCommand {
             ctx.sendMessage(HelpFormatter.buildHelp("HyperFactions Admin", null, adminCommands, null));
             return;
         }
-
-        String adminCmd = args[0].toLowerCase();
         TransformComponent transform = store.getComponent(ref, TransformComponent.getComponentType());
         if (transform == null) return;
 

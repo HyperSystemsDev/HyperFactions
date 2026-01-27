@@ -1,0 +1,96 @@
+// Read-Only Territory Map for New Players
+// View-only mode - no claim functionality
+
+$C = "../../Common.ui";
+$S = "../styles.ui";
+$Nav = "../nav/nav_bar.ui";
+
+$C.@PageOverlay {
+  $Nav.@HyperFactionsNavBar #HyperFactionsNavBar {}
+
+  $C.@DecoratedContainer {
+    Anchor: (Width: 550, Height: 480);
+
+    #Title {
+      Group {
+        LayoutMode: Left;
+
+        $C.@Title {
+          @Text = "Territory Map";
+        }
+
+        Label { FlexWeight: 1; }
+
+        // View Only Badge
+        Group {
+          Anchor: (Width: 120, Height: 24);
+          Background: (Color: #333355);
+          Padding: (Horizontal: 8);
+
+          Label #ViewOnlyBadge {
+            Text: "View Only Mode";
+            Style: (FontSize: 10, TextColor: #FFAA00, HorizontalAlignment: Center, VerticalAlignment: Center, RenderBold: true);
+          }
+        }
+      }
+    }
+
+    #Content {
+      LayoutMode: Top;
+      Padding: (Left: 15, Right: 15, Top: 10, Bottom: 10);
+
+      // Coordinates
+      Label #CoordInfo {
+        Text: "Position: 0, 0";
+        Style: (FontSize: 11, TextColor: #888888);
+        Anchor: (Height: 20);
+      }
+
+      // Map Container
+      Group #MapContainer {
+        Anchor: (Height: 290);
+        Background: (Color: #0a0a15);
+        Padding: (Left: 5, Right: 5, Top: 5, Bottom: 5);
+      }
+
+      // Legend
+      Group {
+        Anchor: (Height: 60, Top: 10);
+        LayoutMode: Top;
+
+        Label {
+          Text: "Legend:";
+          Style: (FontSize: 11, TextColor: #888888);
+          Anchor: (Height: 18);
+        }
+
+        Group {
+          LayoutMode: Left;
+          Anchor: (Height: 20);
+
+          Group #LegendSafeZone { Anchor: (Width: 14, Height: 14); Background: (Color: #2dd4bf); }
+          Label { Text: " SafeZone"; Style: (FontSize: 10, TextColor: #888888, VerticalAlignment: Center); Anchor: (Width: 65); }
+
+          Group #LegendWarZone { Anchor: (Width: 14, Height: 14); Background: (Color: #c084fc); }
+          Label { Text: " WarZone"; Style: (FontSize: 10, TextColor: #888888, VerticalAlignment: Center); Anchor: (Width: 60); }
+
+          Group #LegendFaction { Anchor: (Width: 14, Height: 14); Background: (Color: #fbbf24); }
+          Label { Text: " Faction"; Style: (FontSize: 10, TextColor: #888888, VerticalAlignment: Center); Anchor: (Width: 55); }
+
+          Group #LegendWilderness { Anchor: (Width: 14, Height: 14); Background: (Color: #1e293b); }
+          Label { Text: " Wilderness"; Style: (FontSize: 10, TextColor: #888888, VerticalAlignment: Center); }
+        }
+      }
+
+      // Info message
+      Label #InfoMessage {
+        Text: "Join a faction to claim territory!";
+        Style: (FontSize: 12, TextColor: #00FFFF, HorizontalAlignment: Center);
+        Anchor: (Height: 25, Top: 5);
+      }
+    }
+  }
+}
+
+// Native Hytale back button
+$C.@BackButton {}

@@ -1,0 +1,10 @@
+// Ally Relation Indicator
+// Shows [ALLY] badge in blue
+
+Group {
+  Label #RelationIndicator {
+    Text: "[ALLY]";
+    Style: (FontSize: 10, TextColor: #00AAFF, RenderBold: true, VerticalAlignment: Center);
+    Anchor: (Left: 5);
+  }
+}

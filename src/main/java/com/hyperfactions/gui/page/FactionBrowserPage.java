@@ -153,6 +153,15 @@ public class FactionBrowserPage extends InteractiveCustomUIPage<FactionPageData>
                 // Highlight own faction
                 if (isOwnFaction) {
                     cmd.set(prefix + "#OwnIndicator.Text", "(Your Faction)");
+                } else if (viewerFaction != null) {
+                    // Show relation indicator for faction players
+                    RelationType relation = viewerFaction.getRelationType(entry.id);
+                    if (relation == RelationType.ALLY) {
+                        cmd.append(prefix + "#RelationSlot", "HyperFactions/indicator_ally.ui");
+                    } else if (relation == RelationType.ENEMY) {
+                        cmd.append(prefix + "#RelationSlot", "HyperFactions/indicator_enemy.ui");
+                    }
+                    // Neutral factions don't show an indicator
                 }
 
                 // View button

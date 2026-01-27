@@ -5,22 +5,20 @@ import com.hypixel.hytale.codec.KeyedCodec;
 import com.hypixel.hytale.codec.builder.BuilderCodec;
 
 /**
- * Event data for the Faction Modules page.
+ * Event data for the Faction Dashboard page.
+ * Handles navigation, quick actions, and activity feed interactions.
  */
-public class FactionModulesData implements NavAwareData {
+public class FactionDashboardData implements NavAwareData {
 
-    /** The button/action that triggered the event */
+    /** The button/action that triggered the event (e.g., "Nav", "Home", "Claim", "Leave") */
     public String button;
 
     /** NavBar target (page ID when nav button clicked) */
     public String navBar;
 
-    /** Module ID (if any) */
-    public String moduleId;
-
     /** Codec for serialization/deserialization */
-    public static final BuilderCodec<FactionModulesData> CODEC = BuilderCodec
-            .builder(FactionModulesData.class, FactionModulesData::new)
+    public static final BuilderCodec<FactionDashboardData> CODEC = BuilderCodec
+            .builder(FactionDashboardData.class, FactionDashboardData::new)
             .addField(
                     new KeyedCodec<>("Button", Codec.STRING),
                     (data, value) -> data.button = value,
@@ -31,14 +29,9 @@ public class FactionModulesData implements NavAwareData {
                     (data, value) -> data.navBar = value,
                     data -> data.navBar
             )
-            .addField(
-                    new KeyedCodec<>("ModuleId", Codec.STRING),
-                    (data, value) -> data.moduleId = value,
-                    data -> data.moduleId
-            )
             .build();
 
-    public FactionModulesData() {
+    public FactionDashboardData() {
     }
 
     @Override

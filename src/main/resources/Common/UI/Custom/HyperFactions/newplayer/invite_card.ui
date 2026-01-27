@@ -1,0 +1,87 @@
+// Invite Card for Invites Page
+// Shows a single pending invitation
+
+$C = "../../Common.ui";
+$S = "../styles.ui";
+
+Group {
+  Anchor: (Height: 115, Bottom: 8);
+  Background: (Color: #1a2a3a);
+  Padding: (Left: 15, Right: 15, Top: 12, Bottom: 12);
+  LayoutMode: Top;
+
+  // Header: Faction name and time
+  Group {
+    LayoutMode: Left;
+    Anchor: (Height: 22);
+
+    Label #FactionName {
+      Text: "Faction Name";
+      Style: (FontSize: 15, TextColor: #00FFFF, RenderBold: true, VerticalAlignment: Center);
+    }
+
+    Label { FlexWeight: 1; }
+
+    Label #TimeAgo {
+      Text: "5 min ago";
+      Style: (FontSize: 11, TextColor: #666666, VerticalAlignment: Center);
+    }
+  }
+
+  // Divider
+  Group {
+    Anchor: (Height: 1, Top: 6, Bottom: 6);
+    Background: (Color: #333355);
+  }
+
+  // Invited by
+  Label #InvitedBy {
+    Text: "Invited by: PlayerName";
+    Style: (FontSize: 12, TextColor: #AAAAAA);
+    Anchor: (Height: 18);
+  }
+
+  // Stats row
+  Group {
+    LayoutMode: Left;
+    Anchor: (Height: 18);
+
+    Label #MemberCount {
+      Text: "8 members";
+      Style: (FontSize: 11, TextColor: #888888);
+      Anchor: (Width: 80);
+    }
+
+    Label #PowerCount {
+      Text: "156 power";
+      Style: (FontSize: 11, TextColor: #44CC44);
+      Anchor: (Width: 80);
+    }
+
+    Label #ClaimCount {
+      Text: "23 claims";
+      Style: (FontSize: 11, TextColor: #FFAA00);
+      Anchor: (Width: 80);
+    }
+  }
+
+  // Action buttons
+  Group {
+    LayoutMode: Left;
+    Anchor: (Height: 32, Top: 8);
+
+    TextButton #AcceptBtn {
+      Text: "ACCEPT";
+      Anchor: (Height: 28, Width: 100);
+      Style: $S.@SmallGreenButtonStyle;
+    }
+
+    Label { Anchor: (Width: 10); }
+
+    TextButton #DeclineBtn {
+      Text: "DECLINE";
+      Anchor: (Height: 28, Width: 100);
+      Style: $S.@SmallRedButtonStyle;
+    }
+  }
+}

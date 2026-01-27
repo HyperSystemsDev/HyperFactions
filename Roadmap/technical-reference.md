@@ -94,6 +94,22 @@ cmd.set("#Element.Background", "Solid { Color: 123456; }");  // DOESN'T WORK
 
 ---
 
+## FlexWeight Property
+
+**FlexWeight ONLY works on Labels** - used as spacers in LayoutMode: Left containers.
+
+```java
+// CORRECT - Label as spacer
+Label { FlexWeight: 1; }
+
+// WRONG - FlexWeight on Group crashes client!
+Group { FlexWeight: 1; }  // CRASHES - use fixed Anchor height instead
+```
+
+**Workaround**: Use fixed `Anchor: (Height: N);` on Groups instead of FlexWeight.
+
+---
+
 ## Event Binding - Element Types
 
 **ONLY Button/TextButton can receive click events!**
@@ -339,6 +355,55 @@ if (target.isLeader()) {
 **Succession Priority:**
 1. Highest role level (Officer > Member)
 2. If same role, longest tenure (earliest joinedAt timestamp)
+
+---
+
+## NavBarHelper Pattern
+
+**All pages with navigation bars should use NavBarHelper for consistent navigation handling.**
+
+The `NavBarHelper` class provides:
+1. `setupBar()` - Sets up the nav bar with buttons and event bindings
+2. `handleNavEvent()` - Handles navigation clicks via the page registry
+
+**Setup Pattern** (in `build()` method):
+```java
+// Use NavBarHelper for consistent nav bar setup
+NavBarHelper.setupBar(playerRef, hasFaction, "current-page-id", cmd, events);
+```
+
+**Handler Pattern** (in `handleDataEvent()` method):
+```java
+@Override
+public void handleDataEvent(Ref<EntityStore> ref, Store<EntityStore> store, MyPageData data) {
+    super.handleDataEvent(ref, store, data);
+
+    // ... get player, playerRef, faction ...
+
+    // Handle navigation FIRST via NavBarHelper
+    if (NavBarHelper.handleNavEvent(data, player, ref, store, playerRef, faction, guiManager)) {
+        return;
+    }
+
+    // Handle other button events...
+}
+```
+
+**Data Class Requirements**: The page's data class must have a `navBar` field for NavBarHelper to work:
+```java
+public class MyPageData {
+    public String button;
+    public String navBar;  // Required for NavBarHelper
+    // ... CODEC ...
+}
+```
+
+**Overloads**: NavBarHelper has overloads for different data types:
+- `FactionPageData`
+- `ChunkMapData`
+- `FactionDashboardData`
+
+Add new overloads as needed for new page data types.
 
 ---
 

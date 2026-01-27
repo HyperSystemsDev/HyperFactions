@@ -1,6 +1,5 @@
 package com.hyperfactions.gui;
 
-import com.hyperfactions.data.Faction;
 import com.hyperfactions.gui.data.NavAwareData;
 import com.hyperfactions.integration.HyperPermsIntegration;
 import com.hypixel.hytale.component.Ref;
@@ -14,40 +13,37 @@ import com.hypixel.hytale.server.core.ui.builder.UIEventBuilder;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
 /**
- * Helper class for building and handling the shared navigation bar component.
- * Follows AdminUI pattern exactly for nav bar setup.
+ * Helper class for building and handling the navigation bar for new players.
+ * Follows the same AdminUI pattern as NavBarHelper, but uses NewPlayerPageRegistry.
  */
-public final class NavBarHelper {
+public final class NewPlayerNavBarHelper {
 
-    private NavBarHelper() {
+    private NewPlayerNavBarHelper() {
         // Static utility class
     }
 
     /**
-     * Sets up the navigation bar in a page.
+     * Sets up the navigation bar for new player pages.
      * Follows AdminUI pattern exactly with indexed selectors.
      *
      * @param playerRef   The player viewing the page
-     * @param hasFaction  Whether the player has a faction
      * @param currentPage The ID of the current page (to highlight it)
      * @param cmd         The UI command builder
      * @param events      The UI event builder
      */
     public static void setupBar(
             @NotNull PlayerRef playerRef,
-            boolean hasFaction,
             @NotNull String currentPage,
             @NotNull UICommandBuilder cmd,
             @NotNull UIEventBuilder events
     ) {
-        // Get accessible nav bar entries
-        List<FactionPageRegistry.Entry> entries = FactionPageRegistry.getInstance()
-                .getAccessibleNavBarEntries(playerRef, hasFaction);
+        // Get accessible nav bar entries for new players
+        List<NewPlayerPageRegistry.Entry> entries = NewPlayerPageRegistry.getInstance()
+                .getAccessibleNavBarEntries(playerRef);
 
         if (entries.isEmpty()) {
             return;
@@ -59,7 +55,7 @@ public final class NavBarHelper {
 
         // 2. For each entry, append button and use indexed selector
         int index = 0;
-        for (FactionPageRegistry.Entry entry : entries) {
+        for (NewPlayerPageRegistry.Entry entry : entries) {
             // Append navigation button template
             cmd.append("#NavCards", "HyperFactions/nav/nav_button.ui");
 
@@ -87,7 +83,6 @@ public final class NavBarHelper {
      * @param ref        Entity reference
      * @param store      Entity store
      * @param playerRef  Player reference
-     * @param faction    The player's faction (may be null)
      * @param guiManager The GUI manager
      * @return true if the event was handled, false otherwise
      */
@@ -97,7 +92,6 @@ public final class NavBarHelper {
             @NotNull Ref<EntityStore> ref,
             @NotNull Store<EntityStore> store,
             @NotNull PlayerRef playerRef,
-            @Nullable Faction faction,
             @NotNull GuiManager guiManager
     ) {
         // Check if we have navBar data (AdminUI pattern uses navBar field)
@@ -107,7 +101,7 @@ public final class NavBarHelper {
         }
 
         // Get the target entry
-        FactionPageRegistry.Entry entry = FactionPageRegistry.getInstance().getEntry(targetId);
+        NewPlayerPageRegistry.Entry entry = NewPlayerPageRegistry.getInstance().getEntry(targetId);
         if (entry == null) {
             return true; // Consumed but invalid target
         }
@@ -117,14 +111,9 @@ public final class NavBarHelper {
             return true; // Consumed but no permission
         }
 
-        // Check faction requirement
-        if (entry.requiresFaction() && faction == null) {
-            return true; // Consumed but needs faction
-        }
-
         // Create and open the target page
         InteractiveCustomUIPage<?> page = entry.guiSupplier().create(
-                player, ref, store, playerRef, faction, guiManager
+                player, ref, store, playerRef, guiManager
         );
 
         if (page != null) {
@@ -133,5 +122,4 @@ public final class NavBarHelper {
 
         return true;
     }
-
 }

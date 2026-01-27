@@ -1,0 +1,64 @@
+// Invites Page for New Players
+// Shows pending faction invitations
+
+$C = "../../Common.ui";
+$S = "../styles.ui";
+$Nav = "../nav/nav_bar.ui";
+
+$C.@PageOverlay {
+  $Nav.@HyperFactionsNavBar #HyperFactionsNavBar {}
+
+  $C.@DecoratedContainer {
+    Anchor: (Width: 550, Height: 500);
+
+    #Title {
+      Group {
+        LayoutMode: Left;
+
+        $C.@Title {
+          @Text = "Your Invitations";
+        }
+
+        Label { FlexWeight: 1; }
+
+        Label #InviteCount {
+          Text: "0 pending";
+          Style: (FontSize: 13, TextColor: #888888, VerticalAlignment: Center);
+          Anchor: (Right: 10);
+        }
+      }
+    }
+
+    #Content {
+      LayoutMode: Top;
+      Padding: (Left: 15, Right: 15, Top: 10, Bottom: 10);
+
+      // Scrollable invite list
+      Group #InviteListContainer {
+        LayoutMode: TopScrolling;
+        ScrollbarStyle: $C.@DefaultScrollbarStyle;
+        FlexWeight: 1;
+
+        Group #InviteList {
+          LayoutMode: Top;
+
+          Group #InviteCard0 { Anchor: (Height: 120); }
+          Group #InviteCard1 { Anchor: (Height: 120); }
+          Group #InviteCard2 { Anchor: (Height: 120); }
+          Group #InviteCard3 { Anchor: (Height: 120); }
+          Group #InviteCard4 { Anchor: (Height: 120); }
+        }
+      }
+
+      // More invites indicator
+      Label #MoreInvites {
+        Text: "";
+        Style: (FontSize: 11, TextColor: #888888, HorizontalAlignment: Center);
+        Anchor: (Height: 20);
+      }
+    }
+  }
+}
+
+// Native Hytale back button
+$C.@BackButton {}
