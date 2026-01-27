@@ -189,26 +189,40 @@ public class FactionRelationsPage extends InteractiveCustomUIPage<FactionRelatio
                         );
                     }
                     case "request" -> {
-                        // Append ACCEPT and DECLINE buttons
-                        cmd.append(btnContainer, "HyperFactions/faction/relation_btn_accept.ui");
-                        cmd.append(btnContainer, "HyperFactions/faction/relation_btn_decline.ui");
+                        if (entry.isOutbound) {
+                            // Outbound request - show CANCEL button
+                            cmd.append(btnContainer, "HyperFactions/faction/relation_btn_cancel.ui");
 
-                        events.addEventBinding(
-                                CustomUIEventBindingType.Activating,
-                                btnContainer + " #AcceptBtn",
-                                EventData.of("Button", "AcceptAlly")
-                                        .append("FactionId", entry.factionId.toString())
-                                        .append("FactionName", entry.factionName),
-                                false
-                        );
-                        events.addEventBinding(
-                                CustomUIEventBindingType.Activating,
-                                btnContainer + " #DeclineBtn",
-                                EventData.of("Button", "DeclineAlly")
-                                        .append("FactionId", entry.factionId.toString())
-                                        .append("FactionName", entry.factionName),
-                                false
-                        );
+                            events.addEventBinding(
+                                    CustomUIEventBindingType.Activating,
+                                    btnContainer + " #CancelBtn",
+                                    EventData.of("Button", "CancelRequest")
+                                            .append("FactionId", entry.factionId.toString())
+                                            .append("FactionName", entry.factionName),
+                                    false
+                            );
+                        } else {
+                            // Inbound request - show ACCEPT and DECLINE buttons
+                            cmd.append(btnContainer, "HyperFactions/faction/relation_btn_accept.ui");
+                            cmd.append(btnContainer, "HyperFactions/faction/relation_btn_decline.ui");
+
+                            events.addEventBinding(
+                                    CustomUIEventBindingType.Activating,
+                                    btnContainer + " #AcceptBtn",
+                                    EventData.of("Button", "AcceptAlly")
+                                            .append("FactionId", entry.factionId.toString())
+                                            .append("FactionName", entry.factionName),
+                                    false
+                            );
+                            events.addEventBinding(
+                                    CustomUIEventBindingType.Activating,
+                                    btnContainer + " #DeclineBtn",
+                                    EventData.of("Button", "DeclineAlly")
+                                            .append("FactionId", entry.factionId.toString())
+                                            .append("FactionName", entry.factionName),
+                                    false
+                            );
+                        }
                     }
                 }
             }
@@ -249,7 +263,8 @@ public class FactionRelationsPage extends InteractiveCustomUIPage<FactionRelatio
                             leaderName,
                             typeText,
                             color,
-                            relation.since()
+                            relation.since(),
+                            false
                     ));
                 }
             }
@@ -263,8 +278,9 @@ public class FactionRelationsPage extends InteractiveCustomUIPage<FactionRelatio
     private List<FactionRelationEntry> getPendingRequests() {
         List<FactionRelationEntry> entries = new ArrayList<>();
 
-        Set<UUID> pendingRequests = relationManager.getPendingRequests(faction.id());
-        for (UUID requesterId : pendingRequests) {
+        // Inbound requests (other factions requesting to ally with us)
+        Set<UUID> inboundRequests = relationManager.getPendingRequests(faction.id());
+        for (UUID requesterId : inboundRequests) {
             Faction requester = factionManager.getFaction(requesterId);
             if (requester != null) {
                 FactionMember leader = requester.getLeader();
@@ -273,9 +289,29 @@ public class FactionRelationsPage extends InteractiveCustomUIPage<FactionRelatio
                         requester.id(),
                         requester.name(),
                         leaderName,
-                        "PENDING",
+                        "INCOMING",
                         "#FFAA00",
-                        System.currentTimeMillis()
+                        System.currentTimeMillis(),
+                        false
+                ));
+            }
+        }
+
+        // Outbound requests (requests we sent to other factions)
+        Set<UUID> outboundRequests = relationManager.getOutboundRequests(faction.id());
+        for (UUID targetId : outboundRequests) {
+            Faction target = factionManager.getFaction(targetId);
+            if (target != null) {
+                FactionMember leader = target.getLeader();
+                String leaderName = leader != null ? leader.username() : "Unknown";
+                entries.add(new FactionRelationEntry(
+                        target.id(),
+                        target.name(),
+                        leaderName,
+                        "OUTGOING",
+                        "#88AAFF",
+                        System.currentTimeMillis(),
+                        true
                 ));
             }
         }
@@ -286,7 +322,7 @@ public class FactionRelationsPage extends InteractiveCustomUIPage<FactionRelatio
     }
 
     private record FactionRelationEntry(UUID factionId, String factionName, String leaderName,
-                                         String type, String color, long sinceMillis) {}
+                                         String type, String color, long sinceMillis, boolean isOutbound) {}
 
     @Override
     public void handleDataEvent(Ref<EntityStore> ref, Store<EntityStore> store,
@@ -403,6 +439,24 @@ public class FactionRelationsPage extends InteractiveCustomUIPage<FactionRelatio
                         relationManager.setEnemy(actorUuid, requesterId);
                         relationManager.setNeutral(actorUuid, requesterId);
                         player.sendMessage(Message.raw("Ally request from " + data.factionName + " declined.").color("#888888"));
+                        refresh(player, ref, store, playerRef);
+                    } catch (IllegalArgumentException e) {
+                        player.sendMessage(Message.raw("Invalid faction.").color("#FF5555"));
+                    }
+                }
+            }
+
+            case "CancelRequest" -> {
+                if (data.factionId != null) {
+                    try {
+                        UUID targetId = UUID.fromString(data.factionId);
+                        UUID actorUuid = playerRef.getUuid();
+                        RelationManager.RelationResult result = relationManager.cancelRequest(actorUuid, targetId);
+                        if (result == RelationManager.RelationResult.SUCCESS) {
+                            player.sendMessage(Message.raw("Ally request to " + data.factionName + " cancelled.").color("#888888"));
+                        } else {
+                            player.sendMessage(Message.raw("Failed: " + result).color("#FF5555"));
+                        }
                         refresh(player, ref, store, playerRef);
                     } catch (IllegalArgumentException e) {
                         player.sendMessage(Message.raw("Invalid faction.").color("#FF5555"));

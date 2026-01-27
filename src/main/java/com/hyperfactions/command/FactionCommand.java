@@ -114,6 +114,7 @@ public class FactionCommand extends AbstractPlayerCommand {
             case "color" -> handleColor(ctx, player, subArgs);
             case "open" -> handleOpen(ctx, player);
             case "close" -> handleClose(ctx, player);
+            case "request" -> handleRequest(ctx, player, subArgs);
             case "stuck" -> handleStuck(ctx, store, ref, player, currentWorld);
             default -> {
                 ctx.sendMessage(prefix().insert(msg("Unknown subcommand: " + subcommand, COLOR_RED)));
@@ -140,6 +141,7 @@ public class FactionCommand extends AbstractPlayerCommand {
         commands.add(new CommandHelp("/f disband", "Disband your faction", "Core"));
         commands.add(new CommandHelp("/f invite <player>", "Invite a player", "Core"));
         commands.add(new CommandHelp("/f accept [faction]", "Accept an invite", "Core"));
+        commands.add(new CommandHelp("/f request <faction> [msg]", "Request to join a faction", "Core"));
         commands.add(new CommandHelp("/f leave", "Leave your faction", "Core"));
         commands.add(new CommandHelp("/f kick <player>", "Kick a member", "Core"));
 
@@ -228,6 +230,7 @@ public class FactionCommand extends AbstractPlayerCommand {
             case SUCCESS -> {
                 hyperFactions.getClaimManager().unclaimAll(factionId);
                 hyperFactions.getInviteManager().clearFactionInvites(factionId);
+                hyperFactions.getJoinRequestManager().clearFactionRequests(factionId);
                 hyperFactions.getRelationManager().clearAllRelations(factionId);
                 ctx.sendMessage(prefix().insert(msg("Your faction has been disbanded.", COLOR_GREEN)));
             }
@@ -320,6 +323,7 @@ public class FactionCommand extends AbstractPlayerCommand {
 
         if (result == FactionManager.FactionResult.SUCCESS) {
             hyperFactions.getInviteManager().clearPlayerInvites(player.getUuid());
+            hyperFactions.getJoinRequestManager().clearPlayerRequests(player.getUuid());
             ctx.sendMessage(prefix().insert(msg("You have joined ", COLOR_GREEN))
                 .insert(msg(faction.name(), COLOR_CYAN)).insert(msg("!", COLOR_GREEN)));
             broadcastToFaction(faction.id(), prefix().insert(msg(player.getUsername(), COLOR_YELLOW))
@@ -328,6 +332,86 @@ public class FactionCommand extends AbstractPlayerCommand {
             ctx.sendMessage(prefix().insert(msg("That faction is full.", COLOR_RED)));
         } else {
             ctx.sendMessage(prefix().insert(msg("Failed to join faction.", COLOR_RED)));
+        }
+    }
+
+    // === Request ===
+    private void handleRequest(CommandContext ctx, PlayerRef player, String[] args) {
+        if (args.length == 0) {
+            ctx.sendMessage(prefix().insert(msg("Usage: /f request <faction> [message]", COLOR_RED)));
+            return;
+        }
+
+        // Check if player is already in a faction
+        if (hyperFactions.getFactionManager().isInFaction(player.getUuid())) {
+            ctx.sendMessage(prefix().insert(msg("You are already in a faction.", COLOR_RED)));
+            return;
+        }
+
+        // Find the target faction
+        String factionName = args[0];
+        Faction faction = hyperFactions.getFactionManager().getFactionByName(factionName);
+        if (faction == null) {
+            ctx.sendMessage(prefix().insert(msg("Faction '" + factionName + "' not found.", COLOR_RED)));
+            return;
+        }
+
+        // Check if faction is open (if open, just join directly)
+        if (faction.open()) {
+            ctx.sendMessage(prefix().insert(msg("That faction is open! Use ", COLOR_YELLOW))
+                .insert(msg("/f accept " + faction.name(), COLOR_GREEN))
+                .insert(msg(" to join directly.", COLOR_YELLOW)));
+            return;
+        }
+
+        // Check if player already has a pending request
+        JoinRequestManager requestManager = hyperFactions.getJoinRequestManager();
+        if (requestManager.hasRequest(faction.id(), player.getUuid())) {
+            ctx.sendMessage(prefix().insert(msg("You already have a pending request to that faction.", COLOR_RED)));
+            return;
+        }
+
+        // Check if player has an invite to this faction (they should accept it instead)
+        InviteManager inviteManager = hyperFactions.getInviteManager();
+        if (inviteManager.hasInvite(faction.id(), player.getUuid())) {
+            ctx.sendMessage(prefix().insert(msg("You have been invited to that faction! Use ", COLOR_YELLOW))
+                .insert(msg("/f accept " + faction.name(), COLOR_GREEN))
+                .insert(msg(" to join.", COLOR_YELLOW)));
+            return;
+        }
+
+        // Build the optional message (rest of args)
+        String message = null;
+        if (args.length > 1) {
+            message = String.join(" ", Arrays.copyOfRange(args, 1, args.length));
+            if (message.length() > 200) {
+                message = message.substring(0, 200); // Truncate if too long
+            }
+        }
+
+        // Create the join request
+        requestManager.createRequest(faction.id(), player.getUuid(), player.getUsername(), message);
+
+        ctx.sendMessage(prefix().insert(msg("Sent join request to ", COLOR_GREEN))
+            .insert(msg(faction.name(), COLOR_CYAN)).insert(msg("!", COLOR_GREEN)));
+        if (message != null) {
+            ctx.sendMessage(prefix().insert(msg("Your message: \"" + message + "\"", COLOR_GRAY)));
+        }
+        ctx.sendMessage(prefix().insert(msg("An officer will review your request.", COLOR_YELLOW)));
+
+        // Notify online officers
+        for (UUID memberUuid : faction.members().keySet()) {
+            FactionMember member = faction.getMember(memberUuid);
+            if (member != null && member.isOfficerOrHigher()) {
+                PlayerRef officer = plugin.getTrackedPlayer(memberUuid);
+                if (officer != null) {
+                    officer.sendMessage(prefix().insert(msg(player.getUsername(), COLOR_YELLOW))
+                        .insert(msg(" has requested to join your faction!", COLOR_GREEN)));
+                    officer.sendMessage(prefix().insert(msg("Use ", COLOR_YELLOW))
+                        .insert(msg("/f gui", COLOR_GREEN))
+                        .insert(msg(" > Invites to review.", COLOR_YELLOW)));
+                }
+            }
         }
     }
 

@@ -150,6 +150,26 @@ public class RelationManager {
         return pending != null ? Collections.unmodifiableSet(pending.keySet()) : Collections.emptySet();
     }
 
+    /**
+     * Gets all outbound ally requests from a faction.
+     * These are requests this faction has sent to other factions.
+     *
+     * @param factionId the faction ID
+     * @return set of target faction IDs that have pending requests from this faction
+     */
+    @NotNull
+    public Set<UUID> getOutboundRequests(@NotNull UUID factionId) {
+        Set<UUID> outbound = new HashSet<>();
+        for (Map.Entry<UUID, Map<UUID, UUID>> entry : pendingAllyRequests.entrySet()) {
+            // entry.getKey() = target faction receiving requests
+            // entry.getValue() = map of (requesterFactionId -> actorUuid)
+            if (entry.getValue().containsKey(factionId)) {
+                outbound.add(entry.getKey());
+            }
+        }
+        return outbound;
+    }
+
     // === Operations ===
 
     /**
@@ -250,6 +270,39 @@ public class RelationManager {
 
         Logger.info("Factions '%s' and '%s' are now allies", actorFaction.name(), fromFaction.name());
         return RelationResult.REQUEST_ACCEPTED;
+    }
+
+    /**
+     * Cancels an outbound ally request.
+     *
+     * @param actorUuid       the actor's UUID
+     * @param targetFactionId the faction the request was sent to
+     * @return the result
+     */
+    public RelationResult cancelRequest(@NotNull UUID actorUuid, @NotNull UUID targetFactionId) {
+        Faction actorFaction = factionManager.getPlayerFaction(actorUuid);
+        if (actorFaction == null) {
+            return RelationResult.NOT_IN_FACTION;
+        }
+
+        var member = actorFaction.getMember(actorUuid);
+        if (member == null || !member.isOfficerOrHigher()) {
+            return RelationResult.NOT_OFFICER;
+        }
+
+        // Check if there's a pending request from our faction to the target
+        Map<UUID, UUID> pending = pendingAllyRequests.get(targetFactionId);
+        if (pending == null || !pending.containsKey(actorFaction.id())) {
+            return RelationResult.NO_PENDING_REQUEST;
+        }
+
+        // Remove the request
+        pending.remove(actorFaction.id());
+
+        Faction targetFaction = factionManager.getFaction(targetFactionId);
+        String targetName = targetFaction != null ? targetFaction.name() : "Unknown";
+        Logger.info("Faction '%s' cancelled ally request to '%s'", actorFaction.name(), targetName);
+        return RelationResult.SUCCESS;
     }
 
     /**

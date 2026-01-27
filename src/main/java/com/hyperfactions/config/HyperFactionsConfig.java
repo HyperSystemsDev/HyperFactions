@@ -59,6 +59,10 @@ public class HyperFactionsConfig {
     private int maxAllies = 10;      // -1 for unlimited
     private int maxEnemies = -1;     // -1 for unlimited
 
+    // Invite/Request settings
+    private int inviteExpirationMinutes = 5;         // How long faction invites last
+    private int joinRequestExpirationHours = 24;     // How long join requests last
+
     // Stuck command settings
     private int stuckWarmupSeconds = 30;
     private int stuckCooldownSeconds = 300;  // 5 minutes
@@ -175,6 +179,13 @@ public class HyperFactionsConfig {
                 JsonObject relations = root.getAsJsonObject("relations");
                 maxAllies = getInt(relations, "maxAllies", maxAllies);
                 maxEnemies = getInt(relations, "maxEnemies", maxEnemies);
+            }
+
+            // Invite/Request settings
+            if (root.has("invites") && root.get("invites").isJsonObject()) {
+                JsonObject invites = root.getAsJsonObject("invites");
+                inviteExpirationMinutes = getInt(invites, "inviteExpirationMinutes", inviteExpirationMinutes);
+                joinRequestExpirationHours = getInt(invites, "joinRequestExpirationHours", joinRequestExpirationHours);
             }
 
             // Stuck settings
@@ -298,6 +309,12 @@ public class HyperFactionsConfig {
             relations.addProperty("maxEnemies", maxEnemies);
             root.add("relations", relations);
 
+            // Invite/Request settings
+            JsonObject invites = new JsonObject();
+            invites.addProperty("inviteExpirationMinutes", inviteExpirationMinutes);
+            invites.addProperty("joinRequestExpirationHours", joinRequestExpirationHours);
+            root.add("invites", invites);
+
             // Stuck settings
             JsonObject stuck = new JsonObject();
             stuck.addProperty("warmupSeconds", stuckWarmupSeconds);
@@ -394,6 +411,12 @@ public class HyperFactionsConfig {
     // === Relation Getters ===
     public int getMaxAllies() { return maxAllies; }
     public int getMaxEnemies() { return maxEnemies; }
+
+    // === Invite/Request Getters ===
+    public int getInviteExpirationMinutes() { return inviteExpirationMinutes; }
+    public int getJoinRequestExpirationHours() { return joinRequestExpirationHours; }
+    public long getInviteExpirationMs() { return inviteExpirationMinutes * 60 * 1000L; }
+    public long getJoinRequestExpirationMs() { return joinRequestExpirationHours * 60 * 60 * 1000L; }
 
     // === Stuck Getters ===
     public int getStuckWarmupSeconds() { return stuckWarmupSeconds; }

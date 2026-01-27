@@ -94,6 +94,13 @@ public class FactionSettingsPage extends InteractiveCustomUIPage<FactionSettings
         if (member == null || member.role().getLevel() < FactionRole.OFFICER.getLevel()) {
             cmd.append("HyperFactions/shared/error_page.ui");
             cmd.set("#ErrorMessage.Text", "Only officers and leaders can change faction settings.");
+            // Bind close button to go back to dashboard
+            events.addEventBinding(
+                    CustomUIEventBindingType.Activating,
+                    "#CloseBtn",
+                    EventData.of("Button", "Close"),
+                    false
+            );
             return;
         }
 
@@ -247,6 +254,12 @@ public class FactionSettingsPage extends InteractiveCustomUIPage<FactionSettings
                 }
             }
             sendUpdate();
+            return;
+        }
+
+        // Handle close button (from error page)
+        if ("Close".equals(data.button)) {
+            guiManager.openFactionMain(player, ref, store, playerRef);
             return;
         }
 

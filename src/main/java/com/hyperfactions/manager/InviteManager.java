@@ -1,15 +1,27 @@
 package com.hyperfactions.manager;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.hyperfactions.config.HyperFactionsConfig;
 import com.hyperfactions.data.PendingInvite;
+import com.hyperfactions.util.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
  * Manages pending faction invitations.
+ * Persists invites to JSON file.
  */
 public class InviteManager {
 
@@ -18,6 +30,37 @@ public class InviteManager {
 
     // Invites by faction: faction ID -> set of invited player UUIDs
     private final Map<UUID, Set<UUID>> invitesByFaction = new ConcurrentHashMap<>();
+
+    // Persistence
+    private final Path dataFile;
+    private final Gson gson;
+
+    /**
+     * Creates a new InviteManager with persistence.
+     *
+     * @param dataDir the data directory for storage
+     */
+    public InviteManager(@NotNull Path dataDir) {
+        this.dataFile = dataDir.resolve("invites.json");
+        this.gson = new GsonBuilder()
+            .setPrettyPrinting()
+            .disableHtmlEscaping()
+            .create();
+    }
+
+    /**
+     * Initializes the manager by loading persisted invites.
+     */
+    public void init() {
+        load();
+    }
+
+    /**
+     * Shuts down the manager, saving any pending data.
+     */
+    public void shutdown() {
+        save();
+    }
 
     /**
      * Creates a new invite.
@@ -30,9 +73,10 @@ public class InviteManager {
     @NotNull
     public PendingInvite createInvite(@NotNull UUID factionId, @NotNull UUID playerUuid, @NotNull UUID invitedBy) {
         // Remove any existing invite from this faction
-        removeInvite(factionId, playerUuid);
+        removeInviteInternal(factionId, playerUuid);
 
-        PendingInvite invite = PendingInvite.create(factionId, playerUuid, invitedBy);
+        long durationMs = HyperFactionsConfig.get().getInviteExpirationMs();
+        PendingInvite invite = PendingInvite.create(factionId, playerUuid, invitedBy, durationMs);
 
         invitesByPlayer.computeIfAbsent(playerUuid, k -> ConcurrentHashMap.newKeySet())
             .add(invite);
@@ -40,6 +84,7 @@ public class InviteManager {
         invitesByFaction.computeIfAbsent(factionId, k -> ConcurrentHashMap.newKeySet())
             .add(playerUuid);
 
+        save();
         return invite;
     }
 
@@ -90,6 +135,7 @@ public class InviteManager {
         // Clean up expired
         if (valid.size() != invites.size()) {
             invites.removeIf(PendingInvite::isExpired);
+            save();
         }
 
         return valid;
@@ -141,12 +187,68 @@ public class InviteManager {
     }
 
     /**
+     * Gets all pending invites for a faction with full invite details.
+     *
+     * @param factionId the faction ID
+     * @return list of non-expired invites
+     */
+    @NotNull
+    public List<PendingInvite> getFactionInvitesList(@NotNull UUID factionId) {
+        Set<UUID> playerUuids = invitesByFaction.get(factionId);
+        if (playerUuids == null || playerUuids.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<PendingInvite> valid = new ArrayList<>();
+        Set<UUID> expired = new HashSet<>();
+
+        for (UUID playerUuid : playerUuids) {
+            PendingInvite invite = getInvite(factionId, playerUuid);
+            if (invite != null && !invite.isExpired()) {
+                valid.add(invite);
+            } else {
+                expired.add(playerUuid);
+            }
+        }
+
+        // Clean up expired
+        for (UUID playerUuid : expired) {
+            removeInviteInternal(factionId, playerUuid);
+        }
+        if (!expired.isEmpty()) {
+            save();
+        }
+
+        // Sort by creation time (oldest first)
+        valid.sort(Comparator.comparingLong(PendingInvite::createdAt));
+        return valid;
+    }
+
+    /**
+     * Gets the count of pending invites for a faction.
+     *
+     * @param factionId the faction ID
+     * @return count of non-expired invites
+     */
+    public int getFactionInviteCount(@NotNull UUID factionId) {
+        return getFactionInvitesList(factionId).size();
+    }
+
+    /**
      * Removes an invite.
      *
      * @param factionId  the faction ID
      * @param playerUuid the player's UUID
      */
     public void removeInvite(@NotNull UUID factionId, @NotNull UUID playerUuid) {
+        removeInviteInternal(factionId, playerUuid);
+        save();
+    }
+
+    /**
+     * Internal remove without save (for batch operations).
+     */
+    private void removeInviteInternal(@NotNull UUID factionId, @NotNull UUID playerUuid) {
         Set<PendingInvite> invites = invitesByPlayer.get(playerUuid);
         if (invites != null) {
             invites.removeIf(i -> i.factionId().equals(factionId));
@@ -178,6 +280,7 @@ public class InviteManager {
                     factionInvites.remove(playerUuid);
                 }
             }
+            save();
         }
     }
 
@@ -198,6 +301,7 @@ public class InviteManager {
                     }
                 }
             }
+            save();
         }
     }
 
@@ -206,8 +310,14 @@ public class InviteManager {
      * Call periodically.
      */
     public void cleanupExpired() {
+        boolean changed = false;
+
         for (Map.Entry<UUID, Set<PendingInvite>> entry : invitesByPlayer.entrySet()) {
+            int before = entry.getValue().size();
             entry.getValue().removeIf(PendingInvite::isExpired);
+            if (entry.getValue().size() != before) {
+                changed = true;
+            }
             if (entry.getValue().isEmpty()) {
                 invitesByPlayer.remove(entry.getKey());
             }
@@ -221,5 +331,89 @@ public class InviteManager {
                     .add(entry.getKey());
             }
         }
+
+        if (changed) {
+            save();
+        }
+    }
+
+    // === Persistence ===
+
+    /**
+     * Loads invites from the JSON file.
+     */
+    private void load() {
+        if (!Files.exists(dataFile)) {
+            Logger.info("No invites file found, starting fresh");
+            return;
+        }
+
+        try {
+            String json = Files.readString(dataFile);
+            JsonArray array = JsonParser.parseString(json).getAsJsonArray();
+
+            int loaded = 0;
+            int expired = 0;
+
+            for (JsonElement el : array) {
+                PendingInvite invite = deserializeInvite(el.getAsJsonObject());
+                if (invite.isExpired()) {
+                    expired++;
+                    continue;
+                }
+
+                invitesByPlayer.computeIfAbsent(invite.playerUuid(), k -> ConcurrentHashMap.newKeySet())
+                    .add(invite);
+                invitesByFaction.computeIfAbsent(invite.factionId(), k -> ConcurrentHashMap.newKeySet())
+                    .add(invite.playerUuid());
+                loaded++;
+            }
+
+            Logger.info("Loaded %d invites (%d expired and skipped)", loaded, expired);
+        } catch (Exception e) {
+            Logger.severe("Failed to load invites", e);
+        }
+    }
+
+    /**
+     * Saves all invites to the JSON file.
+     */
+    private void save() {
+        try {
+            Files.createDirectories(dataFile.getParent());
+
+            JsonArray array = new JsonArray();
+            for (Set<PendingInvite> invites : invitesByPlayer.values()) {
+                for (PendingInvite invite : invites) {
+                    if (!invite.isExpired()) {
+                        array.add(serializeInvite(invite));
+                    }
+                }
+            }
+
+            Files.writeString(dataFile, gson.toJson(array));
+        } catch (IOException e) {
+            Logger.severe("Failed to save invites", e);
+        }
+    }
+
+    private JsonObject serializeInvite(PendingInvite invite) {
+        JsonObject obj = new JsonObject();
+        obj.addProperty("factionId", invite.factionId().toString());
+        obj.addProperty("playerUuid", invite.playerUuid().toString());
+        obj.addProperty("invitedBy", invite.invitedBy().toString());
+        obj.addProperty("createdAt", invite.createdAt());
+        obj.addProperty("expiresAt", invite.expiresAt());
+        return obj;
+    }
+
+    private PendingInvite deserializeInvite(JsonObject obj) {
+        return new PendingInvite(
+            UUID.fromString(obj.get("factionId").getAsString()),
+            UUID.fromString(obj.get("playerUuid").getAsString()),
+            UUID.fromString(obj.get("invitedBy").getAsString()),
+            obj.get("createdAt").getAsLong(),
+            obj.get("expiresAt").getAsLong()
+        );
     }
 }

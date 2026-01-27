@@ -298,10 +298,14 @@ public class FactionMembersPage extends InteractiveCustomUIPage<FactionPageData>
 
     private void handleTransfer(Player player, Ref<EntityStore> ref, Store<EntityStore> store,
                                 FactionPageData data) {
-        if (data.playerUuid == null) return;
+        if (data.playerUuid == null || data.target == null) return;
 
-        guiManager.closePage(player, ref, store);
-        player.sendMessage(Message.raw("Use /f transfer " + data.target + " to confirm leadership transfer.").color("#FFAA00"));
+        try {
+            UUID targetUuid = UUID.fromString(data.playerUuid);
+            guiManager.openTransferConfirm(player, ref, store, playerRef, faction, targetUuid, data.target);
+        } catch (IllegalArgumentException e) {
+            player.sendMessage(Message.raw("Invalid player.").color("#FF5555"));
+        }
     }
 
     private void refresh(Player player, Ref<EntityStore> ref, Store<EntityStore> store, PlayerRef playerRef) {

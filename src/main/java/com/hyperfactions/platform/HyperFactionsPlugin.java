@@ -7,6 +7,8 @@ import com.hyperfactions.config.HyperFactionsConfig;
 import com.hyperfactions.listener.PlayerListener;
 import com.hyperfactions.listener.ProtectionListener;
 import com.hyperfactions.util.Logger;
+import com.hypixel.hytale.event.EventPriority;
+import com.hypixel.hytale.server.core.event.events.player.PlayerChatEvent;
 import com.hypixel.hytale.server.core.event.events.player.PlayerConnectEvent;
 import com.hypixel.hytale.server.core.event.events.player.PlayerDisconnectEvent;
 import com.hypixel.hytale.server.core.event.events.ecs.PlaceBlockEvent;
@@ -30,6 +32,7 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -186,6 +189,9 @@ public class HyperFactionsPlugin extends JavaPlugin {
                 timer.cancel();
             }
         });
+
+        // Player lookup (for chat manager)
+        hyperFactions.setPlayerLookup(this::getTrackedPlayer);
     }
 
     /**
@@ -209,6 +215,14 @@ public class HyperFactionsPlugin extends JavaPlugin {
 
         // Player disconnect event
         getEventRegistry().register(PlayerDisconnectEvent.class, this::onPlayerDisconnect);
+
+        // Player chat event (for faction/ally chat channels)
+        // Use async global handler since PlayerChatEvent is an async event
+        getEventRegistry().registerAsyncGlobal(
+            EventPriority.NORMAL,
+            PlayerChatEvent.class,
+            this::onPlayerChatAsync
+        );
 
         // Create listeners
         playerListener = new PlayerListener(hyperFactions);
@@ -357,8 +371,32 @@ public class HyperFactionsPlugin extends JavaPlugin {
         // Update faction member last online
         hyperFactions.getFactionManager().updateLastOnline(uuid);
 
+        // Reset chat channel
+        hyperFactions.getChatManager().resetChannel(uuid);
+
         // Untrack the player
         trackedPlayers.remove(uuid);
+    }
+
+    /**
+     * Handles player chat event for faction/ally chat channels (async handler).
+     */
+    private CompletableFuture<PlayerChatEvent> onPlayerChatAsync(
+            CompletableFuture<PlayerChatEvent> futureEvent) {
+        return futureEvent.thenApply(event -> {
+            if (event.isCancelled()) return event;
+
+            PlayerRef sender = event.getSender();
+            String message = event.getContent();
+
+            // Check if player is in faction/ally chat mode
+            boolean handled = hyperFactions.getChatManager().processChatMessage(sender, message);
+            if (handled) {
+                // Cancel the normal chat broadcast
+                event.setCancelled(true);
+            }
+            return event;
+        });
     }
 
     /**

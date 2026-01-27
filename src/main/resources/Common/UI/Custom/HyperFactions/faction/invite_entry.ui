@@ -1,0 +1,49 @@
+// Outgoing Invite Entry
+// Shows player invited, who invited them, time remaining, and cancel button
+
+$C = "../../Common.ui";
+$S = "../shared/styles.ui";
+
+Group {
+  Anchor: (Height: 55, Bottom: 5);
+  Background: (Color: #1a2a3a);
+  Padding: (Left: 10, Right: 10, Top: 5, Bottom: 5);
+  LayoutMode: Left;
+
+  // Left side: player info
+  Group {
+    Anchor: (Width: 200);
+    LayoutMode: Top;
+
+    Label #PlayerName {
+      Text: "PlayerName";
+      Style: (FontSize: 13, TextColor: #55FFFF, RenderBold: true, VerticalAlignment: Center);
+      Anchor: (Height: 16);
+    }
+    Label #InviterName {
+      Text: "Invited by: Unknown";
+      Style: (FontSize: 11, TextColor: #AAAAAA, VerticalAlignment: Center);
+      Anchor: (Height: 14);
+    }
+    Label #TimeRemaining {
+      Text: "Expires: 5m";
+      Style: (FontSize: 10, TextColor: #666666, VerticalAlignment: Center);
+      Anchor: (Height: 14);
+    }
+  }
+
+  // Spacer
+  Label { FlexWeight: 1; }
+
+  // Right side: cancel button
+  Group #ButtonsContainer {
+    Anchor: (Width: 80);
+    LayoutMode: Left;
+
+    TextButton #CancelBtn {
+      Text: "CANCEL";
+      Anchor: (Width: 70, Height: 28);
+      Style: $S.@SmallRedButtonStyle;
+    }
+  }
+}

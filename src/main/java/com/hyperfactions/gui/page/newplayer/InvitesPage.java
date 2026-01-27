@@ -1,12 +1,14 @@
 package com.hyperfactions.gui.page.newplayer;
 
 import com.hyperfactions.data.Faction;
+import com.hyperfactions.data.JoinRequest;
 import com.hyperfactions.data.PendingInvite;
 import com.hyperfactions.gui.GuiManager;
 import com.hyperfactions.gui.nav.NewPlayerNavBarHelper;
 import com.hyperfactions.gui.shared.data.NewPlayerPageData;
 import com.hyperfactions.manager.FactionManager;
 import com.hyperfactions.manager.InviteManager;
+import com.hyperfactions.manager.JoinRequestManager;
 import com.hyperfactions.manager.PowerManager;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
@@ -26,30 +28,34 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Invites Page - shows pending faction invitations for new players.
- * Allows players to accept or decline invites.
+ * Invites & Requests Page - shows pending faction invitations and outgoing join requests.
+ * Allows players to accept/decline invites and cancel their own requests.
  */
 public class InvitesPage extends InteractiveCustomUIPage<NewPlayerPageData> {
 
     private static final String PAGE_ID = "invites";
     private static final int MAX_INVITES_DISPLAYED = 5;
+    private static final int MAX_REQUESTS_DISPLAYED = 5;
 
     private final PlayerRef playerRef;
     private final FactionManager factionManager;
     private final PowerManager powerManager;
     private final InviteManager inviteManager;
+    private final JoinRequestManager joinRequestManager;
     private final GuiManager guiManager;
 
     public InvitesPage(PlayerRef playerRef,
                        FactionManager factionManager,
                        PowerManager powerManager,
                        InviteManager inviteManager,
+                       JoinRequestManager joinRequestManager,
                        GuiManager guiManager) {
         super(playerRef, CustomPageLifetime.CanDismiss, NewPlayerPageData.CODEC);
         this.playerRef = playerRef;
         this.factionManager = factionManager;
         this.powerManager = powerManager;
         this.inviteManager = inviteManager;
+        this.joinRequestManager = joinRequestManager;
         this.guiManager = guiManager;
     }
 
@@ -63,31 +69,31 @@ public class InvitesPage extends InteractiveCustomUIPage<NewPlayerPageData> {
         // Setup navigation bar for new players
         NewPlayerNavBarHelper.setupBar(playerRef, PAGE_ID, cmd, events);
 
-        // Get pending invites
+        // Get pending invites and outgoing requests
         List<PendingInvite> invites = inviteManager.getPlayerInvites(playerRef.getUuid());
+        List<JoinRequest> requests = joinRequestManager.getPlayerRequests(playerRef.getUuid());
 
-        // Set header with count
-        cmd.set("#InviteCount.Text", invites.size() + " pending");
+        // Set header with counts
+        int totalCount = invites.size() + requests.size();
+        cmd.set("#InviteCount.Text", totalCount + " pending");
 
+        // === RECEIVED INVITES SECTION ===
+        cmd.set("#InvitesHeader.Text", "RECEIVED INVITES (" + invites.size() + ")");
         if (invites.isEmpty()) {
-            // Show empty state
-            buildEmptyState(cmd, events);
+            cmd.append("#InviteListContainer", "HyperFactions/faction/relation_empty.ui");
+            cmd.set("#InviteListContainer[0] #EmptyText.Text", "No invites. Browse factions to find one!");
         } else {
-            // Show invite cards
             buildInviteCards(cmd, events, invites);
         }
-    }
 
-    private void buildEmptyState(UICommandBuilder cmd, UIEventBuilder events) {
-        cmd.append("#InviteListContainer", "HyperFactions/newplayer/invites_empty.ui");
-
-        // Browse Factions button
-        events.addEventBinding(
-                CustomUIEventBindingType.Activating,
-                "#BrowseBtn",
-                EventData.of("Button", "Browse"),
-                false
-        );
+        // === YOUR REQUESTS SECTION ===
+        cmd.set("#RequestsHeader.Text", "YOUR REQUESTS (" + requests.size() + ")");
+        if (requests.isEmpty()) {
+            cmd.append("#RequestListContainer", "HyperFactions/faction/relation_empty.ui");
+            cmd.set("#RequestListContainer[0] #EmptyText.Text", "No pending requests.");
+        } else {
+            buildRequestCards(cmd, events, requests);
+        }
     }
 
     private void buildInviteCards(UICommandBuilder cmd, UIEventBuilder events,
@@ -99,19 +105,17 @@ public class InvitesPage extends InteractiveCustomUIPage<NewPlayerPageData> {
             Faction faction = factionManager.getFaction(invite.factionId());
 
             if (faction == null) {
-                // Faction no longer exists - skip
                 continue;
             }
 
-            String cardId = "#InviteCard" + i;
-            cmd.append(cardId, "HyperFactions/newplayer/invite_card.ui");
+            cmd.append("#InviteListContainer", "HyperFactions/newplayer/invite_card.ui");
 
-            String prefix = cardId + " ";
+            String prefix = "#InviteListContainer[" + i + "] ";
 
             // Faction info
             cmd.set(prefix + "#FactionName.Text", faction.name());
 
-            // Invited by - try to find inviter name
+            // Invited by
             String inviterName = getPlayerName(invite.invitedBy());
             cmd.set(prefix + "#InvitedBy.Text", "Invited by: " + inviterName);
 
@@ -143,22 +147,57 @@ public class InvitesPage extends InteractiveCustomUIPage<NewPlayerPageData> {
                     false
             );
         }
+    }
 
-        // If there are more invites than we can display
-        if (invites.size() > MAX_INVITES_DISPLAYED) {
-            cmd.set("#MoreInvites.Text", "+" + (invites.size() - MAX_INVITES_DISPLAYED) + " more invites");
+    private void buildRequestCards(UICommandBuilder cmd, UIEventBuilder events,
+                                   List<JoinRequest> requests) {
+        int displayCount = Math.min(MAX_REQUESTS_DISPLAYED, requests.size());
+
+        for (int i = 0; i < displayCount; i++) {
+            JoinRequest request = requests.get(i);
+            Faction faction = factionManager.getFaction(request.factionId());
+
+            if (faction == null) {
+                continue;
+            }
+
+            cmd.append("#RequestListContainer", "HyperFactions/newplayer/request_card.ui");
+
+            String prefix = "#RequestListContainer[" + i + "] ";
+
+            // Faction info
+            cmd.set(prefix + "#FactionName.Text", faction.name());
+
+            // Status
+            cmd.set(prefix + "#StatusText.Text", "Awaiting review");
+
+            // Stats
+            PowerManager.FactionPowerStats stats = powerManager.getFactionPowerStats(faction.id());
+            cmd.set(prefix + "#MemberCount.Text", faction.members().size() + " members");
+            cmd.set(prefix + "#PowerCount.Text", String.format("%.0f power", stats.currentPower()));
+
+            // Time remaining
+            int hoursRemaining = request.getRemainingHours();
+            cmd.set(prefix + "#TimeRemaining.Text", "Expires in " + hoursRemaining + "h");
+
+            // Cancel button
+            events.addEventBinding(
+                    CustomUIEventBindingType.Activating,
+                    prefix + "#CancelBtn",
+                    EventData.of("Button", "CancelRequest")
+                            .append("FactionId", request.factionId().toString()),
+                    false
+            );
         }
     }
 
     private String getPlayerName(UUID uuid) {
-        // Try to get the player name from faction member data
         for (Faction faction : factionManager.getAllFactions()) {
             var member = faction.getMember(uuid);
             if (member != null) {
                 return member.username();
             }
         }
-        // Fallback to shortened UUID
         return uuid.toString().substring(0, 8);
     }
 
@@ -205,6 +244,8 @@ public class InvitesPage extends InteractiveCustomUIPage<NewPlayerPageData> {
 
             case "Decline" -> handleDecline(player, ref, store, playerRef, data);
 
+            case "CancelRequest" -> handleCancelRequest(player, ref, store, playerRef, data);
+
             default -> sendUpdate();
         }
     }
@@ -220,7 +261,6 @@ public class InvitesPage extends InteractiveCustomUIPage<NewPlayerPageData> {
             UUID factionId = UUID.fromString(data.factionId);
             UUID playerUuid = playerRef.getUuid();
 
-            // Check if invite still exists
             if (!inviteManager.hasInvite(factionId, playerUuid)) {
                 player.sendMessage(Message.raw("This invite has expired or was revoked.").color("#FF5555"));
                 sendUpdate();
@@ -235,7 +275,6 @@ public class InvitesPage extends InteractiveCustomUIPage<NewPlayerPageData> {
                 return;
             }
 
-            // Join the faction
             FactionManager.FactionResult result = factionManager.addMember(
                     factionId,
                     playerUuid,
@@ -249,8 +288,9 @@ public class InvitesPage extends InteractiveCustomUIPage<NewPlayerPageData> {
                                     .insert(Message.raw(faction.name()).color("#00FFFF"))
                                     .insert(Message.raw("!").color("#55FF55"))
                     );
-                    // Clear all invites
+                    // Clear all invites and requests
                     inviteManager.clearPlayerInvites(playerUuid);
+                    joinRequestManager.clearPlayerRequests(playerUuid);
                     // Open faction dashboard
                     Faction freshFaction = factionManager.getPlayerFaction(playerUuid);
                     if (freshFaction != null) {
@@ -286,10 +326,33 @@ public class InvitesPage extends InteractiveCustomUIPage<NewPlayerPageData> {
         try {
             UUID factionId = UUID.fromString(data.factionId);
 
-            // Remove the invite
             inviteManager.removeInvite(factionId, playerRef.getUuid());
 
             player.sendMessage(Message.raw("Invite declined.").color("#AAAAAA"));
+
+            // Refresh the page
+            guiManager.openInvitesPage(player, ref, store, playerRef);
+        } catch (IllegalArgumentException e) {
+            sendUpdate();
+        }
+    }
+
+    private void handleCancelRequest(Player player, Ref<EntityStore> ref, Store<EntityStore> store,
+                                     PlayerRef playerRef, NewPlayerPageData data) {
+        if (data.factionId == null) {
+            sendUpdate();
+            return;
+        }
+
+        try {
+            UUID factionId = UUID.fromString(data.factionId);
+
+            Faction faction = factionManager.getFaction(factionId);
+            String factionName = faction != null ? faction.name() : "the faction";
+
+            joinRequestManager.removeRequest(factionId, playerRef.getUuid());
+
+            player.sendMessage(Message.raw("Cancelled request to join " + factionName + ".").color("#AAAAAA"));
 
             // Refresh the page
             guiManager.openInvitesPage(player, ref, store, playerRef);

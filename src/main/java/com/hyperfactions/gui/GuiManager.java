@@ -2,6 +2,8 @@ package com.hyperfactions.gui;
 
 import com.hyperfactions.HyperFactions;
 import com.hyperfactions.data.Faction;
+import com.hyperfactions.data.FactionMember;
+import com.hyperfactions.data.FactionRole;
 import com.hyperfactions.gui.faction.*;
 import com.hyperfactions.gui.faction.page.*;
 import com.hyperfactions.gui.shared.page.*;
@@ -36,6 +38,7 @@ public class GuiManager {
     private final Supplier<ZoneManager> zoneManager;
     private final Supplier<TeleportManager> teleportManager;
     private final Supplier<InviteManager> inviteManager;
+    private final Supplier<JoinRequestManager> joinRequestManager;
     private final Supplier<Path> dataDir;
 
     public GuiManager(Supplier<HyperFactions> plugin,
@@ -46,6 +49,7 @@ public class GuiManager {
                       Supplier<ZoneManager> zoneManager,
                       Supplier<TeleportManager> teleportManager,
                       Supplier<InviteManager> inviteManager,
+                      Supplier<JoinRequestManager> joinRequestManager,
                       Supplier<Path> dataDir) {
         this.plugin = plugin;
         this.factionManager = factionManager;
@@ -55,6 +59,7 @@ public class GuiManager {
         this.zoneManager = zoneManager;
         this.teleportManager = teleportManager;
         this.inviteManager = inviteManager;
+        this.joinRequestManager = joinRequestManager;
         this.dataDir = dataDir;
 
         // Register all pages with the central registry
@@ -102,6 +107,26 @@ public class GuiManager {
                 1
         ));
 
+        // Invites page (officers+ only) - shows outgoing invites and incoming join requests
+        registry.registerEntry(new Entry(
+                "invites",
+                "Invites",
+                null,
+                (player, ref, store, playerRef, faction, guiManager) -> {
+                    if (faction == null) return null;
+                    // Only show for officers and above
+                    FactionMember member = faction.getMember(playerRef.getUuid());
+                    if (member == null || member.role().getLevel() < FactionRole.OFFICER.getLevel()) {
+                        return null;  // Returns null = page hidden from nav bar
+                    }
+                    return new FactionInvitesPage(playerRef, factionManager.get(), inviteManager.get(),
+                            joinRequestManager.get(), guiManager, plugin.get(), faction);
+                },
+                true, // Show in nav bar (conditionally returns null for non-officers)
+                true, // Requires faction
+                2
+        ));
+
         // Browser page
         registry.registerEntry(new Entry(
                 "browser",
@@ -111,7 +136,7 @@ public class GuiManager {
                         new FactionBrowserPage(playerRef, factionManager.get(), powerManager.get(), guiManager),
                 true,
                 false,
-                2
+                3
         ));
 
         // Map page
@@ -124,7 +149,7 @@ public class GuiManager {
                                 relationManager.get(), zoneManager.get(), guiManager),
                 true,
                 false,
-                3
+                4
         ));
 
         // Relations page
@@ -139,7 +164,7 @@ public class GuiManager {
                 },
                 true,
                 true,
-                4
+                5
         ));
 
         // Settings page (officers+)
@@ -153,7 +178,7 @@ public class GuiManager {
                 },
                 true, // Show in nav bar
                 true, // Requires faction
-                5
+                6
         ));
 
         // Admin page (requires permission) - accessed via /f admin, not in main nav bar
@@ -210,7 +235,7 @@ public class GuiManager {
                 null,
                 (player, ref, store, playerRef, guiManager) ->
                         new InvitesPage(playerRef, factionManager.get(), powerManager.get(),
-                                inviteManager.get(), guiManager),
+                                inviteManager.get(), joinRequestManager.get(), guiManager),
                 true,
                 2
         ));
@@ -438,6 +463,40 @@ public class GuiManager {
             Logger.debug("[GUI] FactionBrowserPage opened successfully");
         } catch (Exception e) {
             Logger.severe("[GUI] Failed to open FactionBrowserPage: %s", e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Opens the Faction Invites page.
+     * Shows outgoing invites and incoming join requests.
+     * Requires officer or leader role.
+     *
+     * @param player    The Player entity
+     * @param ref       The entity reference
+     * @param store     The entity store
+     * @param playerRef The PlayerRef component
+     * @param faction   The faction to manage invites for
+     */
+    public void openFactionInvites(Player player, Ref<EntityStore> ref,
+                                   Store<EntityStore> store, PlayerRef playerRef,
+                                   Faction faction) {
+        Logger.debug("[GUI] Opening FactionInvitesPage for %s", playerRef.getUsername());
+        try {
+            PageManager pageManager = player.getPageManager();
+            FactionInvitesPage page = new FactionInvitesPage(
+                playerRef,
+                factionManager.get(),
+                inviteManager.get(),
+                joinRequestManager.get(),
+                this,
+                plugin.get(),
+                faction
+            );
+            pageManager.openCustomPage(ref, store, page);
+            Logger.debug("[GUI] FactionInvitesPage opened successfully");
+        } catch (Exception e) {
+            Logger.severe("[GUI] Failed to open FactionInvitesPage: %s", e.getMessage());
             e.printStackTrace();
         }
     }
@@ -694,6 +753,40 @@ public class GuiManager {
             Logger.debug("[GUI] DisbandConfirmPage opened successfully");
         } catch (Exception e) {
             Logger.severe("[GUI] Failed to open DisbandConfirmPage: %s", e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Opens the Leadership Transfer Confirmation modal.
+     * Shows a warning and requires confirmation to transfer leadership.
+     *
+     * @param player     The Player entity
+     * @param ref        The entity reference
+     * @param store      The entity store
+     * @param playerRef  The PlayerRef component
+     * @param faction    The faction
+     * @param targetUuid The UUID of the player receiving leadership
+     * @param targetName The name of the player receiving leadership
+     */
+    public void openTransferConfirm(Player player, Ref<EntityStore> ref,
+                                    Store<EntityStore> store, PlayerRef playerRef,
+                                    Faction faction, UUID targetUuid, String targetName) {
+        Logger.debug("[GUI] Opening TransferConfirmPage for %s -> %s", playerRef.getUsername(), targetName);
+        try {
+            PageManager pageManager = player.getPageManager();
+            TransferConfirmPage page = new TransferConfirmPage(
+                playerRef,
+                factionManager.get(),
+                this,
+                faction,
+                targetUuid,
+                targetName
+            );
+            pageManager.openCustomPage(ref, store, page);
+            Logger.debug("[GUI] TransferConfirmPage opened successfully");
+        } catch (Exception e) {
+            Logger.severe("[GUI] Failed to open TransferConfirmPage: %s", e.getMessage());
             e.printStackTrace();
         }
     }
@@ -1091,6 +1184,7 @@ public class GuiManager {
                 factionManager.get(),
                 powerManager.get(),
                 inviteManager.get(),
+                joinRequestManager.get(),
                 this
             );
             pageManager.openCustomPage(ref, store, page);
@@ -1196,6 +1290,10 @@ public class GuiManager {
 
     public Supplier<InviteManager> getInviteManager() {
         return inviteManager;
+    }
+
+    public JoinRequestManager getJoinRequestManager() {
+        return joinRequestManager.get();
     }
 
     public Supplier<Path> getDataDir() {

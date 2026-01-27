@@ -353,8 +353,7 @@ public class FactionMainPage extends InteractiveCustomUIPage<FactionPageData> {
 
         FactionMember member = faction.getMember(uuid);
         if (member != null && member.role() == FactionRole.LEADER) {
-            guiManager.closePage(player, ref, store);
-            player.sendMessage(Message.raw("Use /f disband to confirm disbanding your faction.").color("#FF5555"));
+            guiManager.openDisbandConfirm(player, ref, store, playerRef, faction);
         }
     }
 }

@@ -48,6 +48,8 @@ public class HyperFactions {
     private ZoneManager zoneManager;
     private TeleportManager teleportManager;
     private InviteManager inviteManager;
+    private JoinRequestManager joinRequestManager;
+    private ChatManager chatManager;
 
     // Protection
     private ProtectionChecker protectionChecker;
@@ -69,6 +71,7 @@ public class HyperFactions {
     private TaskSchedulerCallback taskScheduler;
     private TaskCancelCallback taskCanceller;
     private RepeatingTaskSchedulerCallback repeatingTaskScheduler;
+    private java.util.function.Function<UUID, com.hypixel.hytale.server.core.universe.PlayerRef> playerLookup;
 
     /**
      * Functional interface for scheduling delayed tasks.
@@ -146,7 +149,12 @@ public class HyperFactions {
         combatTagManager = new CombatTagManager();
         zoneManager = new ZoneManager(zoneStorage, claimManager);
         teleportManager = new TeleportManager(factionManager);
-        inviteManager = new InviteManager();
+        inviteManager = new InviteManager(dataDir);
+        joinRequestManager = new JoinRequestManager(dataDir);
+
+        // Initialize invite/request managers (loads persisted data)
+        inviteManager.init();
+        joinRequestManager.init();
 
         // Load data
         factionManager.loadAll().join();
@@ -171,8 +179,13 @@ public class HyperFactions {
             () -> zoneManager,
             () -> teleportManager,
             () -> inviteManager,
+            () -> joinRequestManager,
             () -> dataDir
         );
+
+        // Initialize chat manager (uses deferred playerLookup)
+        chatManager = new ChatManager(factionManager, relationManager,
+            uuid -> playerLookup != null ? playerLookup.apply(uuid) : null);
 
         // Setup combat tag callbacks
         combatTagManager.setOnCombatLogout(playerUuid -> {
@@ -221,6 +234,14 @@ public class HyperFactions {
 
         // Save all data
         saveAllData();
+
+        // Shutdown invite/request managers (saves persisted data)
+        if (inviteManager != null) {
+            inviteManager.shutdown();
+        }
+        if (joinRequestManager != null) {
+            joinRequestManager.shutdown();
+        }
 
         // Shutdown storage
         if (factionStorage != null) {
@@ -308,6 +329,10 @@ public class HyperFactions {
 
     public void setRepeatingTaskScheduler(@NotNull RepeatingTaskSchedulerCallback scheduler) {
         this.repeatingTaskScheduler = scheduler;
+    }
+
+    public void setPlayerLookup(@NotNull java.util.function.Function<UUID, com.hypixel.hytale.server.core.universe.PlayerRef> lookup) {
+        this.playerLookup = lookup;
     }
 
     // === Task scheduling ===
@@ -408,6 +433,7 @@ public class HyperFactions {
 
     /**
      * Starts the invite cleanup periodic task.
+     * Also cleans up expired join requests.
      */
     private void startInviteCleanupTask() {
         // Run every 5 minutes (6000 ticks)
@@ -416,10 +442,13 @@ public class HyperFactions {
             if (inviteManager != null) {
                 inviteManager.cleanupExpired();
             }
+            if (joinRequestManager != null) {
+                joinRequestManager.cleanupExpired();
+            }
         });
 
         if (inviteCleanupTaskId > 0) {
-            Logger.info("Invite cleanup task scheduled every 5 minutes");
+            Logger.info("Invite/request cleanup task scheduled every 5 minutes");
         }
     }
 
@@ -468,6 +497,16 @@ public class HyperFactions {
     @NotNull
     public InviteManager getInviteManager() {
         return inviteManager;
+    }
+
+    @NotNull
+    public JoinRequestManager getJoinRequestManager() {
+        return joinRequestManager;
+    }
+
+    @NotNull
+    public ChatManager getChatManager() {
+        return chatManager;
     }
 
     @NotNull

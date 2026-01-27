@@ -8,6 +8,7 @@ import com.hyperfactions.data.FactionRole;
 import com.hyperfactions.gui.GuiManager;
 import com.hyperfactions.gui.nav.NavBarHelper;
 import com.hyperfactions.gui.faction.data.FactionDashboardData;
+import com.hyperfactions.manager.ChatManager;
 import com.hyperfactions.manager.ClaimManager;
 import com.hyperfactions.manager.FactionManager;
 import com.hyperfactions.manager.PowerManager;
@@ -293,12 +294,22 @@ public class FactionDashboardPage extends InteractiveCustomUIPage<FactionDashboa
             }
 
             case "FChat" -> {
-                player.sendMessage(Message.raw("Faction chat: Use /f chat to toggle.").color("#AAAAAA"));
+                ChatManager chatManager = plugin.getChatManager();
+                ChatManager.ChatChannel newChannel = chatManager.toggleFactionChat(uuid);
+                String display = ChatManager.getChannelDisplay(newChannel);
+                String color = ChatManager.getChannelColor(newChannel);
+                player.sendMessage(Message.raw("Chat mode: ").color("#AAAAAA")
+                        .insert(Message.raw(display).color(color)));
                 sendUpdate();
             }
 
             case "AChat" -> {
-                player.sendMessage(Message.raw("Ally chat: Use /f ally to toggle.").color("#AAAAAA"));
+                ChatManager chatManager = plugin.getChatManager();
+                ChatManager.ChatChannel newChannel = chatManager.toggleAllyChat(uuid);
+                String display = ChatManager.getChannelDisplay(newChannel);
+                String color = ChatManager.getChannelColor(newChannel);
+                player.sendMessage(Message.raw("Chat mode: ").color("#AAAAAA")
+                        .insert(Message.raw(display).color(color)));
                 sendUpdate();
             }
 

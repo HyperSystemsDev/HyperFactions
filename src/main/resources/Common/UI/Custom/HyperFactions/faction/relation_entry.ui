@@ -2,11 +2,12 @@ $C = "../../Common.ui";
 $S = "../shared/styles.ui";
 
 Group {
-  Anchor: (Height: 45, Bottom: 5);
+  Anchor: (Height: 55, Bottom: 5);
   Background: (Color: #1a2a3a);
   Padding: (Left: 10, Right: 10, Top: 5, Bottom: 5);
   LayoutMode: Left;
 
+  // Left side: faction info
   Group {
     Anchor: (Width: 200);
     LayoutMode: Top;
@@ -14,40 +15,39 @@ Group {
     Label #FactionName {
       Text: "Faction";
       Style: (FontSize: 13, TextColor: #00AAFF, RenderBold: true, VerticalAlignment: Center);
-      Anchor: (Height: 18);
-    }
-    Label #RelationType {
-      Text: "ALLY";
-      Style: (FontSize: 11, TextColor: #888888, VerticalAlignment: Center);
       Anchor: (Height: 16);
     }
+    Label #LeaderName {
+      Text: "Leader: Unknown";
+      Style: (FontSize: 11, TextColor: #AAAAAA, VerticalAlignment: Center);
+      Anchor: (Height: 14);
+    }
+    Label #DateEstablished {
+      Text: "Since: today";
+      Style: (FontSize: 10, TextColor: #666666, VerticalAlignment: Center);
+      Anchor: (Height: 14);
+    }
   }
 
+  // Center: relation type badge
+  Group {
+    Anchor: (Width: 70);
+    LayoutMode: Top;
+
+    Label { Anchor: (Height: 10); }
+    Label #RelationType {
+      Text: "ALLY";
+      Style: (FontSize: 11, TextColor: #888888, VerticalAlignment: Center, HorizontalAlignment: Center);
+      Anchor: (Height: 20);
+    }
+  }
+
+  // Spacer
   Label { FlexWeight: 1; }
 
-  TextButton #RemoveBtn {
-    Text: "REMOVE";
-    Anchor: (Height: 26, Width: 70);
-    Style: $S.@SmallRedButtonStyle;
-  }
-
-  TextButton #NeutralBtn {
-    Text: "NEUTRAL";
-    Anchor: (Height: 26, Width: 70);
-    Style: $S.@SmallButtonStyle;
-  }
-
-  TextButton #AcceptBtn {
-    Text: "ACCEPT";
-    Anchor: (Height: 26, Width: 70);
-    Style: $S.@SmallGreenButtonStyle;
-  }
-
-  Label { Anchor: (Width: 5); }
-
-  TextButton #DeclineBtn {
-    Text: "DECLINE";
-    Anchor: (Height: 26, Width: 70);
-    Style: $S.@SmallRedButtonStyle;
+  // Right side: buttons container (dynamically populated)
+  Group #ButtonsContainer {
+    Anchor: (Width: 160);
+    LayoutMode: Left;
   }
 }

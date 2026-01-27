@@ -181,8 +181,9 @@ public class NewPlayerBrowsePage extends InteractiveCustomUIPage<NewPlayerPageDa
                 }
 
                 // Action button - JOIN for open factions, REQUEST for invite-only
-                // Check if player already has an invite from this faction
+                // Check if player already has an invite or pending request
                 boolean hasInvite = inviteManager.hasInvite(entry.id, viewerUuid);
+                boolean hasRequest = guiManager.getJoinRequestManager().hasRequest(entry.id, viewerUuid);
 
                 // Action button (cannot set .Style dynamically - uses default template style)
                 if (hasInvite) {
@@ -194,6 +195,15 @@ public class NewPlayerBrowsePage extends InteractiveCustomUIPage<NewPlayerPageDa
                             EventData.of("Button", "AcceptInvite")
                                     .append("FactionId", entry.id.toString())
                                     .append("FactionName", entry.name),
+                            false
+                    );
+                } else if (hasRequest) {
+                    // Player already requested - show PENDING button that goes to invites page
+                    cmd.set(prefix + "#ActionBtn.Text", "PENDING");
+                    events.addEventBinding(
+                            CustomUIEventBindingType.Activating,
+                            prefix + "#ActionBtn",
+                            EventData.of("Button", "ViewRequests"),
                             false
                     );
                 } else if (entry.isOpen) {
@@ -282,7 +292,9 @@ public class NewPlayerBrowsePage extends InteractiveCustomUIPage<NewPlayerPageDa
 
             case "AcceptInvite" -> handleAcceptInvite(player, ref, store, playerRef, data);
 
-            case "RequestJoin" -> handleRequestJoin(player, data);
+            case "RequestJoin" -> handleRequestJoin(player, ref, store, playerRef, data);
+
+            case "ViewRequests" -> guiManager.openInvitesPage(player, ref, store, playerRef);
 
             default -> sendUpdate();
         }
@@ -423,20 +435,61 @@ public class NewPlayerBrowsePage extends InteractiveCustomUIPage<NewPlayerPageDa
         }
     }
 
-    private void handleRequestJoin(Player player, NewPlayerPageData data) {
+    private void handleRequestJoin(Player player, Ref<EntityStore> ref, Store<EntityStore> store,
+                                    PlayerRef playerRef, NewPlayerPageData data) {
         if (data.factionId == null || data.factionName == null) {
             sendUpdate();
             return;
         }
 
-        // For now, just inform the player to ask an officer
-        // In the future, this could create a join request that officers can review
-        player.sendMessage(
-                Message.raw("To join ").color("#AAAAAA")
-                        .insert(Message.raw(data.factionName).color("#00FFFF"))
-                        .insert(Message.raw(", ask an officer to invite you using:").color("#AAAAAA"))
-        );
-        player.sendMessage(Message.raw("/f invite " + playerRef.getUsername()).color("#FFFF55"));
-        sendUpdate();
+        try {
+            UUID factionId = UUID.fromString(data.factionId);
+            UUID playerUuid = playerRef.getUuid();
+
+            Faction faction = factionManager.getFaction(factionId);
+            if (faction == null) {
+                player.sendMessage(Message.raw("Faction not found.").color("#FF5555"));
+                sendUpdate();
+                return;
+            }
+
+            // Check if faction is open (shouldn't happen, but just in case)
+            if (faction.open()) {
+                player.sendMessage(Message.raw("This faction is open! Click JOIN instead.").color("#FFAA00"));
+                sendUpdate();
+                return;
+            }
+
+            // Check if player already has a pending request
+            var joinRequestManager = guiManager.getJoinRequestManager();
+            if (joinRequestManager.hasRequest(factionId, playerUuid)) {
+                player.sendMessage(Message.raw("You already have a pending request to this faction.").color("#FFAA00"));
+                sendUpdate();
+                return;
+            }
+
+            // Check if player already has an invite (they should accept it)
+            if (inviteManager.hasInvite(factionId, playerUuid)) {
+                player.sendMessage(Message.raw("You have an invite from this faction! Click ACCEPT instead.").color("#FFAA00"));
+                sendUpdate();
+                return;
+            }
+
+            // Create the join request
+            joinRequestManager.createRequest(factionId, playerUuid, playerRef.getUsername(), null);
+
+            player.sendMessage(
+                    Message.raw("Join request sent to ").color("#55FF55")
+                            .insert(Message.raw(faction.name()).color("#00FFFF"))
+                            .insert(Message.raw("!").color("#55FF55"))
+            );
+            player.sendMessage(Message.raw("An officer will review your request.").color("#AAAAAA"));
+
+            // Re-open the page to show updated state (PENDING button)
+            guiManager.openNewPlayerBrowse(player, ref, store, playerRef, currentPage, sortBy);
+        } catch (IllegalArgumentException e) {
+            player.sendMessage(Message.raw("Invalid faction.").color("#FF5555"));
+            sendUpdate();
+        }
     }
 }
