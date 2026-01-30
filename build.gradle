@@ -4,7 +4,7 @@ plugins {
 }
 
 group = 'com.hyperfactions'
-version = '1.0.0'
+version = '0.1.0'
 
 java {
     sourceCompatibility = JavaVersion.VERSION_21
@@ -21,13 +21,14 @@ dependencies {
 
     // HyperPerms soft dependency (for compile-time reference only)
     // Actual integration uses reflection to avoid hard dependency
-    compileOnly files('../HyperPerms/build/libs/HyperPerms-2.4.3.jar')
+    compileOnly files('../HyperPerms/build/libs/HyperPerms-2.4.5.jar')
 
     // JSON handling
     implementation 'com.google.code.gson:gson:2.11.0'
 
     // Null safety annotations
     compileOnly 'org.jetbrains:annotations:24.1.0'
+    testCompileOnly 'org.jetbrains:annotations:24.1.0'
 
     // Testing
     testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
@@ -40,7 +41,7 @@ shadowJar {
     // Relocate dependencies to avoid conflicts
     relocate 'com.google.gson', 'com.hyperfactions.lib.gson'
 
-    minimize()
+    // Don't minimize - it removes Gson's inner classes needed at runtime
 }
 
 test {
@@ -54,4 +55,9 @@ build {
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
     options.compilerArgs.addAll(['-Xlint:all', '-Xlint:-processing'])
+}
+
+// Ensure HyperPerms is built before compiling HyperFactions
+tasks.named('compileJava') {
+    dependsOn ':HyperPerms:shadowJar'
 }

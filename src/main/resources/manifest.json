@@ -1,7 +1,7 @@
 {
   "Group": "com.hyperfactions",
   "Name": "HyperFactions",
-  "Version": "1.0.0",
+  "Version": "0.1.0",
   "Description": "Comprehensive faction management for Hytale servers. Create factions, claim territory, manage relations, and wage war. Part of the HyperSystems plugin suite.",
   "Website": "https://github.com/ZenithDevHQ/HyperFactions",
   "Main": "com.hyperfactions.platform.HyperFactionsPlugin",

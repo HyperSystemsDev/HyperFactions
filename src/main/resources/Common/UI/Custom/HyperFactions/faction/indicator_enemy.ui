@@ -1,0 +1,10 @@
+// Enemy Relation Indicator
+// Shows [ENEMY] badge in red
+
+Group {
+  Label #RelationIndicator {
+    Text: "[ENEMY]";
+    Style: (FontSize: 10, TextColor: #FF5555, RenderBold: true, VerticalAlignment: Center);
+    Anchor: (Left: 5);
+  }
+}

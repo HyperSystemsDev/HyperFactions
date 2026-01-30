@@ -1,0 +1,7 @@
+$S = "../shared/styles.ui";
+
+TextButton #CancelBtn {
+  Text: "CANCEL";
+  Anchor: (Height: 26, Width: 70);
+  Style: $S.@SmallRedButtonStyle;
+}

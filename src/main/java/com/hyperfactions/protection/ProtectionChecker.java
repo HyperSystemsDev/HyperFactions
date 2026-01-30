@@ -3,8 +3,12 @@ package com.hyperfactions.protection;
 import com.hyperfactions.config.HyperFactionsConfig;
 import com.hyperfactions.data.Faction;
 import com.hyperfactions.data.RelationType;
+import com.hyperfactions.data.Zone;
+import com.hyperfactions.data.ZoneFlags;
 import com.hyperfactions.integration.HyperPermsIntegration;
 import com.hyperfactions.manager.*;
+import com.hyperfactions.util.ChunkUtil;
+import com.hyperfactions.util.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -61,7 +65,8 @@ public class ProtectionChecker {
         DENIED_SAME_FACTION,
         DENIED_ALLY,
         DENIED_ATTACKER_SAFEZONE,
-        DENIED_DEFENDER_SAFEZONE
+        DENIED_DEFENDER_SAFEZONE,
+        DENIED_SPAWN_PROTECTED
     }
 
     /**
@@ -90,8 +95,8 @@ public class ProtectionChecker {
     @NotNull
     public ProtectionResult canInteract(@NotNull UUID playerUuid, @NotNull String world,
                                         double x, double z, @NotNull InteractionType type) {
-        int chunkX = (int) Math.floor(x) >> 4;
-        int chunkZ = (int) Math.floor(z) >> 4;
+        int chunkX = ChunkUtil.toChunkCoord(x);
+        int chunkZ = ChunkUtil.toChunkCoord(z);
         return canInteractChunk(playerUuid, world, chunkX, chunkZ, type);
     }
 
@@ -123,14 +128,26 @@ public class ProtectionChecker {
         }
 
         // 2. Check zone
-        if (zoneManager.isInSafeZone(world, chunkX, chunkZ)) {
-            // SafeZone: only admins can build
-            return ProtectionResult.DENIED_SAFEZONE;
-        }
+        Zone zone = zoneManager.getZone(world, chunkX, chunkZ);
+        if (zone != null) {
+            // Get the appropriate flag for the interaction type
+            String flagName = switch (type) {
+                case BUILD -> ZoneFlags.BUILD_ALLOWED;
+                case INTERACT -> ZoneFlags.INTERACT_ALLOWED;
+                case CONTAINER -> ZoneFlags.CONTAINER_ACCESS;
+                case DAMAGE -> ZoneFlags.PVP_ENABLED; // For entity damage
+                case USE -> ZoneFlags.INTERACT_ALLOWED;
+            };
 
-        if (zoneManager.isInWarZone(world, chunkX, chunkZ)) {
-            // WarZone: anyone can interact
-            return ProtectionResult.ALLOWED_WARZONE;
+            boolean allowed = zone.getEffectiveFlag(flagName);
+            if (!allowed) {
+                return zone.isSafeZone() ? ProtectionResult.DENIED_SAFEZONE : ProtectionResult.DENIED_NO_PERMISSION;
+            }
+            // If zone allows this interaction, still need to check claim ownership below
+            // For WarZones with build allowed, anyone can interact
+            if (zone.isWarZone() && allowed) {
+                return ProtectionResult.ALLOWED_WARZONE;
+            }
         }
 
         // 3. Check claim owner
@@ -162,10 +179,14 @@ public class ProtectionChecker {
         if (playerFactionId != null) {
             RelationType relation = relationManager.getRelation(playerFactionId, claimOwner);
             if (relation == RelationType.ENEMY) {
+                Logger.debugProtection("Interaction denied: player=%s, chunk=%s/%d/%d, type=%s, result=ENEMY_CLAIM, claimOwner=%s",
+                    playerUuid, world, chunkX, chunkZ, type, claimOwner);
                 return ProtectionResult.DENIED_ENEMY_CLAIM;
             }
         }
 
+        Logger.debugProtection("Interaction denied: player=%s, chunk=%s/%d/%d, type=%s, result=NEUTRAL_CLAIM, claimOwner=%s",
+            playerUuid, world, chunkX, chunkZ, type, claimOwner);
         return ProtectionResult.DENIED_NEUTRAL_CLAIM;
     }
 
@@ -184,8 +205,8 @@ public class ProtectionChecker {
     @NotNull
     public PvPResult canDamagePlayer(@NotNull UUID attackerUuid, @NotNull UUID defenderUuid,
                                      @NotNull String world, double x, double z) {
-        int chunkX = (int) Math.floor(x) >> 4;
-        int chunkZ = (int) Math.floor(z) >> 4;
+        int chunkX = ChunkUtil.toChunkCoord(x);
+        int chunkZ = ChunkUtil.toChunkCoord(z);
         return canDamagePlayerChunk(attackerUuid, defenderUuid, world, chunkX, chunkZ);
     }
 
@@ -204,32 +225,67 @@ public class ProtectionChecker {
                                           @NotNull String world, int chunkX, int chunkZ) {
         HyperFactionsConfig config = HyperFactionsConfig.get();
 
-        // 1. Check SafeZone - no PvP
-        if (zoneManager.isInSafeZone(world, chunkX, chunkZ)) {
-            return PvPResult.DENIED_SAFEZONE;
+        // 0. Check defender's spawn protection
+        if (combatTagManager.hasSpawnProtection(defenderUuid)) {
+            return PvPResult.DENIED_SPAWN_PROTECTED;
         }
 
-        // 2. Check WarZone - always PvP
-        if (zoneManager.isInWarZone(world, chunkX, chunkZ)) {
-            return PvPResult.ALLOWED_WARZONE;
+        // 0b. Break attacker's spawn protection if they attack (if configured)
+        if (config.isSpawnProtectionBreakOnAttack() && combatTagManager.hasSpawnProtection(attackerUuid)) {
+            combatTagManager.clearSpawnProtection(attackerUuid);
         }
 
-        // 3. Check same faction
+        // 1. Check zone for PvP flag
+        Zone zone = zoneManager.getZone(world, chunkX, chunkZ);
+        if (zone != null) {
+            boolean pvpEnabled = zone.getEffectiveFlag(ZoneFlags.PVP_ENABLED);
+            if (!pvpEnabled) {
+                return PvPResult.DENIED_SAFEZONE;
+            }
+            // Zone has PvP enabled - check friendly fire if in zone
+            boolean friendlyFireAllowed = zone.getEffectiveFlag(ZoneFlags.FRIENDLY_FIRE);
+
+            // Check same faction
+            if (factionManager.areInSameFaction(attackerUuid, defenderUuid)) {
+                if (!friendlyFireAllowed && !config.isFactionDamage()) {
+                    return PvPResult.DENIED_SAME_FACTION;
+                }
+            }
+
+            // Check ally
+            RelationType relation = relationManager.getPlayerRelation(attackerUuid, defenderUuid);
+            if (relation == RelationType.ALLY) {
+                if (!friendlyFireAllowed && !config.isAllyDamage()) {
+                    return PvPResult.DENIED_ALLY;
+                }
+            }
+
+            // PvP is enabled in this zone
+            return zone.isWarZone() ? PvPResult.ALLOWED_WARZONE : PvPResult.ALLOWED;
+        }
+
+        // Not in a zone - use standard checks
+
+        // 2. Check same faction
         if (factionManager.areInSameFaction(attackerUuid, defenderUuid)) {
             if (!config.isFactionDamage()) {
                 return PvPResult.DENIED_SAME_FACTION;
             }
         }
 
-        // 4. Check ally
+        // 3. Check ally
         RelationType relation = relationManager.getPlayerRelation(attackerUuid, defenderUuid);
         if (relation == RelationType.ALLY) {
             if (!config.isAllyDamage()) {
+                Logger.debugProtection("PvP denied: attacker=%s, defender=%s, chunk=%s/%d/%d, result=ALLY",
+                    attackerUuid, defenderUuid, world, chunkX, chunkZ);
                 return PvPResult.DENIED_ALLY;
             }
         }
 
-        // 5. Default: allow PvP
+        // 4. Default: allow PvP
+        Logger.debugProtection("PvP allowed: attacker=%s, defender=%s, chunk=%s/%d/%d, relation=%s",
+            attackerUuid, defenderUuid, world, chunkX, chunkZ, relation);
         return PvPResult.ALLOWED;
     }
 
@@ -320,6 +376,7 @@ public class ProtectionChecker {
             case DENIED_SAME_FACTION -> "\u00A7cYou cannot attack faction members.";
             case DENIED_ALLY -> "\u00A7cYou cannot attack allies.";
             case DENIED_ATTACKER_SAFEZONE, DENIED_DEFENDER_SAFEZONE -> "\u00A7cPvP is disabled in SafeZones.";
+            case DENIED_SPAWN_PROTECTED -> "\u00A7cThat player has spawn protection.";
             default -> "\u00A7cYou cannot attack this player.";
         };
     }
@@ -363,6 +420,7 @@ public class ProtectionChecker {
             } else {
                 RelationType relation = relationManager.getRelation(viewerFactionId, claimOwner);
                 color = switch (relation) {
+                    case OWN -> "\u00A7b";    // Cyan (shouldn't happen via getRelation, but handle for completeness)
                     case ALLY -> "\u00A7a";   // Green
                     case ENEMY -> "\u00A7c"; // Red
                     case NEUTRAL -> "\u00A77"; // Gray

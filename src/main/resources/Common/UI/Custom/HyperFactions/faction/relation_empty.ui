@@ -1,0 +1,8 @@
+Group {
+  Anchor: (Height: 40);
+
+  Label #EmptyText {
+    Text: "No entries";
+    Style: (FontSize: 11, TextColor: #555555, VerticalAlignment: Center);
+  }
+}

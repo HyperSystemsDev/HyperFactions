@@ -1,0 +1,192 @@
+// Help Page for New Players
+// Getting started guide for factions
+
+$C = "../../Common.ui";
+$S = "../shared/styles.ui";
+$Nav = "../nav/nav_bar.ui";
+
+$C.@PageOverlay {
+  $Nav.@HyperFactionsNavBar #HyperFactionsNavBar {}
+
+  $C.@DecoratedContainer {
+    Anchor: (Width: 550, Height: 520);
+
+    #Title {
+      Group {
+        $C.@Title {
+          @Text = "Getting Started";
+        }
+      }
+    }
+
+    #Content {
+      LayoutMode: TopScrolling;
+      ScrollbarStyle: $C.@DefaultScrollbarStyle;
+      Padding: (Left: 20, Right: 20, Top: 15, Bottom: 15);
+
+      // Section 1: What are Factions?
+      Group {
+        LayoutMode: Top;
+        Anchor: (Height: 120, Bottom: 20);
+
+        Label {
+          Text: "WHAT ARE FACTIONS?";
+          Style: (FontSize: 13, TextColor: #00FFFF, RenderBold: true);
+          Anchor: (Height: 22);
+        }
+
+        Label {
+          Text: "Factions are player-created groups that work together";
+          Style: (FontSize: 12, TextColor: #CCCCCC);
+          Anchor: (Height: 18);
+        }
+
+        Label {
+          Text: "to claim territory, build bases, and compete.";
+          Style: (FontSize: 12, TextColor: #CCCCCC);
+          Anchor: (Height: 18);
+        }
+
+        Label {
+          Text: "- Protected territory for building";
+          Style: (FontSize: 11, TextColor: #AAAAAA);
+          Anchor: (Height: 16);
+        }
+
+        Label {
+          Text: "- Teammates to play with";
+          Style: (FontSize: 11, TextColor: #AAAAAA);
+          Anchor: (Height: 16);
+        }
+
+        Label {
+          Text: "- Access to faction chat and features";
+          Style: (FontSize: 11, TextColor: #AAAAAA);
+          Anchor: (Height: 16);
+        }
+      }
+
+      // Section 2: Joining a Faction
+      Group {
+        LayoutMode: Top;
+        Anchor: (Height: 95, Bottom: 20);
+
+        Label {
+          Text: "JOINING A FACTION";
+          Style: (FontSize: 13, TextColor: #00FFFF, RenderBold: true);
+          Anchor: (Height: 22);
+        }
+
+        Label {
+          Text: "There are several ways to join a faction:";
+          Style: (FontSize: 12, TextColor: #CCCCCC);
+          Anchor: (Height: 20);
+        }
+
+        Label {
+          Text: "- Browse - Find open factions and click JOIN";
+          Style: (FontSize: 11, TextColor: #AAAAAA);
+          Anchor: (Height: 16);
+        }
+
+        Label {
+          Text: "- Invites - Accept invitations from officers";
+          Style: (FontSize: 11, TextColor: #AAAAAA);
+          Anchor: (Height: 16);
+        }
+
+        Label {
+          Text: "- Request - Ask to join invite-only factions";
+          Style: (FontSize: 11, TextColor: #AAAAAA);
+          Anchor: (Height: 16);
+        }
+      }
+
+      // Section 3: Creating Your Own
+      Group {
+        LayoutMode: Top;
+        Anchor: (Height: 80, Bottom: 20);
+
+        Label {
+          Text: "CREATING A FACTION";
+          Style: (FontSize: 13, TextColor: #00FFFF, RenderBold: true);
+          Anchor: (Height: 22);
+        }
+
+        Label {
+          Text: "Go to the Create tab to start your own faction.";
+          Style: (FontSize: 12, TextColor: #CCCCCC);
+          Anchor: (Height: 20);
+        }
+
+        Label {
+          Text: "- Invite and manage members";
+          Style: (FontSize: 11, TextColor: #AAAAAA);
+          Anchor: (Height: 16);
+        }
+
+        Label {
+          Text: "- Claim and protect territory";
+          Style: (FontSize: 11, TextColor: #AAAAAA);
+          Anchor: (Height: 16);
+        }
+      }
+
+      // Section 4: Quick Commands
+      Group {
+        LayoutMode: Top;
+        Anchor: (Height: 130, Bottom: 10);
+
+        Label {
+          Text: "QUICK COMMANDS";
+          Style: (FontSize: 13, TextColor: #00FFFF, RenderBold: true);
+          Anchor: (Height: 22);
+        }
+
+        Label {
+          Text: "/f - Open faction menu";
+          Style: (FontSize: 11, TextColor: #FFFF55);
+          Anchor: (Height: 16);
+        }
+
+        Label {
+          Text: "/f list - List all factions";
+          Style: (FontSize: 11, TextColor: #FFFF55);
+          Anchor: (Height: 16);
+        }
+
+        Label {
+          Text: "/f join <name> - Join an open faction";
+          Style: (FontSize: 11, TextColor: #FFFF55);
+          Anchor: (Height: 16);
+        }
+
+        Label {
+          Text: "/f create <name> - Create a new faction";
+          Style: (FontSize: 11, TextColor: #FFFF55);
+          Anchor: (Height: 16);
+        }
+
+        Label {
+          Text: "/f help - Full command list";
+          Style: (FontSize: 11, TextColor: #FFFF55);
+          Anchor: (Height: 16);
+        }
+      }
+
+      // Tip
+      Group {
+        Anchor: (Height: 40);
+        Background: (Color: #1a2a3a);
+        Padding: (Left: 10, Right: 10, Top: 10, Bottom: 10);
+
+        Label {
+          Text: "Tip: Browse factions to find a group that matches you!";
+          Style: (FontSize: 12, TextColor: #55FF55);
+        }
+      }
+    }
+  }
+}
+
+$C.@BackButton {}

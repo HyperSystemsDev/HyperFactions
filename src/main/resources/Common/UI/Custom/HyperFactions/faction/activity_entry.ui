@@ -1,0 +1,29 @@
+// Activity Entry Template
+
+Group {
+  Anchor: (Height: 24);
+  LayoutMode: Top;
+
+  Group {
+    LayoutMode: Left;
+    Anchor: (Height: 24);
+
+    Label #ActivityType {
+      Text: "TYPE";
+      Style: (FontSize: 10, TextColor: #00AAAA, RenderBold: true, VerticalAlignment: Center);
+      Anchor: (Width: 65);
+    }
+
+    Label #ActivityMessage {
+      Text: "Activity description";
+      Style: (FontSize: 11, TextColor: #AAAAAA, VerticalAlignment: Center);
+      Anchor: (Width: 220);
+    }
+
+    Label #ActivityTime {
+      Text: "5m ago";
+      Style: (FontSize: 10, TextColor: #666666, VerticalAlignment: Center);
+      Anchor: (Width: 60);
+    }
+  }
+}

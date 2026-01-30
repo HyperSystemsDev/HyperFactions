@@ -1,0 +1,71 @@
+// Outgoing Request Card for New Players
+// Shows faction requested to join, status, and cancel button
+
+$C = "../../Common.ui";
+$S = "../shared/styles.ui";
+
+Group {
+  Anchor: (Height: 70, Bottom: 5);
+  Background: (Color: #2a2a1a);
+  Padding: (Left: 12, Right: 12, Top: 8, Bottom: 8);
+  LayoutMode: Left;
+
+  // Left side: faction info
+  Group {
+    Anchor: (Width: 280);
+    LayoutMode: Top;
+
+    Label #FactionName {
+      Text: "Faction Name";
+      Style: (FontSize: 14, TextColor: #00FFFF, RenderBold: true, VerticalAlignment: Center);
+      Anchor: (Height: 18);
+    }
+
+    Group {
+      Anchor: (Height: 16);
+      LayoutMode: Left;
+
+      Label #StatusText {
+        Text: "Awaiting review";
+        Style: (FontSize: 11, TextColor: #FFAA00, VerticalAlignment: Center);
+        Anchor: (Width: 100);
+      }
+
+      Label #TimeRemaining {
+        Text: "Expires in 24h";
+        Style: (FontSize: 11, TextColor: #666666, VerticalAlignment: Center);
+      }
+    }
+
+    Group {
+      Anchor: (Height: 14);
+      LayoutMode: Left;
+
+      Label #MemberCount {
+        Text: "0 members";
+        Style: (FontSize: 10, TextColor: #888888, VerticalAlignment: Center);
+        Anchor: (Width: 80);
+      }
+
+      Label #PowerCount {
+        Text: "0 power";
+        Style: (FontSize: 10, TextColor: #888888, VerticalAlignment: Center);
+      }
+    }
+  }
+
+  // Spacer
+  Label { FlexWeight: 1; }
+
+  // Right side: cancel button
+  Group {
+    Anchor: (Width: 80);
+    LayoutMode: Left;
+
+    TextButton #CancelBtn {
+      Text: "CANCEL";
+      Anchor: (Width: 70, Height: 28);
+      Style: $S.@SmallRedButtonStyle;
+    }
+  }
+}

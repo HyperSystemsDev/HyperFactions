@@ -1,0 +1,29 @@
+// Menu Section - Reusable section component for main menu
+// Contains a title and content area for dynamic content
+
+$C = "../../Common.ui";
+$S = "styles.ui";
+
+Group {
+  Anchor: (Bottom: 15);
+  LayoutMode: Top;
+
+  // Section title
+  Label #SectionTitle {
+    Text: "Section";
+    Style: (FontSize: 14, TextColor: #888888, RenderBold: true, VerticalAlignment: Center);
+    Anchor: (Height: 24, Bottom: 5);
+  }
+
+  // Content container - populated dynamically
+  Group #SectionContent {
+    LayoutMode: Top;
+    Anchor: (Bottom: 5);
+  }
+
+  // Separator line
+  Group {
+    Anchor: (Height: 1);
+    Background: (Color: #444444);
+  }
+}

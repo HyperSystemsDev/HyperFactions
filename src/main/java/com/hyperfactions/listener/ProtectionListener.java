@@ -98,6 +98,26 @@ public class ProtectionListener {
     }
 
     /**
+     * Called when a player attempts to pick up an item.
+     *
+     * @param playerUuid the player's UUID
+     * @param world      the world name
+     * @param x          the player's X position
+     * @param y          the player's Y position
+     * @param z          the player's Z position
+     * @return true if item pickup should be cancelled
+     */
+    public boolean onItemPickup(@NotNull UUID playerUuid, @NotNull String world,
+                                int x, int y, int z) {
+        ProtectionChecker checker = hyperFactions.getProtectionChecker();
+        ProtectionChecker.ProtectionResult result = checker.canInteract(
+            playerUuid, world, x, z, ProtectionChecker.InteractionType.INTERACT
+        );
+
+        return !checker.isAllowed(result);
+    }
+
+    /**
      * Gets the denial message for the last failed protection check.
      *
      * @param result the protection result

@@ -2,6 +2,7 @@ package com.hyperfactions.manager;
 
 import com.hyperfactions.config.HyperFactionsConfig;
 import com.hyperfactions.data.Faction;
+import com.hyperfactions.data.TeleportContext;
 import com.hyperfactions.integration.HyperPermsIntegration;
 import com.hyperfactions.util.Logger;
 import com.hyperfactions.util.TimeUtil;
@@ -48,7 +49,8 @@ public class TeleportManager {
      * Result of a teleport attempt.
      */
     public enum TeleportResult {
-        SUCCESS,
+        SUCCESS_INSTANT,     // Teleport completed immediately (no warmup)
+        SUCCESS_WARMUP,      // Warmup scheduled, teleport pending
         NO_HOME,
         NOT_IN_FACTION,
         ON_COOLDOWN,
@@ -182,7 +184,7 @@ public class TeleportManager {
         if (warmup <= 0) {
             // Instant teleport
             TeleportResult result = doTeleport.execute(faction);
-            if (result == TeleportResult.SUCCESS) {
+            if (result == TeleportResult.SUCCESS_INSTANT) {
                 applyCooldown(playerUuid);
             }
             return result;
@@ -203,7 +205,7 @@ public class TeleportManager {
 
                 TeleportResult result = doTeleport.execute(faction);
                 handleResult(result, sendMessage);
-                if (result == TeleportResult.SUCCESS) {
+                if (result == TeleportResult.SUCCESS_INSTANT) {
                     applyCooldown(playerUuid);
                 }
             }
@@ -216,7 +218,26 @@ public class TeleportManager {
         );
         pendingTeleports.put(playerUuid, pending);
 
-        return TeleportResult.SUCCESS;
+        return TeleportResult.SUCCESS_WARMUP;
+    }
+
+    /**
+     * Initiates a teleport to faction home using a TeleportContext.
+     * This is the recommended method signature for cleaner code.
+     *
+     * @param context the teleport context containing all required parameters
+     * @return the initial result
+     */
+    public TeleportResult teleportToHome(@NotNull TeleportContext context) {
+        return teleportToHome(
+            context.playerUuid(),
+            context.startLocation(),
+            context.scheduleTask(),
+            context.cancelTask(),
+            context.doTeleport(),
+            context.sendMessage(),
+            context.isTagged()
+        );
     }
 
     /**
@@ -334,7 +355,7 @@ public class TeleportManager {
     private void handleResult(@NotNull TeleportResult result, @NotNull Consumer<String> sendMessage) {
         HyperFactionsConfig config = HyperFactionsConfig.get();
         switch (result) {
-            case SUCCESS -> sendMessage.accept(config.getPrefix() + "\u00A7aTeleported to faction home!");
+            case SUCCESS_INSTANT -> sendMessage.accept(config.getPrefix() + "\u00A7aTeleported to faction home!");
             case NO_HOME -> sendMessage.accept(config.getPrefix() + "\u00A7cYour faction has no home set.");
             case WORLD_NOT_FOUND -> sendMessage.accept(config.getPrefix() + "\u00A7cWorld not found.");
             case COMBAT_TAGGED -> sendMessage.accept(config.getPrefix() + "\u00A7cYou cannot teleport while in combat!");

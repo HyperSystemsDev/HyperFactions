@@ -1,0 +1,64 @@
+// Leadership Transfer Confirmation Modal
+// Shows warning and requires explicit confirmation to transfer leadership
+
+$C = "../../Common.ui";
+$S = "../shared/styles.ui";
+
+$C.@PageOverlay {
+  $C.@DecoratedContainer {
+    Anchor: (Width: 400, Height: 200);
+
+    #Title {
+      Group {
+        $C.@Title {
+          @Text = "Transfer Leadership";
+        }
+      }
+    }
+
+    #Content {
+      LayoutMode: Top;
+      Padding: (Left: 20, Right: 20, Top: 15, Bottom: 15);
+
+      Label {
+        Text: "Are you sure you want to transfer leadership to";
+        Style: (FontSize: 13, TextColor: #AAAAAA, HorizontalAlignment: Center);
+        Anchor: (Height: 22);
+      }
+
+      Label #TargetName {
+        Text: "Player Name";
+        Style: (FontSize: 14, TextColor: #00FFFF, RenderBold: true, HorizontalAlignment: Center);
+        Anchor: (Height: 24, Bottom: 8);
+      }
+
+      Label {
+        Text: "You will become an Officer.";
+        Style: (FontSize: 12, TextColor: #FFAA00, HorizontalAlignment: Center);
+        Anchor: (Height: 20, Bottom: 15);
+      }
+
+      Group {
+        Anchor: (Height: 40);
+        LayoutMode: Left;
+
+        TextButton #CancelBtn {
+          Text: "CANCEL";
+          Anchor: (Height: 32, Width: 120);
+          Style: $S.@ButtonStyle;
+        }
+
+        Label { FlexWeight: 1; }
+
+        TextButton #ConfirmBtn {
+          Text: "TRANSFER";
+          Anchor: (Height: 32, Width: 120);
+          Style: $S.@GoldButtonStyle;
+        }
+      }
+    }
+  }
+}
+
+// Native Hytale back button (bottom-left ESC)
+$C.@BackButton {}

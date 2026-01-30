@@ -1,0 +1,77 @@
+// Set Relation Card - faction entry for relation modal
+// 70px tall card with faction info and relation buttons
+
+$C = "../../Common.ui";
+$S = "../shared/styles.ui";
+
+Group {
+  Anchor: (Height: 70, Bottom: 6);
+  Background: (Color: #1a2530);
+  Padding: (Left: 12, Right: 12, Top: 8, Bottom: 8);
+  LayoutMode: Left;
+
+  // Faction info column
+  Group {
+    LayoutMode: Top;
+    FlexWeight: 1;
+
+    // Faction name row
+    Label #FactionName {
+      Text: "Faction Name";
+      Style: (FontSize: 13, TextColor: #00FFFF, RenderBold: true);
+      Anchor: (Height: 22);
+    }
+
+    // Stats row
+    Group {
+      Anchor: (Height: 18);
+      LayoutMode: Left;
+
+      Label #LeaderName {
+        Text: "Leader: unknown";
+        Style: (FontSize: 10, TextColor: #888888);
+        Anchor: (Width: 120);
+      }
+
+      Label #PowerCount {
+        Text: "100 power";
+        Style: (FontSize: 10, TextColor: #888888);
+        Anchor: (Width: 70);
+      }
+
+      Label #MemberCount {
+        Text: "5 members";
+        Style: (FontSize: 10, TextColor: #888888);
+        FlexWeight: 1;
+      }
+    }
+  }
+
+  // Button column
+  Group {
+    Anchor: (Width: 180);
+    LayoutMode: Left;
+
+    TextButton #AllyBtn {
+      Text: "ALLY";
+      Anchor: (Height: 28, Width: 55);
+      Style: $S.@SmallButtonStyle;
+    }
+
+    Label { Anchor: (Width: 5); }
+
+    TextButton #EnemyBtn {
+      Text: "ENEMY";
+      Anchor: (Height: 28, Width: 55);
+      Style: $S.@SmallRedButtonStyle;
+    }
+
+    Label { Anchor: (Width: 5); }
+
+    TextButton #ViewBtn {
+      Text: "VIEW";
+      Anchor: (Height: 28, Width: 55);
+      Style: $S.@SmallCyanButtonStyle;
+    }
+  }
+}

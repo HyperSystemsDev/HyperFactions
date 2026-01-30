@@ -1,0 +1,7 @@
+// Chunk Cell Template for Territory Map
+// 32x32 pixel cell - background set dynamically via Java
+
+Group {
+  Anchor: (Width: 32, Height: 32);
+  Background: (Color: #374151);
+}

@@ -2,7 +2,7 @@ package com.hyperfactions.gui.page.admin;
 
 import com.hyperfactions.data.*;
 import com.hyperfactions.gui.GuiManager;
-import com.hyperfactions.gui.data.AdminMainData;
+import com.hyperfactions.gui.admin.data.AdminMainData;
 import com.hyperfactions.manager.FactionManager;
 import com.hyperfactions.manager.PowerManager;
 import com.hypixel.hytale.component.Ref;
@@ -50,7 +50,7 @@ public class AdminMainPage extends InteractiveCustomUIPage<AdminMainData> {
                       UIEventBuilder events, Store<EntityStore> store) {
 
         // Load the main template
-        cmd.append("HyperFactions/admin_main.ui");
+        cmd.append("HyperFactions/admin/admin_main.ui");
 
 
         // Stats overview
@@ -104,7 +104,7 @@ public class AdminMainPage extends InteractiveCustomUIPage<AdminMainData> {
                 Faction faction = factions.get(factionIdx);
                 PowerManager.FactionPowerStats stats = powerManager.getFactionPowerStats(faction.id());
 
-                cmd.append(entryId, "HyperFactions/admin_faction_entry.ui");
+                cmd.append(entryId, "HyperFactions/admin/admin_faction_entry.ui");
 
                 String prefix = entryId + " ";
 
@@ -112,7 +112,7 @@ public class AdminMainPage extends InteractiveCustomUIPage<AdminMainData> {
                 String colorHex = faction.color() != null ? faction.color() : "#00FFFF";
                 cmd.set(prefix + "#FactionName.Text", faction.name());
                 cmd.set(prefix + "#MemberCount.Text", faction.members().size() + " members");
-                cmd.set(prefix + "#PowerCount.Text", stats.currentPower() + "/" + stats.maxPower() + " power");
+                cmd.set(prefix + "#PowerCount.Text", String.format("%.0f/%.0f power", stats.currentPower(), stats.maxPower()));
                 cmd.set(prefix + "#ClaimCount.Text", faction.claims().size() + " claims");
 
                 // Leader info

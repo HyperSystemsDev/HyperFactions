@@ -1,0 +1,212 @@
+package com.hyperfactions.gui.shared.page;
+
+import com.hyperfactions.config.HyperFactionsConfig;
+import com.hyperfactions.data.Faction;
+import com.hyperfactions.data.FactionMember;
+import com.hyperfactions.data.FactionRole;
+import com.hyperfactions.gui.GuiManager;
+import com.hyperfactions.gui.faction.data.FactionPageData;
+import com.hyperfactions.manager.FactionManager;
+import com.hyperfactions.manager.PowerManager;
+import com.hyperfactions.manager.RelationManager;
+import com.hyperfactions.util.TimeUtil;
+import com.hypixel.hytale.component.Ref;
+import com.hypixel.hytale.component.Store;
+import com.hypixel.hytale.protocol.packets.interface_.CustomPageLifetime;
+import com.hypixel.hytale.protocol.packets.interface_.CustomUIEventBindingType;
+import com.hypixel.hytale.server.core.entity.entities.Player;
+import com.hypixel.hytale.server.core.entity.entities.player.pages.InteractiveCustomUIPage;
+import com.hypixel.hytale.server.core.ui.builder.EventData;
+import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder;
+import com.hypixel.hytale.server.core.ui.builder.UIEventBuilder;
+import com.hypixel.hytale.server.core.universe.PlayerRef;
+import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+/**
+ * Faction Info page - displays detailed information about a specific faction.
+ * Used for /f info [faction] command (GUI mode).
+ */
+public class FactionInfoPage extends InteractiveCustomUIPage<FactionPageData> {
+
+    private final PlayerRef viewerRef;
+    private final Faction targetFaction;
+    private final FactionManager factionManager;
+    private final PowerManager powerManager;
+    private final RelationManager relationManager;
+    private final GuiManager guiManager;
+
+    public FactionInfoPage(PlayerRef viewerRef,
+                           Faction targetFaction,
+                           FactionManager factionManager,
+                           PowerManager powerManager,
+                           RelationManager relationManager,
+                           GuiManager guiManager) {
+        super(viewerRef, CustomPageLifetime.CanDismiss, FactionPageData.CODEC);
+        this.viewerRef = viewerRef;
+        this.targetFaction = targetFaction;
+        this.factionManager = factionManager;
+        this.powerManager = powerManager;
+        this.relationManager = relationManager;
+        this.guiManager = guiManager;
+    }
+
+    @Override
+    public void build(Ref<EntityStore> ref, UICommandBuilder cmd,
+                      UIEventBuilder events, Store<EntityStore> store) {
+
+        // Load the faction info template
+        cmd.append("HyperFactions/shared/faction_info.ui");
+
+        // === Header Section ===
+        // Faction name
+        cmd.set("#FactionName.Text", targetFaction.name());
+        // Note: Cannot dynamically set text color via cmd.set()
+
+        // Tag (if set)
+        String tag = targetFaction.tag();
+        if (tag != null && !tag.isEmpty()) {
+            cmd.set("#FactionTag.Text", "[" + tag + "]");
+        } else {
+            cmd.set("#FactionTag.Text", "");
+        }
+
+        // Description
+        String description = targetFaction.description();
+        cmd.set("#FactionDescription.Text",
+                description != null && !description.isEmpty() ? description : "No description set.");
+
+        // Open/Closed status indicator
+        cmd.set("#StatusIndicator.Text", targetFaction.open() ? "OPEN" : "INVITE ONLY");
+        // Note: Cannot dynamically set text color via cmd.set()
+
+        // === Stats Section ===
+        PowerManager.FactionPowerStats powerStats = powerManager.getFactionPowerStats(targetFaction.id());
+
+        // Power
+        cmd.set("#PowerValue.Text", String.format("%.1f / %.1f", powerStats.currentPower(), powerStats.maxPower()));
+
+        // Claims
+        cmd.set("#ClaimsValue.Text", String.format("%d / %d", powerStats.currentClaims(), powerStats.maxClaims()));
+
+        // Members
+        int memberCount = targetFaction.getMemberCount();
+        int maxMembers = HyperFactionsConfig.get().getMaxMembers();
+        cmd.set("#MembersValue.Text", String.format("%d / %d", memberCount, maxMembers));
+
+        // Recruitment status
+        cmd.set("#RecruitmentValue.Text", targetFaction.open() ? "Open" : "Invite Only");
+        // Note: Cannot dynamically set text color via cmd.set()
+
+        // Founded date
+        cmd.set("#FoundedValue.Text", TimeUtil.formatRelative(targetFaction.createdAt()));
+
+        // Relations count
+        int allyCount = relationManager.getAllies(targetFaction.id()).size();
+        int enemyCount = relationManager.getEnemies(targetFaction.id()).size();
+        cmd.set("#AlliesValue.Text", String.valueOf(allyCount));
+        cmd.set("#EnemiesValue.Text", String.valueOf(enemyCount));
+
+        // Raidable status
+        if (powerStats.isRaidable()) {
+            cmd.set("#RaidableValue.Text", "RAIDABLE");
+            // Note: Cannot dynamically set text color via cmd.set()
+        } else {
+            cmd.set("#RaidableValue.Text", "Protected");
+            // Note: Cannot dynamically set text color via cmd.set()
+        }
+
+        // === Leadership Section ===
+        // Leader
+        FactionMember leader = targetFaction.getLeader();
+        cmd.set("#LeaderName.Text", leader != null ? leader.username() : "Unknown");
+
+        // Officers
+        List<FactionMember> officers = targetFaction.getMembersSorted().stream()
+                .filter(m -> m.role() == FactionRole.OFFICER)
+                .toList();
+        if (officers.isEmpty()) {
+            cmd.set("#OfficersValue.Text", "None");
+        } else {
+            String officerNames = officers.stream()
+                    .map(FactionMember::username)
+                    .limit(3) // Show max 3 names
+                    .collect(Collectors.joining(", "));
+            if (officers.size() > 3) {
+                officerNames += " +" + (officers.size() - 3) + " more";
+            }
+            cmd.set("#OfficersValue.Text", officerNames);
+        }
+
+        // === Event Bindings ===
+        // View Members button
+        events.addEventBinding(
+                CustomUIEventBindingType.Activating,
+                "#ViewMembersBtn",
+                EventData.of("Button", "ViewMembers")
+                        .append("FactionId", targetFaction.id().toString()),
+                false
+        );
+
+        // View Relations button
+        events.addEventBinding(
+                CustomUIEventBindingType.Activating,
+                "#ViewRelationsBtn",
+                EventData.of("Button", "ViewRelations")
+                        .append("FactionId", targetFaction.id().toString()),
+                false
+        );
+
+        // Back button
+        events.addEventBinding(
+                CustomUIEventBindingType.Activating,
+                "#BackBtn",
+                EventData.of("Button", "Back"),
+                false
+        );
+    }
+
+    @Override
+    public void handleDataEvent(Ref<EntityStore> ref, Store<EntityStore> store,
+                                FactionPageData data) {
+        super.handleDataEvent(ref, store, data);
+
+        Player player = store.getComponent(ref, Player.getComponentType());
+        PlayerRef playerRef = store.getComponent(ref, PlayerRef.getComponentType());
+
+        if (player == null || playerRef == null || data.button == null) {
+            return;
+        }
+
+        switch (data.button) {
+            case "ViewMembers" -> {
+                // Check if viewer is in this faction
+                Faction viewerFaction = factionManager.getPlayerFaction(viewerRef.getUuid());
+                if (viewerFaction != null && viewerFaction.id().equals(targetFaction.id())) {
+                    // Own faction - open full members page
+                    guiManager.openFactionMembers(player, ref, store, playerRef, targetFaction);
+                } else {
+                    // Other faction - just show member list in browser
+                    guiManager.openFactionBrowser(player, ref, store, playerRef);
+                }
+            }
+
+            case "ViewRelations" -> {
+                // Check if viewer is in this faction
+                Faction viewerFaction = factionManager.getPlayerFaction(viewerRef.getUuid());
+                if (viewerFaction != null && viewerFaction.id().equals(targetFaction.id())) {
+                    // Own faction - open full relations page
+                    guiManager.openFactionRelations(player, ref, store, playerRef, targetFaction);
+                } else {
+                    // Other faction - open set relation modal to interact
+                    guiManager.openSetRelationModal(player, ref, store, playerRef, viewerFaction);
+                }
+            }
+
+            case "Back" -> guiManager.closePage(player, ref, store);
+        }
+    }
+}

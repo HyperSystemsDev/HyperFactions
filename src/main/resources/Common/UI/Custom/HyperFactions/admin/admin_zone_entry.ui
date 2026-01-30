@@ -1,0 +1,37 @@
+$C = "../../Common.ui";
+$S = "../shared/styles.ui";
+
+Group {
+  Anchor: (Height: 45, Bottom: 5);
+  Background: (Color: #1a2a3a);
+  Padding: (Left: 10, Right: 10, Top: 5, Bottom: 5);
+  LayoutMode: Left;
+
+  Group {
+    Anchor: (Width: 180);
+    LayoutMode: Top;
+
+    Label #ZoneName {
+      Text: "Zone";
+      Style: (FontSize: 13, TextColor: #00FFFF, RenderBold: true, VerticalAlignment: Center);
+      Anchor: (Height: 18);
+    }
+    Label #ZoneType {
+      Text: "SAFE";
+      Style: (FontSize: 11, TextColor: #888888, VerticalAlignment: Center);
+      Anchor: (Height: 16);
+    }
+  }
+
+  Label #ZoneLocation {
+    Text: "world (0, 0)";
+    Style: (FontSize: 11, TextColor: #666666, VerticalAlignment: Center);
+    FlexWeight: 1;
+  }
+
+  TextButton #DeleteBtn {
+    Text: "DELETE";
+    Anchor: (Height: 26, Width: 70);
+    Style: $S.@SmallRedButtonStyle;
+  }
+}

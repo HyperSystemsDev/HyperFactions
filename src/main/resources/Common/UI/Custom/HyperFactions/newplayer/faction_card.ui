@@ -1,0 +1,73 @@
+// New Player Faction Card
+// Shows faction info with recruitment status and JOIN/REQUEST button
+
+$C = "../../Common.ui";
+$S = "../shared/styles.ui";
+
+Group {
+  Anchor: (Height: 65, Bottom: 5);
+  Background: (Color: #1a2a3a);
+  Padding: (Left: 12, Right: 12, Top: 8, Bottom: 8);
+  LayoutMode: Left;
+
+  // Left section: Faction name and member count
+  Group {
+    Anchor: (Width: 180);
+    LayoutMode: Top;
+
+    Group {
+      LayoutMode: Left;
+      Anchor: (Height: 22);
+
+      Label #FactionName {
+        Text: "Faction";
+        Style: (FontSize: 14, TextColor: #00FFFF, RenderBold: true, VerticalAlignment: Center);
+      }
+    }
+
+    Label #MemberCount {
+      Text: "0 members";
+      Style: (FontSize: 11, TextColor: #888888, VerticalAlignment: Center);
+      Anchor: (Height: 14);
+    }
+
+    Label #RecruitmentBadge {
+      Text: "OPEN RECRUITMENT";
+      Style: (FontSize: 10, TextColor: #44CC44, RenderBold: true, VerticalAlignment: Center);
+      Anchor: (Height: 14);
+    }
+  }
+
+  // Middle section: Stats
+  Group {
+    LayoutMode: Top;
+    Anchor: (Width: 100);
+
+    Label #PowerCount {
+      Text: "0 power";
+      Style: (FontSize: 11, TextColor: #44CC44, VerticalAlignment: Center);
+      Anchor: (Height: 18);
+    }
+
+    Label #ClaimCount {
+      Text: "0 claims";
+      Style: (FontSize: 11, TextColor: #FFAA00, VerticalAlignment: Center);
+      Anchor: (Height: 18);
+    }
+  }
+
+  Label { FlexWeight: 1; }
+
+  // Right section: Action button
+  Group {
+    Anchor: (Width: 80);
+    LayoutMode: Top;
+    Padding: (Top: 8);
+
+    TextButton #ActionBtn {
+      Text: "JOIN";
+      Anchor: (Height: 32, Width: 75);
+      Style: $S.@SmallGreenButtonStyle;
+    }
+  }
+}

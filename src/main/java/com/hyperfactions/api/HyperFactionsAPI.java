@@ -1,6 +1,7 @@
 package com.hyperfactions.api;
 
 import com.hyperfactions.HyperFactions;
+import com.hyperfactions.api.events.EventBus;
 import com.hyperfactions.data.Faction;
 import com.hyperfactions.data.PlayerPower;
 import com.hyperfactions.data.RelationType;
@@ -257,5 +258,132 @@ public final class HyperFactionsAPI {
      */
     public static boolean canBuild(@NotNull UUID playerUuid, @NotNull String world, double x, double z) {
         return getInstance().getProtectionChecker().canBuild(playerUuid, world, x, z);
+    }
+
+    // === Manager Access ===
+
+    /**
+     * Gets the FactionManager for advanced operations.
+     *
+     * @return the faction manager
+     */
+    @NotNull
+    public static FactionManager getFactionManager() {
+        return getInstance().getFactionManager();
+    }
+
+    /**
+     * Gets the ClaimManager for territory operations.
+     *
+     * @return the claim manager
+     */
+    @NotNull
+    public static ClaimManager getClaimManager() {
+        return getInstance().getClaimManager();
+    }
+
+    /**
+     * Gets the PowerManager for power operations.
+     *
+     * @return the power manager
+     */
+    @NotNull
+    public static PowerManager getPowerManager() {
+        return getInstance().getPowerManager();
+    }
+
+    /**
+     * Gets the RelationManager for alliance/enemy operations.
+     *
+     * @return the relation manager
+     */
+    @NotNull
+    public static RelationManager getRelationManager() {
+        return getInstance().getRelationManager();
+    }
+
+    /**
+     * Gets the ZoneManager for SafeZone/WarZone operations.
+     *
+     * @return the zone manager
+     */
+    @NotNull
+    public static ZoneManager getZoneManager() {
+        return getInstance().getZoneManager();
+    }
+
+    /**
+     * Gets the CombatTagManager for combat tag operations.
+     *
+     * @return the combat tag manager
+     */
+    @NotNull
+    public static CombatTagManager getCombatTagManager() {
+        return getInstance().getCombatTagManager();
+    }
+
+    /**
+     * Gets the TeleportManager for teleport operations.
+     *
+     * @return the teleport manager
+     */
+    @NotNull
+    public static TeleportManager getTeleportManager() {
+        return getInstance().getTeleportManager();
+    }
+
+    /**
+     * Gets the InviteManager for invite operations.
+     *
+     * @return the invite manager
+     */
+    @NotNull
+    public static InviteManager getInviteManager() {
+        return getInstance().getInviteManager();
+    }
+
+    // === Event System ===
+
+    /**
+     * Gets the EventBus for subscribing to faction events.
+     * 
+     * <p>Example usage:</p>
+     * <pre>{@code
+     * HyperFactionsAPI.getEventBus().register(FactionCreateEvent.class, event -> {
+     *     System.out.println("Faction created: " + event.faction().name());
+     * });
+     * }</pre>
+     *
+     * @return the EventBus class for static access
+     */
+    @NotNull
+    public static Class<EventBus> getEventBus() {
+        return EventBus.class;
+    }
+
+    /**
+     * Registers an event listener.
+     * Convenience method that delegates to EventBus.
+     *
+     * @param eventClass the event class
+     * @param listener   the listener
+     * @param <T>        the event type
+     */
+    public static <T> void registerEventListener(@NotNull Class<T> eventClass, 
+                                                  @NotNull java.util.function.Consumer<T> listener) {
+        EventBus.register(eventClass, listener);
+    }
+
+    /**
+     * Unregisters an event listener.
+     * Convenience method that delegates to EventBus.
+     *
+     * @param eventClass the event class
+     * @param listener   the listener
+     * @param <T>        the event type
+     */
+    public static <T> void unregisterEventListener(@NotNull Class<T> eventClass, 
+                                                    @NotNull java.util.function.Consumer<T> listener) {
+        EventBus.unregister(eventClass, listener);
     }
 }

@@ -6,6 +6,8 @@ import org.jetbrains.annotations.NotNull;
  * Immutable key for identifying chunks in maps.
  * Used for O(1) chunk lookups.
  *
+ * Note: Hytale uses 32-block chunks (shift by 5), not 16-block chunks.
+ *
  * @param world  the world name
  * @param chunkX the chunk X coordinate
  * @param chunkZ the chunk Z coordinate
@@ -15,6 +17,11 @@ public record ChunkKey(
     int chunkX,
     int chunkZ
 ) {
+    /** Hytale chunk size in blocks */
+    private static final int CHUNK_SIZE = 32;
+    /** Bit shift for chunk calculations (log2 of CHUNK_SIZE) */
+    private static final int CHUNK_SHIFT = 5;
+
     /**
      * Creates a ChunkKey from world coordinates (not chunk coordinates).
      *
@@ -24,7 +31,7 @@ public record ChunkKey(
      * @return a ChunkKey for the chunk containing these coordinates
      */
     public static ChunkKey fromWorldCoords(@NotNull String world, double x, double z) {
-        return new ChunkKey(world, (int) Math.floor(x) >> 4, (int) Math.floor(z) >> 4);
+        return new ChunkKey(world, (int) Math.floor(x) >> CHUNK_SHIFT, (int) Math.floor(z) >> CHUNK_SHIFT);
     }
 
     /**
@@ -36,7 +43,7 @@ public record ChunkKey(
      * @return a ChunkKey for the chunk containing these coordinates
      */
     public static ChunkKey fromBlockCoords(@NotNull String world, int blockX, int blockZ) {
-        return new ChunkKey(world, blockX >> 4, blockZ >> 4);
+        return new ChunkKey(world, blockX >> CHUNK_SHIFT, blockZ >> CHUNK_SHIFT);
     }
 
     /**
@@ -45,7 +52,7 @@ public record ChunkKey(
      * @return the minimum X
      */
     public int getMinBlockX() {
-        return chunkX << 4;
+        return chunkX << CHUNK_SHIFT;
     }
 
     /**
@@ -54,7 +61,7 @@ public record ChunkKey(
      * @return the maximum X
      */
     public int getMaxBlockX() {
-        return (chunkX << 4) + 15;
+        return (chunkX << CHUNK_SHIFT) + (CHUNK_SIZE - 1);
     }
 
     /**
@@ -63,7 +70,7 @@ public record ChunkKey(
      * @return the minimum Z
      */
     public int getMinBlockZ() {
-        return chunkZ << 4;
+        return chunkZ << CHUNK_SHIFT;
     }
 
     /**
@@ -72,7 +79,7 @@ public record ChunkKey(
      * @return the maximum Z
      */
     public int getMaxBlockZ() {
-        return (chunkZ << 4) + 15;
+        return (chunkZ << CHUNK_SHIFT) + (CHUNK_SIZE - 1);
     }
 
     /**
@@ -81,7 +88,7 @@ public record ChunkKey(
      * @return the center X
      */
     public double getCenterX() {
-        return (chunkX << 4) + 8.0;
+        return (chunkX << CHUNK_SHIFT) + (CHUNK_SIZE / 2.0);
     }
 
     /**
@@ -90,7 +97,7 @@ public record ChunkKey(
      * @return the center Z
      */
     public double getCenterZ() {
-        return (chunkZ << 4) + 8.0;
+        return (chunkZ << CHUNK_SHIFT) + (CHUNK_SIZE / 2.0);
     }
 
     /**

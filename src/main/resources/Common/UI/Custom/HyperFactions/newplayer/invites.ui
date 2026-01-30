@@ -1,0 +1,71 @@
+// Invites & Requests Page for New Players
+// Shows pending faction invitations and outgoing join requests
+
+$C = "../../Common.ui";
+$S = "../shared/styles.ui";
+$Nav = "../nav/nav_bar.ui";
+
+$C.@PageOverlay {
+  $Nav.@HyperFactionsNavBar #HyperFactionsNavBar {}
+
+  $C.@DecoratedContainer {
+    Anchor: (Width: 550, Height: 520);
+
+    #Title {
+      Group {
+        LayoutMode: Left;
+
+        $C.@Title {
+          @Text = "Invites & Requests";
+        }
+
+        Label { FlexWeight: 1; }
+
+        Label #InviteCount {
+          Text: "0 pending";
+          Style: (FontSize: 13, TextColor: #888888, VerticalAlignment: Center);
+          Anchor: (Right: 10);
+        }
+      }
+    }
+
+    #Content {
+      LayoutMode: TopScrolling;
+      ScrollbarStyle: $C.@DefaultScrollbarStyle;
+      Padding: (Left: 15, Right: 15, Top: 10, Bottom: 10);
+
+      // === RECEIVED INVITES SECTION ===
+      Group {
+        Anchor: (Height: 24, Bottom: 6);
+
+        Label #InvitesHeader {
+          Text: "RECEIVED INVITES (0)";
+          Style: (FontSize: 12, TextColor: #55FF55, RenderBold: true, VerticalAlignment: Center);
+        }
+      }
+
+      Group #InviteListContainer {
+        LayoutMode: Top;
+        Anchor: (Bottom: 16);
+      }
+
+      // === YOUR REQUESTS SECTION ===
+      Group {
+        Anchor: (Height: 24, Bottom: 6);
+
+        Label #RequestsHeader {
+          Text: "YOUR REQUESTS (0)";
+          Style: (FontSize: 12, TextColor: #FFAA00, RenderBold: true, VerticalAlignment: Center);
+        }
+      }
+
+      Group #RequestListContainer {
+        LayoutMode: Top;
+        Anchor: (Bottom: 12);
+      }
+    }
+  }
+}
+
+// Native Hytale back button
+$C.@BackButton {}

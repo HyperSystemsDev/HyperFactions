@@ -2,6 +2,8 @@ package com.hyperfactions.manager;
 
 import com.hyperfactions.config.HyperFactionsConfig;
 import com.hyperfactions.data.CombatTag;
+import com.hyperfactions.data.SpawnProtection;
+import com.hyperfactions.util.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -10,12 +12,15 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 /**
- * Manages combat tagging for PvP logout prevention.
+ * Manages combat tagging for PvP logout prevention and spawn protection.
  */
 public class CombatTagManager {
 
     // Active combat tags: player UUID -> CombatTag
     private final Map<UUID, CombatTag> tags = new ConcurrentHashMap<>();
+
+    // Active spawn protections: player UUID -> SpawnProtection
+    private final Map<UUID, SpawnProtection> spawnProtections = new ConcurrentHashMap<>();
 
     // Callbacks for tag events
     private Consumer<UUID> onTagExpired;
@@ -152,8 +157,11 @@ public class CombatTagManager {
      * @param defender the defender's UUID
      */
     public void tagCombat(@NotNull UUID attacker, @NotNull UUID defender) {
+        int duration = HyperFactionsConfig.get().getTagDurationSeconds();
         tagPlayer(attacker);
         tagPlayer(defender);
+        Logger.debugCombat("Combat tag: attacker=%s, defender=%s, duration=%ds",
+            attacker, defender, duration);
     }
 
     /**
@@ -175,6 +183,8 @@ public class CombatTagManager {
     public boolean handleDisconnect(@NotNull UUID playerUuid) {
         CombatTag tag = tags.remove(playerUuid);
         if (tag != null && !tag.isExpired()) {
+            Logger.debugCombat("Combat logout: player=%s, remainingSeconds=%d, penaltyEnabled=%b",
+                playerUuid, tag.getRemainingSeconds(), HyperFactionsConfig.get().isTaggedLogoutPenalty());
             if (HyperFactionsConfig.get().isTaggedLogoutPenalty() && onCombatLogout != null) {
                 onCombatLogout.accept(playerUuid);
             }
@@ -208,5 +218,104 @@ public class CombatTagManager {
      */
     public int getTagCount() {
         return getTaggedPlayers().size();
+    }
+
+    // === Spawn Protection ===
+
+    /**
+     * Checks if a player has active spawn protection.
+     *
+     * @param playerUuid the player's UUID
+     * @return true if protected and not expired
+     */
+    public boolean hasSpawnProtection(@NotNull UUID playerUuid) {
+        SpawnProtection protection = spawnProtections.get(playerUuid);
+        if (protection == null) {
+            return false;
+        }
+        if (protection.isExpired()) {
+            spawnProtections.remove(playerUuid);
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Gets the spawn protection for a player.
+     *
+     * @param playerUuid the player's UUID
+     * @return the protection, or null if not protected
+     */
+    @Nullable
+    public SpawnProtection getSpawnProtection(@NotNull UUID playerUuid) {
+        SpawnProtection protection = spawnProtections.get(playerUuid);
+        if (protection != null && protection.isExpired()) {
+            spawnProtections.remove(playerUuid);
+            return null;
+        }
+        return protection;
+    }
+
+    /**
+     * Applies spawn protection to a player.
+     *
+     * @param playerUuid      the player's UUID
+     * @param durationSeconds the protection duration
+     * @param world           the spawn world
+     * @param chunkX          the spawn chunk X
+     * @param chunkZ          the spawn chunk Z
+     * @return the spawn protection
+     */
+    @NotNull
+    public SpawnProtection applySpawnProtection(@NotNull UUID playerUuid, int durationSeconds,
+                                                 @NotNull String world, int chunkX, int chunkZ) {
+        SpawnProtection protection = SpawnProtection.create(playerUuid, durationSeconds, world, chunkX, chunkZ);
+        spawnProtections.put(playerUuid, protection);
+        return protection;
+    }
+
+    /**
+     * Clears spawn protection for a player.
+     *
+     * @param playerUuid the player's UUID
+     */
+    public void clearSpawnProtection(@NotNull UUID playerUuid) {
+        spawnProtections.remove(playerUuid);
+    }
+
+    /**
+     * Checks if spawn protection should be broken due to chunk movement.
+     * If the player has left their spawn chunk, protection is cleared.
+     *
+     * @param playerUuid    the player's UUID
+     * @param currentWorld  the player's current world
+     * @param currentChunkX the player's current chunk X
+     * @param currentChunkZ the player's current chunk Z
+     * @return true if protection was broken due to movement
+     */
+    public boolean checkSpawnProtectionMove(@NotNull UUID playerUuid, @NotNull String currentWorld,
+                                            int currentChunkX, int currentChunkZ) {
+        SpawnProtection protection = getSpawnProtection(playerUuid);
+        if (protection == null) {
+            return false;
+        }
+
+        if (HyperFactionsConfig.get().isSpawnProtectionBreakOnMove() &&
+            protection.hasLeftSpawnChunk(currentWorld, currentChunkX, currentChunkZ)) {
+            clearSpawnProtection(playerUuid);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Gets the remaining spawn protection time in seconds.
+     *
+     * @param playerUuid the player's UUID
+     * @return remaining seconds, 0 if not protected
+     */
+    public int getSpawnProtectionRemainingSeconds(@NotNull UUID playerUuid) {
+        SpawnProtection protection = getSpawnProtection(playerUuid);
+        return protection != null ? protection.getRemainingSeconds() : 0;
     }
 }

@@ -135,6 +135,9 @@ public class JsonFactionStorage implements FactionStorage {
         if (faction.description() != null) {
             obj.addProperty("description", faction.description());
         }
+        if (faction.tag() != null) {
+            obj.addProperty("tag", faction.tag());
+        }
         obj.addProperty("color", faction.color());
         obj.addProperty("createdAt", faction.createdAt());
         obj.addProperty("open", faction.open());
@@ -234,6 +237,7 @@ public class JsonFactionStorage implements FactionStorage {
         UUID id = UUID.fromString(obj.get("id").getAsString());
         String name = obj.get("name").getAsString();
         String description = obj.has("description") ? obj.get("description").getAsString() : null;
+        String tag = obj.has("tag") ? obj.get("tag").getAsString() : null;
         String color = obj.has("color") ? obj.get("color").getAsString() : "f";
         long createdAt = obj.get("createdAt").getAsLong();
         boolean open = obj.has("open") && obj.get("open").getAsBoolean();
@@ -278,7 +282,7 @@ public class JsonFactionStorage implements FactionStorage {
             }
         }
 
-        return new Faction(id, name, description, color, createdAt, home, members, claims, relations, logs, open);
+        return new Faction(id, name, description, tag, color, createdAt, home, members, claims, relations, logs, open);
     }
 
     private Faction.FactionHome deserializeHome(JsonObject obj) {

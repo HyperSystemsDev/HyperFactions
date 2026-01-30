@@ -1,0 +1,10 @@
+// Neutral Relation Indicator
+// Shows [NEUTRAL] badge in gray (typically not displayed)
+
+Group {
+  Label #RelationIndicator {
+    Text: "[NEUTRAL]";
+    Style: (FontSize: 10, TextColor: #888888, RenderBold: true, VerticalAlignment: Center);
+    Anchor: (Left: 5);
+  }
+}

@@ -1,0 +1,8 @@
+// Player marker button - white bold "+" for visibility
+$S = "../shared/styles.ui";
+
+TextButton #Btn {
+  Text: "+";
+  Anchor: (Width: 16, Height: 16);
+  Style: $S.@PlayerMarkerButtonStyle;
+}

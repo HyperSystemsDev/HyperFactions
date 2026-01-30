@@ -1,0 +1,88 @@
+// Faction Relations Page
+// Following AdminUI pattern with nav bar
+
+$C = "../../Common.ui";
+$S = "../shared/styles.ui";
+$Nav = "../nav/nav_bar.ui";
+
+$C.@PageOverlay {
+  $Nav.@HyperFactionsNavBar #HyperFactionsNavBar {}
+
+  $C.@DecoratedContainer {
+    Anchor: (Width: 500, Height: 520);
+
+    #Title {
+      Group {
+        $C.@Title {
+          @Text = "Relations";
+        }
+      }
+    }
+
+    #Content {
+      LayoutMode: TopScrolling;
+      ScrollbarStyle: $C.@DefaultScrollbarStyle;
+      Padding: (Left: 15, Right: 15, Top: 10, Bottom: 10);
+
+      // === ALLIES SECTION ===
+      Group {
+        Anchor: (Height: 24, Bottom: 6);
+
+        Label #AlliesHeader {
+          Text: "ALLIES (0)";
+          Style: (FontSize: 12, TextColor: #00AAFF, RenderBold: true, VerticalAlignment: Center);
+        }
+      }
+
+      Group #AlliesList {
+        LayoutMode: Top;
+        Anchor: (Bottom: 12);
+      }
+
+      // === ENEMIES SECTION ===
+      Group {
+        Anchor: (Height: 24, Bottom: 6);
+
+        Label #EnemiesHeader {
+          Text: "ENEMIES (0)";
+          Style: (FontSize: 12, TextColor: #FF5555, RenderBold: true, VerticalAlignment: Center);
+        }
+      }
+
+      Group #EnemiesList {
+        LayoutMode: Top;
+        Anchor: (Bottom: 12);
+      }
+
+      // === PENDING REQUESTS SECTION ===
+      Group {
+        Anchor: (Height: 24, Bottom: 6);
+
+        Label #RequestsHeader {
+          Text: "PENDING REQUESTS (0)";
+          Style: (FontSize: 12, TextColor: #FFAA00, RenderBold: true, VerticalAlignment: Center);
+        }
+      }
+
+      Group #RequestsList {
+        LayoutMode: Top;
+        Anchor: (Bottom: 12);
+      }
+
+      // Divider before action buttons
+      Group {
+        Anchor: (Height: 1, Top: 8, Bottom: 8);
+        Background: (Color: #00AAAA);
+      }
+
+      // Container for SET RELATION button (appended for officers+)
+      Group #ActionBtnContainer {
+        Anchor: (Height: 50);
+        LayoutMode: Left;
+      }
+    }
+  }
+}
+
+// Native Hytale back button (bottom-left ESC)
+$C.@BackButton {}

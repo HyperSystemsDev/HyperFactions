@@ -1,7 +1,11 @@
 package com.hyperfactions.data;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -15,6 +19,7 @@ import java.util.UUID;
  * @param chunkZ    the chunk Z coordinate
  * @param createdAt when the zone was created (epoch millis)
  * @param createdBy UUID of the admin who created it
+ * @param flags     custom flags for this zone (null = use defaults)
  */
 public record Zone(
     @NotNull UUID id,
@@ -24,10 +29,11 @@ public record Zone(
     int chunkX,
     int chunkZ,
     long createdAt,
-    @NotNull UUID createdBy
+    @NotNull UUID createdBy,
+    @Nullable Map<String, Boolean> flags
 ) {
     /**
-     * Creates a new zone.
+     * Creates a new zone with default flags.
      *
      * @param name      the zone name
      * @param type      the zone type
@@ -41,7 +47,7 @@ public record Zone(
                               @NotNull String world, int chunkX, int chunkZ,
                               @NotNull UUID createdBy) {
         return new Zone(UUID.randomUUID(), name, type, world, chunkX, chunkZ,
-                       System.currentTimeMillis(), createdBy);
+                       System.currentTimeMillis(), createdBy, null);
     }
 
     /**
@@ -91,6 +97,91 @@ public record Zone(
      * @return a new Zone with updated name
      */
     public Zone withName(@NotNull String newName) {
-        return new Zone(id, newName, type, world, chunkX, chunkZ, createdAt, createdBy);
+        return new Zone(id, newName, type, world, chunkX, chunkZ, createdAt, createdBy, flags);
+    }
+
+    /**
+     * Creates a copy with a flag set.
+     *
+     * @param flagName the flag name
+     * @param value    the flag value
+     * @return a new Zone with updated flag
+     */
+    public Zone withFlag(@NotNull String flagName, boolean value) {
+        Map<String, Boolean> newFlags = flags != null ? new HashMap<>(flags) : new HashMap<>();
+        newFlags.put(flagName, value);
+        return new Zone(id, name, type, world, chunkX, chunkZ, createdAt, createdBy, newFlags);
+    }
+
+    /**
+     * Creates a copy with a flag removed (reverts to default).
+     *
+     * @param flagName the flag name to remove
+     * @return a new Zone with flag removed
+     */
+    public Zone withoutFlag(@NotNull String flagName) {
+        if (flags == null || !flags.containsKey(flagName)) {
+            return this;
+        }
+        Map<String, Boolean> newFlags = new HashMap<>(flags);
+        newFlags.remove(flagName);
+        return new Zone(id, name, type, world, chunkX, chunkZ, createdAt, createdBy,
+                       newFlags.isEmpty() ? null : newFlags);
+    }
+
+    /**
+     * Creates a copy with updated flags.
+     *
+     * @param newFlags the new flags map (null = use defaults)
+     * @return a new Zone with updated flags
+     */
+    public Zone withFlags(@Nullable Map<String, Boolean> newFlags) {
+        return new Zone(id, name, type, world, chunkX, chunkZ, createdAt, createdBy, newFlags);
+    }
+
+    /**
+     * Gets the value of a specific flag, or null if using default.
+     *
+     * @param flagName the flag name
+     * @return the flag value, or null if not set (use default)
+     */
+    @Nullable
+    public Boolean getFlag(@NotNull String flagName) {
+        return flags != null ? flags.get(flagName) : null;
+    }
+
+    /**
+     * Checks if a specific flag has been explicitly set (overriding default).
+     *
+     * @param flagName the flag name
+     * @return true if flag has been explicitly set
+     */
+    public boolean hasFlagSet(@NotNull String flagName) {
+        return flags != null && flags.containsKey(flagName);
+    }
+
+    /**
+     * Gets all explicitly set flags (immutable copy).
+     *
+     * @return map of flag name to value, never null
+     */
+    @NotNull
+    public Map<String, Boolean> getFlags() {
+        return flags != null ? Collections.unmodifiableMap(flags) : Collections.emptyMap();
+    }
+
+    /**
+     * Gets the effective value for a flag, considering zone type defaults.
+     *
+     * @param flagName the flag name
+     * @return the effective flag value
+     */
+    public boolean getEffectiveFlag(@NotNull String flagName) {
+        // Check if explicitly set
+        if (flags != null && flags.containsKey(flagName)) {
+            return flags.get(flagName);
+        }
+        // Return default based on zone type
+        return isSafeZone() ? ZoneFlags.getSafeZoneDefault(flagName) : ZoneFlags.getWarZoneDefault(flagName);
     }
 }

@@ -49,9 +49,19 @@ public class HyperFactionsConfig {
     private boolean factionDamage = false;
     private boolean taggedLogoutPenalty = true;
 
+    // Spawn protection settings
+    private boolean spawnProtectionEnabled = true;
+    private int spawnProtectionDurationSeconds = 5;
+    private boolean spawnProtectionBreakOnAttack = true;
+    private boolean spawnProtectionBreakOnMove = true;
+
     // Relation settings
     private int maxAllies = 10;      // -1 for unlimited
     private int maxEnemies = -1;     // -1 for unlimited
+
+    // Invite/Request settings
+    private int inviteExpirationMinutes = 5;         // How long faction invites last
+    private int joinRequestExpirationHours = 24;     // How long join requests last
 
     // Stuck command settings
     private int stuckWarmupSeconds = 30;
@@ -67,9 +77,36 @@ public class HyperFactionsConfig {
     private boolean updateCheckEnabled = true;
     private String updateCheckUrl = "https://api.github.com/repos/ZenithDevHQ/HyperFactions/releases/latest";
 
+    // Auto-save settings
+    private boolean autoSaveEnabled = true;
+    private int autoSaveIntervalMinutes = 5;
+
+    // Economy settings
+    private boolean economyEnabled = true;
+    private String economyCurrencyName = "dollar";
+    private String economyCurrencyNamePlural = "dollars";
+    private String economyCurrencySymbol = "$";
+    private double economyStartingBalance = 0.0;
+
     // Message settings
     private String prefix = "\u00A7b[HyperFactions]\u00A7r ";
     private String primaryColor = "#00FFFF";
+
+    // Territory notification settings
+    private boolean territoryNotificationsEnabled = true;
+
+    // World map marker settings
+    private boolean worldMapMarkersEnabled = true;
+
+    // Debug settings
+    private boolean debugEnabledByDefault = false;
+    private boolean debugLogToConsole = true;
+    private boolean debugPower = false;
+    private boolean debugClaim = false;
+    private boolean debugCombat = false;
+    private boolean debugProtection = false;
+    private boolean debugRelation = false;
+    private boolean debugTerritory = false;
 
     private HyperFactionsConfig() {}
 
@@ -142,6 +179,15 @@ public class HyperFactionsConfig {
                 allyDamage = getBool(combat, "allyDamage", allyDamage);
                 factionDamage = getBool(combat, "factionDamage", factionDamage);
                 taggedLogoutPenalty = getBool(combat, "taggedLogoutPenalty", taggedLogoutPenalty);
+
+                // Spawn protection sub-section
+                if (combat.has("spawnProtection") && combat.get("spawnProtection").isJsonObject()) {
+                    JsonObject spawnProt = combat.getAsJsonObject("spawnProtection");
+                    spawnProtectionEnabled = getBool(spawnProt, "enabled", spawnProtectionEnabled);
+                    spawnProtectionDurationSeconds = getInt(spawnProt, "durationSeconds", spawnProtectionDurationSeconds);
+                    spawnProtectionBreakOnAttack = getBool(spawnProt, "breakOnAttack", spawnProtectionBreakOnAttack);
+                    spawnProtectionBreakOnMove = getBool(spawnProt, "breakOnMove", spawnProtectionBreakOnMove);
+                }
             }
 
             // Relation settings
@@ -149,6 +195,13 @@ public class HyperFactionsConfig {
                 JsonObject relations = root.getAsJsonObject("relations");
                 maxAllies = getInt(relations, "maxAllies", maxAllies);
                 maxEnemies = getInt(relations, "maxEnemies", maxEnemies);
+            }
+
+            // Invite/Request settings
+            if (root.has("invites") && root.get("invites").isJsonObject()) {
+                JsonObject invites = root.getAsJsonObject("invites");
+                inviteExpirationMinutes = getInt(invites, "inviteExpirationMinutes", inviteExpirationMinutes);
+                joinRequestExpirationHours = getInt(invites, "joinRequestExpirationHours", joinRequestExpirationHours);
             }
 
             // Stuck settings
@@ -174,12 +227,61 @@ public class HyperFactionsConfig {
                 updateCheckUrl = getString(updates, "url", updateCheckUrl);
             }
 
+            // Auto-save settings
+            if (root.has("autoSave") && root.get("autoSave").isJsonObject()) {
+                JsonObject autoSave = root.getAsJsonObject("autoSave");
+                autoSaveEnabled = getBool(autoSave, "enabled", autoSaveEnabled);
+                autoSaveIntervalMinutes = getInt(autoSave, "intervalMinutes", autoSaveIntervalMinutes);
+            }
+
+            // Economy settings
+            if (root.has("economy") && root.get("economy").isJsonObject()) {
+                JsonObject economy = root.getAsJsonObject("economy");
+                economyEnabled = getBool(economy, "enabled", economyEnabled);
+                economyCurrencyName = getString(economy, "currencyName", economyCurrencyName);
+                economyCurrencyNamePlural = getString(economy, "currencyNamePlural", economyCurrencyNamePlural);
+                economyCurrencySymbol = getString(economy, "currencySymbol", economyCurrencySymbol);
+                economyStartingBalance = getDouble(economy, "startingBalance", economyStartingBalance);
+            }
+
             // Message settings
             if (root.has("messages") && root.get("messages").isJsonObject()) {
                 JsonObject messages = root.getAsJsonObject("messages");
                 prefix = getString(messages, "prefix", prefix);
                 primaryColor = getString(messages, "primaryColor", primaryColor);
             }
+
+            // Territory notification settings
+            if (root.has("territoryNotifications") && root.get("territoryNotifications").isJsonObject()) {
+                JsonObject territoryNotifications = root.getAsJsonObject("territoryNotifications");
+                territoryNotificationsEnabled = getBool(territoryNotifications, "enabled", territoryNotificationsEnabled);
+            }
+
+            // World map marker settings
+            if (root.has("worldMap") && root.get("worldMap").isJsonObject()) {
+                JsonObject worldMap = root.getAsJsonObject("worldMap");
+                worldMapMarkersEnabled = getBool(worldMap, "enabled", worldMapMarkersEnabled);
+            }
+
+            // Debug settings
+            if (root.has("debug") && root.get("debug").isJsonObject()) {
+                JsonObject debug = root.getAsJsonObject("debug");
+                debugEnabledByDefault = getBool(debug, "enabledByDefault", debugEnabledByDefault);
+                debugLogToConsole = getBool(debug, "logToConsole", debugLogToConsole);
+
+                if (debug.has("categories") && debug.get("categories").isJsonObject()) {
+                    JsonObject categories = debug.getAsJsonObject("categories");
+                    debugPower = getBool(categories, "power", debugPower);
+                    debugClaim = getBool(categories, "claim", debugClaim);
+                    debugCombat = getBool(categories, "combat", debugCombat);
+                    debugProtection = getBool(categories, "protection", debugProtection);
+                    debugRelation = getBool(categories, "relation", debugRelation);
+                    debugTerritory = getBool(categories, "territory", debugTerritory);
+                }
+            }
+
+            // Apply debug settings to Logger
+            applyDebugSettings();
 
             Logger.info("Configuration loaded");
         } catch (Exception e) {
@@ -238,6 +340,15 @@ public class HyperFactionsConfig {
             combat.addProperty("allyDamage", allyDamage);
             combat.addProperty("factionDamage", factionDamage);
             combat.addProperty("taggedLogoutPenalty", taggedLogoutPenalty);
+
+            // Spawn protection sub-section
+            JsonObject spawnProt = new JsonObject();
+            spawnProt.addProperty("enabled", spawnProtectionEnabled);
+            spawnProt.addProperty("durationSeconds", spawnProtectionDurationSeconds);
+            spawnProt.addProperty("breakOnAttack", spawnProtectionBreakOnAttack);
+            spawnProt.addProperty("breakOnMove", spawnProtectionBreakOnMove);
+            combat.add("spawnProtection", spawnProt);
+
             root.add("combat", combat);
 
             // Relation settings
@@ -245,6 +356,12 @@ public class HyperFactionsConfig {
             relations.addProperty("maxAllies", maxAllies);
             relations.addProperty("maxEnemies", maxEnemies);
             root.add("relations", relations);
+
+            // Invite/Request settings
+            JsonObject invites = new JsonObject();
+            invites.addProperty("inviteExpirationMinutes", inviteExpirationMinutes);
+            invites.addProperty("joinRequestExpirationHours", joinRequestExpirationHours);
+            root.add("invites", invites);
 
             // Stuck settings
             JsonObject stuck = new JsonObject();
@@ -266,11 +383,51 @@ public class HyperFactionsConfig {
             updates.addProperty("url", updateCheckUrl);
             root.add("updates", updates);
 
+            // Auto-save settings
+            JsonObject autoSave = new JsonObject();
+            autoSave.addProperty("enabled", autoSaveEnabled);
+            autoSave.addProperty("intervalMinutes", autoSaveIntervalMinutes);
+            root.add("autoSave", autoSave);
+
+            // Economy settings
+            JsonObject economy = new JsonObject();
+            economy.addProperty("enabled", economyEnabled);
+            economy.addProperty("currencyName", economyCurrencyName);
+            economy.addProperty("currencyNamePlural", economyCurrencyNamePlural);
+            economy.addProperty("currencySymbol", economyCurrencySymbol);
+            economy.addProperty("startingBalance", economyStartingBalance);
+            root.add("economy", economy);
+
             // Message settings
             JsonObject messages = new JsonObject();
             messages.addProperty("prefix", prefix);
             messages.addProperty("primaryColor", primaryColor);
             root.add("messages", messages);
+
+            // Territory notification settings
+            JsonObject territoryNotifications = new JsonObject();
+            territoryNotifications.addProperty("enabled", territoryNotificationsEnabled);
+            root.add("territoryNotifications", territoryNotifications);
+
+            // World map marker settings
+            JsonObject worldMap = new JsonObject();
+            worldMap.addProperty("enabled", worldMapMarkersEnabled);
+            root.add("worldMap", worldMap);
+
+            // Debug settings
+            JsonObject debug = new JsonObject();
+            debug.addProperty("enabledByDefault", debugEnabledByDefault);
+            debug.addProperty("logToConsole", debugLogToConsole);
+
+            JsonObject categories = new JsonObject();
+            categories.addProperty("power", debugPower);
+            categories.addProperty("claim", debugClaim);
+            categories.addProperty("combat", debugCombat);
+            categories.addProperty("protection", debugProtection);
+            categories.addProperty("relation", debugRelation);
+            categories.addProperty("territory", debugTerritory);
+            debug.add("categories", categories);
+            root.add("debug", debug);
 
             Gson gson = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
             Files.writeString(configFile, gson.toJson(root));
@@ -318,9 +475,21 @@ public class HyperFactionsConfig {
     public boolean isFactionDamage() { return factionDamage; }
     public boolean isTaggedLogoutPenalty() { return taggedLogoutPenalty; }
 
+    // === Spawn Protection Getters ===
+    public boolean isSpawnProtectionEnabled() { return spawnProtectionEnabled; }
+    public int getSpawnProtectionDurationSeconds() { return spawnProtectionDurationSeconds; }
+    public boolean isSpawnProtectionBreakOnAttack() { return spawnProtectionBreakOnAttack; }
+    public boolean isSpawnProtectionBreakOnMove() { return spawnProtectionBreakOnMove; }
+
     // === Relation Getters ===
     public int getMaxAllies() { return maxAllies; }
     public int getMaxEnemies() { return maxEnemies; }
+
+    // === Invite/Request Getters ===
+    public int getInviteExpirationMinutes() { return inviteExpirationMinutes; }
+    public int getJoinRequestExpirationHours() { return joinRequestExpirationHours; }
+    public long getInviteExpirationMs() { return inviteExpirationMinutes * 60 * 1000L; }
+    public long getJoinRequestExpirationMs() { return joinRequestExpirationHours * 60 * 60 * 1000L; }
 
     // === Stuck Getters ===
     public int getStuckWarmupSeconds() { return stuckWarmupSeconds; }
@@ -336,9 +505,83 @@ public class HyperFactionsConfig {
     public boolean isUpdateCheckEnabled() { return updateCheckEnabled; }
     public String getUpdateCheckUrl() { return updateCheckUrl; }
 
+    // === Auto-save Getters ===
+    public boolean isAutoSaveEnabled() { return autoSaveEnabled; }
+    public int getAutoSaveIntervalMinutes() { return autoSaveIntervalMinutes; }
+
+    // === Economy Getters ===
+    public boolean isEconomyEnabled() { return economyEnabled; }
+    public String getEconomyCurrencyName() { return economyCurrencyName; }
+    public String getEconomyCurrencyNamePlural() { return economyCurrencyNamePlural; }
+    public String getEconomyCurrencySymbol() { return economyCurrencySymbol; }
+    public double getEconomyStartingBalance() { return economyStartingBalance; }
+
     // === Message Getters ===
     public String getPrefix() { return prefix; }
     public String getPrimaryColor() { return primaryColor; }
+
+    // === Territory Notification Getters ===
+    public boolean isTerritoryNotificationsEnabled() { return territoryNotificationsEnabled; }
+
+    // === World Map Getters ===
+    public boolean isWorldMapMarkersEnabled() { return worldMapMarkersEnabled; }
+
+    // === Debug Getters ===
+    public boolean isDebugEnabledByDefault() { return debugEnabledByDefault; }
+    public boolean isDebugLogToConsole() { return debugLogToConsole; }
+    public boolean isDebugPower() { return debugPower; }
+    public boolean isDebugClaim() { return debugClaim; }
+    public boolean isDebugCombat() { return debugCombat; }
+    public boolean isDebugProtection() { return debugProtection; }
+    public boolean isDebugRelation() { return debugRelation; }
+    public boolean isDebugTerritory() { return debugTerritory; }
+
+    // === Debug Setters (for runtime toggle) ===
+    public void setDebugPower(boolean enabled) { this.debugPower = enabled; applyDebugSettings(); }
+    public void setDebugClaim(boolean enabled) { this.debugClaim = enabled; applyDebugSettings(); }
+    public void setDebugCombat(boolean enabled) { this.debugCombat = enabled; applyDebugSettings(); }
+    public void setDebugProtection(boolean enabled) { this.debugProtection = enabled; applyDebugSettings(); }
+    public void setDebugRelation(boolean enabled) { this.debugRelation = enabled; applyDebugSettings(); }
+    public void setDebugTerritory(boolean enabled) { this.debugTerritory = enabled; applyDebugSettings(); }
+
+    /**
+     * Applies debug settings to the Logger.
+     */
+    public void applyDebugSettings() {
+        Logger.setLogToConsole(debugLogToConsole);
+        Logger.setDebugEnabled(Logger.DebugCategory.POWER, debugEnabledByDefault || debugPower);
+        Logger.setDebugEnabled(Logger.DebugCategory.CLAIM, debugEnabledByDefault || debugClaim);
+        Logger.setDebugEnabled(Logger.DebugCategory.COMBAT, debugEnabledByDefault || debugCombat);
+        Logger.setDebugEnabled(Logger.DebugCategory.PROTECTION, debugEnabledByDefault || debugProtection);
+        Logger.setDebugEnabled(Logger.DebugCategory.RELATION, debugEnabledByDefault || debugRelation);
+        Logger.setDebugEnabled(Logger.DebugCategory.TERRITORY, debugEnabledByDefault || debugTerritory);
+    }
+
+    /**
+     * Enables all debug categories at runtime.
+     */
+    public void enableAllDebug() {
+        debugPower = true;
+        debugClaim = true;
+        debugCombat = true;
+        debugProtection = true;
+        debugRelation = true;
+        debugTerritory = true;
+        Logger.enableAll();
+    }
+
+    /**
+     * Disables all debug categories at runtime.
+     */
+    public void disableAllDebug() {
+        debugPower = false;
+        debugClaim = false;
+        debugCombat = false;
+        debugProtection = false;
+        debugRelation = false;
+        debugTerritory = false;
+        Logger.disableAll();
+    }
 
     /**
      * Checks if a world is allowed for claiming.

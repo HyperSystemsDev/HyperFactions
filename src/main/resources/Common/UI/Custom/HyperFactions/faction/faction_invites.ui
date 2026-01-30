@@ -1,0 +1,61 @@
+// Faction Invites Management Page
+// For officers+ to manage outgoing invites and incoming join requests
+
+$C = "../../Common.ui";
+$S = "../shared/styles.ui";
+$Nav = "../nav/nav_bar.ui";
+
+$C.@PageOverlay {
+  $Nav.@HyperFactionsNavBar #HyperFactionsNavBar {}
+
+  $C.@DecoratedContainer {
+    Anchor: (Width: 520, Height: 540);
+
+    #Title {
+      Group {
+        $C.@Title {
+          @Text = "Invites";
+        }
+      }
+    }
+
+    #Content {
+      LayoutMode: TopScrolling;
+      ScrollbarStyle: $C.@DefaultScrollbarStyle;
+      Padding: (Left: 15, Right: 15, Top: 10, Bottom: 10);
+
+      // === OUTGOING INVITES SECTION ===
+      Group {
+        Anchor: (Height: 24, Bottom: 6);
+
+        Label #OutgoingHeader {
+          Text: "OUTGOING INVITES (0)";
+          Style: (FontSize: 12, TextColor: #55FFFF, RenderBold: true, VerticalAlignment: Center);
+        }
+      }
+
+      Group #OutgoingList {
+        LayoutMode: Top;
+        Anchor: (Bottom: 16);
+      }
+
+      // === JOIN REQUESTS SECTION ===
+      Group {
+        Anchor: (Height: 24, Bottom: 6);
+
+        Label #RequestsHeader {
+          Text: "JOIN REQUESTS (0)";
+          Style: (FontSize: 12, TextColor: #FFAA00, RenderBold: true, VerticalAlignment: Center);
+        }
+      }
+
+      Group #RequestsList {
+        LayoutMode: Top;
+        Anchor: (Bottom: 12);
+      }
+    }
+  }
+}
+
+// Native Hytale back button (bottom-left ESC)
+$C.@BackButton {}

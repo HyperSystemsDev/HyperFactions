@@ -1,0 +1,30 @@
+// Main Menu - Admin Section Content
+// Admin-only actions (requires hyperfactions.admin permission)
+
+$C = "../../Common.ui";
+$S = "styles.ui";
+
+Group {
+  LayoutMode: Top;
+
+  Group {
+    Anchor: (Height: 40);
+    LayoutMode: Left;
+
+    TextButton #AdminPanelBtn {
+      Text: "ADMIN PANEL";
+      Anchor: (Height: 32, Width: 130);
+      Style: $S.@GoldButtonStyle;
+    }
+
+    Label { Anchor: (Width: 10); }
+
+    TextButton #ZonesBtn {
+      Text: "MANAGE ZONES";
+      Anchor: (Height: 32, Width: 130);
+      Style: $S.@ButtonStyle;
+    }
+
+    Label { FlexWeight: 1; }
+  }
+}

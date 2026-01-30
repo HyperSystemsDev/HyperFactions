@@ -22,7 +22,30 @@ public final class HyperPermsIntegration {
     private static Method getUserManagerMethod = null;
     private static String initError = null;
 
+    /**
+     * When true, permission checks return false when HyperPerms is unavailable.
+     * Used for testing to ensure protection logic is exercised.
+     */
+    private static boolean testMode = false;
+
     private HyperPermsIntegration() {}
+
+    /**
+     * Enables test mode where permission checks fail-closed instead of fail-open.
+     * Should only be used in unit tests.
+     *
+     * @param enabled true to enable test mode
+     */
+    public static void setTestMode(boolean enabled) {
+        testMode = enabled;
+    }
+
+    /**
+     * @return true if test mode is enabled
+     */
+    public static boolean isTestMode() {
+        return testMode;
+    }
 
     /**
      * Initializes the HyperPerms integration.
@@ -107,18 +130,23 @@ public final class HyperPermsIntegration {
      * Checks if a player has a permission.
      *
      * IMPORTANT: Returns TRUE if:
-     * - HyperPerms is not available (standalone mode)
-     * - Permission check fails for any reason (fail-open for safety)
+     * - HyperPerms is not available (standalone mode) AND test mode is disabled
+     * - Permission check fails for any reason (fail-open for safety) AND test mode is disabled
      * - Player actually has the permission
+     *
+     * In test mode, returns FALSE when HyperPerms is unavailable to allow
+     * testing of protection logic without bypass permissions.
      *
      * @param playerUuid the player's UUID
      * @param permission the permission to check
-     * @return true if has permission or check cannot be performed
+     * @return true if has permission or check cannot be performed (when not in test mode)
      */
     public static boolean hasPermission(@NotNull UUID playerUuid, @NotNull String permission) {
-        // If HyperPerms not available, allow by default
+        // If HyperPerms not available, behavior depends on test mode
         if (!available || hyperPermsInstance == null || hasPermissionMethod == null) {
-            return true;
+            // In test mode, return false to allow testing protection logic
+            // In production, return true (fail-open) so admins aren't blocked
+            return !testMode;
         }
 
         try {

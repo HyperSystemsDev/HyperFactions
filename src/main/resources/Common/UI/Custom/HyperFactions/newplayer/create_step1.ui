@@ -1,0 +1,193 @@
+// Create Faction Wizard - Step 1: Basic Info
+// Collects faction name, tag, and color
+
+$C = "../../Common.ui";
+$S = "../shared/styles.ui";
+$Nav = "../nav/nav_bar.ui";
+
+$C.@PageOverlay {
+  $Nav.@HyperFactionsNavBar #HyperFactionsNavBar {}
+
+  $C.@DecoratedContainer {
+    Anchor: (Width: 500, Height: 520);
+
+    #Title {
+      Group {
+        LayoutMode: Left;
+
+        $C.@Title {
+          @Text = "Create Your Faction";
+        }
+
+        Label {
+          Text: "Step 1 of 2";
+          Style: (FontSize: 12, TextColor: #888888, VerticalAlignment: Center);
+          Anchor: (Left: 10);
+        }
+      }
+    }
+
+    #Content {
+      LayoutMode: Top;
+      Padding: (Left: 20, Right: 20, Top: 15, Bottom: 15);
+
+      // Faction Name Input
+      Group {
+        Anchor: (Height: 70, Bottom: 15);
+        LayoutMode: Top;
+
+        Label {
+          Text: "FACTION NAME *";
+          Style: (FontSize: 12, TextColor: #00FFFF, RenderBold: true);
+          Anchor: (Height: 20);
+        }
+
+        $C.@TextField #NameInput {
+          Anchor: (Height: 36);
+          Style: (
+            FontSize: 14,
+            TextColor: #ffffff(0.85)
+          );
+        }
+      }
+
+      // Tag Input (moved before color)
+      Group {
+        Anchor: (Height: 70, Bottom: 15);
+        LayoutMode: Top;
+
+        Label {
+          Text: "FACTION TAG (2-4 characters, auto-generated if empty)";
+          Style: (FontSize: 12, TextColor: #00FFFF, RenderBold: true);
+          Anchor: (Height: 20);
+        }
+
+        // Wrap in left-aligned group to prevent centering
+        Group {
+          LayoutMode: Left;
+          Anchor: (Height: 36);
+
+          $C.@TextField #TagInput {
+            Anchor: (Height: 36, Width: 120);
+            Style: (
+              FontSize: 14,
+              TextColor: #ffffff(0.85)
+            );
+          }
+        }
+      }
+
+      // Color Picker Section
+      Group {
+        Anchor: (Height: 120, Bottom: 15);
+        LayoutMode: Top;
+
+        Label {
+          Text: "FACTION COLOR";
+          Style: (FontSize: 12, TextColor: #00FFFF, RenderBold: true);
+          Anchor: (Height: 20, Bottom: 10);
+        }
+
+        // 4x4 Color Grid - use Button elements for Activating events
+        Group #ColorGrid {
+          Anchor: (Height: 80);
+          LayoutMode: Top;
+
+          // Row 1: 0-7
+          Group {
+            LayoutMode: Left;
+            Anchor: (Height: 20);
+
+            Button #Color0 { Anchor: (Width: 28, Height: 18); Background: (Color: #000000); }
+            Label { Anchor: (Width: 4); }
+            Button #Color1 { Anchor: (Width: 28, Height: 18); Background: (Color: #0000AA); }
+            Label { Anchor: (Width: 4); }
+            Button #Color2 { Anchor: (Width: 28, Height: 18); Background: (Color: #00AA00); }
+            Label { Anchor: (Width: 4); }
+            Button #Color3 { Anchor: (Width: 28, Height: 18); Background: (Color: #00AAAA); }
+            Label { Anchor: (Width: 4); }
+            Button #Color4 { Anchor: (Width: 28, Height: 18); Background: (Color: #AA0000); }
+            Label { Anchor: (Width: 4); }
+            Button #Color5 { Anchor: (Width: 28, Height: 18); Background: (Color: #AA00AA); }
+            Label { Anchor: (Width: 4); }
+            Button #Color6 { Anchor: (Width: 28, Height: 18); Background: (Color: #FFAA00); }
+            Label { Anchor: (Width: 4); }
+            Button #Color7 { Anchor: (Width: 28, Height: 18); Background: (Color: #AAAAAA); }
+          }
+
+          // Row 2: 8-f
+          Group {
+            LayoutMode: Left;
+            Anchor: (Height: 20, Top: 4);
+
+            Button #Color8 { Anchor: (Width: 28, Height: 18); Background: (Color: #555555); }
+            Label { Anchor: (Width: 4); }
+            Button #Color9 { Anchor: (Width: 28, Height: 18); Background: (Color: #5555FF); }
+            Label { Anchor: (Width: 4); }
+            Button #Color10 { Anchor: (Width: 28, Height: 18); Background: (Color: #55FF55); }
+            Label { Anchor: (Width: 4); }
+            Button #Color11 { Anchor: (Width: 28, Height: 18); Background: (Color: #55FFFF); }
+            Label { Anchor: (Width: 4); }
+            Button #Color12 { Anchor: (Width: 28, Height: 18); Background: (Color: #FF5555); }
+            Label { Anchor: (Width: 4); }
+            Button #Color13 { Anchor: (Width: 28, Height: 18); Background: (Color: #FF55FF); }
+            Label { Anchor: (Width: 4); }
+            Button #Color14 { Anchor: (Width: 28, Height: 18); Background: (Color: #FFFF55); }
+            Label { Anchor: (Width: 4); }
+            Button #Color15 { Anchor: (Width: 28, Height: 18); Background: (Color: #FFFFFF); }
+          }
+        }
+      }
+
+      // Preview Section (moved to bottom)
+      Group {
+        Anchor: (Height: 50, Bottom: 15);
+        LayoutMode: Top;
+
+        Label {
+          Text: "PREVIEW";
+          Style: (FontSize: 10, TextColor: #888888, RenderBold: true);
+          Anchor: (Height: 15);
+        }
+
+        // Preview with "Preview:" in gray and faction name in color
+        Group {
+          LayoutMode: Left;
+          Anchor: (Height: 25);
+
+          Label {
+            Text: "Preview: ";
+            Style: (FontSize: 14, TextColor: #888888);
+          }
+
+          Label #ColorPreview {
+            Text: "Your Faction Name";
+            Style: (FontSize: 14, TextColor: #55FFFF, RenderBold: true);
+          }
+        }
+      }
+
+      // Spacer
+      Label { FlexWeight: 1; }
+
+      // Next Button
+      Group {
+        Anchor: (Height: 45);
+        LayoutMode: Left;
+
+        Label { FlexWeight: 1; }
+
+        TextButton #NextBtn {
+          Text: "NEXT >";
+          Anchor: (Height: 40, Width: 200);
+          Style: $S.@CyanButtonStyle;
+        }
+
+        Label { FlexWeight: 1; }
+      }
+    }
+  }
+}
+
+// Native Hytale back button
+$C.@BackButton {}

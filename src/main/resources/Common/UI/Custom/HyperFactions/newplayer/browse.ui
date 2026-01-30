@@ -1,0 +1,145 @@
+// New Player Browse Factions Page
+// Default landing page for players not in a faction
+// Shows factions with JOIN/REQUEST buttons
+
+$C = "../../Common.ui";
+$S = "../shared/styles.ui";
+$Nav = "../nav/nav_bar.ui";
+
+$C.@PageOverlay {
+  $Nav.@HyperFactionsNavBar #HyperFactionsNavBar {}
+
+  $C.@DecoratedContainer {
+    Anchor: (Width: 580, Height: 550);
+
+    #Title {
+      Group {
+        $C.@Title {
+          @Text = "Browse Factions";
+        }
+      }
+    }
+
+    #Content {
+      LayoutMode: Top;
+      Padding: (Left: 15, Right: 15, Top: 10, Bottom: 10);
+
+      // Header row with subtitle and count
+      Group {
+        Anchor: (Height: 30, Bottom: 5);
+        LayoutMode: Left;
+
+        Label #Subtitle {
+          Text: "Find your new home!";
+          Style: (FontSize: 14, TextColor: #00FFFF, VerticalAlignment: Center);
+          Anchor: (Width: 200);
+        }
+
+        Label { FlexWeight: 1; }
+
+        Label #FactionCount {
+          Text: "0 factions";
+          Style: (FontSize: 13, TextColor: #888888, VerticalAlignment: Center);
+          Anchor: (Width: 100);
+        }
+      }
+
+      // Sort buttons row
+      Group {
+        Anchor: (Height: 35, Bottom: 8);
+        LayoutMode: Left;
+
+        Label {
+          Text: "Sort by:";
+          Style: (FontSize: 12, TextColor: #666666, VerticalAlignment: Center);
+          Anchor: (Width: 50);
+        }
+
+        TextButton #SortPower {
+          Text: "POWER";
+          Anchor: (Height: 26, Width: 70);
+          Style: $S.@SmallCyanButtonStyle;
+        }
+
+        Label { Anchor: (Width: 5); }
+
+        TextButton #SortMembers {
+          Text: "MEMBERS";
+          Anchor: (Height: 26, Width: 80);
+          Style: $S.@SmallButtonStyle;
+        }
+
+        Label { Anchor: (Width: 5); }
+
+        TextButton #SortName {
+          Text: "NAME";
+          Anchor: (Height: 26, Width: 60);
+          Style: $S.@SmallButtonStyle;
+        }
+      }
+
+      // Divider
+      Group {
+        Anchor: (Height: 1, Bottom: 8);
+        Background: (Color: #00AAAA);
+      }
+
+      // Scrollable faction list
+      Group #FactionListContainer {
+        LayoutMode: TopScrolling;
+        ScrollbarStyle: $C.@DefaultScrollbarStyle;
+        FlexWeight: 1;
+
+        Group #FactionList {
+          LayoutMode: Top;
+
+          Group #FactionCard0 { Anchor: (Height: 70); }
+          Group #FactionCard1 { Anchor: (Height: 70); }
+          Group #FactionCard2 { Anchor: (Height: 70); }
+          Group #FactionCard3 { Anchor: (Height: 70); }
+          Group #FactionCard4 { Anchor: (Height: 70); }
+          Group #FactionCard5 { Anchor: (Height: 70); }
+          Group #FactionCard6 { Anchor: (Height: 70); }
+          Group #FactionCard7 { Anchor: (Height: 70); }
+        }
+      }
+
+      // Divider
+      Group {
+        Anchor: (Height: 1, Top: 8, Bottom: 8);
+        Background: (Color: #00AAAA);
+      }
+
+      // Pagination
+      Group #Pagination {
+        Anchor: (Height: 35);
+        LayoutMode: Left;
+
+        TextButton #PrevBtn {
+          Text: "< PREV";
+          Anchor: (Height: 26, Width: 80);
+          Style: $S.@ButtonStyle;
+        }
+
+        Label { FlexWeight: 1; }
+
+        Label #PageInfo {
+          Text: "1/1";
+          Style: (FontSize: 14, TextColor: #888888, HorizontalAlignment: Center, VerticalAlignment: Center);
+          Anchor: (Width: 60);
+        }
+
+        Label { FlexWeight: 1; }
+
+        TextButton #NextBtn {
+          Text: "NEXT >";
+          Anchor: (Height: 26, Width: 80);
+          Style: $S.@ButtonStyle;
+        }
+      }
+    }
+  }
+}
+
+// Native Hytale back button (bottom-left ESC)
+$C.@BackButton {}
