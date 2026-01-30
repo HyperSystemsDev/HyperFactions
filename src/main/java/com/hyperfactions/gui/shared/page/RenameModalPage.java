@@ -6,6 +6,8 @@ import com.hyperfactions.data.FactionRole;
 import com.hyperfactions.gui.GuiManager;
 import com.hyperfactions.gui.shared.data.RenameModalData;
 import com.hyperfactions.manager.FactionManager;
+import com.hyperfactions.worldmap.WorldMapService;
+import org.jetbrains.annotations.Nullable;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.protocol.packets.interface_.CustomPageLifetime;
@@ -34,16 +36,20 @@ public class RenameModalPage extends InteractiveCustomUIPage<RenameModalData> {
     private final FactionManager factionManager;
     private final GuiManager guiManager;
     private final Faction faction;
+    @Nullable
+    private final WorldMapService worldMapService;
 
     public RenameModalPage(PlayerRef playerRef,
                            FactionManager factionManager,
                            GuiManager guiManager,
-                           Faction faction) {
+                           Faction faction,
+                           @Nullable WorldMapService worldMapService) {
         super(playerRef, CustomPageLifetime.CanDismiss, RenameModalData.CODEC);
         this.playerRef = playerRef;
         this.factionManager = factionManager;
         this.guiManager = guiManager;
         this.faction = faction;
+        this.worldMapService = worldMapService;
     }
 
     @Override
@@ -145,6 +151,11 @@ public class RenameModalPage extends InteractiveCustomUIPage<RenameModalData> {
                 String oldName = faction.name();
                 Faction updatedFaction = faction.withName(newName);
                 factionManager.updateFaction(updatedFaction);
+
+                // Refresh world maps to show new faction name
+                if (worldMapService != null) {
+                    worldMapService.refreshAllWorldMaps();
+                }
 
                 player.sendMessage(
                         Message.raw("Faction renamed from ").color("#AAAAAA")

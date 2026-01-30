@@ -11,6 +11,7 @@ import com.hyperfactions.gui.faction.data.FactionSettingsData;
 import com.hyperfactions.manager.ClaimManager;
 import com.hyperfactions.manager.FactionManager;
 import com.hyperfactions.manager.TeleportManager;
+import com.hyperfactions.util.ChunkUtil;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.math.vector.Vector3d;
@@ -304,8 +305,8 @@ public class FactionSettingsPage extends InteractiveCustomUIPage<FactionSettings
                     String worldName = world.getName();
 
                     // Verify player is in faction territory
-                    int chunkX = (int) Math.floor(pos.x) >> 4;
-                    int chunkZ = (int) Math.floor(pos.z) >> 4;
+                    int chunkX = ChunkUtil.toChunkCoord(pos.x);
+                    int chunkZ = ChunkUtil.toChunkCoord(pos.z);
                     UUID claimOwner = claimManager.getClaimOwner(worldName, chunkX, chunkZ);
                     if (claimOwner == null || !claimOwner.equals(faction.id())) {
                         player.sendMessage(Message.raw("You must be in your faction's territory to set home.").color("#FF5555"));

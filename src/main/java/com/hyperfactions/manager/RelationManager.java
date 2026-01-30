@@ -461,6 +461,7 @@ public class RelationManager {
 
         FactionRelation relation = FactionRelation.create(targetId, type);
         FactionLog.LogType logType = switch (type) {
+            case OWN -> FactionLog.LogType.RELATION_ALLY; // OWN shouldn't be used in setRelation, but handle for completeness
             case ALLY -> FactionLog.LogType.RELATION_ALLY;
             case ENEMY -> FactionLog.LogType.RELATION_ENEMY;
             case NEUTRAL -> FactionLog.LogType.RELATION_NEUTRAL;

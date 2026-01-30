@@ -1,5 +1,7 @@
 package com.hyperfactions;
 
+import com.hyperfactions.api.events.EventBus;
+import com.hyperfactions.api.events.FactionDisbandEvent;
 import com.hyperfactions.config.HyperFactionsConfig;
 import com.hyperfactions.gui.GuiManager;
 import com.hyperfactions.integration.HyperPermsIntegration;
@@ -11,8 +13,10 @@ import com.hyperfactions.storage.ZoneStorage;
 import com.hyperfactions.storage.json.JsonFactionStorage;
 import com.hyperfactions.storage.json.JsonPlayerStorage;
 import com.hyperfactions.storage.json.JsonZoneStorage;
+import com.hyperfactions.territory.TerritoryNotifier;
 import com.hyperfactions.update.UpdateChecker;
 import com.hyperfactions.util.Logger;
+import com.hyperfactions.worldmap.WorldMapService;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -60,6 +64,10 @@ public class HyperFactions {
 
     // Update checker
     private UpdateChecker updateChecker;
+
+    // Territory features
+    private TerritoryNotifier territoryNotifier;
+    private WorldMapService worldMapService;
 
     // Task management
     private final AtomicInteger taskIdCounter = new AtomicInteger(0);
@@ -198,6 +206,22 @@ public class HyperFactions {
             Logger.info("Player %s combat logged - death penalty applied", playerUuid);
         });
 
+        // Register faction disband event listener to clean up all associated data
+        EventBus.register(FactionDisbandEvent.class, this::handleFactionDisband);
+
+        // Initialize territory notifier (for entry/exit notifications)
+        territoryNotifier = new TerritoryNotifier(
+            factionManager, claimManager, zoneManager, relationManager
+        );
+
+        // Initialize world map service (for claim markers on map)
+        worldMapService = new WorldMapService(
+            factionManager, claimManager, zoneManager, relationManager
+        );
+
+        // Wire up claim change callback to refresh world maps
+        claimManager.setOnClaimChangeCallback(worldMapService::refreshAllWorldMaps);
+
         // Initialize update checker if enabled
         if (HyperFactionsConfig.get().isUpdateCheckEnabled()) {
             updateChecker = new UpdateChecker(dataDir, VERSION, HyperFactionsConfig.get().getUpdateCheckUrl());
@@ -256,6 +280,14 @@ public class HyperFactions {
         }
         if (zoneStorage != null) {
             zoneStorage.shutdown().join();
+        }
+
+        // Shutdown territory services
+        if (territoryNotifier != null) {
+            territoryNotifier.shutdown();
+        }
+        if (worldMapService != null) {
+            worldMapService.shutdown();
         }
 
         // Cancel remaining scheduled tasks
@@ -535,5 +567,49 @@ public class HyperFactions {
     @Nullable
     public UpdateChecker getUpdateChecker() {
         return updateChecker;
+    }
+
+    /**
+     * Gets the territory notifier.
+     *
+     * @return the territory notifier
+     */
+    @NotNull
+    public TerritoryNotifier getTerritoryNotifier() {
+        return territoryNotifier;
+    }
+
+    /**
+     * Gets the world map service.
+     *
+     * @return the world map service
+     */
+    @NotNull
+    public WorldMapService getWorldMapService() {
+        return worldMapService;
+    }
+
+    /**
+     * Handles faction disband event by cleaning up all associated data.
+     * This is called by the EventBus when any faction is disbanded.
+     *
+     * @param event the disband event
+     */
+    private void handleFactionDisband(@NotNull FactionDisbandEvent event) {
+        UUID factionId = event.faction().id();
+        Logger.info("Cleaning up data for disbanded faction '%s' (ID: %s)",
+                event.faction().name(), factionId);
+
+        // Clean up claims
+        claimManager.unclaimAll(factionId);
+
+        // Clean up invites
+        inviteManager.clearFactionInvites(factionId);
+
+        // Clean up join requests
+        joinRequestManager.clearFactionRequests(factionId);
+
+        // Clean up relations
+        relationManager.clearAllRelations(factionId);
     }
 }

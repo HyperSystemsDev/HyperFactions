@@ -267,6 +267,7 @@ public class ChunkMapPage extends InteractiveCustomUIPage<ChunkMapData> {
         if (viewerFactionId != null) {
             RelationType relation = relationManager.getRelation(viewerFactionId, ownerId);
             return switch (relation) {
+                case OWN -> new ChunkInfo(ChunkType.OWN, COLOR_OWN, ownerId);
                 case ALLY -> new ChunkInfo(ChunkType.ALLY, COLOR_ALLY, ownerId);
                 case ENEMY -> new ChunkInfo(ChunkType.ENEMY, COLOR_ENEMY, ownerId);
                 case NEUTRAL -> new ChunkInfo(ChunkType.OTHER, COLOR_OTHER, ownerId);

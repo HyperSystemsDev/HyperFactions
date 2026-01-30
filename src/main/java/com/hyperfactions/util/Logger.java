@@ -21,7 +21,8 @@ public final class Logger {
         CLAIM("claim"),
         COMBAT("combat"),
         PROTECTION("protection"),
-        RELATION("relation");
+        RELATION("relation"),
+        TERRITORY("territory");
 
         private final String configKey;
 
@@ -298,6 +299,18 @@ public final class Logger {
     public static void debugRelation(@NotNull String message, Object... args) {
         if (isDebugEnabled(DebugCategory.RELATION)) {
             logDebug("RELATION", message, args);
+        }
+    }
+
+    /**
+     * Logs a territory-related debug message (notifications, world map markers).
+     *
+     * @param message the message format
+     * @param args    format arguments
+     */
+    public static void debugTerritory(@NotNull String message, Object... args) {
+        if (isDebugEnabled(DebugCategory.TERRITORY)) {
+            logDebug("TERRITORY", message, args);
         }
     }
 

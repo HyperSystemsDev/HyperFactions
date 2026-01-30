@@ -6,6 +6,7 @@ import com.hyperfactions.data.FactionRole;
 import com.hyperfactions.gui.GuiManager;
 import com.hyperfactions.gui.shared.data.ColorPickerData;
 import com.hyperfactions.manager.FactionManager;
+import com.hyperfactions.worldmap.WorldMapService;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.protocol.packets.interface_.CustomPageLifetime;
@@ -18,6 +19,7 @@ import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder;
 import com.hypixel.hytale.server.core.ui.builder.UIEventBuilder;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.UUID;
@@ -51,16 +53,20 @@ public class ColorPickerPage extends InteractiveCustomUIPage<ColorPickerData> {
     private final FactionManager factionManager;
     private final GuiManager guiManager;
     private final Faction faction;
+    @Nullable
+    private final WorldMapService worldMapService;
 
     public ColorPickerPage(PlayerRef playerRef,
                            FactionManager factionManager,
                            GuiManager guiManager,
-                           Faction faction) {
+                           Faction faction,
+                           @Nullable WorldMapService worldMapService) {
         super(playerRef, CustomPageLifetime.CanDismiss, ColorPickerData.CODEC);
         this.playerRef = playerRef;
         this.factionManager = factionManager;
         this.guiManager = guiManager;
         this.faction = faction;
+        this.worldMapService = worldMapService;
     }
 
     @Override
@@ -137,6 +143,11 @@ public class ColorPickerPage extends InteractiveCustomUIPage<ColorPickerData> {
                 if (data.colorCode != null) {
                     Faction updatedFaction = faction.withColor(data.colorCode);
                     factionManager.updateFaction(updatedFaction);
+
+                    // Refresh world maps to show new faction color
+                    if (worldMapService != null) {
+                        worldMapService.refreshAllWorldMaps();
+                    }
 
                     // Find color name for message
                     String colorName = COLORS.stream()

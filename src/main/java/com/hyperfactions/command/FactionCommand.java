@@ -852,8 +852,8 @@ public class FactionCommand extends AbstractPlayerCommand {
         if (transform == null) return;
 
         Vector3d pos = transform.getPosition();
-        int chunkX = (int) Math.floor(pos.getX()) >> 4;
-        int chunkZ = (int) Math.floor(pos.getZ()) >> 4;
+        int chunkX = ChunkUtil.toChunkCoord(pos.getX());
+        int chunkZ = ChunkUtil.toChunkCoord(pos.getZ());
 
         // Context-aware behavior - check current chunk status
         UUID playerFactionId = faction.id();
@@ -927,8 +927,8 @@ public class FactionCommand extends AbstractPlayerCommand {
         if (transform == null) return;
 
         Vector3d pos = transform.getPosition();
-        int chunkX = (int) Math.floor(pos.getX()) >> 4;
-        int chunkZ = (int) Math.floor(pos.getZ()) >> 4;
+        int chunkX = ChunkUtil.toChunkCoord(pos.getX());
+        int chunkZ = ChunkUtil.toChunkCoord(pos.getZ());
 
         ClaimManager.ClaimResult result = hyperFactions.getClaimManager().unclaim(
             player.getUuid(), world.getName(), chunkX, chunkZ
@@ -968,8 +968,8 @@ public class FactionCommand extends AbstractPlayerCommand {
         if (transform == null) return;
 
         Vector3d pos = transform.getPosition();
-        int chunkX = (int) Math.floor(pos.getX()) >> 4;
-        int chunkZ = (int) Math.floor(pos.getZ()) >> 4;
+        int chunkX = ChunkUtil.toChunkCoord(pos.getX());
+        int chunkZ = ChunkUtil.toChunkCoord(pos.getZ());
 
         ClaimManager.ClaimResult result = hyperFactions.getClaimManager().overclaim(
             player.getUuid(), world.getName(), chunkX, chunkZ
@@ -1088,8 +1088,8 @@ public class FactionCommand extends AbstractPlayerCommand {
 
         Vector3d pos = transform.getPosition();
         Vector3f rot = transform.getRotation();
-        int chunkX = (int) Math.floor(pos.getX()) >> 4;
-        int chunkZ = (int) Math.floor(pos.getZ()) >> 4;
+        int chunkX = ChunkUtil.toChunkCoord(pos.getX());
+        int chunkZ = ChunkUtil.toChunkCoord(pos.getZ());
         UUID claimOwner = hyperFactions.getClaimManager().getClaimOwner(world.getName(), chunkX, chunkZ);
 
         if (claimOwner == null || !claimOwner.equals(faction.id())) {
@@ -1385,8 +1385,8 @@ public class FactionCommand extends AbstractPlayerCommand {
         if (transform == null) return;
 
         Vector3d pos = transform.getPosition();
-        int centerChunkX = (int) Math.floor(pos.getX()) >> 4;
-        int centerChunkZ = (int) Math.floor(pos.getZ()) >> 4;
+        int centerChunkX = ChunkUtil.toChunkCoord(pos.getX());
+        int centerChunkZ = ChunkUtil.toChunkCoord(pos.getZ());
 
         UUID playerFactionId = hyperFactions.getFactionManager().getPlayerFactionId(player.getUuid());
 
@@ -1752,8 +1752,8 @@ public class FactionCommand extends AbstractPlayerCommand {
         if (transform == null) return;
 
         Vector3d pos = transform.getPosition();
-        int chunkX = (int) Math.floor(pos.getX()) >> 4;
-        int chunkZ = (int) Math.floor(pos.getZ()) >> 4;
+        int chunkX = ChunkUtil.toChunkCoord(pos.getX());
+        int chunkZ = ChunkUtil.toChunkCoord(pos.getZ());
 
         switch (adminCmd) {
             case "safezone" -> {
@@ -2025,8 +2025,8 @@ public class FactionCommand extends AbstractPlayerCommand {
                 return;
             }
             Vector3d pos = transform.getPosition();
-            chunkX = (int) Math.floor(pos.getX()) >> 4;
-            chunkZ = (int) Math.floor(pos.getZ()) >> 4;
+            chunkX = ChunkUtil.toChunkCoord(pos.getX());
+            chunkZ = ChunkUtil.toChunkCoord(pos.getZ());
         }
 
         String worldName = world.getName();
@@ -2095,8 +2095,8 @@ public class FactionCommand extends AbstractPlayerCommand {
             return;
         }
         Vector3d pos = transform.getPosition();
-        int chunkX = (int) Math.floor(pos.getX()) >> 4;
-        int chunkZ = (int) Math.floor(pos.getZ()) >> 4;
+        int chunkX = ChunkUtil.toChunkCoord(pos.getX());
+        int chunkZ = ChunkUtil.toChunkCoord(pos.getZ());
         String worldName = world.getName();
 
         ctx.sendMessage(msg("=== Protection Debug: " + playerName + " ===", COLOR_CYAN).bold(true));
@@ -2210,6 +2210,7 @@ public class FactionCommand extends AbstractPlayerCommand {
 
     private String getRelationColor(RelationType relation) {
         return switch (relation) {
+            case OWN -> COLOR_CYAN;
             case ALLY -> COLOR_GREEN;
             case ENEMY -> COLOR_RED;
             case NEUTRAL -> COLOR_GRAY;
@@ -2286,6 +2287,11 @@ public class FactionCommand extends AbstractPlayerCommand {
                 "Renamed from '" + oldName + "' to '" + newName + "'", player.getUuid()));
 
         hyperFactions.getFactionManager().updateFaction(updated);
+
+        // Refresh world maps to show new faction name
+        if (hyperFactions.getWorldMapService() != null) {
+            hyperFactions.getWorldMapService().refreshAllWorldMaps();
+        }
 
         ctx.sendMessage(prefix().insert(msg("Faction renamed to ", COLOR_GREEN))
             .insert(msg(newName, COLOR_CYAN)).insert(msg("!", COLOR_GREEN)));
@@ -2419,6 +2425,9 @@ public class FactionCommand extends AbstractPlayerCommand {
 
         hyperFactions.getFactionManager().updateFaction(updated);
 
+        // Refresh world maps to show new faction color
+        hyperFactions.getWorldMapService().refreshAllWorldMaps();
+
         ctx.sendMessage(prefix().insert(msg("Faction color updated to ", COLOR_GREEN))
             .insert(msg("\u00A7" + colorCode + "this color", null))
             .insert(msg("!", COLOR_GREEN)));
@@ -2537,8 +2546,8 @@ public class FactionCommand extends AbstractPlayerCommand {
         Vector3d pos = transform.getPosition();
         UUID playerUuid = player.getUuid();
 
-        int chunkX = (int) Math.floor(pos.getX()) >> 4;
-        int chunkZ = (int) Math.floor(pos.getZ()) >> 4;
+        int chunkX = ChunkUtil.toChunkCoord(pos.getX());
+        int chunkZ = ChunkUtil.toChunkCoord(pos.getZ());
 
         // Check if in enemy/neutral territory
         UUID claimOwner = hyperFactions.getClaimManager().getClaimOwner(world.getName(), chunkX, chunkZ);

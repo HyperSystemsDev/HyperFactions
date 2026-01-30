@@ -13,6 +13,7 @@ import com.hyperfactions.manager.ClaimManager;
 import com.hyperfactions.manager.FactionManager;
 import com.hyperfactions.manager.PowerManager;
 import com.hyperfactions.manager.TeleportManager;
+import com.hyperfactions.util.ChunkUtil;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.math.vector.Vector3d;
@@ -430,8 +431,8 @@ public class FactionDashboardPage extends InteractiveCustomUIPage<FactionDashboa
         }
 
         Vector3d pos = transform.getPosition();
-        int chunkX = (int) Math.floor(pos.getX()) >> 4;
-        int chunkZ = (int) Math.floor(pos.getZ()) >> 4;
+        int chunkX = ChunkUtil.toChunkCoord(pos.getX());
+        int chunkZ = ChunkUtil.toChunkCoord(pos.getZ());
 
         // Attempt to claim
         ClaimManager.ClaimResult result = claimManager.claim(uuid, world.getName(), chunkX, chunkZ);

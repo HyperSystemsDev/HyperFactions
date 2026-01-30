@@ -6,6 +6,7 @@ import org.jetbrains.annotations.NotNull;
  * Represents the type of relation between factions.
  */
 public enum RelationType {
+    OWN("Your", "\u00A7a", true),
     ALLY("Ally", "\u00A7a", true),
     NEUTRAL("Neutral", "\u00A77", false),
     ENEMY("Enemy", "\u00A7c", false);

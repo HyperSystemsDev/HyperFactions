@@ -102,13 +102,21 @@ public class DisbandConfirmPage extends InteractiveCustomUIPage<DisbandConfirmDa
 
             case "Confirm" -> {
                 // Actually disband the faction
+                // Note: FactionManager.disbandFaction fires FactionDisbandEvent which
+                // triggers cleanup of claims, invites, requests, and relations in HyperFactions
                 String factionName = faction.name();
-                factionManager.disbandFaction(faction.id(), uuid);
-                player.sendMessage(
-                        Message.raw("Faction '").color("#FF5555")
-                                .insert(Message.raw(factionName).color("#AAAAAA"))
-                                .insert(Message.raw("' has been disbanded.").color("#FF5555"))
-                );
+                FactionManager.FactionResult result = factionManager.disbandFaction(faction.id(), uuid);
+
+                if (result == FactionManager.FactionResult.SUCCESS) {
+                    player.sendMessage(
+                            Message.raw("Faction '").color("#FF5555")
+                                    .insert(Message.raw(factionName).color("#AAAAAA"))
+                                    .insert(Message.raw("' has been disbanded.").color("#FF5555"))
+                    );
+                } else {
+                    player.sendMessage(Message.raw("Failed to disband faction.").color("#FF5555"));
+                }
+
                 guiManager.openFactionMain(player, ref, store, playerRef);
             }
         }

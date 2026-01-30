@@ -6,11 +6,17 @@ import com.hyperfactions.command.FactionCommand;
 import com.hyperfactions.config.HyperFactionsConfig;
 import com.hyperfactions.listener.PlayerListener;
 import com.hyperfactions.listener.ProtectionListener;
+import com.hyperfactions.territory.TerritoryTickingSystem;
 import com.hyperfactions.util.Logger;
+import com.hyperfactions.worldmap.HyperFactionsWorldMapProvider;
+import com.hypixel.hytale.component.system.ISystem;
 import com.hypixel.hytale.event.EventPriority;
 import com.hypixel.hytale.server.core.event.events.player.PlayerChatEvent;
 import com.hypixel.hytale.server.core.event.events.player.PlayerConnectEvent;
 import com.hypixel.hytale.server.core.event.events.player.PlayerDisconnectEvent;
+import com.hypixel.hytale.server.core.universe.world.events.AddWorldEvent;
+import com.hypixel.hytale.server.core.universe.world.events.RemoveWorldEvent;
+import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.event.events.ecs.PlaceBlockEvent;
 import com.hypixel.hytale.server.core.event.events.ecs.BreakBlockEvent;
 import com.hypixel.hytale.server.core.event.events.ecs.UseBlockEvent;
@@ -28,7 +34,10 @@ import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.plugin.JavaPlugin;
 import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
+import com.hypixel.hytale.server.core.universe.Universe;
+import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import com.hypixel.hytale.server.core.universe.world.worldmap.provider.IWorldMapProvider;
 
 import java.util.Map;
 import java.util.UUID;
@@ -58,6 +67,7 @@ public class HyperFactionsPlugin extends JavaPlugin {
     private HyperFactions hyperFactions;
     private PlayerListener playerListener;
     private ProtectionListener protectionListener;
+    private TerritoryTickingSystem territoryTickingSystem;
 
     // Task scheduling
     private final AtomicInteger taskIdCounter = new AtomicInteger(0);
@@ -101,6 +111,9 @@ public class HyperFactionsPlugin extends JavaPlugin {
         // Enable core
         hyperFactions.enable();
 
+        // Register world map provider CODEC (must be before worlds load)
+        registerWorldMapProvider();
+
         // Register commands
         registerCommands();
 
@@ -109,6 +122,13 @@ public class HyperFactionsPlugin extends JavaPlugin {
 
         // Register teleport systems
         registerTeleportSystems();
+
+        // Register territory tracking systems
+        registerTerritorySystems();
+
+        // Apply world map provider to already-loaded worlds
+        // (AddWorldEvent may have fired before our listener was registered)
+        applyWorldMapProviderToExistingWorlds();
 
         // Start periodic tasks
         startPeriodicTasks();
@@ -124,6 +144,12 @@ public class HyperFactionsPlugin extends JavaPlugin {
         // Handle combat logout for all tagged players
         for (UUID playerUuid : trackedPlayers.keySet()) {
             hyperFactions.getCombatTagManager().handleDisconnect(playerUuid);
+        }
+
+        // Clean up territory ticking system
+        if (territoryTickingSystem != null) {
+            territoryTickingSystem.shutdown();
+            territoryTickingSystem = null;
         }
 
         // Clear instances
@@ -207,9 +233,73 @@ public class HyperFactionsPlugin extends JavaPlugin {
     }
 
     /**
+     * Registers the world map provider CODEC with Hytale.
+     * This allows our custom world map generator to be used.
+     */
+    private void registerWorldMapProvider() {
+        try {
+            IWorldMapProvider.CODEC.register(
+                    HyperFactionsWorldMapProvider.ID,
+                    HyperFactionsWorldMapProvider.class,
+                    HyperFactionsWorldMapProvider.CODEC
+            );
+            getLogger().at(Level.INFO).log("Registered HyperFactions world map provider (ID: %s)",
+                    HyperFactionsWorldMapProvider.ID);
+        } catch (Exception e) {
+            getLogger().at(Level.WARNING).withCause(e).log("Failed to register world map provider");
+        }
+    }
+
+    /**
+     * Applies the world map provider to any worlds that were loaded before
+     * our AddWorldEvent listener was registered.
+     */
+    private void applyWorldMapProviderToExistingWorlds() {
+        if (!HyperFactionsConfig.get().isWorldMapMarkersEnabled()) {
+            Logger.info("World map markers disabled, skipping provider setup for existing worlds");
+            return;
+        }
+
+        try {
+            Map<String, World> worlds = Universe.get().getWorlds();
+            Logger.info("Checking %d existing worlds for world map provider setup", worlds.size());
+
+            for (World world : worlds.values()) {
+                try {
+                    // Skip temporary worlds
+                    if (world.getWorldConfig().isDeleteOnRemove()) {
+                        Logger.info("Skipping temporary world: %s", world.getName());
+                        continue;
+                    }
+
+                    // Set our world map provider
+                    HyperFactionsWorldMapProvider provider = new HyperFactionsWorldMapProvider();
+                    world.getWorldConfig().setWorldMapProvider(provider);
+                    Logger.info("Applied world map provider to existing world: %s", world.getName());
+
+                    // Also register with WorldMapService
+                    hyperFactions.getWorldMapService().registerProviderIfNeeded(world);
+
+                } catch (Exception e) {
+                    Logger.warn("Failed to apply world map provider to world %s: %s",
+                            world.getName(), e.getMessage());
+                }
+            }
+        } catch (Exception e) {
+            Logger.warn("Failed to apply world map provider to existing worlds: %s", e.getMessage());
+        }
+    }
+
+    /**
      * Registers event listeners with Hytale.
      */
     private void registerEventListeners() {
+        // World add event - register world map provider for each world
+        getEventRegistry().registerGlobal(AddWorldEvent.class, this::onWorldAdd);
+
+        // World remove event - cleanup
+        getEventRegistry().registerGlobal(RemoveWorldEvent.class, this::onWorldRemove);
+
         // Player connect event
         getEventRegistry().register(PlayerConnectEvent.class, this::onPlayerConnect);
 
@@ -272,6 +362,71 @@ public class HyperFactionsPlugin extends JavaPlugin {
     }
 
     /**
+     * Registers ECS ticking systems for territory tracking.
+     * The TerritoryTickingSystem reliably detects player chunk changes
+     * each game tick, triggering territory notifications.
+     */
+    private void registerTerritorySystems() {
+        try {
+            // Territory chunk tracking (ticks every game tick for players)
+            // Cast to ISystem as required by Hytale's registration
+            territoryTickingSystem = new TerritoryTickingSystem(hyperFactions);
+            getEntityStoreRegistry().registerSystem((ISystem) territoryTickingSystem);
+
+            getLogger().at(Level.INFO).log("Registered territory ticking system");
+        } catch (Exception e) {
+            getLogger().at(Level.WARNING).withCause(e).log("Failed to register territory ticking system");
+        }
+    }
+
+    /**
+     * Handles world add event - registers world map provider.
+     */
+    private void onWorldAdd(AddWorldEvent event) {
+        World world = event.getWorld();
+        Logger.info("AddWorldEvent received for world: %s", world.getName());
+        try {
+            // Skip temporary worlds
+            if (world.getWorldConfig().isDeleteOnRemove()) {
+                Logger.info("Skipping world %s (temporary/delete-on-remove)", world.getName());
+                return;
+            }
+
+            // Register our world map provider for this world
+            boolean worldMapEnabled = HyperFactionsConfig.get().isWorldMapMarkersEnabled();
+            Logger.info("World map markers enabled: %s for world: %s", worldMapEnabled, world.getName());
+
+            if (worldMapEnabled) {
+                HyperFactionsWorldMapProvider provider = new HyperFactionsWorldMapProvider();
+                world.getWorldConfig().setWorldMapProvider((IWorldMapProvider) provider);
+                getLogger().at(Level.INFO).log("Set world map provider for world: %s", world.getName());
+                Logger.info("World map provider set successfully for: %s (provider class: %s)",
+                        world.getName(), provider.getClass().getName());
+            }
+
+            // Track the world in WorldMapService
+            hyperFactions.getWorldMapService().registerProviderIfNeeded(world);
+        } catch (Exception e) {
+            getLogger().at(Level.WARNING).log("Error in AddWorldEvent handler for %s: %s",
+                    world.getName(), e.getMessage());
+            Logger.severe("AddWorldEvent error for %s", e, world.getName());
+        }
+    }
+
+    /**
+     * Handles world remove event - cleanup.
+     */
+    private void onWorldRemove(RemoveWorldEvent event) {
+        World world = event.getWorld();
+        try {
+            hyperFactions.getWorldMapService().unregisterProvider(world.getName());
+        } catch (Exception e) {
+            getLogger().at(Level.WARNING).log("Error in RemoveWorldEvent handler for %s: %s",
+                    world.getName(), e.getMessage());
+        }
+    }
+
+    /**
      * Starts periodic tasks (power regen, combat tag decay, auto-save, invite cleanup).
      */
     private void startPeriodicTasks() {
@@ -304,6 +459,9 @@ public class HyperFactionsPlugin extends JavaPlugin {
             },
             1, 1, TimeUnit.SECONDS
         );
+
+        // Territory tracking is now handled by TerritoryTickingSystem (ECS)
+        // which ticks reliably every game tick for all player entities
 
         // Start core periodic tasks (auto-save, invite cleanup)
         hyperFactions.startPeriodicTasks();
@@ -344,6 +502,28 @@ public class HyperFactionsPlugin extends JavaPlugin {
 
         // Update faction member last online
         hyperFactions.getFactionManager().updateLastOnline(uuid);
+
+        // Initialize territory tracking and send initial notification
+        // World map provider is now registered via AddWorldEvent, not here
+        try {
+            UUID worldUuid = playerRef.getWorldUuid();
+            if (worldUuid != null) {
+                com.hypixel.hytale.server.core.universe.world.World world =
+                    com.hypixel.hytale.server.core.universe.Universe.get().getWorld(worldUuid);
+                if (world != null) {
+                    // Get spawn position for initial territory notification
+                    com.hypixel.hytale.math.vector.Transform transform = playerRef.getTransform();
+                    if (transform != null) {
+                        com.hypixel.hytale.math.vector.Vector3d position = transform.getPosition();
+                        hyperFactions.getTerritoryNotifier().onPlayerConnect(
+                            playerRef, world.getName(), position.getX(), position.getZ()
+                        );
+                    }
+                }
+            }
+        } catch (Exception e) {
+            Logger.debugTerritory("Failed to initialize territory tracking for %s: %s", username, e.getMessage());
+        }
     }
 
     /**
@@ -373,6 +553,9 @@ public class HyperFactionsPlugin extends JavaPlugin {
 
         // Reset chat channel
         hyperFactions.getChatManager().resetChannel(uuid);
+
+        // Clean up territory tracking
+        hyperFactions.getTerritoryNotifier().onPlayerDisconnect(uuid);
 
         // Untrack the player
         trackedPlayers.remove(uuid);

@@ -62,10 +62,9 @@ public class FactionInfoPage extends InteractiveCustomUIPage<FactionPageData> {
         cmd.append("HyperFactions/shared/faction_info.ui");
 
         // === Header Section ===
-        // Faction name with color
-        String factionColor = targetFaction.color() != null ? targetFaction.color() : "#00FFFF";
+        // Faction name
         cmd.set("#FactionName.Text", targetFaction.name());
-        cmd.set("#FactionName.Color", factionColor);
+        // Note: Cannot dynamically set text color via cmd.set()
 
         // Tag (if set)
         String tag = targetFaction.tag();
@@ -82,7 +81,7 @@ public class FactionInfoPage extends InteractiveCustomUIPage<FactionPageData> {
 
         // Open/Closed status indicator
         cmd.set("#StatusIndicator.Text", targetFaction.open() ? "OPEN" : "INVITE ONLY");
-        cmd.set("#StatusIndicator.Color", targetFaction.open() ? "#44cc44" : "#FFAA00");
+        // Note: Cannot dynamically set text color via cmd.set()
 
         // === Stats Section ===
         PowerManager.FactionPowerStats powerStats = powerManager.getFactionPowerStats(targetFaction.id());
@@ -100,7 +99,7 @@ public class FactionInfoPage extends InteractiveCustomUIPage<FactionPageData> {
 
         // Recruitment status
         cmd.set("#RecruitmentValue.Text", targetFaction.open() ? "Open" : "Invite Only");
-        cmd.set("#RecruitmentValue.Color", targetFaction.open() ? "#44cc44" : "#FFAA00");
+        // Note: Cannot dynamically set text color via cmd.set()
 
         // Founded date
         cmd.set("#FoundedValue.Text", TimeUtil.formatRelative(targetFaction.createdAt()));
@@ -114,10 +113,10 @@ public class FactionInfoPage extends InteractiveCustomUIPage<FactionPageData> {
         // Raidable status
         if (powerStats.isRaidable()) {
             cmd.set("#RaidableValue.Text", "RAIDABLE");
-            cmd.set("#RaidableValue.Color", "#FF5555");
+            // Note: Cannot dynamically set text color via cmd.set()
         } else {
             cmd.set("#RaidableValue.Text", "Protected");
-            cmd.set("#RaidableValue.Color", "#44cc44");
+            // Note: Cannot dynamically set text color via cmd.set()
         }
 
         // === Leadership Section ===

@@ -73,7 +73,7 @@ public class PlayerInfoPage extends InteractiveCustomUIPage<PlayerInfoData> {
         cmd.append("#BasicInfoSection #SectionContent", "HyperFactions/faction/info_row.ui");
         cmd.set("#BasicInfoSection #SectionContent #InfoLabel.Text", "Status");
         cmd.set("#BasicInfoSection #SectionContent #InfoValue.Text", isOnline ? "Online" : "Offline");
-        cmd.set("#BasicInfoSection #SectionContent #InfoValue.Color", isOnline ? "#55FF55" : "#FF5555");
+        // Note: Cannot dynamically set text color via cmd.set()
 
         // UUID
         cmd.append("#BasicInfoSection #SectionContent", "HyperFactions/faction/info_row.ui");
@@ -89,7 +89,7 @@ public class PlayerInfoPage extends InteractiveCustomUIPage<PlayerInfoData> {
             cmd.append("#FactionInfoSection #SectionContent", "HyperFactions/faction/info_row.ui");
             cmd.set("#FactionInfoSection #SectionContent #InfoLabel.Text", "Faction");
             cmd.set("#FactionInfoSection #SectionContent #InfoValue.Text", faction.name());
-            cmd.set("#FactionInfoSection #SectionContent #InfoValue.Color", faction.color());
+            // Note: Cannot dynamically set text color via cmd.set()
 
             // Role
             cmd.append("#FactionInfoSection #SectionContent", "HyperFactions/faction/info_row.ui");
@@ -123,7 +123,7 @@ public class PlayerInfoPage extends InteractiveCustomUIPage<PlayerInfoData> {
             cmd.append("#FactionInfoSection #SectionContent", "HyperFactions/faction/info_row.ui");
             cmd.set("#FactionInfoSection #SectionContent #InfoLabel.Text", "Faction");
             cmd.set("#FactionInfoSection #SectionContent #InfoValue.Text", "(None)");
-            cmd.set("#FactionInfoSection #SectionContent #InfoValue.Color", "#AAAAAA");
+            // Note: Cannot dynamically set text color via cmd.set()
         }
 
         // === Power Section ===

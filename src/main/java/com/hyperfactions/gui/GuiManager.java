@@ -602,7 +602,8 @@ public class GuiManager {
                 playerRef,
                 factionManager.get(),
                 this,
-                faction
+                faction,
+                plugin.get().getWorldMapService()
             );
             pageManager.openCustomPage(ref, store, page);
             Logger.debug("[GUI] TagModalPage opened successfully");
@@ -660,7 +661,8 @@ public class GuiManager {
                 playerRef,
                 factionManager.get(),
                 this,
-                faction
+                faction,
+                plugin.get().getWorldMapService()
             );
             pageManager.openCustomPage(ref, store, page);
             Logger.debug("[GUI] RenameModalPage opened successfully");
@@ -718,7 +720,8 @@ public class GuiManager {
                 playerRef,
                 factionManager.get(),
                 this,
-                faction
+                faction,
+                plugin.get().getWorldMapService()
             );
             pageManager.openCustomPage(ref, store, page);
             Logger.debug("[GUI] ColorPickerPage opened successfully");

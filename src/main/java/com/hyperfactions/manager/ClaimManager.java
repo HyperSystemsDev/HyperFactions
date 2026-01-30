@@ -5,6 +5,7 @@ import com.hyperfactions.data.ChunkKey;
 import com.hyperfactions.data.Faction;
 import com.hyperfactions.data.FactionClaim;
 import com.hyperfactions.data.FactionLog;
+import com.hyperfactions.util.ChunkUtil;
 import com.hyperfactions.util.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -26,9 +27,37 @@ public class ClaimManager {
     // Reverse index: faction ID -> Set<ChunkKey> for O(1) getFactionClaims()
     private final Map<UUID, Set<ChunkKey>> factionClaimsIndex = new ConcurrentHashMap<>();
 
+    // Callback for when claims change (used to refresh world map)
+    @Nullable
+    private Runnable onClaimChangeCallback;
+
     public ClaimManager(@NotNull FactionManager factionManager, @NotNull PowerManager powerManager) {
         this.factionManager = factionManager;
         this.powerManager = powerManager;
+    }
+
+    /**
+     * Sets a callback to be invoked when claims change.
+     * Used to trigger world map refresh.
+     *
+     * @param callback the callback to run on claim changes
+     */
+    public void setOnClaimChangeCallback(@Nullable Runnable callback) {
+        this.onClaimChangeCallback = callback;
+    }
+
+    /**
+     * Notifies that claims have changed (triggers world map refresh).
+     */
+    private void notifyClaimChange() {
+        Logger.info("notifyClaimChange() called, callback set: %s", onClaimChangeCallback != null);
+        if (onClaimChangeCallback != null) {
+            try {
+                onClaimChangeCallback.run();
+            } catch (Exception e) {
+                Logger.warn("Error in claim change callback: %s", e.getMessage());
+            }
+        }
     }
 
     /**
@@ -210,6 +239,7 @@ public class ClaimManager {
 
         Logger.debugClaim("Claim success: chunk=%s, faction=%s, player=%s, claimCount=%d/%d",
             key, faction.name(), playerUuid, updated.getClaimCount(), maxClaims);
+        notifyClaimChange();
         return ClaimResult.SUCCESS;
     }
 
@@ -247,8 +277,8 @@ public class ClaimManager {
         // Check if home is in this chunk
         if (faction.hasHome()) {
             var home = faction.home();
-            int homeChunkX = (int) Math.floor(home.x()) >> 4;
-            int homeChunkZ = (int) Math.floor(home.z()) >> 4;
+            int homeChunkX = ChunkUtil.toChunkCoord(home.x());
+            int homeChunkZ = ChunkUtil.toChunkCoord(home.z());
             if (home.world().equals(world) && homeChunkX == chunkX && homeChunkZ == chunkZ) {
                 return ClaimResult.CANNOT_UNCLAIM_HOME;
             }
@@ -271,6 +301,7 @@ public class ClaimManager {
 
         Logger.debugClaim("Unclaim success: chunk=%s, faction=%s, player=%s",
             key, faction.name(), playerUuid);
+        notifyClaimChange();
         return ClaimResult.SUCCESS;
     }
 
@@ -362,6 +393,7 @@ public class ClaimManager {
         Logger.debugClaim("Overclaim success: chunk=%s, attacker=%s, defender=%s, defenderClaims=%d/%d",
             key, attackerFaction.name(), defenderFaction.name(), defenderFaction.getClaimCount() - 1, defenderMaxClaims);
         Logger.info("Faction '%s' overclaimed chunk from '%s'", attackerFaction.name(), defenderFaction.name());
+        notifyClaimChange();
         return ClaimResult.SUCCESS;
     }
 
@@ -375,6 +407,7 @@ public class ClaimManager {
         claimIndex.entrySet().removeIf(entry -> entry.getValue().equals(factionId));
         // Remove from reverse index
         factionClaimsIndex.remove(factionId);
+        notifyClaimChange();
     }
 
     /**

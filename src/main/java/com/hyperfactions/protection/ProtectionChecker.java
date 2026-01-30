@@ -7,6 +7,7 @@ import com.hyperfactions.data.Zone;
 import com.hyperfactions.data.ZoneFlags;
 import com.hyperfactions.integration.HyperPermsIntegration;
 import com.hyperfactions.manager.*;
+import com.hyperfactions.util.ChunkUtil;
 import com.hyperfactions.util.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -94,8 +95,8 @@ public class ProtectionChecker {
     @NotNull
     public ProtectionResult canInteract(@NotNull UUID playerUuid, @NotNull String world,
                                         double x, double z, @NotNull InteractionType type) {
-        int chunkX = (int) Math.floor(x) >> 4;
-        int chunkZ = (int) Math.floor(z) >> 4;
+        int chunkX = ChunkUtil.toChunkCoord(x);
+        int chunkZ = ChunkUtil.toChunkCoord(z);
         return canInteractChunk(playerUuid, world, chunkX, chunkZ, type);
     }
 
@@ -204,8 +205,8 @@ public class ProtectionChecker {
     @NotNull
     public PvPResult canDamagePlayer(@NotNull UUID attackerUuid, @NotNull UUID defenderUuid,
                                      @NotNull String world, double x, double z) {
-        int chunkX = (int) Math.floor(x) >> 4;
-        int chunkZ = (int) Math.floor(z) >> 4;
+        int chunkX = ChunkUtil.toChunkCoord(x);
+        int chunkZ = ChunkUtil.toChunkCoord(z);
         return canDamagePlayerChunk(attackerUuid, defenderUuid, world, chunkX, chunkZ);
     }
 
@@ -419,6 +420,7 @@ public class ProtectionChecker {
             } else {
                 RelationType relation = relationManager.getRelation(viewerFactionId, claimOwner);
                 color = switch (relation) {
+                    case OWN -> "\u00A7b";    // Cyan (shouldn't happen via getRelation, but handle for completeness)
                     case ALLY -> "\u00A7a";   // Green
                     case ENEMY -> "\u00A7c"; // Red
                     case NEUTRAL -> "\u00A77"; // Gray

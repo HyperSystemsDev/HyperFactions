@@ -1,5 +1,7 @@
 package com.hyperfactions.manager;
 
+import com.hyperfactions.api.events.EventBus;
+import com.hyperfactions.api.events.FactionDisbandEvent;
 import com.hyperfactions.config.HyperFactionsConfig;
 import com.hyperfactions.data.*;
 import com.hyperfactions.storage.FactionStorage;
@@ -328,6 +330,9 @@ public class FactionManager {
         // Delete from storage
         storage.deleteFaction(factionId);
 
+        // Fire event so listeners can clean up claims, relations, etc.
+        EventBus.publish(new FactionDisbandEvent(faction, actorUuid));
+
         Logger.info("Faction '%s' disbanded", faction.name());
         return FactionResult.SUCCESS;
     }
@@ -458,6 +463,9 @@ public class FactionManager {
             return FactionResult.FACTION_NOT_FOUND;
         }
 
+        // Get leader UUID for event (use first found, or null for system-initiated)
+        UUID disbandedBy = faction.getLeader() != null ? faction.getLeader().uuid() : null;
+
         // Remove from caches
         factions.remove(factionId);
         nameToFaction.remove(faction.name().toLowerCase());
@@ -467,6 +475,9 @@ public class FactionManager {
 
         // Delete from storage
         storage.deleteFaction(factionId);
+
+        // Fire event so listeners can clean up claims, relations, etc.
+        EventBus.publish(new FactionDisbandEvent(faction, disbandedBy));
 
         Logger.info("Faction '%s' disbanded: %s", faction.name(), reason);
         return FactionResult.SUCCESS;

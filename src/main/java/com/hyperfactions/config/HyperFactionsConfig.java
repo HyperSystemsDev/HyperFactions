@@ -92,6 +92,12 @@ public class HyperFactionsConfig {
     private String prefix = "\u00A7b[HyperFactions]\u00A7r ";
     private String primaryColor = "#00FFFF";
 
+    // Territory notification settings
+    private boolean territoryNotificationsEnabled = true;
+
+    // World map marker settings
+    private boolean worldMapMarkersEnabled = true;
+
     // Debug settings
     private boolean debugEnabledByDefault = false;
     private boolean debugLogToConsole = true;
@@ -100,6 +106,7 @@ public class HyperFactionsConfig {
     private boolean debugCombat = false;
     private boolean debugProtection = false;
     private boolean debugRelation = false;
+    private boolean debugTerritory = false;
 
     private HyperFactionsConfig() {}
 
@@ -244,6 +251,18 @@ public class HyperFactionsConfig {
                 primaryColor = getString(messages, "primaryColor", primaryColor);
             }
 
+            // Territory notification settings
+            if (root.has("territoryNotifications") && root.get("territoryNotifications").isJsonObject()) {
+                JsonObject territoryNotifications = root.getAsJsonObject("territoryNotifications");
+                territoryNotificationsEnabled = getBool(territoryNotifications, "enabled", territoryNotificationsEnabled);
+            }
+
+            // World map marker settings
+            if (root.has("worldMap") && root.get("worldMap").isJsonObject()) {
+                JsonObject worldMap = root.getAsJsonObject("worldMap");
+                worldMapMarkersEnabled = getBool(worldMap, "enabled", worldMapMarkersEnabled);
+            }
+
             // Debug settings
             if (root.has("debug") && root.get("debug").isJsonObject()) {
                 JsonObject debug = root.getAsJsonObject("debug");
@@ -257,6 +276,7 @@ public class HyperFactionsConfig {
                     debugCombat = getBool(categories, "combat", debugCombat);
                     debugProtection = getBool(categories, "protection", debugProtection);
                     debugRelation = getBool(categories, "relation", debugRelation);
+                    debugTerritory = getBool(categories, "territory", debugTerritory);
                 }
             }
 
@@ -384,6 +404,16 @@ public class HyperFactionsConfig {
             messages.addProperty("primaryColor", primaryColor);
             root.add("messages", messages);
 
+            // Territory notification settings
+            JsonObject territoryNotifications = new JsonObject();
+            territoryNotifications.addProperty("enabled", territoryNotificationsEnabled);
+            root.add("territoryNotifications", territoryNotifications);
+
+            // World map marker settings
+            JsonObject worldMap = new JsonObject();
+            worldMap.addProperty("enabled", worldMapMarkersEnabled);
+            root.add("worldMap", worldMap);
+
             // Debug settings
             JsonObject debug = new JsonObject();
             debug.addProperty("enabledByDefault", debugEnabledByDefault);
@@ -395,6 +425,7 @@ public class HyperFactionsConfig {
             categories.addProperty("combat", debugCombat);
             categories.addProperty("protection", debugProtection);
             categories.addProperty("relation", debugRelation);
+            categories.addProperty("territory", debugTerritory);
             debug.add("categories", categories);
             root.add("debug", debug);
 
@@ -489,6 +520,12 @@ public class HyperFactionsConfig {
     public String getPrefix() { return prefix; }
     public String getPrimaryColor() { return primaryColor; }
 
+    // === Territory Notification Getters ===
+    public boolean isTerritoryNotificationsEnabled() { return territoryNotificationsEnabled; }
+
+    // === World Map Getters ===
+    public boolean isWorldMapMarkersEnabled() { return worldMapMarkersEnabled; }
+
     // === Debug Getters ===
     public boolean isDebugEnabledByDefault() { return debugEnabledByDefault; }
     public boolean isDebugLogToConsole() { return debugLogToConsole; }
@@ -497,6 +534,7 @@ public class HyperFactionsConfig {
     public boolean isDebugCombat() { return debugCombat; }
     public boolean isDebugProtection() { return debugProtection; }
     public boolean isDebugRelation() { return debugRelation; }
+    public boolean isDebugTerritory() { return debugTerritory; }
 
     // === Debug Setters (for runtime toggle) ===
     public void setDebugPower(boolean enabled) { this.debugPower = enabled; applyDebugSettings(); }
@@ -504,6 +542,7 @@ public class HyperFactionsConfig {
     public void setDebugCombat(boolean enabled) { this.debugCombat = enabled; applyDebugSettings(); }
     public void setDebugProtection(boolean enabled) { this.debugProtection = enabled; applyDebugSettings(); }
     public void setDebugRelation(boolean enabled) { this.debugRelation = enabled; applyDebugSettings(); }
+    public void setDebugTerritory(boolean enabled) { this.debugTerritory = enabled; applyDebugSettings(); }
 
     /**
      * Applies debug settings to the Logger.
@@ -515,6 +554,7 @@ public class HyperFactionsConfig {
         Logger.setDebugEnabled(Logger.DebugCategory.COMBAT, debugEnabledByDefault || debugCombat);
         Logger.setDebugEnabled(Logger.DebugCategory.PROTECTION, debugEnabledByDefault || debugProtection);
         Logger.setDebugEnabled(Logger.DebugCategory.RELATION, debugEnabledByDefault || debugRelation);
+        Logger.setDebugEnabled(Logger.DebugCategory.TERRITORY, debugEnabledByDefault || debugTerritory);
     }
 
     /**
@@ -526,6 +566,7 @@ public class HyperFactionsConfig {
         debugCombat = true;
         debugProtection = true;
         debugRelation = true;
+        debugTerritory = true;
         Logger.enableAll();
     }
 
@@ -538,6 +579,7 @@ public class HyperFactionsConfig {
         debugCombat = false;
         debugProtection = false;
         debugRelation = false;
+        debugTerritory = false;
         Logger.disableAll();
     }
 

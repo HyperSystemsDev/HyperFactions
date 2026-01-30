@@ -4,6 +4,7 @@ import com.hyperfactions.HyperFactions;
 import com.hyperfactions.config.HyperFactionsConfig;
 import com.hyperfactions.data.Faction;
 import com.hyperfactions.protection.ProtectionChecker;
+import com.hyperfactions.util.ChunkUtil;
 import com.hyperfactions.util.Logger;
 import org.jetbrains.annotations.NotNull;
 
@@ -127,8 +128,8 @@ public class PlayerListener {
         // Apply spawn protection if enabled
         HyperFactionsConfig config = HyperFactionsConfig.get();
         if (config.isSpawnProtectionEnabled()) {
-            int chunkX = (int) Math.floor(x) >> 4;
-            int chunkZ = (int) Math.floor(z) >> 4;
+            int chunkX = ChunkUtil.toChunkCoord(x);
+            int chunkZ = ChunkUtil.toChunkCoord(z);
             int duration = config.getSpawnProtectionDurationSeconds();
 
             hyperFactions.getCombatTagManager().applySpawnProtection(

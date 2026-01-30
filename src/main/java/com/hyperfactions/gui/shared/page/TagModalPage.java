@@ -6,6 +6,8 @@ import com.hyperfactions.data.FactionRole;
 import com.hyperfactions.gui.GuiManager;
 import com.hyperfactions.gui.shared.data.TagModalData;
 import com.hyperfactions.manager.FactionManager;
+import com.hyperfactions.worldmap.WorldMapService;
+import org.jetbrains.annotations.Nullable;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.protocol.packets.interface_.CustomPageLifetime;
@@ -36,16 +38,20 @@ public class TagModalPage extends InteractiveCustomUIPage<TagModalData> {
     private final FactionManager factionManager;
     private final GuiManager guiManager;
     private final Faction faction;
+    @Nullable
+    private final WorldMapService worldMapService;
 
     public TagModalPage(PlayerRef playerRef,
                         FactionManager factionManager,
                         GuiManager guiManager,
-                        Faction faction) {
+                        Faction faction,
+                        @Nullable WorldMapService worldMapService) {
         super(playerRef, CustomPageLifetime.CanDismiss, TagModalData.CODEC);
         this.playerRef = playerRef;
         this.factionManager = factionManager;
         this.guiManager = guiManager;
         this.faction = faction;
+        this.worldMapService = worldMapService;
     }
 
     @Override
@@ -116,6 +122,12 @@ public class TagModalPage extends InteractiveCustomUIPage<TagModalData> {
                 if (newTag == null || newTag.trim().isEmpty()) {
                     Faction updatedFaction = faction.withTag(null);
                     factionManager.updateFaction(updatedFaction);
+
+                    // Refresh world maps to remove faction tag
+                    if (worldMapService != null) {
+                        worldMapService.refreshAllWorldMaps();
+                    }
+
                     player.sendMessage(Message.raw("Faction tag cleared.").color("#AAAAAA"));
                     guiManager.openFactionSettings(player, ref, store, playerRef,
                             factionManager.getFaction(faction.id()));
@@ -162,6 +174,11 @@ public class TagModalPage extends InteractiveCustomUIPage<TagModalData> {
                 // Update the faction
                 Faction updatedFaction = faction.withTag(newTag);
                 factionManager.updateFaction(updatedFaction);
+
+                // Refresh world maps to show new faction tag
+                if (worldMapService != null) {
+                    worldMapService.refreshAllWorldMaps();
+                }
 
                 player.sendMessage(
                         Message.raw("Faction tag set to ").color("#AAAAAA")
