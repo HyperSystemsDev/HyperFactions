@@ -83,6 +83,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+**Update System**
+- GitHub releases update checker with HTTP caching
+- Login notifications for admins when updates are available
+- Per-player notification preferences (opt-out support)
+
+**Permission System**
+- Unified PermissionManager with chain-of-responsibility pattern
+- Support for VaultUnlocked, HyperPerms, and LuckPerms providers
+- `hyperfactions.use` now grants all user-level permissions for simpler setup
+- Centralized Permissions.java with all permission node definitions
+- Fallback behavior: admin perms require OP, user perms allow by default
+
+**PvP Protection**
+- PvPProtectionSystem to enforce faction/ally damage rules
+- Respects `allyDamage` and `factionDamage` config settings
+- Denial messages sent to attacker when PvP is blocked
+
+**Chat Formatting**
+- Faction tags in public chat with relation-based coloring
+- Colors: green (same faction), pink (ally), red (enemy), gray (neutral)
+- Configurable chat format string with placeholders
+- ChatContext for thread-safe sender tracking
+
+**GUI Improvements**
+- Configurable nav bar title via `gui.title` in config.json
+- Wider nav bar title area (120px → 160px) for full "HyperFactions" display
+
+**Build System**
+- BuildInfo.java auto-generation with version, Java version, and timestamp
+- Centralized version management in build.gradle
+
 **Multi-Chunk Zone System**
 - Zones can now span multiple chunks (previously limited to single chunk)
 - Zone chunk claiming/unclaiming via GUI and commands
@@ -106,6 +137,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refactored help GUI with improved layout and organization
 
 ### Fixed
+- Nav bar selector crash when opening GUI (use element ID instead of type selector)
+- Description text wiped when toggling recruitment in create faction wizard
+- Ally PvP protection not enforced (PvPProtectionSystem was missing)
 - Codec key mismatch for zone name input (`@Name` vs `Name`)
 - Reload button showing wrong command (`/f reload` not `/f admin reload`)
 - Faction GUI map not updating on claim/unclaim operations
@@ -113,6 +147,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GUI pages not refreshing properly (replaced `sendUpdate()` with new page instances)
 
 ### Changed
+- Shadow plugin updated from 8.3.5 to 9.3.1 (fixes BuildInfo generation)
 - Zone storage format updated to support multiple chunks per zone
 - Admin zone page now uses tabbed filtering instead of separate pages
 
