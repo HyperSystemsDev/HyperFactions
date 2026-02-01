@@ -49,6 +49,8 @@ public final class Permissions {
     public static final String OPEN = "hyperfactions.faction.open";
     /** Make faction closed (invite only) */
     public static final String CLOSE = "hyperfactions.faction.close";
+    /** Edit faction territory permissions (for officers when allowed) */
+    public static final String FACTION_PERMISSIONS = "hyperfactions.faction.permissions";
 
     // === Membership (hyperfactions.member.*) ===
     public static final String MEMBER_WILDCARD = "hyperfactions.member.*";
@@ -174,7 +176,7 @@ public final class Permissions {
             // Basic
             USE,
             // Faction management
-            CREATE, DISBAND, RENAME, DESC, TAG, COLOR, OPEN, CLOSE,
+            CREATE, DISBAND, RENAME, DESC, TAG, COLOR, OPEN, CLOSE, FACTION_PERMISSIONS,
             // Membership
             INVITE, JOIN, LEAVE, KICK, PROMOTE, DEMOTE, TRANSFER,
             // Territory
@@ -224,7 +226,7 @@ public final class Permissions {
     public static String[] getUserPermissions() {
         return new String[] {
             USE,
-            CREATE, DISBAND, RENAME, DESC, TAG, COLOR, OPEN, CLOSE,
+            CREATE, DISBAND, RENAME, DESC, TAG, COLOR, OPEN, CLOSE, FACTION_PERMISSIONS,
             INVITE, JOIN, LEAVE, KICK, PROMOTE, DEMOTE, TRANSFER,
             CLAIM, UNCLAIM, OVERCLAIM, MAP,
             HOME, SETHOME, STUCK,

@@ -1,25 +1,30 @@
 package com.hyperfactions.gui.faction.data;
 
+import com.hyperfactions.gui.shared.data.NavAwareData;
 import com.hypixel.hytale.codec.Codec;
 import com.hypixel.hytale.codec.KeyedCodec;
 import com.hypixel.hytale.codec.builder.BuilderCodec;
 
 /**
  * Event data for the Faction Members page.
+ * Supports search, expansion, sorting, and member management actions.
  */
-public class FactionMembersData {
+public class FactionMembersData implements NavAwareData {
 
     /** The button/action that triggered the event */
     public String button;
 
-    /** Target member UUID (if any) */
-    public String memberUuid;
+    /** NavBar target (page ID when nav button clicked) */
+    public String navBar;
 
-    /** Target member name (if any) */
-    public String memberName;
+    /** Search query from text input (uses @SearchQuery binding) */
+    public String searchQuery;
 
-    /** Current page number (for pagination) */
-    public int page;
+    /** Target player UUID */
+    public String playerUuid;
+
+    /** Target player name */
+    public String target;
 
     /** Codec for serialization/deserialization */
     public static final BuilderCodec<FactionMembersData> CODEC = BuilderCodec
@@ -30,28 +35,32 @@ public class FactionMembersData {
                     data -> data.button
             )
             .addField(
-                    new KeyedCodec<>("MemberUuid", Codec.STRING),
-                    (data, value) -> data.memberUuid = value,
-                    data -> data.memberUuid
+                    new KeyedCodec<>("NavBar", Codec.STRING),
+                    (data, value) -> data.navBar = value,
+                    data -> data.navBar
             )
             .addField(
-                    new KeyedCodec<>("MemberName", Codec.STRING),
-                    (data, value) -> data.memberName = value,
-                    data -> data.memberName
+                    new KeyedCodec<>("@SearchQuery", Codec.STRING),
+                    (data, value) -> data.searchQuery = value,
+                    data -> data.searchQuery
             )
             .addField(
-                    new KeyedCodec<>("Page", Codec.STRING),
-                    (data, value) -> {
-                        try {
-                            data.page = value != null ? Integer.parseInt(value) : 0;
-                        } catch (NumberFormatException e) {
-                            data.page = 0;
-                        }
-                    },
-                    data -> String.valueOf(data.page)
+                    new KeyedCodec<>("PlayerUuid", Codec.STRING),
+                    (data, value) -> data.playerUuid = value,
+                    data -> data.playerUuid
+            )
+            .addField(
+                    new KeyedCodec<>("Target", Codec.STRING),
+                    (data, value) -> data.target = value,
+                    data -> data.target
             )
             .build();
 
     public FactionMembersData() {
+    }
+
+    @Override
+    public String getNavBar() {
+        return navBar;
     }
 }

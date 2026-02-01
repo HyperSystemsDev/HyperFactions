@@ -74,6 +74,93 @@ public class FactionManager {
         return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
     }
 
+    /**
+     * Syncs faction data from disk, merging with in-memory data based on timestamps.
+     * Members with newer lastOnline in memory are kept; members only on disk are added.
+     * Members removed in-game (not on disk but in memory with newer timestamp) stay removed.
+     *
+     * @return a future containing the sync result summary
+     */
+    public CompletableFuture<SyncResult> syncFromDisk() {
+        return storage.loadAllFactions().thenApply(diskFactions -> {
+            int factionsUpdated = 0;
+            int membersAdded = 0;
+            int membersUpdated = 0;
+
+            Map<UUID, Faction> diskFactionMap = new HashMap<>();
+            for (Faction f : diskFactions) {
+                diskFactionMap.put(f.id(), f);
+            }
+
+            for (Faction diskFaction : diskFactions) {
+                Faction memoryFaction = factions.get(diskFaction.id());
+
+                if (memoryFaction == null) {
+                    // New faction from disk - add it
+                    factions.put(diskFaction.id(), diskFaction);
+                    nameToFaction.put(diskFaction.name().toLowerCase(), diskFaction.id());
+                    for (UUID memberUuid : diskFaction.members().keySet()) {
+                        playerToFaction.put(memberUuid, diskFaction.id());
+                    }
+                    factionsUpdated++;
+                    membersAdded += diskFaction.members().size();
+                } else {
+                    // Existing faction - merge members
+                    Map<UUID, FactionMember> mergedMembers = new HashMap<>(memoryFaction.members());
+                    boolean changed = false;
+
+                    for (FactionMember diskMember : diskFaction.members().values()) {
+                        FactionMember memoryMember = memoryFaction.members().get(diskMember.uuid());
+
+                        if (memoryMember == null) {
+                            // Member exists on disk but not in memory - add them
+                            mergedMembers.put(diskMember.uuid(), diskMember);
+                            playerToFaction.put(diskMember.uuid(), diskFaction.id());
+                            membersAdded++;
+                            changed = true;
+                        } else if (diskMember.lastOnline() > memoryMember.lastOnline()) {
+                            // Disk has newer data - use disk version
+                            mergedMembers.put(diskMember.uuid(), diskMember);
+                            membersUpdated++;
+                            changed = true;
+                        }
+                        // If memory has newer or equal lastOnline, keep memory version
+                    }
+
+                    if (changed) {
+                        Faction updated = new Faction(
+                            memoryFaction.id(),
+                            memoryFaction.name(),
+                            memoryFaction.description(),
+                            memoryFaction.tag(),
+                            memoryFaction.color(),
+                            memoryFaction.createdAt(),
+                            memoryFaction.home(),
+                            mergedMembers,
+                            memoryFaction.claims(),
+                            memoryFaction.relations(),
+                            memoryFaction.logs(),
+                            memoryFaction.open(),
+                            memoryFaction.permissions()
+                        );
+                        factions.put(updated.id(), updated);
+                        factionsUpdated++;
+                    }
+                }
+            }
+
+            Logger.info("Sync complete: %d factions updated, %d members added, %d members updated",
+                factionsUpdated, membersAdded, membersUpdated);
+
+            return new SyncResult(factionsUpdated, membersAdded, membersUpdated);
+        });
+    }
+
+    /**
+     * Result of a sync operation.
+     */
+    public record SyncResult(int factionsUpdated, int membersAdded, int membersUpdated) {}
+
     // === Faction Queries ===
 
     /**

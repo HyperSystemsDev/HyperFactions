@@ -66,15 +66,15 @@ public final class NewPlayerNavBarHelper {
             // Append navigation button template
             cmd.append("#NavCards", "HyperFactions/nav/nav_button.ui");
 
-            // Set button text using indexed selector (AdminUI pattern)
-            cmd.set("#NavBarButtons #NavCards[" + index + "] #NavActionButton.Text", entry.displayName());
+            // Set button text - descendant selectors work for cmd.set
+            cmd.set("#NavCards[" + index + "] #NavActionButton.Text", entry.displayName());
 
-            // Bind click event using indexed selector (AdminUI pattern)
-            // Set both button and navBar fields so handler doesn't early-return on null button
+            // Use AdminUI pattern: #Container[index] #Child (no parent prefix)
             events.addEventBinding(
                     CustomUIEventBindingType.Activating,
-                    "#NavBarButtons #NavCards[" + index + "] #NavActionButton",
-                    EventData.of("Button", "Nav").append("NavBar", entry.id())
+                    "#NavCards[" + index + "] #NavActionButton",
+                    EventData.of("Button", "Nav").append("NavBar", entry.id()),
+                    false
             );
 
             index++;

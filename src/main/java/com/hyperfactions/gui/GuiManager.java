@@ -104,7 +104,7 @@ public class GuiManager {
                 null,
                 (player, ref, store, playerRef, faction, guiManager) -> {
                     if (faction == null) return null;
-                    return new FactionMembersPage(playerRef, factionManager.get(), guiManager, faction);
+                    return new FactionMembersPage(playerRef, factionManager.get(), powerManager.get(), guiManager, faction);
                 },
                 true,
                 true, // Requires faction
@@ -171,14 +171,14 @@ public class GuiManager {
                 5
         ));
 
-        // Settings page (officers+)
+        // Settings page (officers+) - now using tabbed page
         registry.registerEntry(new Entry(
                 "settings",
                 "Settings",
                 null,
                 (player, ref, store, playerRef, faction, guiManager) -> {
                     if (faction == null) return null;
-                    return new FactionSettingsPage(playerRef, factionManager.get(), claimManager.get(), guiManager, plugin.get(), faction);
+                    return new FactionSettingsTabsPage(playerRef, factionManager.get(), claimManager.get(), guiManager, plugin.get(), faction, "general");
                 },
                 true, // Show in nav bar
                 true, // Requires faction
@@ -372,6 +372,7 @@ public class GuiManager {
             FactionMembersPage page = new FactionMembersPage(
                 playerRef,
                 factionManager.get(),
+                powerManager.get(),
                 this,
                 faction
             );
@@ -518,7 +519,7 @@ public class GuiManager {
     }
 
     /**
-     * Opens the Faction Settings page.
+     * Opens the Faction Settings page with the default tab (general).
      * Requires officer or leader role.
      *
      * @param player    The Player entity
@@ -530,21 +531,39 @@ public class GuiManager {
     public void openFactionSettings(Player player, Ref<EntityStore> ref,
                                     Store<EntityStore> store, PlayerRef playerRef,
                                     Faction faction) {
-        Logger.debug("[GUI] Opening FactionSettingsPage for %s", playerRef.getUsername());
+        openSettingsWithTab(player, ref, store, playerRef, faction, "general");
+    }
+
+    /**
+     * Opens the Faction Settings page with a specific tab selected.
+     * Requires officer or leader role.
+     *
+     * @param player    The Player entity
+     * @param ref       The entity reference
+     * @param store     The entity store
+     * @param playerRef The PlayerRef component
+     * @param faction   The faction to edit settings for
+     * @param tab       The tab to open (general, permissions, members)
+     */
+    public void openSettingsWithTab(Player player, Ref<EntityStore> ref,
+                                    Store<EntityStore> store, PlayerRef playerRef,
+                                    Faction faction, String tab) {
+        Logger.debug("[GUI] Opening FactionSettingsTabsPage for %s (tab: %s)", playerRef.getUsername(), tab);
         try {
             PageManager pageManager = player.getPageManager();
-            FactionSettingsPage page = new FactionSettingsPage(
+            FactionSettingsTabsPage page = new FactionSettingsTabsPage(
                 playerRef,
                 factionManager.get(),
                 claimManager.get(),
                 this,
                 plugin.get(),
-                faction
+                faction,
+                tab
             );
             pageManager.openCustomPage(ref, store, page);
-            Logger.debug("[GUI] FactionSettingsPage opened successfully");
+            Logger.debug("[GUI] FactionSettingsTabsPage opened successfully");
         } catch (Exception e) {
-            Logger.severe("[GUI] Failed to open FactionSettingsPage: %s", e.getMessage());
+            Logger.severe("[GUI] Failed to open FactionSettingsTabsPage: %s", e.getMessage());
             e.printStackTrace();
         }
     }
@@ -926,6 +945,38 @@ public class GuiManager {
             Logger.debug("[GUI] AdminMainPage opened successfully");
         } catch (Exception e) {
             Logger.severe("[GUI] Failed to open AdminMainPage: %s", e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Opens the Admin Disband Confirmation modal.
+     * Shows a warning and requires explicit confirmation to disband a faction.
+     *
+     * @param player      The Player entity
+     * @param ref         The entity reference
+     * @param store       The entity store
+     * @param playerRef   The PlayerRef component
+     * @param factionId   The UUID of the faction to disband
+     * @param factionName The name of the faction to disband
+     */
+    public void openAdminDisbandConfirm(Player player, Ref<EntityStore> ref,
+                                        Store<EntityStore> store, PlayerRef playerRef,
+                                        UUID factionId, String factionName) {
+        Logger.debug("[GUI] Opening AdminDisbandConfirmPage for faction %s", factionName);
+        try {
+            PageManager pageManager = player.getPageManager();
+            AdminDisbandConfirmPage page = new AdminDisbandConfirmPage(
+                playerRef,
+                factionManager.get(),
+                this,
+                factionId,
+                factionName
+            );
+            pageManager.openCustomPage(ref, store, page);
+            Logger.debug("[GUI] AdminDisbandConfirmPage opened successfully");
+        } catch (Exception e) {
+            Logger.severe("[GUI] Failed to open AdminDisbandConfirmPage: %s", e.getMessage());
             e.printStackTrace();
         }
     }

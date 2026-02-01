@@ -176,6 +176,27 @@ public class JsonFactionStorage implements FactionStorage {
         }
         obj.add("logs", logs);
 
+        // Permissions
+        if (faction.permissions() != null) {
+            obj.add("permissions", serializePermissions(faction.permissions()));
+        }
+
+        return obj;
+    }
+
+    private JsonObject serializePermissions(FactionPermissions perms) {
+        JsonObject obj = new JsonObject();
+        obj.addProperty("outsiderBreak", perms.outsiderBreak());
+        obj.addProperty("outsiderPlace", perms.outsiderPlace());
+        obj.addProperty("outsiderInteract", perms.outsiderInteract());
+        obj.addProperty("allyBreak", perms.allyBreak());
+        obj.addProperty("allyPlace", perms.allyPlace());
+        obj.addProperty("allyInteract", perms.allyInteract());
+        obj.addProperty("memberBreak", perms.memberBreak());
+        obj.addProperty("memberPlace", perms.memberPlace());
+        obj.addProperty("memberInteract", perms.memberInteract());
+        obj.addProperty("pvpEnabled", perms.pvpEnabled());
+        obj.addProperty("officersCanEdit", perms.officersCanEdit());
         return obj;
     }
 
@@ -282,7 +303,29 @@ public class JsonFactionStorage implements FactionStorage {
             }
         }
 
-        return new Faction(id, name, description, tag, color, createdAt, home, members, claims, relations, logs, open);
+        // Permissions
+        FactionPermissions permissions = null;
+        if (obj.has("permissions") && obj.get("permissions").isJsonObject()) {
+            permissions = deserializePermissions(obj.getAsJsonObject("permissions"));
+        }
+
+        return new Faction(id, name, description, tag, color, createdAt, home, members, claims, relations, logs, open, permissions);
+    }
+
+    private FactionPermissions deserializePermissions(JsonObject obj) {
+        return new FactionPermissions(
+            obj.has("outsiderBreak") && obj.get("outsiderBreak").getAsBoolean(),
+            obj.has("outsiderPlace") && obj.get("outsiderPlace").getAsBoolean(),
+            obj.has("outsiderInteract") && obj.get("outsiderInteract").getAsBoolean(),
+            obj.has("allyBreak") && obj.get("allyBreak").getAsBoolean(),
+            obj.has("allyPlace") && obj.get("allyPlace").getAsBoolean(),
+            !obj.has("allyInteract") || obj.get("allyInteract").getAsBoolean(), // Default true
+            !obj.has("memberBreak") || obj.get("memberBreak").getAsBoolean(),   // Default true
+            !obj.has("memberPlace") || obj.get("memberPlace").getAsBoolean(),   // Default true
+            !obj.has("memberInteract") || obj.get("memberInteract").getAsBoolean(), // Default true
+            !obj.has("pvpEnabled") || obj.get("pvpEnabled").getAsBoolean(),     // Default true
+            obj.has("officersCanEdit") && obj.get("officersCanEdit").getAsBoolean()
+        );
     }
 
     private Faction.FactionHome deserializeHome(JsonObject obj) {

@@ -199,22 +199,8 @@ public class AdminMainPage extends InteractiveCustomUIPage<AdminMainData> {
                 if (data.factionId != null) {
                     try {
                         UUID factionId = UUID.fromString(data.factionId);
-                        // Admin bypass - get the leader's UUID to disband
-                        Faction faction = factionManager.getFaction(factionId);
-                        if (faction != null) {
-                            UUID leaderId = faction.getLeaderId();
-                            if (leaderId != null) {
-                                FactionManager.FactionResult result = factionManager.disbandFaction(factionId, leaderId);
-                                if (result == FactionManager.FactionResult.SUCCESS) {
-                                    player.sendMessage(Message.raw("Faction " + data.factionName + " disbanded.").color("#FF5555"));
-                                } else {
-                                    player.sendMessage(Message.raw("Failed to disband: " + result).color("#FF5555"));
-                                }
-                            } else {
-                                player.sendMessage(Message.raw("Faction has no leader, cannot disband.").color("#FF5555"));
-                            }
-                        }
-                        sendUpdate(); // Refresh to show updated faction list
+                        // Open confirmation modal
+                        guiManager.openAdminDisbandConfirm(player, ref, store, playerRef, factionId, data.factionName);
                     } catch (IllegalArgumentException e) {
                         player.sendMessage(Message.raw("Invalid faction.").color("#FF5555"));
                     }

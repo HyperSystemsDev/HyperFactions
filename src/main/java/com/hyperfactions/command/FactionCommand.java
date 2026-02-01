@@ -123,6 +123,7 @@ public class FactionCommand extends AbstractPlayerCommand {
             case "admin" -> handleAdmin(ctx, store, ref, player, currentWorld, fctx.getArgs());
             case "debug" -> handleDebug(ctx, store, ref, player, currentWorld, fctx.getArgs());
             case "reload" -> handleReload(ctx, player);
+            case "sync" -> handleSync(ctx, player);
             case "rename" -> handleRename(ctx, store, ref, player, fctx);
             case "desc", "description" -> handleDesc(ctx, store, ref, player, fctx);
             case "color" -> handleColor(ctx, store, ref, player, fctx);
@@ -2604,6 +2605,28 @@ public class FactionCommand extends AbstractPlayerCommand {
 
         plugin.reloadConfig();
         ctx.sendMessage(prefix().insert(msg("Configuration reloaded.", COLOR_GREEN)));
+    }
+
+    // === Sync ===
+    private void handleSync(CommandContext ctx, PlayerRef player) {
+        if (!hasPermission(player, Permissions.ADMIN)) {
+            ctx.sendMessage(prefix().insert(msg("You don't have permission.", COLOR_RED)));
+            return;
+        }
+
+        ctx.sendMessage(prefix().insert(msg("Syncing faction data from disk...", COLOR_CYAN)));
+
+        hyperFactions.getFactionManager().syncFromDisk().thenAccept(result -> {
+            ctx.sendMessage(prefix().insert(Message.join(
+                msg("Sync complete: ", COLOR_GREEN),
+                msg(result.factionsUpdated() + " factions updated, ", COLOR_GRAY),
+                msg(result.membersAdded() + " members added, ", COLOR_GRAY),
+                msg(result.membersUpdated() + " members updated.", COLOR_GRAY)
+            )));
+        }).exceptionally(e -> {
+            ctx.sendMessage(prefix().insert(msg("Sync failed: " + e.getMessage(), COLOR_RED)));
+            return null;
+        });
     }
 
     // === Rename ===

@@ -1,63 +1,172 @@
-$C = "../../Common.ui";
+// Member Entry - Expandable
 $S = "../shared/styles.ui";
 
 Group {
-  Anchor: (Height: 45, Bottom: 5);
-  Background: (Color: #1a2a3a);
-  Padding: (Left: 10, Right: 10, Top: 5, Bottom: 5);
-  LayoutMode: Left;
+  LayoutMode: Top;
+  Anchor: (Bottom: 4);
 
-  Group {
-    Anchor: (Width: 180);
+  // Header wrapper - contains content and clickable overlay
+  Group #HeaderWrapper {
+    Anchor: (Height: 44);
+
+    // Header content (visual layout)
+    Group #HeaderContent {
+      Anchor: (Left: 0, Right: 0, Top: 0, Bottom: 0);
+      Background: (Color: #1a2a3a);
+      Padding: (Left: 12, Right: 12, Top: 6, Bottom: 6);
+      LayoutMode: Left;
+
+      // Role indicator bar
+      Group #RoleIndicator {
+        Anchor: (Width: 3, Top: 4, Bottom: 4);
+        Background: (Color: #888888);
+      }
+
+      Group { Anchor: (Width: 10); }
+
+      // Member info
+      Group {
+        Anchor: (Width: 160);
+        LayoutMode: Top;
+
+        Label #MemberName {
+          Text: "PlayerName";
+          Style: (FontSize: 13, TextColor: #CCCCCC, RenderBold: true, VerticalAlignment: Center);
+          Anchor: (Height: 18);
+        }
+        Label #MemberRole {
+          Text: "Member";
+          Style: (FontSize: 10, TextColor: #888888, VerticalAlignment: Center);
+          Anchor: (Height: 14);
+        }
+      }
+
+      // Online status
+      Group {
+        LayoutMode: Top;
+        Anchor: (Width: 100);
+
+        Label #OnlineStatus {
+          Text: "Online";
+          Style: (FontSize: 11, TextColor: #55FF55, VerticalAlignment: Center, HorizontalAlignment: Center);
+          Anchor: (Height: 16, Top: 7);
+        }
+        Label #LastOnline {
+          Text: "";
+          Style: (FontSize: 9, TextColor: #666666, VerticalAlignment: Center, HorizontalAlignment: Center);
+          Anchor: (Height: 14);
+        }
+      }
+
+      Group { FlexWeight: 1; }
+
+      // Expand indicators
+      Label #ExpandIcon {
+        Text: ">";
+        Style: (FontSize: 14, TextColor: #666666, VerticalAlignment: Center, HorizontalAlignment: Center);
+        Anchor: (Width: 20);
+      }
+      Label #CollapseIcon {
+        Text: "v";
+        Style: (FontSize: 14, TextColor: #00AAAA, VerticalAlignment: Center, HorizontalAlignment: Center);
+        Anchor: (Width: 20);
+      }
+    }
+
+    // Clickable overlay button
+    TextButton #Header {
+      Text: "";
+      Anchor: (Left: 0, Right: 0, Top: 0, Bottom: 0);
+      Style: $S.@InvisibleButtonStyle;
+    }
+  }
+
+  // Expanded content
+  Group #ExtendedInfo {
     LayoutMode: Top;
+    Background: (Color: #0d1520);
+    Padding: (Left: 25, Right: 12, Top: 8, Bottom: 10);
 
-    Label #MemberName {
-      Text: "Player";
-      Style: (FontSize: 13, TextColor: #AAAAAA, RenderBold: true, VerticalAlignment: Center);
-      Anchor: (Height: 18);
+    // Stats row
+    Group #StatsRow {
+      LayoutMode: Left;
+      Anchor: (Height: 20, Bottom: 4);
+
+      Label {
+        Text: "Power:";
+        Style: (FontSize: 10, TextColor: #666666, VerticalAlignment: Center);
+        Anchor: (Width: 45);
+      }
+      Label #PowerValue {
+        Text: "10/10";
+        Style: (FontSize: 10, TextColor: #55FF55, VerticalAlignment: Center);
+        Anchor: (Width: 60);
+      }
+
+      Label {
+        Text: "Joined:";
+        Style: (FontSize: 10, TextColor: #666666, VerticalAlignment: Center);
+        Anchor: (Width: 45);
+      }
+      Label #JoinedDate {
+        Text: "Unknown";
+        Style: (FontSize: 10, TextColor: #888888, VerticalAlignment: Center);
+        Anchor: (Width: 80);
+      }
+
+      Label {
+        Text: "Last Death:";
+        Style: (FontSize: 10, TextColor: #666666, VerticalAlignment: Center);
+        Anchor: (Width: 65);
+      }
+      Label #LastDeath {
+        Text: "Never";
+        Style: (FontSize: 10, TextColor: #888888, VerticalAlignment: Center);
+        FlexWeight: 1;
+      }
     }
-    Label #MemberRole {
-      Text: "Member";
-      Style: (FontSize: 11, TextColor: #888888, VerticalAlignment: Center);
-      Anchor: (Height: 16);
+
+    // Action buttons
+    Group #ActionButtons {
+      LayoutMode: Left;
+      Anchor: (Height: 32);
+
+      TextButton #PromoteBtn {
+        Text: "PROMOTE";
+        Anchor: (Height: 28, Width: 80);
+        Style: $S.@SmallGreenButtonStyle;
+      }
+
+      Group #PromoteSpacer { Anchor: (Width: 6); }
+
+      TextButton #DemoteBtn {
+        Text: "DEMOTE";
+        Anchor: (Height: 28, Width: 75);
+        Style: $S.@SmallButtonStyle;
+      }
+
+      Group #DemoteSpacer { Anchor: (Width: 6); }
+
+      TextButton #KickBtn {
+        Text: "KICK";
+        Anchor: (Height: 28, Width: 55);
+        Style: $S.@SmallRedButtonStyle;
+      }
+
+      Group #KickSpacer { Anchor: (Width: 6); }
+
+      TextButton #TransferBtn {
+        Text: "MAKE LEADER";
+        Anchor: (Height: 28, Width: 105);
+        Style: $S.@SmallCyanButtonStyle;
+      }
+
+      Group { FlexWeight: 1; }
+
+      Label #SelfLabel {
+        Text: "(You)";
+        Style: (FontSize: 11, TextColor: #666666, VerticalAlignment: Center);
+      }
     }
-  }
-
-  Label #LastOnline {
-    Text: "Online now";
-    Style: (FontSize: 11, TextColor: #666666, VerticalAlignment: Center);
-    Anchor: (Width: 100);
-  }
-
-  Label { FlexWeight: 1; }
-
-  TextButton #PromoteBtn {
-    Text: "+";
-    Anchor: (Height: 24, Width: 28);
-    Style: $S.@SmallGreenButtonStyle;
-  }
-
-  Label { Anchor: (Width: 3); }
-
-  TextButton #DemoteBtn {
-    Text: "-";
-    Anchor: (Height: 24, Width: 28);
-    Style: $S.@SmallButtonStyle;
-  }
-
-  Label { Anchor: (Width: 3); }
-
-  TextButton #KickBtn {
-    Text: "X";
-    Anchor: (Height: 24, Width: 28);
-    Style: $S.@SmallRedButtonStyle;
-  }
-
-  Label { Anchor: (Width: 3); }
-
-  TextButton #TransferBtn {
-    Text: "*";
-    Anchor: (Height: 24, Width: 28);
-    Style: $S.@SmallCyanButtonStyle;
   }
 }

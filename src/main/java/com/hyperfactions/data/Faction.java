@@ -20,6 +20,7 @@ import java.util.*;
  * @param relations   map of target faction UUID to FactionRelation
  * @param logs        list of faction activity logs (newest first)
  * @param open        whether the faction is open to join without invite
+ * @param permissions territory permissions configuration (nullable, uses defaults if null)
  */
 public record Faction(
     @NotNull UUID id,
@@ -33,7 +34,8 @@ public record Faction(
     @NotNull Set<FactionClaim> claims,
     @NotNull Map<UUID, FactionRelation> relations,
     @NotNull List<FactionLog> logs,
-    boolean open
+    boolean open,
+    @Nullable FactionPermissions permissions
 ) {
     /**
      * Maximum number of log entries to keep.
@@ -81,8 +83,31 @@ public record Faction(
             Set.of(),
             Map.of(),
             logs,
-            false
+            false,
+            null // Use default permissions
         );
+    }
+
+    /**
+     * Gets the effective permissions for this faction.
+     * Returns the faction's permissions if set, otherwise defaults.
+     *
+     * @return the effective permissions
+     */
+    @NotNull
+    public FactionPermissions getEffectivePermissions() {
+        return permissions != null ? permissions : FactionPermissions.defaults();
+    }
+
+    /**
+     * Creates a copy with updated permissions.
+     *
+     * @param newPermissions the new permissions
+     * @return a new Faction with updated permissions
+     */
+    public Faction withPermissions(@Nullable FactionPermissions newPermissions) {
+        return new Faction(id, name, description, tag, color, createdAt, home,
+            members, claims, relations, logs, open, newPermissions);
     }
 
     // === Member operations ===
@@ -179,7 +204,7 @@ public record Faction(
     public Faction withMember(@NotNull FactionMember member) {
         Map<UUID, FactionMember> newMembers = new HashMap<>(members);
         newMembers.put(member.uuid(), member);
-        return new Faction(id, name, description, tag, color, createdAt, home, newMembers, claims, relations, logs, open);
+        return new Faction(id, name, description, tag, color, createdAt, home, newMembers, claims, relations, logs, open, permissions);
     }
 
     /**
@@ -191,7 +216,7 @@ public record Faction(
     public Faction withoutMember(@NotNull UUID uuid) {
         Map<UUID, FactionMember> newMembers = new HashMap<>(members);
         newMembers.remove(uuid);
-        return new Faction(id, name, description, tag, color, createdAt, home, newMembers, claims, relations, logs, open);
+        return new Faction(id, name, description, tag, color, createdAt, home, newMembers, claims, relations, logs, open, permissions);
     }
 
     // === Claim operations ===
@@ -226,7 +251,7 @@ public record Faction(
     public Faction withClaim(@NotNull FactionClaim claim) {
         Set<FactionClaim> newClaims = new HashSet<>(claims);
         newClaims.add(claim);
-        return new Faction(id, name, description, tag, color, createdAt, home, members, newClaims, relations, logs, open);
+        return new Faction(id, name, description, tag, color, createdAt, home, members, newClaims, relations, logs, open, permissions);
     }
 
     /**
@@ -240,7 +265,7 @@ public record Faction(
     public Faction withoutClaimAt(@NotNull String world, int chunkX, int chunkZ) {
         Set<FactionClaim> newClaims = new HashSet<>(claims);
         newClaims.removeIf(c -> c.isAt(world, chunkX, chunkZ));
-        return new Faction(id, name, description, tag, color, createdAt, home, members, newClaims, relations, logs, open);
+        return new Faction(id, name, description, tag, color, createdAt, home, members, newClaims, relations, logs, open, permissions);
     }
 
     // === Relation operations ===
@@ -301,7 +326,7 @@ public record Faction(
         } else {
             newRelations.put(relation.targetFactionId(), relation);
         }
-        return new Faction(id, name, description, tag, color, createdAt, home, members, claims, newRelations, logs, open);
+        return new Faction(id, name, description, tag, color, createdAt, home, members, claims, newRelations, logs, open, permissions);
     }
 
     // === Home operations ===
@@ -313,7 +338,7 @@ public record Faction(
      * @return a new Faction with updated home
      */
     public Faction withHome(@Nullable FactionHome newHome) {
-        return new Faction(id, name, description, tag, color, createdAt, newHome, members, claims, relations, logs, open);
+        return new Faction(id, name, description, tag, color, createdAt, newHome, members, claims, relations, logs, open, permissions);
     }
 
     /**
@@ -341,7 +366,7 @@ public record Faction(
         if (newLogs.size() > MAX_LOGS) {
             newLogs = newLogs.subList(0, MAX_LOGS);
         }
-        return new Faction(id, name, description, tag, color, createdAt, home, members, claims, relations, newLogs, open);
+        return new Faction(id, name, description, tag, color, createdAt, home, members, claims, relations, newLogs, open, permissions);
     }
 
     // === Property updates ===
@@ -353,7 +378,7 @@ public record Faction(
      * @return a new Faction with updated name
      */
     public Faction withName(@NotNull String newName) {
-        return new Faction(id, newName, description, tag, color, createdAt, home, members, claims, relations, logs, open);
+        return new Faction(id, newName, description, tag, color, createdAt, home, members, claims, relations, logs, open, permissions);
     }
 
     /**
@@ -363,7 +388,7 @@ public record Faction(
      * @return a new Faction with updated description
      */
     public Faction withDescription(@Nullable String newDescription) {
-        return new Faction(id, name, newDescription, tag, color, createdAt, home, members, claims, relations, logs, open);
+        return new Faction(id, name, newDescription, tag, color, createdAt, home, members, claims, relations, logs, open, permissions);
     }
 
     /**
@@ -373,7 +398,7 @@ public record Faction(
      * @return a new Faction with updated tag
      */
     public Faction withTag(@Nullable String newTag) {
-        return new Faction(id, name, description, newTag, color, createdAt, home, members, claims, relations, logs, open);
+        return new Faction(id, name, description, newTag, color, createdAt, home, members, claims, relations, logs, open, permissions);
     }
 
     /**
@@ -383,7 +408,7 @@ public record Faction(
      * @return a new Faction with updated color
      */
     public Faction withColor(@NotNull String newColor) {
-        return new Faction(id, name, description, tag, newColor, createdAt, home, members, claims, relations, logs, open);
+        return new Faction(id, name, description, tag, newColor, createdAt, home, members, claims, relations, logs, open, permissions);
     }
 
     /**
@@ -393,7 +418,7 @@ public record Faction(
      * @return a new Faction with updated open status
      */
     public Faction withOpen(boolean isOpen) {
-        return new Faction(id, name, description, tag, color, createdAt, home, members, claims, relations, logs, isOpen);
+        return new Faction(id, name, description, tag, color, createdAt, home, members, claims, relations, logs, isOpen, permissions);
     }
 
     /**

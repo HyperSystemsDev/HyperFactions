@@ -2,6 +2,7 @@ package com.hyperfactions.protection;
 
 import com.hyperfactions.config.HyperFactionsConfig;
 import com.hyperfactions.data.Faction;
+import com.hyperfactions.data.FactionPermissions;
 import com.hyperfactions.data.RelationType;
 import com.hyperfactions.data.Zone;
 import com.hyperfactions.data.ZoneFlags;
@@ -66,7 +67,8 @@ public class ProtectionChecker {
         DENIED_ALLY,
         DENIED_ATTACKER_SAFEZONE,
         DENIED_DEFENDER_SAFEZONE,
-        DENIED_SPAWN_PROTECTED
+        DENIED_SPAWN_PROTECTED,
+        DENIED_TERRITORY_NO_PVP
     }
 
     /**
@@ -161,21 +163,47 @@ public class ProtectionChecker {
         // 4. Get player's faction
         UUID playerFactionId = factionManager.getPlayerFactionId(playerUuid);
 
-        // 5. Check if same faction
+        // 5. Get faction and its effective permissions
+        Faction ownerFaction = factionManager.getFaction(claimOwner);
+        FactionPermissions perms = null;
+        if (ownerFaction != null) {
+            perms = HyperFactionsConfig.get().getEffectiveFactionPermissions(
+                ownerFaction.getEffectivePermissions()
+            );
+        }
+
+        // 6. Check if same faction (member)
         if (playerFactionId != null && playerFactionId.equals(claimOwner)) {
+            // Check member permissions
+            if (perms != null && !checkMemberPermission(perms, type)) {
+                Logger.debugProtection("Interaction denied: player=%s, chunk=%s/%d/%d, type=%s, result=MEMBER_NO_PERM, claimOwner=%s",
+                    playerUuid, world, chunkX, chunkZ, type, claimOwner);
+                return ProtectionResult.DENIED_NO_PERMISSION;
+            }
             return ProtectionResult.ALLOWED_OWN_CLAIM;
         }
 
-        // 6. Check ally relation
+        // 7. Check ally relation
         if (playerFactionId != null) {
             RelationType relation = relationManager.getRelation(playerFactionId, claimOwner);
             if (relation == RelationType.ALLY) {
-                // Allies can interact in each other's territory (configurable per-faction in future)
-                return ProtectionResult.ALLOWED_ALLY_CLAIM;
+                // Check ally permissions
+                if (perms != null && checkAllyPermission(perms, type)) {
+                    return ProtectionResult.ALLOWED_ALLY_CLAIM;
+                }
+                // Ally but no permission for this type
+                Logger.debugProtection("Interaction denied: player=%s, chunk=%s/%d/%d, type=%s, result=ALLY_NO_PERM, claimOwner=%s",
+                    playerUuid, world, chunkX, chunkZ, type, claimOwner);
+                return ProtectionResult.DENIED_NO_PERMISSION;
             }
         }
 
-        // 7. Denied - either enemy or neutral claim
+        // 8. Check outsider permissions (neutral, enemy, or no faction)
+        if (perms != null && checkOutsiderPermission(perms, type)) {
+            return ProtectionResult.ALLOWED;
+        }
+
+        // 9. Denied - either enemy or neutral claim without permission
         if (playerFactionId != null) {
             RelationType relation = relationManager.getRelation(playerFactionId, claimOwner);
             if (relation == RelationType.ENEMY) {
@@ -188,6 +216,42 @@ public class ProtectionChecker {
         Logger.debugProtection("Interaction denied: player=%s, chunk=%s/%d/%d, type=%s, result=NEUTRAL_CLAIM, claimOwner=%s",
             playerUuid, world, chunkX, chunkZ, type, claimOwner);
         return ProtectionResult.DENIED_NEUTRAL_CLAIM;
+    }
+
+    /**
+     * Checks if the interaction type is allowed for outsiders based on faction permissions.
+     */
+    private boolean checkOutsiderPermission(FactionPermissions perms, InteractionType type) {
+        return switch (type) {
+            case BUILD -> perms.outsiderBreak() || perms.outsiderPlace();
+            case INTERACT, USE -> perms.outsiderInteract();
+            case CONTAINER -> perms.outsiderInteract();  // Containers = interact
+            case DAMAGE -> false;  // Entity damage handled separately
+        };
+    }
+
+    /**
+     * Checks if the interaction type is allowed for allies based on faction permissions.
+     */
+    private boolean checkAllyPermission(FactionPermissions perms, InteractionType type) {
+        return switch (type) {
+            case BUILD -> perms.allyBreak() || perms.allyPlace();
+            case INTERACT, USE -> perms.allyInteract();
+            case CONTAINER -> perms.allyInteract();  // Containers = interact
+            case DAMAGE -> true;  // Allies can damage entities in ally territory
+        };
+    }
+
+    /**
+     * Checks if the interaction type is allowed for members based on faction permissions.
+     */
+    private boolean checkMemberPermission(FactionPermissions perms, InteractionType type) {
+        return switch (type) {
+            case BUILD -> perms.memberBreak() || perms.memberPlace();
+            case INTERACT, USE -> perms.memberInteract();
+            case CONTAINER -> perms.memberInteract();  // Containers = interact
+            case DAMAGE -> true;  // Members can damage entities in own territory
+        };
     }
 
     // === PvP Protection ===
@@ -266,14 +330,30 @@ public class ProtectionChecker {
 
         // Not in a zone - use standard checks
 
-        // 2. Check same faction
+        // 2. Check faction territory PvP setting
+        UUID claimOwner = claimManager.getClaimOwner(world, chunkX, chunkZ);
+        if (claimOwner != null) {
+            Faction ownerFaction = factionManager.getFaction(claimOwner);
+            if (ownerFaction != null) {
+                FactionPermissions perms = config.getEffectiveFactionPermissions(
+                    ownerFaction.getEffectivePermissions()
+                );
+                if (!perms.pvpEnabled()) {
+                    Logger.debugProtection("PvP denied: attacker=%s, defender=%s, chunk=%s/%d/%d, result=TERRITORY_NO_PVP, claimOwner=%s",
+                        attackerUuid, defenderUuid, world, chunkX, chunkZ, claimOwner);
+                    return PvPResult.DENIED_TERRITORY_NO_PVP;
+                }
+            }
+        }
+
+        // 3. Check same faction
         if (factionManager.areInSameFaction(attackerUuid, defenderUuid)) {
             if (!config.isFactionDamage()) {
                 return PvPResult.DENIED_SAME_FACTION;
             }
         }
 
-        // 3. Check ally
+        // 4. Check ally
         RelationType relation = relationManager.getPlayerRelation(attackerUuid, defenderUuid);
         if (relation == RelationType.ALLY) {
             if (!config.isAllyDamage()) {
@@ -283,7 +363,7 @@ public class ProtectionChecker {
             }
         }
 
-        // 4. Default: allow PvP
+        // 5. Default: allow PvP
         Logger.debugProtection("PvP allowed: attacker=%s, defender=%s, chunk=%s/%d/%d, relation=%s",
             attackerUuid, defenderUuid, world, chunkX, chunkZ, relation);
         return PvPResult.ALLOWED;
@@ -377,6 +457,7 @@ public class ProtectionChecker {
             case DENIED_ALLY -> "\u00A7cYou cannot attack allies.";
             case DENIED_ATTACKER_SAFEZONE, DENIED_DEFENDER_SAFEZONE -> "\u00A7cPvP is disabled in SafeZones.";
             case DENIED_SPAWN_PROTECTED -> "\u00A7cThat player has spawn protection.";
+            case DENIED_TERRITORY_NO_PVP -> "\u00A7cPvP is disabled in this territory.";
             default -> "\u00A7cYou cannot attack this player.";
         };
     }

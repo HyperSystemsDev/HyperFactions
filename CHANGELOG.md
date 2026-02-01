@@ -136,6 +136,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 **Help System**
 - Refactored help GUI with improved layout and organization
 
+**Members Page Overhaul**
+- Expandable member entries following AdminUI pattern (click to expand/collapse)
+- Sort members by role (Leader → Officer → Member) or last online time
+- Action buttons with text labels: PROMOTE, DEMOTE, KICK, MAKE LEADER
+- Expanded view shows power (with color coding), joined date, and last death (relative format)
+- Transfer leadership now shows confirmation modal before executing
+
+**Faction Permissions System**
+- New FactionPermissions data model with 11 boolean flags
+- Territory access control: break/place/interact permissions for outsiders, allies, and members
+- PvP toggle for faction territory
+- Officers can edit permissions toggle (leader-only setting)
+- Tabbed settings page: General | Permissions | Members tabs
+- Server-side permission locks to enforce server-wide rules
+
+**Admin Improvements**
+- Admin disband now shows confirmation modal before executing
+- Admin faction list properly refreshes after disbanding a faction
+
+**Commands**
+- `/f sync` - Admin command to merge disk data with in-memory faction data (timestamp-based)
+
 ### Fixed
 - Nav bar selector crash when opening GUI (use element ID instead of type selector)
 - Description text wiped when toggling recruitment in create faction wizard
@@ -145,6 +167,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Faction GUI map not updating on claim/unclaim operations
 - In-game world map not updating when zones are created/updated/deleted
 - GUI pages not refreshing properly (replaced `sendUpdate()` with new page instances)
+- Navigation from members page now works (FactionMembersData implements NavAwareData)
+- Online member count in settings now shows actual count instead of "?"
 
 ### Changed
 - Shadow plugin updated from 8.3.5 to 9.3.1 (fixes BuildInfo generation)
