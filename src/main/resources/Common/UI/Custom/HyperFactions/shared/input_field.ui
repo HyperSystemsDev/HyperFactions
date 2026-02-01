@@ -1,10 +1,11 @@
 // Shared TextField reference
-// Use $C.@TextField template from Common.ui:
+// Use raw TextField with proper style and background for input to work:
 //
-// $C.@TextField #MyInput {
+// TextField #MyInput {
 //   FlexWeight: 1;
 //   Anchor: (Height: 28);
-//   Style: (FontSize: 14, TextColor: #ffffff(0.85));
+//   Style: $C.@DefaultInputFieldStyle;
+//   Background: $C.@InputBoxBackground;
 // }
 
 $C = "../../Common.ui";

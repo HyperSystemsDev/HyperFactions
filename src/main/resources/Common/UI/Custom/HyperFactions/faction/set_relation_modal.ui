@@ -25,13 +25,11 @@ $C.@PageOverlay {
         Anchor: (Height: 38, Bottom: 8);
         LayoutMode: Left;
 
-        $C.@TextField #SearchInput {
+        TextField #SearchInput {
           FlexWeight: 1;
           Anchor: (Height: 32);
-          Style: (
-            FontSize: 14,
-            TextColor: #ffffff(0.85)
-          );
+          Style: $C.@DefaultInputFieldStyle;
+          Background: $C.@InputBoxBackground;
         }
 
         Label { Anchor: (Width: 8); }

@@ -55,7 +55,7 @@ public class ZoneManager {
      * Notifies that zones have changed (triggers world map refresh).
      */
     private void notifyZoneChange() {
-        Logger.info("notifyZoneChange() called, callback set: %s", onZoneChangeCallback != null);
+        Logger.debugTerritory("Zone change notification triggered");
         if (onZoneChangeCallback != null) {
             try {
                 onZoneChangeCallback.run();

@@ -1,6 +1,5 @@
 package com.hyperfactions.worldmap;
 
-import com.hyperfactions.util.Logger;
 import com.hypixel.hytale.codec.builder.BuilderCodec;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.worldmap.IWorldMap;
@@ -20,9 +19,6 @@ public class HyperFactionsWorldMapProvider implements IWorldMapProvider {
 
     @Override
     public IWorldMap getGenerator(World world) throws WorldMapLoadException {
-        Logger.info("HyperFactionsWorldMapProvider.getGenerator() called for world: %s", world.getName());
-        IWorldMap generator = HyperFactionsWorldMap.INSTANCE;
-        Logger.info("Returning HyperFactionsWorldMap instance: %s", generator.getClass().getName());
-        return generator;
+        return HyperFactionsWorldMap.INSTANCE;
     }
 }

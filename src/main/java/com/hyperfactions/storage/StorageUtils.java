@@ -10,6 +10,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Utility class for bulletproof file storage operations.
@@ -18,6 +19,9 @@ import java.security.NoSuchAlgorithmException;
 public final class StorageUtils {
 
     private StorageUtils() {}
+
+    /** Counter for unique temp file names to prevent race conditions */
+    private static final AtomicLong TEMP_COUNTER = new AtomicLong(System.currentTimeMillis());
 
     /** File extension for temporary files during writes */
     private static final String TMP_SUFFIX = ".tmp";
@@ -67,7 +71,9 @@ public final class StorageUtils {
      */
     @NotNull
     public static WriteResult writeAtomic(@NotNull Path targetFile, @NotNull String content) {
-        Path tempFile = targetFile.resolveSibling(targetFile.getFileName() + TMP_SUFFIX);
+        // Use unique temp file name to prevent race conditions when multiple writes happen concurrently
+        long uniqueId = TEMP_COUNTER.incrementAndGet();
+        Path tempFile = targetFile.resolveSibling(targetFile.getFileName() + "." + uniqueId + TMP_SUFFIX);
         Path backupFile = targetFile.resolveSibling(targetFile.getFileName() + BAK_SUFFIX);
 
         try {

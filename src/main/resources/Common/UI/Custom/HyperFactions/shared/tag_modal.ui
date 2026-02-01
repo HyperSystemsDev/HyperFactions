@@ -45,13 +45,11 @@ $C.@PageOverlay {
         Anchor: (Height: 24, Bottom: 4);
       }
 
-      $C.@TextField #TagInput {
+      TextField #TagInput {
         FlexWeight: 1;
         Anchor: (Height: 36, Bottom: 8);
-        Style: (
-          FontSize: 14,
-          TextColor: #ffffff(0.85)
-        );
+        Style: $C.@DefaultInputFieldStyle;
+        Background: $C.@InputBoxBackground;
       }
 
       // Help text

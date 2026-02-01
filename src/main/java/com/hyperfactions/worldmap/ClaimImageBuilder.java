@@ -381,11 +381,12 @@ public class ClaimImageBuilder {
         UUID claimOwner = claimManager.getClaimOwner(worldName, chunkX, chunkZ);
         Faction factionInfo = claimOwner != null ? factionManager.getFaction(claimOwner) : null;
 
-        // Debug logging
+        // Debug logging for claimed chunks only
         if (isSafeZone || isWarZone || factionInfo != null) {
-            Logger.info("ClaimImageBuilder: chunk %d,%d in %s - safeZone=%s, warZone=%s, faction=%s, showOnMap=%s",
-                    chunkX, chunkZ, worldName, isSafeZone, isWarZone,
-                    factionInfo != null ? factionInfo.name() : "null", showClaimsOnMap);
+            Logger.debugTerritory("ClaimImageBuilder: chunk %d,%d - zone=%s, faction=%s",
+                    chunkX, chunkZ,
+                    isSafeZone ? "safe" : (isWarZone ? "war" : "none"),
+                    factionInfo != null ? factionInfo.name() : "none");
         }
 
         // Pre-calculate neighbor claim data for border detection

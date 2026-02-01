@@ -52,7 +52,7 @@ public class ClaimManager {
      * Notifies that claims have changed (triggers world map refresh).
      */
     private void notifyClaimChange() {
-        Logger.info("notifyClaimChange() called, callback set: %s", onClaimChangeCallback != null);
+        Logger.debugClaim("Claim change notification triggered");
         if (onClaimChangeCallback != null) {
             try {
                 onClaimChangeCallback.run();

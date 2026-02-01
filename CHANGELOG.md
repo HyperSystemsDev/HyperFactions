@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-02-01
+
+### Fixed
+
+**Storage Race Condition**
+- Fixed checksum verification failures when saving factions rapidly
+  - Concurrent writes no longer overwrite each other's temp files
+  - Each atomic write now uses a unique temp file name
+
+**TextField Input**
+- Fixed text input fields not accepting keyboard input in GUI modals
+  - Faction name input (create wizard step 1)
+  - Description input (create wizard step 2)
+  - Rename modal, tag modal, description modal
+  - Zone creation wizard name input
+  - Relation search input
+
+**Logging Cleanup**
+- Removed excessive debug logging that was spamming server console
+  - World map generation no longer logs every chunk render
+  - Territory notifications converted to debug category
+  - GUI build/event logs removed or converted to debug
+  - All debug categories remain disabled by default
+
 ## [0.3.0] - 2026-02-01
 
 ### Fixed

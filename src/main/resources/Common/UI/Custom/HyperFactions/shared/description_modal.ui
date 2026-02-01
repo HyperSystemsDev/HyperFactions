@@ -44,13 +44,11 @@ $C.@PageOverlay {
         Anchor: (Height: 24, Bottom: 4);
       }
 
-      $C.@TextField #DescInput {
+      TextField #DescInput {
         FlexWeight: 1;
         Anchor: (Height: 60, Bottom: 8);
-        Style: (
-          FontSize: 14,
-          TextColor: #ffffff(0.85)
-        );
+        Style: $C.@DefaultInputFieldStyle;
+        Background: $C.@InputBoxBackground;
       }
 
       // Button row

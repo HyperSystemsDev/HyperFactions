@@ -55,8 +55,6 @@ public class AdminZonePage extends InteractiveCustomUIPage<AdminZoneData> {
     @Override
     public void build(Ref<EntityStore> ref, UICommandBuilder cmd,
                       UIEventBuilder events, Store<EntityStore> store) {
-        com.hyperfactions.util.Logger.info("[AdminZonePage] build() - currentTab=%s, currentPage=%d", currentTab, currentPage);
-
         // Load the main template
         cmd.append("HyperFactions/admin/admin_zones.ui");
 
@@ -202,28 +200,21 @@ public class AdminZonePage extends InteractiveCustomUIPage<AdminZoneData> {
             return;
         }
 
-        // Debug logging
-        com.hyperfactions.util.Logger.info("[AdminZonePage] handleDataEvent: button=%s, zoneType=%s, page=%d",
-            data.button, data.zoneType, data.page);
-
         switch (data.button) {
             case "Back" -> guiManager.openAdminMain(player, ref, store, playerRef);
 
             case "TabAll", "TabSafe", "TabWar" -> {
                 String newTab = data.zoneType != null ? data.zoneType : "all";
-                com.hyperfactions.util.Logger.info("[AdminZonePage] Tab changed to: %s", newTab);
                 guiManager.openAdminZone(player, ref, store, playerRef, newTab, 0);
             }
 
             case "PrevPage" -> {
                 int newPage = Math.max(0, data.page);
-                com.hyperfactions.util.Logger.info("[AdminZonePage] PrevPage: now on page %d", newPage);
                 guiManager.openAdminZone(player, ref, store, playerRef, currentTab, newPage);
             }
 
             case "NextPage" -> {
                 int newPage = data.page;
-                com.hyperfactions.util.Logger.info("[AdminZonePage] NextPage: now on page %d", newPage);
                 guiManager.openAdminZone(player, ref, store, playerRef, currentTab, newPage);
             }
 

@@ -101,12 +101,10 @@ $C.@PageOverlay {
           Anchor: (Height: 20);
         }
 
-        $C.@TextField #DescInput {
+        TextField #DescInput {
           Anchor: (Height: 60);
-          Style: (
-            FontSize: 14,
-            TextColor: #ffffff(0.85)
-          );
+          Style: $C.@DefaultInputFieldStyle;
+          Background: $C.@InputBoxBackground;
         }
       }
 

@@ -69,7 +69,7 @@ public class WorldMapService {
             world.getWorldConfig().setWorldMapProvider(new HyperFactionsWorldMapProvider());
 
             registeredWorlds.add(worldName);
-            Logger.info("Registered HyperFactions world map provider for world: %s", worldName);
+            Logger.debugTerritory("Registered world map provider for world: %s", worldName);
 
         } catch (Exception e) {
             Logger.warn("Failed to register world map provider for world %s: %s", worldName, e.getMessage());
@@ -102,7 +102,7 @@ public class WorldMapService {
                 }
             }
 
-            Logger.info("Cleared world map images for world: %s (%d players notified)",
+            Logger.debugTerritory("Cleared world map images for world: %s (%d players)",
                     world.getName(), world.getPlayers().size());
         } catch (Exception e) {
             Logger.warn("Failed to refresh world map for world %s: %s", world.getName(), e.getMessage());
@@ -114,10 +114,7 @@ public class WorldMapService {
      * Call this when faction data changes (color, claims, etc.).
      */
     public void refreshAllWorldMaps() {
-        Logger.info("refreshAllWorldMaps() called");
-
         if (!HyperFactionsConfig.get().isWorldMapMarkersEnabled()) {
-            Logger.info("World map markers disabled, skipping refresh");
             return;
         }
 
@@ -129,7 +126,7 @@ public class WorldMapService {
                     refreshed++;
                 }
             }
-            Logger.info("Refreshed world maps for %d/%d worlds", refreshed, registeredWorlds.size());
+            Logger.debugTerritory("Refreshed world maps for %d/%d worlds", refreshed, registeredWorlds.size());
         } catch (Exception e) {
             Logger.warn("Failed to refresh all world maps: %s", e.getMessage());
         }

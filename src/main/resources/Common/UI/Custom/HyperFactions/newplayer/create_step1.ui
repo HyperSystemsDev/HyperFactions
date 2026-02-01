@@ -42,12 +42,10 @@ $C.@PageOverlay {
           Anchor: (Height: 20);
         }
 
-        $C.@TextField #NameInput {
+        TextField #NameInput {
           Anchor: (Height: 36);
-          Style: (
-            FontSize: 14,
-            TextColor: #ffffff(0.85)
-          );
+          Style: $C.@DefaultInputFieldStyle;
+          Background: $C.@InputBoxBackground;
         }
       }
 
@@ -67,12 +65,10 @@ $C.@PageOverlay {
           LayoutMode: Left;
           Anchor: (Height: 36);
 
-          $C.@TextField #TagInput {
+          TextField #TagInput {
             Anchor: (Height: 36, Width: 120);
-            Style: (
-              FontSize: 14,
-              TextColor: #ffffff(0.85)
-            );
+            Style: $C.@DefaultInputFieldStyle;
+            Background: $C.@InputBoxBackground;
           }
         }
       }

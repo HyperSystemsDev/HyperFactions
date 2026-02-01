@@ -70,19 +70,13 @@ public class ChunkMapPage extends InteractiveCustomUIPage<ChunkMapData> {
     @Override
     public void build(Ref<EntityStore> ref, UICommandBuilder cmd,
                       UIEventBuilder events, Store<EntityStore> store) {
-        Logger.info("[ChunkMapPage] build() started for %s", playerRef.getUsername());
+        Logger.debugTerritory("[ChunkMapPage] build() for %s", playerRef.getUsername());
 
-        // Debug: Log all zones
         var allZones = zoneManager.getAllZones();
-        Logger.info("[ChunkMapPage] Total zones in system: %d", allZones.size());
-        for (Zone z : allZones) {
-            Logger.info("[ChunkMapPage]   Zone '%s' (%s) in world '%s' with %d chunks",
-                z.name(), z.type(), z.world(), z.getChunkCount());
-        }
+        Logger.debugTerritory("[ChunkMapPage] Zones: %d", allZones.size());
 
         UUID viewerUuid = playerRef.getUuid();
         Faction viewerFaction = factionManager.getPlayerFaction(viewerUuid);
-        Logger.info("[ChunkMapPage] viewerFaction: %s", viewerFaction != null ? viewerFaction.name() : "null");
 
         // Get player's current position
         Player player = store.getComponent(ref, Player.getComponentType());
@@ -97,24 +91,19 @@ public class ChunkMapPage extends InteractiveCustomUIPage<ChunkMapData> {
             playerChunkX = ChunkUtil.blockToChunk((int) position.x);
             playerChunkZ = ChunkUtil.blockToChunk((int) position.z);
         }
-        Logger.info("[ChunkMapPage] Player at chunk (%d, %d) in world '%s'", playerChunkX, playerChunkZ, worldName);
+        Logger.debugTerritory("[ChunkMapPage] Player at chunk (%d, %d) in %s", playerChunkX, playerChunkZ, worldName);
 
         // Load the main template
-        Logger.info("[ChunkMapPage] Loading chunk_map.ui template");
         cmd.append("HyperFactions/faction/chunk_map.ui");
 
         // Setup navigation bar
-        Logger.info("[ChunkMapPage] Setting up nav bar");
         NavBarHelper.setupBar(playerRef, viewerFaction != null, PAGE_ID, cmd, events);
-        Logger.info("[ChunkMapPage] Nav bar setup complete");
 
         // Current position info
         cmd.set("#PositionInfo.Text", String.format("Your Position: Chunk (%d, %d)", playerChunkX, playerChunkZ));
 
-        // Build the 9x9 chunk grid
-        Logger.info("[ChunkMapPage] Building chunk grid");
+        // Build the chunk grid
         buildChunkGrid(cmd, events, worldName, playerChunkX, playerChunkZ, viewerFaction);
-        Logger.info("[ChunkMapPage] Chunk grid build complete");
 
         // Claim and power stats
         if (viewerFaction != null) {
@@ -143,8 +132,6 @@ public class ChunkMapPage extends InteractiveCustomUIPage<ChunkMapData> {
             cmd.set("#ClaimStats.Text", "Join a faction to claim");
             cmd.set("#PowerStatus.Text", "");
         }
-
-        Logger.info("[ChunkMapPage] build() completed successfully");
     }
 
     /**
@@ -160,7 +147,6 @@ public class ChunkMapPage extends InteractiveCustomUIPage<ChunkMapData> {
             var member = viewerFaction.getMember(playerRef.getUuid());
             isOfficer = member != null && member.isOfficerOrHigher();
         }
-        Logger.info("[ChunkMapPage] buildChunkGrid: isOfficer=%s, viewerFactionId=%s", isOfficer, viewerFactionId);
 
         // Build 9 rows (z-4 to z+4)
         for (int zOffset = -GRID_RADIUS_Z; zOffset <= GRID_RADIUS_Z; zOffset++) {
@@ -195,7 +181,6 @@ public class ChunkMapPage extends InteractiveCustomUIPage<ChunkMapData> {
                 }
             }
         }
-        Logger.info("[ChunkMapPage] buildChunkGrid: completed %dx%d grid", (GRID_RADIUS_X * 2 + 1), (GRID_RADIUS_Z * 2 + 1));
     }
 
     /**
@@ -303,14 +288,11 @@ public class ChunkMapPage extends InteractiveCustomUIPage<ChunkMapData> {
     public void handleDataEvent(Ref<EntityStore> ref, Store<EntityStore> store,
                                 ChunkMapData data) {
         super.handleDataEvent(ref, store, data);
-        Logger.info("[ChunkMapPage] handleDataEvent: button=%s, chunkX=%d, chunkZ=%d", data.button, data.chunkX, data.chunkZ);
 
         Player player = store.getComponent(ref, Player.getComponentType());
         PlayerRef playerRef = store.getComponent(ref, PlayerRef.getComponentType());
 
         if (player == null || playerRef == null || data.button == null) {
-            Logger.info("[ChunkMapPage] handleDataEvent: early return (player=%s, playerRef=%s, button=%s)",
-                    player != null, playerRef != null, data.button);
             return;
         }
 
@@ -320,7 +302,6 @@ public class ChunkMapPage extends InteractiveCustomUIPage<ChunkMapData> {
 
         // Handle navigation
         if (NavBarHelper.handleNavEvent(data, player, ref, store, playerRef, viewerFaction, guiManager)) {
-            Logger.info("[ChunkMapPage] handleDataEvent: handled by NavBarHelper");
             return;
         }
 
@@ -328,17 +309,13 @@ public class ChunkMapPage extends InteractiveCustomUIPage<ChunkMapData> {
             case "Claim" -> handleClaim(player, playerRef, worldName, data.chunkX, data.chunkZ, ref, store);
             case "Unclaim" -> handleUnclaim(player, playerRef, worldName, data.chunkX, data.chunkZ, ref, store);
             case "Overclaim" -> handleOverclaim(player, playerRef, worldName, data.chunkX, data.chunkZ, ref, store);
-            default -> {
-                Logger.info("[ChunkMapPage] handleDataEvent: unknown button '%s'", data.button);
-            }
+            default -> {}
         }
     }
 
     private void handleClaim(Player player, PlayerRef playerRef, String worldName,
                              int chunkX, int chunkZ, Ref<EntityStore> ref, Store<EntityStore> store) {
-        Logger.info("[ChunkMapPage] handleClaim: chunk (%d, %d) in %s", chunkX, chunkZ, worldName);
         ClaimManager.ClaimResult result = claimManager.claim(playerRef.getUuid(), worldName, chunkX, chunkZ);
-        Logger.info("[ChunkMapPage] handleClaim: result=%s", result);
 
         Message message = switch (result) {
             case SUCCESS -> Message.raw("Claimed chunk at (" + chunkX + ", " + chunkZ + ")!").color("#44cc44");
@@ -360,9 +337,7 @@ public class ChunkMapPage extends InteractiveCustomUIPage<ChunkMapData> {
 
     private void handleUnclaim(Player player, PlayerRef playerRef, String worldName,
                                int chunkX, int chunkZ, Ref<EntityStore> ref, Store<EntityStore> store) {
-        Logger.info("[ChunkMapPage] handleUnclaim: chunk (%d, %d) in %s", chunkX, chunkZ, worldName);
         ClaimManager.ClaimResult result = claimManager.unclaim(playerRef.getUuid(), worldName, chunkX, chunkZ);
-        Logger.info("[ChunkMapPage] handleUnclaim: result=%s", result);
 
         Message message = switch (result) {
             case SUCCESS -> Message.raw("Unclaimed chunk at (" + chunkX + ", " + chunkZ + ").").color("#44cc44");
@@ -382,9 +357,7 @@ public class ChunkMapPage extends InteractiveCustomUIPage<ChunkMapData> {
 
     private void handleOverclaim(Player player, PlayerRef playerRef, String worldName,
                                  int chunkX, int chunkZ, Ref<EntityStore> ref, Store<EntityStore> store) {
-        Logger.info("[ChunkMapPage] handleOverclaim: chunk (%d, %d) in %s", chunkX, chunkZ, worldName);
         ClaimManager.ClaimResult result = claimManager.overclaim(playerRef.getUuid(), worldName, chunkX, chunkZ);
-        Logger.info("[ChunkMapPage] handleOverclaim: result=%s", result);
 
         Message message = switch (result) {
             case SUCCESS -> Message.raw("Overclaimed enemy chunk at (" + chunkX + ", " + chunkZ + ")!").color("#44cc44");

@@ -31,12 +31,10 @@ $C.@Container {
         Anchor: (Height: 20);
       }
 
-      $C.@TextField #NameInput {
+      TextField #NameInput {
         Anchor: (Height: 40);
-        Style: (
-          FontSize: 14,
-          TextColor: #ffffff(0.85)
-        );
+        Style: $C.@DefaultInputFieldStyle;
+        Background: $C.@InputBoxBackground;
       }
     }
 

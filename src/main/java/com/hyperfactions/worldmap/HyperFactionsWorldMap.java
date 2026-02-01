@@ -65,19 +65,10 @@ public class HyperFactionsWorldMap implements IWorldMap {
 
     @Override
     public CompletableFuture<WorldMap> generate(World world, int imageWidth, int imageHeight, LongSet chunksToGenerate) {
-        Logger.info("HyperFactionsWorldMap.generate() called - world: %s, chunks: %d, imageSize: %dx%d",
-                world.getName(), chunksToGenerate.size(), imageWidth, imageHeight);
-
         // Get managers at generation time
         FactionManager factionManager = getFactionManager();
         ClaimManager claimManager = getClaimManager();
         ZoneManager zoneManager = getZoneManager();
-
-        // Log manager availability
-        Logger.info("HyperFactionsWorldMap managers - factionManager: %s, claimManager: %s, zoneManager: %s",
-                factionManager != null ? "OK" : "NULL",
-                claimManager != null ? "OK" : "NULL",
-                zoneManager != null ? "OK" : "NULL");
 
         @SuppressWarnings("unchecked")
         CompletableFuture<ClaimImageBuilder>[] futures = new CompletableFuture[chunksToGenerate.size()];
