@@ -222,6 +222,9 @@ public class HyperFactions {
         // Wire up claim change callback to refresh world maps
         claimManager.setOnClaimChangeCallback(worldMapService::refreshAllWorldMaps);
 
+        // Wire up zone change callback to refresh world maps
+        zoneManager.setOnZoneChangeCallback(worldMapService::refreshAllWorldMaps);
+
         // Initialize update checker if enabled
         if (HyperFactionsConfig.get().isUpdateCheckEnabled()) {
             updateChecker = new UpdateChecker(dataDir, VERSION, HyperFactionsConfig.get().getUpdateCheckUrl());

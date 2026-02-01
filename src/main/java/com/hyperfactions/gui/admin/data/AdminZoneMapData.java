@@ -5,21 +5,16 @@ import com.hypixel.hytale.codec.KeyedCodec;
 import com.hypixel.hytale.codec.builder.BuilderCodec;
 
 /**
- * Event data for the Admin Zone management page.
+ * Event data for the Admin Zone Map page.
+ * Used for claiming/unclaiming chunks for a specific zone.
  */
-public class AdminZoneData {
+public class AdminZoneMapData {
 
     /** The button/action that triggered the event */
     public String button;
 
-    /** Zone ID (if any) */
+    /** Zone ID being edited */
     public String zoneId;
-
-    /** Zone name (if any) */
-    public String zoneName;
-
-    /** Zone type (safe, war) */
-    public String zoneType;
 
     /** Target chunk X coordinate */
     public int chunkX;
@@ -27,15 +22,9 @@ public class AdminZoneData {
     /** Target chunk Z coordinate */
     public int chunkZ;
 
-    /** Current page number (for pagination) */
-    public int page;
-
-    /** Zone name input from wizard */
-    public String inputName;
-
     /** Codec for serialization/deserialization */
-    public static final BuilderCodec<AdminZoneData> CODEC = BuilderCodec
-            .builder(AdminZoneData.class, AdminZoneData::new)
+    public static final BuilderCodec<AdminZoneMapData> CODEC = BuilderCodec
+            .builder(AdminZoneMapData.class, AdminZoneMapData::new)
             .addField(
                     new KeyedCodec<>("Button", Codec.STRING),
                     (data, value) -> data.button = value,
@@ -45,16 +34,6 @@ public class AdminZoneData {
                     new KeyedCodec<>("ZoneId", Codec.STRING),
                     (data, value) -> data.zoneId = value,
                     data -> data.zoneId
-            )
-            .addField(
-                    new KeyedCodec<>("ZoneName", Codec.STRING),
-                    (data, value) -> data.zoneName = value,
-                    data -> data.zoneName
-            )
-            .addField(
-                    new KeyedCodec<>("ZoneType", Codec.STRING),
-                    (data, value) -> data.zoneType = value,
-                    data -> data.zoneType
             )
             .addField(
                     new KeyedCodec<>("ChunkX", Codec.STRING),
@@ -78,24 +57,8 @@ public class AdminZoneData {
                     },
                     data -> String.valueOf(data.chunkZ)
             )
-            .addField(
-                    new KeyedCodec<>("Page", Codec.STRING),
-                    (data, value) -> {
-                        try {
-                            data.page = value != null ? Integer.parseInt(value) : 0;
-                        } catch (NumberFormatException e) {
-                            data.page = 0;
-                        }
-                    },
-                    data -> String.valueOf(data.page)
-            )
-            .addField(
-                    new KeyedCodec<>("@Name", Codec.STRING),
-                    (data, value) -> data.inputName = value,
-                    data -> data.inputName
-            )
             .build();
 
-    public AdminZoneData() {
+    public AdminZoneMapData() {
     }
 }

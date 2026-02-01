@@ -8,7 +8,7 @@ Group {
   LayoutMode: Left;
 
   Group {
-    Anchor: (Width: 180);
+    Anchor: (Width: 160);
     LayoutMode: Top;
 
     Label #ZoneName {
@@ -17,16 +17,22 @@ Group {
       Anchor: (Height: 18);
     }
     Label #ZoneType {
-      Text: "SAFE";
+      Text: "SAFE (0 chunks)";
       Style: (FontSize: 11, TextColor: #888888, VerticalAlignment: Center);
       Anchor: (Height: 16);
     }
   }
 
   Label #ZoneLocation {
-    Text: "world (0, 0)";
+    Text: "world";
     Style: (FontSize: 11, TextColor: #666666, VerticalAlignment: Center);
     FlexWeight: 1;
+  }
+
+  TextButton #EditMapBtn {
+    Text: "EDIT MAP";
+    Anchor: (Height: 26, Width: 80, Right: 5);
+    Style: $S.@SmallButtonStyle;
   }
 
   TextButton #DeleteBtn {

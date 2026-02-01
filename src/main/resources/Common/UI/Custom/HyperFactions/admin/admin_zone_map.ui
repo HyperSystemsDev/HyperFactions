@@ -1,0 +1,163 @@
+// Admin Zone Map Page
+// Interactive 29x17 chunk grid for claiming/unclaiming chunks for a specific zone
+// Left-click unclaimed to claim, right-click zone chunk to unclaim
+
+$C = "../../Common.ui";
+$S = "../shared/styles.ui";
+
+$C.@PageOverlay {}
+
+$C.@Container {
+  Anchor: (Width: 520, Height: 580);
+
+  #Title {
+    $C.@Title {
+      @Text = "Zone Map Editor";
+    }
+  }
+
+  #Content {
+    LayoutMode: Top;
+    Padding: (Left: 15, Right: 15, Top: 15, Bottom: 15);
+
+    // Zone header info
+    Group #ZoneHeader {
+      Anchor: (Height: 25, Bottom: 5);
+      LayoutMode: Left;
+
+      Label #ZoneTitle {
+        Text: "Zone Name (Type)";
+        Style: (FontSize: 14, TextColor: #00FFFF, RenderBold: true, VerticalAlignment: Center);
+        FlexWeight: 1;
+      }
+
+      Label #ZoneStats {
+        Text: "0 chunks claimed";
+        Style: (FontSize: 12, TextColor: #888888, VerticalAlignment: Center);
+        Anchor: (Width: 120);
+      }
+    }
+
+    // Position info
+    Label #PositionInfo {
+      Text: "Your Position: Chunk (0, 0)";
+      Style: (FontSize: 12, TextColor: #888888, HorizontalAlignment: Center);
+      Anchor: (Height: 20, Bottom: 5);
+    }
+
+    // Grid container - 29 columns x 17 rows at 16px (464x272 + 10px padding)
+    Group #ChunkGrid {
+      LayoutMode: Top;
+      Anchor: (Height: 285);
+      Background: (Color: #1a2a3a);
+      Padding: (Left: 5, Right: 5, Top: 5, Bottom: 5);
+    }
+
+    // Action hints
+    Label #ActionHint {
+      Text: "Left-click: Claim for zone | Right-click: Unclaim from zone";
+      Style: (FontSize: 11, TextColor: #888888, HorizontalAlignment: Center);
+      Anchor: (Height: 18, Top: 8, Bottom: 5);
+    }
+
+    // Divider
+    Group {
+      Anchor: (Height: 1, Bottom: 8);
+      Background: (Color: #00AAAA);
+    }
+
+    // Legend container
+    Group #LegendContainer {
+      LayoutMode: Left;
+      Anchor: (Height: 50);
+
+      // Column 1 - Current zone
+      Group {
+        LayoutMode: Top;
+        Anchor: (Width: 130);
+
+        Group {
+          LayoutMode: Left;
+          Anchor: (Height: 16);
+          Group { Anchor: (Width: 12, Height: 12); Background: (Color: #14b8a6); }
+          Label { Text: " This Zone (Safe)"; Style: (FontSize: 10, TextColor: #cccccc, VerticalAlignment: Center); }
+        }
+        Group {
+          LayoutMode: Left;
+          Anchor: (Height: 16);
+          Group { Anchor: (Width: 12, Height: 12); Background: (Color: #a855f7); }
+          Label { Text: " This Zone (War)"; Style: (FontSize: 10, TextColor: #cccccc, VerticalAlignment: Center); }
+        }
+      }
+
+      // Column 2 - Other zones
+      Group {
+        LayoutMode: Top;
+        Anchor: (Width: 120);
+
+        Group {
+          LayoutMode: Left;
+          Anchor: (Height: 16);
+          Group { Anchor: (Width: 12, Height: 12); Background: (Color: #2dd4bf80); }
+          Label { Text: " Other SafeZone"; Style: (FontSize: 10, TextColor: #cccccc, VerticalAlignment: Center); }
+        }
+        Group {
+          LayoutMode: Left;
+          Anchor: (Height: 16);
+          Group { Anchor: (Width: 12, Height: 12); Background: (Color: #c084fc80); }
+          Label { Text: " Other WarZone"; Style: (FontSize: 10, TextColor: #cccccc, VerticalAlignment: Center); }
+        }
+      }
+
+      // Column 3 - Other claims
+      Group {
+        LayoutMode: Top;
+        Anchor: (Width: 120);
+
+        Group {
+          LayoutMode: Left;
+          Anchor: (Height: 16);
+          Group { Anchor: (Width: 12, Height: 12); Background: (Color: #6b7280); }
+          Label { Text: " Faction Claim"; Style: (FontSize: 10, TextColor: #cccccc, VerticalAlignment: Center); }
+        }
+        Group {
+          LayoutMode: Left;
+          Anchor: (Height: 16);
+          Group { Anchor: (Width: 12, Height: 12); Background: (Color: #1e293b); }
+          Label { Text: " Unclaimed"; Style: (FontSize: 10, TextColor: #cccccc, VerticalAlignment: Center); }
+        }
+      }
+
+      // Column 4 - Player marker
+      Group {
+        LayoutMode: Top;
+        Anchor: (Width: 100);
+
+        Group {
+          LayoutMode: Left;
+          Anchor: (Height: 16);
+          Group { Anchor: (Width: 12, Height: 12); Background: (Color: #ffffff); }
+          Label { Text: " You are here"; Style: (FontSize: 10, TextColor: #cccccc, VerticalAlignment: Center); }
+        }
+      }
+    }
+
+    // Confirm button
+    Group {
+      Anchor: (Height: 40, Top: 10);
+      LayoutMode: Left;
+
+      Label { FlexWeight: 1; }
+
+      TextButton #ConfirmBtn {
+        Text: "DONE";
+        Anchor: (Height: 36, Width: 120);
+        Style: $S.@GreenButtonStyle;
+      }
+
+      Label { FlexWeight: 1; }
+    }
+  }
+}
+
+$C.@BackButton {}

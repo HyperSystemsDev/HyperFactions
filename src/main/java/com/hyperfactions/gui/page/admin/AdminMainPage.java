@@ -182,24 +182,23 @@ public class AdminMainPage extends InteractiveCustomUIPage<AdminMainData> {
 
             case "Reload" -> {
                 guiManager.closePage(player, ref, store);
-                player.sendMessage(Message.raw("Use /f admin reload to reload configuration.").color("#00FFFF"));
+                player.sendMessage(Message.raw("Use /f reload to reload configuration.").color("#00FFFF"));
             }
 
             case "PrevPage" -> {
                 currentPage = Math.max(0, data.page);
-                guiManager.openAdminMain(player, ref, store, playerRef);
+                sendUpdate(); // Refresh current page
             }
 
             case "NextPage" -> {
                 currentPage = data.page;
-                guiManager.openAdminMain(player, ref, store, playerRef);
+                sendUpdate(); // Refresh current page
             }
 
             case "Disband" -> {
                 if (data.factionId != null) {
                     try {
                         UUID factionId = UUID.fromString(data.factionId);
-                        UUID adminUuid = playerRef.getUuid();
                         // Admin bypass - get the leader's UUID to disband
                         Faction faction = factionManager.getFaction(factionId);
                         if (faction != null) {
@@ -215,7 +214,7 @@ public class AdminMainPage extends InteractiveCustomUIPage<AdminMainData> {
                                 player.sendMessage(Message.raw("Faction has no leader, cannot disband.").color("#FF5555"));
                             }
                         }
-                        guiManager.openAdminMain(player, ref, store, playerRef);
+                        sendUpdate(); // Refresh to show updated faction list
                     } catch (IllegalArgumentException e) {
                         player.sendMessage(Message.raw("Invalid faction.").color("#FF5555"));
                     }
@@ -233,7 +232,6 @@ public class AdminMainPage extends InteractiveCustomUIPage<AdminMainData> {
                             guiManager.closePage(player, ref, store);
                             player.sendMessage(Message.raw("Use /f admin unclaim " + data.factionName + " to unclaim all " + claimCount + " chunks.").color("#FFAA00"));
                         }
-                        guiManager.openAdminMain(player, ref, store, playerRef);
                     } catch (IllegalArgumentException e) {
                         player.sendMessage(Message.raw("Invalid faction.").color("#FF5555"));
                     }

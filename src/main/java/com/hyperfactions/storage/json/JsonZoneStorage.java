@@ -6,6 +6,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.hyperfactions.data.ChunkKey;
 import com.hyperfactions.data.Zone;
 import com.hyperfactions.data.ZoneType;
 import com.hyperfactions.storage.ZoneStorage;
@@ -17,12 +18,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.Map;
-import java.util.HashMap;
 
 /**
  * JSON file-based implementation of ZoneStorage.
  * Stores all zones in a single file: data/zones.json
+ *
+ * Supports both old single-chunk format (for migration) and new multi-chunk format.
  */
 public class JsonZoneStorage implements ZoneStorage {
 
@@ -106,8 +107,17 @@ public class JsonZoneStorage implements ZoneStorage {
         obj.addProperty("name", zone.name());
         obj.addProperty("type", zone.type().name());
         obj.addProperty("world", zone.world());
-        obj.addProperty("chunkX", zone.chunkX());
-        obj.addProperty("chunkZ", zone.chunkZ());
+
+        // Serialize chunks as array
+        JsonArray chunksArray = new JsonArray();
+        for (ChunkKey chunk : zone.chunks()) {
+            JsonObject chunkObj = new JsonObject();
+            chunkObj.addProperty("x", chunk.chunkX());
+            chunkObj.addProperty("z", chunk.chunkZ());
+            chunksArray.add(chunkObj);
+        }
+        obj.add("chunks", chunksArray);
+
         obj.addProperty("createdAt", zone.createdAt());
         obj.addProperty("createdBy", zone.createdBy().toString());
 
@@ -124,6 +134,33 @@ public class JsonZoneStorage implements ZoneStorage {
     }
 
     private Zone deserializeZone(JsonObject obj) {
+        UUID id = UUID.fromString(obj.get("id").getAsString());
+        String name = obj.get("name").getAsString();
+        ZoneType type = ZoneType.valueOf(obj.get("type").getAsString());
+        String world = obj.get("world").getAsString();
+        long createdAt = obj.get("createdAt").getAsLong();
+        UUID createdBy = UUID.fromString(obj.get("createdBy").getAsString());
+
+        // Deserialize chunks - support both old and new format
+        Set<ChunkKey> chunks = new HashSet<>();
+
+        if (obj.has("chunks") && obj.get("chunks").isJsonArray()) {
+            // New multi-chunk format
+            JsonArray chunksArray = obj.getAsJsonArray("chunks");
+            for (JsonElement el : chunksArray) {
+                JsonObject chunkObj = el.getAsJsonObject();
+                int x = chunkObj.get("x").getAsInt();
+                int z = chunkObj.get("z").getAsInt();
+                chunks.add(new ChunkKey(world, x, z));
+            }
+        } else if (obj.has("chunkX") && obj.has("chunkZ")) {
+            // Old single-chunk format (migration support)
+            int chunkX = obj.get("chunkX").getAsInt();
+            int chunkZ = obj.get("chunkZ").getAsInt();
+            chunks.add(new ChunkKey(world, chunkX, chunkZ));
+            Logger.info("Migrated zone '%s' from single-chunk to multi-chunk format", name);
+        }
+
         // Deserialize flags if present
         Map<String, Boolean> flags = null;
         if (obj.has("flags") && obj.get("flags").isJsonObject()) {
@@ -134,16 +171,6 @@ public class JsonZoneStorage implements ZoneStorage {
             }
         }
 
-        return new Zone(
-            UUID.fromString(obj.get("id").getAsString()),
-            obj.get("name").getAsString(),
-            ZoneType.valueOf(obj.get("type").getAsString()),
-            obj.get("world").getAsString(),
-            obj.get("chunkX").getAsInt(),
-            obj.get("chunkZ").getAsInt(),
-            obj.get("createdAt").getAsLong(),
-            UUID.fromString(obj.get("createdBy").getAsString()),
-            flags
-        );
+        return new Zone(id, name, type, world, chunks, createdAt, createdBy, flags);
     }
 }

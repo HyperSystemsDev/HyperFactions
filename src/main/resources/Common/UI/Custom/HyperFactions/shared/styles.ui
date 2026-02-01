@@ -183,6 +183,42 @@ $C = "../../Common.ui";
   Sounds: $C.@ButtonSounds,
 );
 
+// =============================================================================
+// ZONE BUTTON STYLES (SafeZone = Teal, WarZone = Purple)
+// =============================================================================
+
+@TealLabelStyle = LabelStyle(
+  FontSize: 13,
+  TextColor: #2dd4bf,
+  RenderBold: true,
+  HorizontalAlignment: Center,
+  VerticalAlignment: Center
+);
+
+@PurpleLabelStyle = LabelStyle(
+  FontSize: 13,
+  TextColor: #c084fc,
+  RenderBold: true,
+  HorizontalAlignment: Center,
+  VerticalAlignment: Center
+);
+
+@TealButtonStyle = TextButtonStyle(
+  Default: (Background: $C.@DefaultSquareButtonDefaultBackground, LabelStyle: @TealLabelStyle),
+  Hovered: (Background: $C.@DefaultSquareButtonHoveredBackground, LabelStyle: @TealLabelStyle),
+  Pressed: (Background: $C.@DefaultSquareButtonPressedBackground, LabelStyle: @TealLabelStyle),
+  Disabled: (Background: $C.@DefaultSquareButtonDisabledBackground, LabelStyle: @TealLabelStyle),
+  Sounds: $C.@ButtonSounds,
+);
+
+@PurpleButtonStyle = TextButtonStyle(
+  Default: (Background: $C.@DefaultSquareButtonDefaultBackground, LabelStyle: @PurpleLabelStyle),
+  Hovered: (Background: $C.@DefaultSquareButtonHoveredBackground, LabelStyle: @PurpleLabelStyle),
+  Pressed: (Background: $C.@DefaultSquareButtonPressedBackground, LabelStyle: @PurpleLabelStyle),
+  Disabled: (Background: $C.@DefaultSquareButtonDisabledBackground, LabelStyle: @PurpleLabelStyle),
+  Sounds: $C.@ButtonSounds,
+);
+
 // TOC link style - small text link for table of contents
 @TocLinkLabelStyle = LabelStyle(
   FontSize: 10,

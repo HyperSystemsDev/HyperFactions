@@ -4,6 +4,7 @@ import com.hyperfactions.HyperFactions;
 import com.hyperfactions.data.Faction;
 import com.hyperfactions.data.FactionMember;
 import com.hyperfactions.data.FactionRole;
+import com.hyperfactions.data.Zone;
 import com.hyperfactions.gui.faction.*;
 import com.hyperfactions.gui.faction.page.*;
 import com.hyperfactions.gui.help.HelpCategory;
@@ -939,18 +940,118 @@ public class GuiManager {
      */
     public void openAdminZone(Player player, Ref<EntityStore> ref,
                               Store<EntityStore> store, PlayerRef playerRef) {
-        Logger.debug("[GUI] Opening AdminZonePage for %s", playerRef.getUsername());
+        openAdminZone(player, ref, store, playerRef, "all", 0);
+    }
+
+    public void openAdminZone(Player player, Ref<EntityStore> ref,
+                              Store<EntityStore> store, PlayerRef playerRef,
+                              String tab, int page) {
+        Logger.debug("[GUI] Opening AdminZonePage for %s (tab=%s, page=%d)", playerRef.getUsername(), tab, page);
         try {
             PageManager pageManager = player.getPageManager();
-            AdminZonePage page = new AdminZonePage(
+            AdminZonePage zonePage = new AdminZonePage(
                 playerRef,
                 zoneManager.get(),
-                this
+                this,
+                tab,
+                page
             );
-            pageManager.openCustomPage(ref, store, page);
+            pageManager.openCustomPage(ref, store, zonePage);
             Logger.debug("[GUI] AdminZonePage opened successfully");
         } catch (Exception e) {
             Logger.severe("[GUI] Failed to open AdminZonePage: %s", e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Opens the Create Zone Wizard page.
+     *
+     * @param player    The Player entity
+     * @param ref       The entity reference
+     * @param store     The entity store
+     * @param playerRef The PlayerRef component
+     */
+    public void openCreateZoneWizard(Player player, Ref<EntityStore> ref,
+                                     Store<EntityStore> store, PlayerRef playerRef) {
+        openCreateZoneWizard(player, ref, store, playerRef, com.hyperfactions.data.ZoneType.SAFE);
+    }
+
+    /**
+     * Opens the Create Zone Wizard page with a specific type selected.
+     *
+     * @param player    The Player entity
+     * @param ref       The entity reference
+     * @param store     The entity store
+     * @param playerRef The PlayerRef component
+     * @param selectedType The initially selected zone type
+     */
+    public void openCreateZoneWizard(Player player, Ref<EntityStore> ref,
+                                     Store<EntityStore> store, PlayerRef playerRef,
+                                     com.hyperfactions.data.ZoneType selectedType) {
+        openCreateZoneWizard(player, ref, store, playerRef, selectedType, "");
+    }
+
+    /**
+     * Opens the Create Zone Wizard page with a specific type and preserved name.
+     * Used when switching zone types to preserve the entered name.
+     *
+     * @param player        The Player entity
+     * @param ref           The entity reference
+     * @param store         The entity store
+     * @param playerRef     The PlayerRef component
+     * @param selectedType  The selected zone type
+     * @param preservedName The preserved zone name from previous input
+     */
+    public void openCreateZoneWizard(Player player, Ref<EntityStore> ref,
+                                     Store<EntityStore> store, PlayerRef playerRef,
+                                     com.hyperfactions.data.ZoneType selectedType,
+                                     String preservedName) {
+        Logger.debug("[GUI] Opening CreateZoneWizardPage for %s (type: %s, name: '%s')",
+                playerRef.getUsername(), selectedType.name(), preservedName);
+        try {
+            PageManager pageManager = player.getPageManager();
+            CreateZoneWizardPage page = new CreateZoneWizardPage(
+                playerRef,
+                zoneManager.get(),
+                this,
+                selectedType,
+                preservedName
+            );
+            pageManager.openCustomPage(ref, store, page);
+            Logger.debug("[GUI] CreateZoneWizardPage opened successfully");
+        } catch (Exception e) {
+            Logger.severe("[GUI] Failed to open CreateZoneWizardPage: %s", e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Opens the Admin Zone Map page for editing a specific zone.
+     *
+     * @param player    The Player entity
+     * @param ref       The entity reference
+     * @param store     The entity store
+     * @param playerRef The PlayerRef component
+     * @param zone      The zone to edit
+     */
+    public void openAdminZoneMap(Player player, Ref<EntityStore> ref,
+                                 Store<EntityStore> store, PlayerRef playerRef,
+                                 Zone zone) {
+        Logger.debug("[GUI] Opening AdminZoneMapPage for %s (zone: %s)", playerRef.getUsername(), zone.name());
+        try {
+            PageManager pageManager = player.getPageManager();
+            AdminZoneMapPage page = new AdminZoneMapPage(
+                playerRef,
+                zone,
+                zoneManager.get(),
+                claimManager.get(),
+                this
+            );
+            pageManager.openCustomPage(ref, store, page);
+            Logger.debug("[GUI] AdminZoneMapPage opened successfully");
+        } catch (Exception e) {
+            Logger.severe("[GUI] Failed to open AdminZoneMapPage: %s", e.getMessage());
             e.printStackTrace();
         }
     }

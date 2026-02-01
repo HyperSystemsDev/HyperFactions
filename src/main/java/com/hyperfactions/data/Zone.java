@@ -3,20 +3,16 @@ package com.hyperfactions.data;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 /**
- * Represents a special zone (SafeZone or WarZone).
+ * Represents a special zone (SafeZone or WarZone) that can span multiple chunks.
  *
  * @param id        unique identifier for the zone
  * @param name      display name of the zone
  * @param type      the zone type
  * @param world     the world name
- * @param chunkX    the chunk X coordinate
- * @param chunkZ    the chunk Z coordinate
+ * @param chunks    the set of chunks belonging to this zone
  * @param createdAt when the zone was created (epoch millis)
  * @param createdBy UUID of the admin who created it
  * @param flags     custom flags for this zone (null = use defaults)
@@ -26,14 +22,36 @@ public record Zone(
     @NotNull String name,
     @NotNull ZoneType type,
     @NotNull String world,
-    int chunkX,
-    int chunkZ,
+    @NotNull Set<ChunkKey> chunks,
     long createdAt,
     @NotNull UUID createdBy,
     @Nullable Map<String, Boolean> flags
 ) {
     /**
-     * Creates a new zone with default flags.
+     * Compact constructor ensures chunks is never null and immutable.
+     */
+    public Zone {
+        chunks = chunks != null ? Set.copyOf(chunks) : Set.of();
+    }
+
+    /**
+     * Creates a new zone with no chunks (empty zone).
+     *
+     * @param name      the zone name
+     * @param type      the zone type
+     * @param world     the world name
+     * @param createdBy UUID of the creator
+     * @return a new Zone with no chunks
+     */
+    public static Zone create(@NotNull String name, @NotNull ZoneType type,
+                              @NotNull String world, @NotNull UUID createdBy) {
+        return new Zone(UUID.randomUUID(), name, type, world, Set.of(),
+                       System.currentTimeMillis(), createdBy, null);
+    }
+
+    /**
+     * Creates a new zone with a single initial chunk.
+     * This provides backwards compatibility with the old single-chunk creation pattern.
      *
      * @param name      the zone name
      * @param type      the zone type
@@ -41,35 +59,120 @@ public record Zone(
      * @param chunkX    the chunk X
      * @param chunkZ    the chunk Z
      * @param createdBy UUID of the creator
-     * @return a new Zone
+     * @return a new Zone with one chunk
      */
     public static Zone create(@NotNull String name, @NotNull ZoneType type,
                               @NotNull String world, int chunkX, int chunkZ,
                               @NotNull UUID createdBy) {
-        return new Zone(UUID.randomUUID(), name, type, world, chunkX, chunkZ,
+        ChunkKey chunk = new ChunkKey(world, chunkX, chunkZ);
+        return new Zone(UUID.randomUUID(), name, type, world, Set.of(chunk),
                        System.currentTimeMillis(), createdBy, null);
     }
 
     /**
-     * Gets the ChunkKey for this zone.
+     * Checks if this zone contains a specific chunk.
      *
-     * @return the chunk key
+     * @param chunk the chunk key to check
+     * @return true if the zone contains this chunk
      */
-    @NotNull
-    public ChunkKey toChunkKey() {
-        return new ChunkKey(world, chunkX, chunkZ);
+    public boolean containsChunk(@NotNull ChunkKey chunk) {
+        return chunks.contains(chunk);
     }
 
     /**
-     * Checks if this zone is at the given location.
+     * Checks if this zone contains a chunk at the given coordinates.
+     *
+     * @param chunkX the chunk X coordinate
+     * @param chunkZ the chunk Z coordinate
+     * @return true if the zone contains this chunk
+     */
+    public boolean containsChunk(int chunkX, int chunkZ) {
+        return chunks.contains(new ChunkKey(world, chunkX, chunkZ));
+    }
+
+    /**
+     * Checks if this zone is at the given location (backwards compatibility).
      *
      * @param worldName the world name
      * @param x         the chunk X
      * @param z         the chunk Z
-     * @return true if matching
+     * @return true if the zone contains this chunk
      */
     public boolean isAt(@NotNull String worldName, int x, int z) {
-        return world.equals(worldName) && chunkX == x && chunkZ == z;
+        if (!world.equals(worldName)) {
+            return false;
+        }
+        return containsChunk(x, z);
+    }
+
+    /**
+     * Creates a copy with an additional chunk.
+     *
+     * @param chunk the chunk to add
+     * @return a new Zone with the chunk added
+     */
+    public Zone withChunk(@NotNull ChunkKey chunk) {
+        if (chunks.contains(chunk)) {
+            return this;
+        }
+        Set<ChunkKey> newChunks = new HashSet<>(chunks);
+        newChunks.add(chunk);
+        return new Zone(id, name, type, world, newChunks, createdAt, createdBy, flags);
+    }
+
+    /**
+     * Creates a copy with an additional chunk at the given coordinates.
+     *
+     * @param chunkX the chunk X coordinate
+     * @param chunkZ the chunk Z coordinate
+     * @return a new Zone with the chunk added
+     */
+    public Zone withChunk(int chunkX, int chunkZ) {
+        return withChunk(new ChunkKey(world, chunkX, chunkZ));
+    }
+
+    /**
+     * Creates a copy with a chunk removed.
+     *
+     * @param chunk the chunk to remove
+     * @return a new Zone with the chunk removed
+     */
+    public Zone withoutChunk(@NotNull ChunkKey chunk) {
+        if (!chunks.contains(chunk)) {
+            return this;
+        }
+        Set<ChunkKey> newChunks = new HashSet<>(chunks);
+        newChunks.remove(chunk);
+        return new Zone(id, name, type, world, newChunks, createdAt, createdBy, flags);
+    }
+
+    /**
+     * Creates a copy with a chunk at the given coordinates removed.
+     *
+     * @param chunkX the chunk X coordinate
+     * @param chunkZ the chunk Z coordinate
+     * @return a new Zone with the chunk removed
+     */
+    public Zone withoutChunk(int chunkX, int chunkZ) {
+        return withoutChunk(new ChunkKey(world, chunkX, chunkZ));
+    }
+
+    /**
+     * Gets the number of chunks in this zone.
+     *
+     * @return the chunk count
+     */
+    public int getChunkCount() {
+        return chunks.size();
+    }
+
+    /**
+     * Checks if this zone has no chunks.
+     *
+     * @return true if the zone is empty
+     */
+    public boolean isEmpty() {
+        return chunks.isEmpty();
     }
 
     /**
@@ -97,7 +200,7 @@ public record Zone(
      * @return a new Zone with updated name
      */
     public Zone withName(@NotNull String newName) {
-        return new Zone(id, newName, type, world, chunkX, chunkZ, createdAt, createdBy, flags);
+        return new Zone(id, newName, type, world, chunks, createdAt, createdBy, flags);
     }
 
     /**
@@ -110,7 +213,7 @@ public record Zone(
     public Zone withFlag(@NotNull String flagName, boolean value) {
         Map<String, Boolean> newFlags = flags != null ? new HashMap<>(flags) : new HashMap<>();
         newFlags.put(flagName, value);
-        return new Zone(id, name, type, world, chunkX, chunkZ, createdAt, createdBy, newFlags);
+        return new Zone(id, name, type, world, chunks, createdAt, createdBy, newFlags);
     }
 
     /**
@@ -125,7 +228,7 @@ public record Zone(
         }
         Map<String, Boolean> newFlags = new HashMap<>(flags);
         newFlags.remove(flagName);
-        return new Zone(id, name, type, world, chunkX, chunkZ, createdAt, createdBy,
+        return new Zone(id, name, type, world, chunks, createdAt, createdBy,
                        newFlags.isEmpty() ? null : newFlags);
     }
 
@@ -136,7 +239,7 @@ public record Zone(
      * @return a new Zone with updated flags
      */
     public Zone withFlags(@Nullable Map<String, Boolean> newFlags) {
-        return new Zone(id, name, type, world, chunkX, chunkZ, createdAt, createdBy, newFlags);
+        return new Zone(id, name, type, world, chunks, createdAt, createdBy, newFlags);
     }
 
     /**

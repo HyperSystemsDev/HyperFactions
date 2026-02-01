@@ -72,6 +72,14 @@ public class ChunkMapPage extends InteractiveCustomUIPage<ChunkMapData> {
                       UIEventBuilder events, Store<EntityStore> store) {
         Logger.info("[ChunkMapPage] build() started for %s", playerRef.getUsername());
 
+        // Debug: Log all zones
+        var allZones = zoneManager.getAllZones();
+        Logger.info("[ChunkMapPage] Total zones in system: %d", allZones.size());
+        for (Zone z : allZones) {
+            Logger.info("[ChunkMapPage]   Zone '%s' (%s) in world '%s' with %d chunks",
+                z.name(), z.type(), z.world(), z.getChunkCount());
+        }
+
         UUID viewerUuid = playerRef.getUuid();
         Faction viewerFaction = factionManager.getPlayerFaction(viewerUuid);
         Logger.info("[ChunkMapPage] viewerFaction: %s", viewerFaction != null ? viewerFaction.name() : "null");
@@ -246,6 +254,7 @@ public class ChunkMapPage extends InteractiveCustomUIPage<ChunkMapData> {
         // Check for zone first
         Zone zone = zoneManager.getZone(worldName, chunkX, chunkZ);
         if (zone != null) {
+            Logger.debug("[ChunkMapPage] Found zone '%s' at (%d, %d) in %s", zone.name(), chunkX, chunkZ, worldName);
             if (zone.type() == ZoneType.SAFE) {
                 return new ChunkInfo(ChunkType.SAFEZONE, COLOR_SAFEZONE, null);
             } else {
@@ -302,7 +311,6 @@ public class ChunkMapPage extends InteractiveCustomUIPage<ChunkMapData> {
         if (player == null || playerRef == null || data.button == null) {
             Logger.info("[ChunkMapPage] handleDataEvent: early return (player=%s, playerRef=%s, button=%s)",
                     player != null, playerRef != null, data.button);
-            sendUpdate();
             return;
         }
 
@@ -322,7 +330,6 @@ public class ChunkMapPage extends InteractiveCustomUIPage<ChunkMapData> {
             case "Overclaim" -> handleOverclaim(player, playerRef, worldName, data.chunkX, data.chunkZ, ref, store);
             default -> {
                 Logger.info("[ChunkMapPage] handleDataEvent: unknown button '%s'", data.button);
-                sendUpdate();
             }
         }
     }
@@ -347,7 +354,7 @@ public class ChunkMapPage extends InteractiveCustomUIPage<ChunkMapData> {
 
         player.sendMessage(message);
 
-        // Refresh the map
+        // Refresh the map by opening new page instance
         guiManager.openChunkMap(player, ref, store, playerRef);
     }
 
@@ -369,7 +376,7 @@ public class ChunkMapPage extends InteractiveCustomUIPage<ChunkMapData> {
 
         player.sendMessage(message);
 
-        // Refresh the map
+        // Refresh the map by opening new page instance
         guiManager.openChunkMap(player, ref, store, playerRef);
     }
 
@@ -392,7 +399,7 @@ public class ChunkMapPage extends InteractiveCustomUIPage<ChunkMapData> {
 
         player.sendMessage(message);
 
-        // Refresh the map
+        // Refresh the map by opening new page instance
         guiManager.openChunkMap(player, ref, store, playerRef);
     }
 

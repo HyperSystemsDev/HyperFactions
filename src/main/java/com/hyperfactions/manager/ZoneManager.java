@@ -16,21 +16,53 @@ import java.util.stream.Collectors;
 
 /**
  * Manages SafeZones and WarZones.
+ * Zones can span multiple chunks and are managed as named entities.
  */
 public class ZoneManager {
 
     private final ZoneStorage storage;
     private final ClaimManager claimManager;
 
-    // Index: ChunkKey -> Zone
+    // Index: ChunkKey -> Zone (for quick lookup by chunk)
     private final Map<ChunkKey, Zone> zoneIndex = new ConcurrentHashMap<>();
 
     // All zones by ID
     private final Map<UUID, Zone> zonesById = new ConcurrentHashMap<>();
 
+    // Zones by name (case-insensitive)
+    private final Map<String, Zone> zonesByName = new ConcurrentHashMap<>();
+
+    // Callback for when zones change (used to refresh world map)
+    @Nullable
+    private Runnable onZoneChangeCallback;
+
     public ZoneManager(@NotNull ZoneStorage storage, @NotNull ClaimManager claimManager) {
         this.storage = storage;
         this.claimManager = claimManager;
+    }
+
+    /**
+     * Sets a callback to be invoked when zones change.
+     * Used to trigger world map refresh.
+     *
+     * @param callback the callback to run on zone changes
+     */
+    public void setOnZoneChangeCallback(@Nullable Runnable callback) {
+        this.onZoneChangeCallback = callback;
+    }
+
+    /**
+     * Notifies that zones have changed (triggers world map refresh).
+     */
+    private void notifyZoneChange() {
+        Logger.info("notifyZoneChange() called, callback set: %s", onZoneChangeCallback != null);
+        if (onZoneChangeCallback != null) {
+            try {
+                onZoneChangeCallback.run();
+            } catch (Exception e) {
+                Logger.warn("Error in zone change callback: %s", e.getMessage());
+            }
+        }
     }
 
     /**
@@ -42,13 +74,18 @@ public class ZoneManager {
         return storage.loadAllZones().thenAccept(loaded -> {
             zoneIndex.clear();
             zonesById.clear();
+            zonesByName.clear();
 
             for (Zone zone : loaded) {
                 zonesById.put(zone.id(), zone);
-                zoneIndex.put(zone.toChunkKey(), zone);
+                zonesByName.put(zone.name().toLowerCase(), zone);
+                // Index all chunks belonging to this zone
+                for (ChunkKey chunk : zone.chunks()) {
+                    zoneIndex.put(chunk, zone);
+                }
             }
 
-            Logger.info("Loaded %d zones", zonesById.size());
+            Logger.info("Loaded %d zones with %d total chunks", zonesById.size(), zoneIndex.size());
         });
     }
 
@@ -153,6 +190,17 @@ public class ZoneManager {
     }
 
     /**
+     * Gets a zone by name (case-insensitive).
+     *
+     * @param name the zone name
+     * @return the zone, or null if not found
+     */
+    @Nullable
+    public Zone getZoneByName(@NotNull String name) {
+        return zonesByName.get(name.toLowerCase());
+    }
+
+    /**
      * Gets all zones.
      *
      * @return collection of all zones
@@ -184,6 +232,15 @@ public class ZoneManager {
         return zonesById.size();
     }
 
+    /**
+     * Gets the total number of chunks claimed by zones.
+     *
+     * @return total chunk count
+     */
+    public int getTotalChunkCount() {
+        return zoneIndex.size();
+    }
+
     // === Operations ===
 
     /**
@@ -193,11 +250,50 @@ public class ZoneManager {
         SUCCESS,
         ALREADY_EXISTS,
         NOT_FOUND,
-        CHUNK_CLAIMED
+        CHUNK_CLAIMED,
+        CHUNK_HAS_FACTION,
+        CHUNK_HAS_ZONE,
+        CHUNK_NOT_IN_ZONE,
+        NAME_TAKEN,
+        INVALID_NAME
     }
 
     /**
-     * Creates a new zone.
+     * Creates a new empty zone.
+     *
+     * @param name      the zone name
+     * @param type      the zone type
+     * @param world     the world name
+     * @param createdBy the creator's UUID
+     * @return the result
+     */
+    public ZoneResult createZone(@NotNull String name, @NotNull ZoneType type,
+                                 @NotNull String world, @NotNull UUID createdBy) {
+        // Validate name
+        if (name.isBlank() || name.length() > 32) {
+            return ZoneResult.INVALID_NAME;
+        }
+
+        // Check if name is taken
+        if (zonesByName.containsKey(name.toLowerCase())) {
+            return ZoneResult.NAME_TAKEN;
+        }
+
+        Zone zone = Zone.create(name, type, world, createdBy);
+
+        zonesById.put(zone.id(), zone);
+        zonesByName.put(name.toLowerCase(), zone);
+
+        // Save async
+        saveAll();
+
+        Logger.info("Created empty %s '%s' in %s", type.getDisplayName(), name, world);
+        notifyZoneChange();
+        return ZoneResult.SUCCESS;
+    }
+
+    /**
+     * Creates a new zone with a single initial chunk (backwards compatible).
      *
      * @param name      the zone name
      * @param type      the zone type
@@ -222,20 +318,181 @@ public class ZoneManager {
             return ZoneResult.CHUNK_CLAIMED;
         }
 
+        // Check if name is taken
+        if (zonesByName.containsKey(name.toLowerCase())) {
+            return ZoneResult.NAME_TAKEN;
+        }
+
         Zone zone = Zone.create(name, type, world, chunkX, chunkZ, createdBy);
 
         zonesById.put(zone.id(), zone);
+        zonesByName.put(name.toLowerCase(), zone);
         zoneIndex.put(key, zone);
 
         // Save async
         saveAll();
 
         Logger.info("Created %s '%s' at %d, %d in %s", type.getDisplayName(), name, chunkX, chunkZ, world);
+        notifyZoneChange();
         return ZoneResult.SUCCESS;
     }
 
     /**
-     * Removes a zone.
+     * Claims a chunk for an existing zone.
+     *
+     * @param zoneId the zone ID
+     * @param world  the world name
+     * @param chunkX the chunk X
+     * @param chunkZ the chunk Z
+     * @return the result
+     */
+    public ZoneResult claimChunk(@NotNull UUID zoneId, @NotNull String world, int chunkX, int chunkZ) {
+        Zone zone = zonesById.get(zoneId);
+        if (zone == null) {
+            return ZoneResult.NOT_FOUND;
+        }
+
+        // Check world matches
+        if (!zone.world().equals(world)) {
+            return ZoneResult.NOT_FOUND; // Different world
+        }
+
+        ChunkKey key = new ChunkKey(world, chunkX, chunkZ);
+
+        // Check if already claimed by a zone
+        if (zoneIndex.containsKey(key)) {
+            Zone existingZone = zoneIndex.get(key);
+            if (existingZone.id().equals(zoneId)) {
+                return ZoneResult.SUCCESS; // Already in this zone
+            }
+            return ZoneResult.CHUNK_HAS_ZONE;
+        }
+
+        // Check if claimed by a faction
+        if (claimManager.getClaimOwner(world, chunkX, chunkZ) != null) {
+            return ZoneResult.CHUNK_HAS_FACTION;
+        }
+
+        // Add chunk to zone
+        Zone updated = zone.withChunk(chunkX, chunkZ);
+        updateZone(updated);
+
+        Logger.info("Claimed chunk (%d, %d) for zone '%s'", chunkX, chunkZ, zone.name());
+        notifyZoneChange();
+        return ZoneResult.SUCCESS;
+    }
+
+    /**
+     * Unclaims a chunk from its zone.
+     *
+     * @param zoneId the zone ID
+     * @param world  the world name
+     * @param chunkX the chunk X
+     * @param chunkZ the chunk Z
+     * @return the result
+     */
+    public ZoneResult unclaimChunk(@NotNull UUID zoneId, @NotNull String world, int chunkX, int chunkZ) {
+        Zone zone = zonesById.get(zoneId);
+        if (zone == null) {
+            return ZoneResult.NOT_FOUND;
+        }
+
+        ChunkKey key = new ChunkKey(world, chunkX, chunkZ);
+
+        // Check if chunk belongs to this zone
+        Zone existingZone = zoneIndex.get(key);
+        if (existingZone == null || !existingZone.id().equals(zoneId)) {
+            return ZoneResult.CHUNK_NOT_IN_ZONE;
+        }
+
+        // Remove chunk from zone
+        Zone updated = zone.withoutChunk(chunkX, chunkZ);
+        updateZone(updated);
+
+        Logger.info("Unclaimed chunk (%d, %d) from zone '%s'", chunkX, chunkZ, zone.name());
+        notifyZoneChange();
+        return ZoneResult.SUCCESS;
+    }
+
+    /**
+     * Unclaims the chunk at a location from whatever zone it belongs to.
+     *
+     * @param world  the world name
+     * @param chunkX the chunk X
+     * @param chunkZ the chunk Z
+     * @return the result
+     */
+    public ZoneResult unclaimChunkAt(@NotNull String world, int chunkX, int chunkZ) {
+        ChunkKey key = new ChunkKey(world, chunkX, chunkZ);
+        Zone zone = zoneIndex.get(key);
+        if (zone == null) {
+            return ZoneResult.NOT_FOUND;
+        }
+        return unclaimChunk(zone.id(), world, chunkX, chunkZ);
+    }
+
+    /**
+     * Claims multiple chunks in a radius for a zone.
+     * Skips chunks that are already claimed by zones or factions.
+     *
+     * @param zoneId   the zone ID
+     * @param world    the world name
+     * @param centerX  the center chunk X
+     * @param centerZ  the center chunk Z
+     * @param radius   the radius in chunks (1-20)
+     * @param circle   true for circle shape, false for square
+     * @return the number of chunks successfully claimed
+     */
+    public int claimRadius(@NotNull UUID zoneId, @NotNull String world,
+                           int centerX, int centerZ, int radius, boolean circle) {
+        Zone zone = zonesById.get(zoneId);
+        if (zone == null) {
+            return 0;
+        }
+
+        // Clamp radius
+        radius = Math.max(1, Math.min(20, radius));
+
+        int claimed = 0;
+        Set<ChunkKey> newChunks = new HashSet<>(zone.chunks());
+
+        for (int dx = -radius; dx <= radius; dx++) {
+            for (int dz = -radius; dz <= radius; dz++) {
+                // Check circle shape
+                if (circle && (dx * dx + dz * dz) > radius * radius) {
+                    continue;
+                }
+
+                int chunkX = centerX + dx;
+                int chunkZ = centerZ + dz;
+                ChunkKey key = new ChunkKey(world, chunkX, chunkZ);
+
+                // Skip if already claimed by zone or faction
+                if (zoneIndex.containsKey(key)) {
+                    continue;
+                }
+                if (claimManager.getClaimOwner(world, chunkX, chunkZ) != null) {
+                    continue;
+                }
+
+                newChunks.add(key);
+                claimed++;
+            }
+        }
+
+        if (claimed > 0) {
+            Zone updated = new Zone(zone.id(), zone.name(), zone.type(), zone.world(),
+                                   newChunks, zone.createdAt(), zone.createdBy(), zone.flags());
+            updateZone(updated);
+            Logger.info("Claimed %d chunks in radius for zone '%s'", claimed, zone.name());
+            notifyZoneChange();
+        }
+
+        return claimed;
+    }
+
+    /**
+     * Removes a zone entirely.
      *
      * @param zoneId the zone ID
      * @return the result
@@ -246,17 +503,23 @@ public class ZoneManager {
             return ZoneResult.NOT_FOUND;
         }
 
-        zoneIndex.remove(zone.toChunkKey());
+        zonesByName.remove(zone.name().toLowerCase());
+
+        // Remove all chunk index entries for this zone
+        for (ChunkKey chunk : zone.chunks()) {
+            zoneIndex.remove(chunk);
+        }
 
         // Save async
         saveAll();
 
-        Logger.info("Removed %s '%s'", zone.type().getDisplayName(), zone.name());
+        Logger.info("Removed %s '%s' with %d chunks", zone.type().getDisplayName(), zone.name(), zone.getChunkCount());
+        notifyZoneChange();
         return ZoneResult.SUCCESS;
     }
 
     /**
-     * Removes a zone at a specific location.
+     * Removes a zone at a specific location (removes the entire zone, not just the chunk).
      *
      * @param world  the world name
      * @param chunkX the chunk X
@@ -265,17 +528,12 @@ public class ZoneManager {
      */
     public ZoneResult removeZoneAt(@NotNull String world, int chunkX, int chunkZ) {
         ChunkKey key = new ChunkKey(world, chunkX, chunkZ);
-        Zone zone = zoneIndex.remove(key);
+        Zone zone = zoneIndex.get(key);
         if (zone == null) {
             return ZoneResult.NOT_FOUND;
         }
 
-        zonesById.remove(zone.id());
-
-        // Save async
-        saveAll();
-
-        return ZoneResult.SUCCESS;
+        return removeZone(zone.id());
     }
 
     /**
@@ -291,11 +549,23 @@ public class ZoneManager {
             return ZoneResult.NOT_FOUND;
         }
 
-        Zone updated = zone.withName(newName);
-        zonesById.put(zoneId, updated);
-        zoneIndex.put(zone.toChunkKey(), updated);
+        // Validate name
+        if (newName.isBlank() || newName.length() > 32) {
+            return ZoneResult.INVALID_NAME;
+        }
 
-        saveAll();
+        // Check if new name is taken (unless it's the same zone)
+        Zone existing = zonesByName.get(newName.toLowerCase());
+        if (existing != null && !existing.id().equals(zoneId)) {
+            return ZoneResult.NAME_TAKEN;
+        }
+
+        // Remove old name mapping
+        zonesByName.remove(zone.name().toLowerCase());
+
+        Zone updated = zone.withName(newName);
+        updateZone(updated);
+
         return ZoneResult.SUCCESS;
     }
 
@@ -320,10 +590,8 @@ public class ZoneManager {
         }
 
         Zone updated = zone.withFlag(flagName, value);
-        zonesById.put(zoneId, updated);
-        zoneIndex.put(zone.toChunkKey(), updated);
+        updateZone(updated);
 
-        saveAll();
         Logger.info("Set flag '%s' to %s on zone '%s'", flagName, value, zone.name());
         return ZoneResult.SUCCESS;
     }
@@ -342,10 +610,8 @@ public class ZoneManager {
         }
 
         Zone updated = zone.withoutFlag(flagName);
-        zonesById.put(zoneId, updated);
-        zoneIndex.put(zone.toChunkKey(), updated);
+        updateZone(updated);
 
-        saveAll();
         Logger.info("Cleared flag '%s' from zone '%s' (using default)", flagName, zone.name());
         return ZoneResult.SUCCESS;
     }
@@ -380,5 +646,33 @@ public class ZoneManager {
             return defaultValue;
         }
         return zone.getEffectiveFlag(flagName);
+    }
+
+    // === Internal Helpers ===
+
+    /**
+     * Updates a zone and its indexes.
+     */
+    private void updateZone(@NotNull Zone updated) {
+        Zone old = zonesById.get(updated.id());
+
+        // Update main index
+        zonesById.put(updated.id(), updated);
+        zonesByName.put(updated.name().toLowerCase(), updated);
+
+        // Update chunk index - remove old chunks, add new chunks
+        if (old != null) {
+            for (ChunkKey chunk : old.chunks()) {
+                if (!updated.chunks().contains(chunk)) {
+                    zoneIndex.remove(chunk);
+                }
+            }
+        }
+        for (ChunkKey chunk : updated.chunks()) {
+            zoneIndex.put(chunk, updated);
+        }
+
+        // Save async
+        saveAll();
     }
 }

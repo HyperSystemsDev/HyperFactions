@@ -20,17 +20,33 @@ $C.@Container {
       Anchor: (Height: 35, Bottom: 10);
       LayoutMode: Left;
 
-      TextButton #TabSafe {
-        Text: "SAFE ZONES";
-        Anchor: (Height: 28, Width: 120);
+      TextButton #BackBtn {
+        Text: "< BACK";
+        Anchor: (Height: 28, Width: 70);
+        Style: $S.@ButtonStyle;
+      }
+
+      Label { Anchor: (Width: 8); }
+
+      TextButton #TabAll {
+        Text: "ALL";
+        Anchor: (Height: 28, Width: 50);
         Style: $S.@CyanButtonStyle;
       }
 
-      Label { Anchor: (Width: 10); }
+      Label { Anchor: (Width: 5); }
+
+      TextButton #TabSafe {
+        Text: "SAFE";
+        Anchor: (Height: 28, Width: 60);
+        Style: $S.@ButtonStyle;
+      }
+
+      Label { Anchor: (Width: 5); }
 
       TextButton #TabWar {
-        Text: "WAR ZONES";
-        Anchor: (Height: 28, Width: 120);
+        Text: "WAR";
+        Anchor: (Height: 28, Width: 55);
         Style: $S.@ButtonStyle;
       }
 
@@ -111,8 +127,4 @@ $C.@Container {
   }
 }
 
-TextButton #BackBtn {
-  Anchor: (Top: 10, Left: 10, Width: 80, Height: 28);
-  Text: "< BACK";
-  Style: $S.@ButtonStyle;
-}
+$C.@BackButton {}

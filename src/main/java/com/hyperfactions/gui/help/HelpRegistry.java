@@ -718,6 +718,30 @@ public final class HelpRegistry {
                 "/f reload             Reload config (Admin)"
         ), HelpCategory.COMMANDS));
 
+        register(HelpTopic.of("cmd_admin", "Admin Commands", List.of(
+                "/f admin              Open admin GUI",
+                "/f admin zone         Zone management GUI",
+                "/f admin zone list    List all zones",
+                "/f admin zone create <type> <name>",
+                "                      Create new zone",
+                "/f admin zone delete <name>",
+                "                      Delete zone by name",
+                "/f admin zone claim <name>",
+                "                      Claim current chunk for zone",
+                "/f admin zone unclaim",
+                "                      Unclaim current chunk",
+                "/f admin zone radius <name> <r> [shape]",
+                "                      Radius claim (circle/square)",
+                "/f admin safezone [name]",
+                "                      Quick create + claim SafeZone",
+                "/f admin warzone [name]",
+                "                      Quick create + claim WarZone",
+                "/f admin removezone",
+                "                      Unclaim current chunk from zone",
+                "/f admin zoneflag <flag> [value]",
+                "                      Manage zone flags"
+        ), HelpCategory.COMMANDS));
+
         // Additional command mappings for deep-linking
         registerCommandMapping("info", HelpCategory.FACTION_BASICS);
         registerCommandMapping("list", HelpCategory.FACTION_BASICS);
@@ -734,5 +758,11 @@ public final class HelpRegistry {
         registerCommandMapping("color", HelpCategory.FACTION_BASICS);
         registerCommandMapping("open", HelpCategory.FACTION_BASICS);
         registerCommandMapping("close", HelpCategory.FACTION_BASICS);
+        registerCommandMapping("admin", HelpCategory.COMMANDS);
+        registerCommandMapping("zone", HelpCategory.COMMANDS);
+        registerCommandMapping("safezone", HelpCategory.COMMANDS);
+        registerCommandMapping("warzone", HelpCategory.COMMANDS);
+        registerCommandMapping("removezone", HelpCategory.COMMANDS);
+        registerCommandMapping("zoneflag", HelpCategory.COMMANDS);
     }
 }

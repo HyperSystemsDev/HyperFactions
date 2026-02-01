@@ -1766,9 +1766,16 @@ public class FactionCommand extends AbstractPlayerCommand {
         if (adminCmd.equals("help") || adminCmd.equals("?")) {
             List<CommandHelp> adminCommands = new ArrayList<>();
             adminCommands.add(new CommandHelp("/f admin", "Open admin GUI"));
-            adminCommands.add(new CommandHelp("/f admin safezone", "Create SafeZone at current chunk"));
-            adminCommands.add(new CommandHelp("/f admin warzone", "Create WarZone at current chunk"));
-            adminCommands.add(new CommandHelp("/f admin removezone", "Remove zone at current chunk"));
+            adminCommands.add(new CommandHelp("/f admin zone", "Open zone management GUI"));
+            adminCommands.add(new CommandHelp("/f admin zone list", "List all zones"));
+            adminCommands.add(new CommandHelp("/f admin zone create <type> <name>", "Create a new zone"));
+            adminCommands.add(new CommandHelp("/f admin zone delete <name>", "Delete a zone"));
+            adminCommands.add(new CommandHelp("/f admin zone claim <name>", "Claim current chunk for zone"));
+            adminCommands.add(new CommandHelp("/f admin zone unclaim", "Unclaim current chunk from zone"));
+            adminCommands.add(new CommandHelp("/f admin zone radius <name> <r> [shape]", "Radius claim for zone"));
+            adminCommands.add(new CommandHelp("/f admin safezone [name]", "Quick create SafeZone + claim"));
+            adminCommands.add(new CommandHelp("/f admin warzone [name]", "Quick create WarZone + claim"));
+            adminCommands.add(new CommandHelp("/f admin removezone", "Unclaim current chunk from zone"));
             adminCommands.add(new CommandHelp("/f admin zoneflag <flag> [value]", "Manage zone flags"));
             adminCommands.add(new CommandHelp("/f admin bypass", "Toggle admin bypass mode"));
             ctx.sendMessage(HelpFormatter.buildHelp("HyperFactions Admin", null, adminCommands, null));
@@ -1782,44 +1789,257 @@ public class FactionCommand extends AbstractPlayerCommand {
         int chunkZ = ChunkUtil.toChunkCoord(pos.getZ());
 
         switch (adminCmd) {
+            case "zone" -> handleAdminZone(ctx, store, ref, player, world, chunkX, chunkZ, Arrays.copyOfRange(args, 1, args.length));
             case "safezone" -> {
+                // Quick shortcut: create SafeZone + claim current chunk
+                String zoneName = args.length > 1 ? args[1] : "SafeZone-" + chunkX + "_" + chunkZ;
                 ZoneManager.ZoneResult result = hyperFactions.getZoneManager().createZone(
-                    "SafeZone", ZoneType.SAFE, world.getName(), chunkX, chunkZ, player.getUuid()
+                    zoneName, ZoneType.SAFE, world.getName(), chunkX, chunkZ, player.getUuid()
                 );
                 if (result == ZoneManager.ZoneResult.SUCCESS) {
-                    ctx.sendMessage(prefix().insert(msg("Created SafeZone at " + chunkX + ", " + chunkZ, COLOR_GREEN)));
+                    ctx.sendMessage(prefix().insert(msg("Created SafeZone '" + zoneName + "' at " + chunkX + ", " + chunkZ, COLOR_GREEN)));
                 } else if (result == ZoneManager.ZoneResult.CHUNK_CLAIMED) {
                     ctx.sendMessage(prefix().insert(msg("Cannot create zone: This chunk is claimed by a faction.", COLOR_RED)));
                 } else if (result == ZoneManager.ZoneResult.ALREADY_EXISTS) {
                     ctx.sendMessage(prefix().insert(msg("A zone already exists at this location.", COLOR_RED)));
+                } else if (result == ZoneManager.ZoneResult.NAME_TAKEN) {
+                    ctx.sendMessage(prefix().insert(msg("A zone with that name already exists.", COLOR_RED)));
                 } else {
                     ctx.sendMessage(prefix().insert(msg("Failed: " + result, COLOR_RED)));
                 }
             }
             case "warzone" -> {
+                // Quick shortcut: create WarZone + claim current chunk
+                String zoneName = args.length > 1 ? args[1] : "WarZone-" + chunkX + "_" + chunkZ;
                 ZoneManager.ZoneResult result = hyperFactions.getZoneManager().createZone(
-                    "WarZone", ZoneType.WAR, world.getName(), chunkX, chunkZ, player.getUuid()
+                    zoneName, ZoneType.WAR, world.getName(), chunkX, chunkZ, player.getUuid()
                 );
                 if (result == ZoneManager.ZoneResult.SUCCESS) {
-                    ctx.sendMessage(prefix().insert(msg("Created WarZone at " + chunkX + ", " + chunkZ, COLOR_GREEN)));
+                    ctx.sendMessage(prefix().insert(msg("Created WarZone '" + zoneName + "' at " + chunkX + ", " + chunkZ, COLOR_GREEN)));
                 } else if (result == ZoneManager.ZoneResult.CHUNK_CLAIMED) {
                     ctx.sendMessage(prefix().insert(msg("Cannot create zone: This chunk is claimed by a faction.", COLOR_RED)));
                 } else if (result == ZoneManager.ZoneResult.ALREADY_EXISTS) {
                     ctx.sendMessage(prefix().insert(msg("A zone already exists at this location.", COLOR_RED)));
+                } else if (result == ZoneManager.ZoneResult.NAME_TAKEN) {
+                    ctx.sendMessage(prefix().insert(msg("A zone with that name already exists.", COLOR_RED)));
                 } else {
                     ctx.sendMessage(prefix().insert(msg("Failed: " + result, COLOR_RED)));
                 }
             }
             case "removezone" -> {
-                ZoneManager.ZoneResult result = hyperFactions.getZoneManager().removeZoneAt(world.getName(), chunkX, chunkZ);
+                // Quick shortcut: unclaim current chunk from its zone
+                ZoneManager.ZoneResult result = hyperFactions.getZoneManager().unclaimChunkAt(world.getName(), chunkX, chunkZ);
                 if (result == ZoneManager.ZoneResult.SUCCESS) {
-                    ctx.sendMessage(prefix().insert(msg("Removed zone.", COLOR_GREEN)));
+                    ctx.sendMessage(prefix().insert(msg("Unclaimed chunk from zone.", COLOR_GREEN)));
                 } else {
-                    ctx.sendMessage(prefix().insert(msg("No zone found.", COLOR_RED)));
+                    ctx.sendMessage(prefix().insert(msg("No zone chunk found at this location.", COLOR_RED)));
                 }
             }
             case "zoneflag" -> handleZoneFlag(ctx, world.getName(), chunkX, chunkZ, Arrays.copyOfRange(args, 1, args.length));
-            default -> ctx.sendMessage(prefix().insert(msg("Unknown admin command.", COLOR_RED)));
+            default -> ctx.sendMessage(prefix().insert(msg("Unknown admin command. Use /f admin help", COLOR_RED)));
+        }
+    }
+
+    // === Admin Zone Subcommands ===
+    private void handleAdminZone(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
+                                 PlayerRef player, World world, int chunkX, int chunkZ, String[] args) {
+        // No args - open zone GUI
+        if (args.length == 0) {
+            Player playerEntity = store.getComponent(ref, Player.getComponentType());
+            if (playerEntity != null) {
+                hyperFactions.getGuiManager().openAdminZone(playerEntity, ref, store, player);
+            }
+            return;
+        }
+
+        String subCmd = args[0].toLowerCase();
+        String[] subArgs = args.length > 1 ? Arrays.copyOfRange(args, 1, args.length) : new String[0];
+
+        switch (subCmd) {
+            case "list" -> handleZoneList(ctx);
+            case "create" -> handleZoneCreate(ctx, world.getName(), player.getUuid(), subArgs);
+            case "delete" -> handleZoneDelete(ctx, subArgs);
+            case "info" -> handleZoneInfo(ctx, world.getName(), chunkX, chunkZ, subArgs);
+            case "claim" -> handleZoneClaim(ctx, world.getName(), chunkX, chunkZ, subArgs);
+            case "unclaim" -> handleZoneUnclaim(ctx, world.getName(), chunkX, chunkZ);
+            case "radius" -> handleZoneRadius(ctx, world.getName(), chunkX, chunkZ, subArgs);
+            default -> {
+                ctx.sendMessage(prefix().insert(msg("Unknown zone command. Use /f admin help", COLOR_RED)));
+            }
+        }
+    }
+
+    private void handleZoneList(CommandContext ctx) {
+        var zones = hyperFactions.getZoneManager().getAllZones();
+        if (zones.isEmpty()) {
+            ctx.sendMessage(prefix().insert(msg("No zones defined.", COLOR_GRAY)));
+            return;
+        }
+
+        ctx.sendMessage(msg("=== Zones (" + zones.size() + ") ===", COLOR_CYAN).bold(true));
+        for (Zone zone : zones) {
+            String typeColor = zone.isSafeZone() ? "#2dd4bf" : "#c084fc";
+            ctx.sendMessage(msg("  " + zone.name(), typeColor)
+                .insert(msg(" (" + zone.type().name() + ", " + zone.getChunkCount() + " chunks)", COLOR_GRAY)));
+        }
+    }
+
+    private void handleZoneCreate(CommandContext ctx, String worldName, UUID createdBy, String[] args) {
+        if (args.length < 2) {
+            ctx.sendMessage(prefix().insert(msg("Usage: /f admin zone create <safe|war> <name>", COLOR_RED)));
+            return;
+        }
+
+        String typeStr = args[0].toLowerCase();
+        String name = args[1];
+
+        ZoneType type;
+        if (typeStr.equals("safe") || typeStr.equals("safezone")) {
+            type = ZoneType.SAFE;
+        } else if (typeStr.equals("war") || typeStr.equals("warzone")) {
+            type = ZoneType.WAR;
+        } else {
+            ctx.sendMessage(prefix().insert(msg("Invalid zone type. Use 'safe' or 'war'", COLOR_RED)));
+            return;
+        }
+
+        ZoneManager.ZoneResult result = hyperFactions.getZoneManager().createZone(name, type, worldName, createdBy);
+        switch (result) {
+            case SUCCESS -> ctx.sendMessage(prefix().insert(msg("Created " + type.getDisplayName() + " '" + name + "' (empty, use claim to add chunks)", COLOR_GREEN)));
+            case NAME_TAKEN -> ctx.sendMessage(prefix().insert(msg("A zone with that name already exists.", COLOR_RED)));
+            case INVALID_NAME -> ctx.sendMessage(prefix().insert(msg("Invalid zone name. Must be 1-32 characters.", COLOR_RED)));
+            default -> ctx.sendMessage(prefix().insert(msg("Failed: " + result, COLOR_RED)));
+        }
+    }
+
+    private void handleZoneDelete(CommandContext ctx, String[] args) {
+        if (args.length < 1) {
+            ctx.sendMessage(prefix().insert(msg("Usage: /f admin zone delete <name>", COLOR_RED)));
+            return;
+        }
+
+        String name = args[0];
+        Zone zone = hyperFactions.getZoneManager().getZoneByName(name);
+        if (zone == null) {
+            ctx.sendMessage(prefix().insert(msg("Zone '" + name + "' not found.", COLOR_RED)));
+            return;
+        }
+
+        ZoneManager.ZoneResult result = hyperFactions.getZoneManager().removeZone(zone.id());
+        if (result == ZoneManager.ZoneResult.SUCCESS) {
+            ctx.sendMessage(prefix().insert(msg("Deleted zone '" + name + "' (" + zone.getChunkCount() + " chunks released)", COLOR_GREEN)));
+        } else {
+            ctx.sendMessage(prefix().insert(msg("Failed to delete zone: " + result, COLOR_RED)));
+        }
+    }
+
+    private void handleZoneInfo(CommandContext ctx, String worldName, int chunkX, int chunkZ, String[] args) {
+        Zone zone;
+        if (args.length > 0) {
+            // Zone specified by name
+            zone = hyperFactions.getZoneManager().getZoneByName(args[0]);
+            if (zone == null) {
+                ctx.sendMessage(prefix().insert(msg("Zone '" + args[0] + "' not found.", COLOR_RED)));
+                return;
+            }
+        } else {
+            // Zone at current location
+            zone = hyperFactions.getZoneManager().getZone(worldName, chunkX, chunkZ);
+            if (zone == null) {
+                ctx.sendMessage(prefix().insert(msg("No zone at your location.", COLOR_RED)));
+                return;
+            }
+        }
+
+        String typeColor = zone.isSafeZone() ? "#2dd4bf" : "#c084fc";
+        ctx.sendMessage(msg("=== Zone: " + zone.name() + " ===", typeColor).bold(true));
+        ctx.sendMessage(msg("Type: ", COLOR_GRAY).insert(msg(zone.type().getDisplayName(), typeColor)));
+        ctx.sendMessage(msg("World: ", COLOR_GRAY).insert(msg(zone.world(), COLOR_WHITE)));
+        ctx.sendMessage(msg("Chunks: ", COLOR_GRAY).insert(msg(String.valueOf(zone.getChunkCount()), COLOR_WHITE)));
+
+        // Show custom flags if any
+        if (!zone.getFlags().isEmpty()) {
+            ctx.sendMessage(msg("Custom Flags:", COLOR_GRAY));
+            for (var entry : zone.getFlags().entrySet()) {
+                ctx.sendMessage(msg("  " + entry.getKey() + ": " + entry.getValue(), COLOR_YELLOW));
+            }
+        }
+    }
+
+    private void handleZoneClaim(CommandContext ctx, String worldName, int chunkX, int chunkZ, String[] args) {
+        if (args.length < 1) {
+            ctx.sendMessage(prefix().insert(msg("Usage: /f admin zone claim <name>", COLOR_RED)));
+            return;
+        }
+
+        String name = args[0];
+        Zone zone = hyperFactions.getZoneManager().getZoneByName(name);
+        if (zone == null) {
+            ctx.sendMessage(prefix().insert(msg("Zone '" + name + "' not found.", COLOR_RED)));
+            return;
+        }
+
+        ZoneManager.ZoneResult result = hyperFactions.getZoneManager().claimChunk(zone.id(), worldName, chunkX, chunkZ);
+        switch (result) {
+            case SUCCESS -> ctx.sendMessage(prefix().insert(msg("Claimed chunk (" + chunkX + ", " + chunkZ + ") for zone '" + name + "'", COLOR_GREEN)));
+            case CHUNK_HAS_ZONE -> ctx.sendMessage(prefix().insert(msg("This chunk already belongs to another zone.", COLOR_RED)));
+            case CHUNK_HAS_FACTION -> ctx.sendMessage(prefix().insert(msg("This chunk is claimed by a faction.", COLOR_RED)));
+            default -> ctx.sendMessage(prefix().insert(msg("Failed: " + result, COLOR_RED)));
+        }
+    }
+
+    private void handleZoneUnclaim(CommandContext ctx, String worldName, int chunkX, int chunkZ) {
+        ZoneManager.ZoneResult result = hyperFactions.getZoneManager().unclaimChunkAt(worldName, chunkX, chunkZ);
+        if (result == ZoneManager.ZoneResult.SUCCESS) {
+            ctx.sendMessage(prefix().insert(msg("Unclaimed chunk (" + chunkX + ", " + chunkZ + ") from zone.", COLOR_GREEN)));
+        } else {
+            ctx.sendMessage(prefix().insert(msg("No zone chunk found at this location.", COLOR_RED)));
+        }
+    }
+
+    private void handleZoneRadius(CommandContext ctx, String worldName, int chunkX, int chunkZ, String[] args) {
+        if (args.length < 2) {
+            ctx.sendMessage(prefix().insert(msg("Usage: /f admin zone radius <name> <radius> [circle|square]", COLOR_RED)));
+            ctx.sendMessage(msg("  radius: 1-20 chunks", COLOR_GRAY));
+            ctx.sendMessage(msg("  shape: circle (default) or square", COLOR_GRAY));
+            return;
+        }
+
+        String name = args[0];
+        Zone zone = hyperFactions.getZoneManager().getZoneByName(name);
+        if (zone == null) {
+            ctx.sendMessage(prefix().insert(msg("Zone '" + name + "' not found.", COLOR_RED)));
+            return;
+        }
+
+        int radius;
+        try {
+            radius = Integer.parseInt(args[1]);
+            if (radius < 1 || radius > 20) {
+                ctx.sendMessage(prefix().insert(msg("Radius must be between 1 and 20.", COLOR_RED)));
+                return;
+            }
+        } catch (NumberFormatException e) {
+            ctx.sendMessage(prefix().insert(msg("Invalid radius number.", COLOR_RED)));
+            return;
+        }
+
+        boolean circle = true;
+        if (args.length > 2) {
+            String shape = args[2].toLowerCase();
+            if (shape.equals("square")) {
+                circle = false;
+            } else if (!shape.equals("circle")) {
+                ctx.sendMessage(prefix().insert(msg("Invalid shape. Use 'circle' or 'square'.", COLOR_RED)));
+                return;
+            }
+        }
+
+        int claimed = hyperFactions.getZoneManager().claimRadius(zone.id(), worldName, chunkX, chunkZ, radius, circle);
+        if (claimed > 0) {
+            ctx.sendMessage(prefix().insert(msg("Claimed " + claimed + " chunks for zone '" + name + "'", COLOR_GREEN)));
+        } else {
+            ctx.sendMessage(prefix().insert(msg("No chunks could be claimed (all occupied or already in zone).", COLOR_YELLOW)));
         }
     }
 

@@ -182,7 +182,7 @@ HyperFactions transforms your Hytale server into a dynamic faction-based environ
 | `/f admin safezone remove` | Remove SafeZone | `hyperfactions.admin` |
 | `/f admin warzone add` | Create WarZone | `hyperfactions.admin` |
 | `/f admin warzone remove` | Remove WarZone | `hyperfactions.admin` |
-| `/f admin reload` | Reload configuration | `hyperfactions.admin` |
+| `/f reload` | Reload configuration | `hyperfactions.admin` |
 
 ---
 

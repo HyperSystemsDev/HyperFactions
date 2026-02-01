@@ -1,0 +1,128 @@
+// Create Zone Wizard
+// Enter zone name and select type (SafeZone or WarZone)
+// After creation, opens the zone map for claiming chunks
+
+$C = "../../Common.ui";
+$S = "../shared/styles.ui";
+
+$C.@PageOverlay {}
+
+$C.@Container {
+  Anchor: (Width: 500, Height: 400);
+
+  #Title {
+    $C.@Title {
+      @Text = "Create Zone";
+    }
+  }
+
+  #Content {
+    LayoutMode: Top;
+    Padding: (Left: 25, Right: 25, Top: 20, Bottom: 20);
+
+    // Zone Name Input
+    Group {
+      Anchor: (Height: 75, Bottom: 20);
+      LayoutMode: Top;
+
+      Label {
+        Text: "ZONE NAME";
+        Style: (FontSize: 12, TextColor: #00FFFF, RenderBold: true);
+        Anchor: (Height: 20);
+      }
+
+      $C.@TextField #NameInput {
+        Anchor: (Height: 40);
+        Style: (
+          FontSize: 14,
+          TextColor: #ffffff(0.85)
+        );
+      }
+    }
+
+    // Zone Type Selection
+    Group {
+      Anchor: (Height: 100, Bottom: 20);
+      LayoutMode: Top;
+
+      Label {
+        Text: "ZONE TYPE";
+        Style: (FontSize: 12, TextColor: #00FFFF, RenderBold: true);
+        Anchor: (Height: 20, Bottom: 10);
+      }
+
+      Group {
+        LayoutMode: Left;
+        Anchor: (Height: 50);
+
+        TextButton #SafeZoneBtn {
+          Text: "SAFEZONE";
+          Anchor: (Height: 45, Width: 160);
+          Style: $S.@TealButtonStyle;
+        }
+
+        Label { Anchor: (Width: 20); }
+
+        TextButton #WarZoneBtn {
+          Text: "WARZONE";
+          Anchor: (Height: 45, Width: 160);
+          Style: $S.@PurpleButtonStyle;
+        }
+      }
+
+      // Description of selected type
+      Label #TypeDescription {
+        Text: "Protected area - no PvP, no explosions";
+        Style: (FontSize: 11, TextColor: #888888, HorizontalAlignment: Center);
+        Anchor: (Height: 18, Top: 5);
+      }
+    }
+
+    // Current Selection
+    Group {
+      Anchor: (Height: 30, Bottom: 15);
+      LayoutMode: Left;
+
+      Label {
+        Text: "Selected: ";
+        Style: (FontSize: 14, TextColor: #888888, VerticalAlignment: Center);
+      }
+
+      Label #CurrentType {
+        Text: "SafeZone";
+        Style: (FontSize: 14, TextColor: #2dd4bf, RenderBold: true, VerticalAlignment: Center);
+      }
+    }
+
+    // Spacer
+    Label { FlexWeight: 1; }
+
+    // Buttons
+    Group {
+      Anchor: (Height: 45);
+      LayoutMode: Left;
+
+      TextButton #BackBtn {
+        Text: "< BACK";
+        Anchor: (Height: 40, Width: 90);
+        Style: $S.@ButtonStyle;
+      }
+
+      Label { FlexWeight: 1; }
+
+      TextButton #CreateBtn {
+        Text: "CREATE";
+        Anchor: (Height: 40, Width: 120);
+        Style: $S.@CyanButtonStyle;
+      }
+
+      Label { Anchor: (Width: 10); }
+
+      TextButton #CreateClaimBtn {
+        Text: "CREATE & CLAIM";
+        Anchor: (Height: 40, Width: 155);
+        Style: $S.@GreenButtonStyle;
+      }
+    }
+  }
+}

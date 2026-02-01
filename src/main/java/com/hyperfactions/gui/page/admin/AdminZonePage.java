@@ -30,50 +30,80 @@ public class AdminZonePage extends InteractiveCustomUIPage<AdminZoneData> {
     private final ZoneManager zoneManager;
     private final GuiManager guiManager;
 
-    private String currentTab = "safe"; // safe, war
+    private String currentTab = "all"; // all, safe, war
     private int currentPage = 0;
 
     public AdminZonePage(PlayerRef playerRef,
                          ZoneManager zoneManager,
                          GuiManager guiManager) {
+        this(playerRef, zoneManager, guiManager, "all", 0);
+    }
+
+    public AdminZonePage(PlayerRef playerRef,
+                         ZoneManager zoneManager,
+                         GuiManager guiManager,
+                         String tab,
+                         int page) {
         super(playerRef, CustomPageLifetime.CanDismiss, AdminZoneData.CODEC);
         this.playerRef = playerRef;
         this.zoneManager = zoneManager;
         this.guiManager = guiManager;
+        this.currentTab = tab != null ? tab : "all";
+        this.currentPage = page;
     }
 
     @Override
     public void build(Ref<EntityStore> ref, UICommandBuilder cmd,
                       UIEventBuilder events, Store<EntityStore> store) {
+        com.hyperfactions.util.Logger.info("[AdminZonePage] build() - currentTab=%s, currentPage=%d", currentTab, currentPage);
 
         // Load the main template
         cmd.append("HyperFactions/admin/admin_zones.ui");
 
 
         // Tab buttons
-
+        events.addEventBinding(
+                CustomUIEventBindingType.Activating,
+                "#TabAll",
+                EventData.of("Button", "TabAll").append("ZoneType", "all"),
+                false
+        );
         events.addEventBinding(
                 CustomUIEventBindingType.Activating,
                 "#TabSafe",
-                EventData.of("Button", "TabSafe").append("Tab", "safe"),
+                EventData.of("Button", "TabSafe").append("ZoneType", "safe"),
                 false
         );
         events.addEventBinding(
                 CustomUIEventBindingType.Activating,
                 "#TabWar",
-                EventData.of("Button", "TabWar").append("Tab", "war"),
+                EventData.of("Button", "TabWar").append("ZoneType", "war"),
                 false
         );
 
-        // Get zones of current type
-        ZoneType targetType = currentTab.equals("safe") ? ZoneType.SAFE : ZoneType.WAR;
-        List<Zone> zones = new ArrayList<>(zoneManager.getAllZones().stream()
-                .filter(z -> z.type() == targetType)
-                .sorted(Comparator.comparing(Zone::name))
-                .toList());
+        // Update tab text to show which is active
+        cmd.set("#TabAll.Text", currentTab.equals("all") ? "[ALL]" : "ALL");
+        cmd.set("#TabSafe.Text", currentTab.equals("safe") ? "[SAFE]" : "SAFE");
+        cmd.set("#TabWar.Text", currentTab.equals("war") ? "[WAR]" : "WAR");
 
-        // Zone count
-        cmd.set("#ZoneCount.Text", zones.size() + " " + currentTab + " zones");
+        // Get zones based on current tab filter
+        List<Zone> zones;
+        if (currentTab.equals("all")) {
+            zones = new ArrayList<>(zoneManager.getAllZones().stream()
+                    .sorted(Comparator.comparing(Zone::name))
+                    .toList());
+        } else {
+            ZoneType targetType = currentTab.equals("safe") ? ZoneType.SAFE : ZoneType.WAR;
+            zones = new ArrayList<>(zoneManager.getAllZones().stream()
+                    .filter(z -> z.type() == targetType)
+                    .sorted(Comparator.comparing(Zone::name))
+                    .toList());
+        }
+
+        // Zone count (with total chunks)
+        int totalChunks = zones.stream().mapToInt(Zone::getChunkCount).sum();
+        String tabLabel = currentTab.equals("all") ? "" : currentTab + " ";
+        cmd.set("#ZoneCount.Text", zones.size() + " " + tabLabel + "zones (" + totalChunks + " chunks)");
 
         // Create zone button
         events.addEventBinding(
@@ -102,13 +132,19 @@ public class AdminZonePage extends InteractiveCustomUIPage<AdminZoneData> {
                 String prefix = entryId + " ";
 
                 // Zone info
-                String typeColor = zone.type() == ZoneType.SAFE ? "#00FFFF" : "#FF00FF";
                 cmd.set(prefix + "#ZoneName.Text", zone.name());
-                cmd.set(prefix + "#ZoneType.Text", zone.type().name());
-                cmd.set(prefix + "#ZoneLocation.Text", String.format(
-                        "%s (%d, %d)",
-                        zone.world(), zone.chunkX(), zone.chunkZ()
-                ));
+                cmd.set(prefix + "#ZoneType.Text", zone.type().name() + " (" + zone.getChunkCount() + " chunks)");
+                cmd.set(prefix + "#ZoneLocation.Text", zone.world());
+
+                // Edit Map button
+                events.addEventBinding(
+                        CustomUIEventBindingType.Activating,
+                        prefix + "#EditMapBtn",
+                        EventData.of("Button", "EditMap")
+                                .append("ZoneId", zone.id().toString())
+                                .append("ZoneName", zone.name()),
+                        false
+                );
 
                 // Delete button
                 events.addEventBinding(
@@ -166,30 +202,51 @@ public class AdminZonePage extends InteractiveCustomUIPage<AdminZoneData> {
             return;
         }
 
+        // Debug logging
+        com.hyperfactions.util.Logger.info("[AdminZonePage] handleDataEvent: button=%s, zoneType=%s, page=%d",
+            data.button, data.zoneType, data.page);
+
         switch (data.button) {
             case "Back" -> guiManager.openAdminMain(player, ref, store, playerRef);
 
-            case "TabSafe", "TabWar" -> {
-                currentTab = data.zoneType != null ? data.zoneType : "safe";
-                currentPage = 0;
-                guiManager.openAdminZone(player, ref, store, playerRef);
+            case "TabAll", "TabSafe", "TabWar" -> {
+                String newTab = data.zoneType != null ? data.zoneType : "all";
+                com.hyperfactions.util.Logger.info("[AdminZonePage] Tab changed to: %s", newTab);
+                guiManager.openAdminZone(player, ref, store, playerRef, newTab, 0);
             }
 
             case "PrevPage" -> {
-                currentPage = Math.max(0, data.page);
-                guiManager.openAdminZone(player, ref, store, playerRef);
+                int newPage = Math.max(0, data.page);
+                com.hyperfactions.util.Logger.info("[AdminZonePage] PrevPage: now on page %d", newPage);
+                guiManager.openAdminZone(player, ref, store, playerRef, currentTab, newPage);
             }
 
             case "NextPage" -> {
-                currentPage = data.page;
-                guiManager.openAdminZone(player, ref, store, playerRef);
+                int newPage = data.page;
+                com.hyperfactions.util.Logger.info("[AdminZonePage] NextPage: now on page %d", newPage);
+                guiManager.openAdminZone(player, ref, store, playerRef, currentTab, newPage);
             }
 
             case "CreateZone" -> {
-                guiManager.closePage(player, ref, store);
                 ZoneType type = data.zoneType != null && data.zoneType.equals("war") ? ZoneType.WAR : ZoneType.SAFE;
-                player.sendMessage(Message.raw("Use /f admin zone create <name> " + type.name().toLowerCase() +
-                        " to create a zone at your current location.").color("#00FFFF"));
+                guiManager.openCreateZoneWizard(player, ref, store, playerRef, type);
+            }
+
+            case "EditMap" -> {
+                if (data.zoneId != null) {
+                    try {
+                        UUID zoneId = UUID.fromString(data.zoneId);
+                        Zone zone = zoneManager.getZoneById(zoneId);
+                        if (zone != null) {
+                            guiManager.openAdminZoneMap(player, ref, store, playerRef, zone);
+                        } else {
+                            player.sendMessage(Message.raw("Zone not found.").color("#FF5555"));
+                            guiManager.openAdminZone(player, ref, store, playerRef, currentTab, currentPage);
+                        }
+                    } catch (IllegalArgumentException e) {
+                        player.sendMessage(Message.raw("Invalid zone ID.").color("#FF5555"));
+                    }
+                }
             }
 
             case "DeleteZone" -> {
@@ -202,7 +259,8 @@ public class AdminZonePage extends InteractiveCustomUIPage<AdminZoneData> {
                         } else {
                             player.sendMessage(Message.raw("Failed to delete zone: " + result).color("#FF5555"));
                         }
-                        guiManager.openAdminZone(player, ref, store, playerRef);
+                        // Refresh to show updated zone list
+                        guiManager.openAdminZone(player, ref, store, playerRef, currentTab, currentPage);
                     } catch (IllegalArgumentException e) {
                         player.sendMessage(Message.raw("Invalid zone ID.").color("#FF5555"));
                     }
