@@ -4,6 +4,8 @@ import com.hyperfactions.HyperFactions;
 import com.hyperfactions.config.HyperFactionsConfig;
 import com.hyperfactions.data.*;
 import com.hyperfactions.data.ZoneFlags;
+import com.hyperfactions.gui.help.HelpCategory;
+import com.hyperfactions.gui.help.HelpRegistry;
 import com.hyperfactions.integration.HyperPermsIntegration;
 import com.hyperfactions.manager.*;
 import com.hyperfactions.manager.ConfirmationManager.ConfirmationResult;
@@ -75,8 +77,8 @@ public class FactionCommand extends AbstractPlayerCommand {
             if (playerEntity != null) {
                 hyperFactions.getGuiManager().openFactionMain(playerEntity, ref, store, player);
             } else {
-                // Fallback to help if Player component not available (shouldn't happen)
-                showHelp(ctx, player);
+                // Fallback to text help if Player component not available (shouldn't happen)
+                showHelpText(ctx, player);
             }
             return;
         }
@@ -114,7 +116,7 @@ public class FactionCommand extends AbstractPlayerCommand {
             case "who" -> handleWho(ctx, store, ref, player, fctx);
             case "power" -> handlePower(ctx, store, ref, player, fctx);
             case "chat", "c" -> handleChat(ctx, player, fctx.getArgs());
-            case "help", "?" -> showHelp(ctx, player);
+            case "help", "?" -> handleHelp(ctx, store, ref, player, fctx);
             case "gui", "menu" -> handleGui(ctx, store, ref, player);
             case "admin" -> handleAdmin(ctx, store, ref, player, currentWorld, fctx.getArgs());
             case "debug" -> handleDebug(ctx, store, ref, player, currentWorld, fctx.getArgs());
@@ -128,7 +130,7 @@ public class FactionCommand extends AbstractPlayerCommand {
             case "stuck" -> handleStuck(ctx, store, ref, player, currentWorld);
             default -> {
                 ctx.sendMessage(prefix().insert(msg("Unknown subcommand: " + subcommand, COLOR_RED)));
-                showHelp(ctx, player);
+                showHelpText(ctx, player);
             }
         }
     }
@@ -143,7 +145,54 @@ public class FactionCommand extends AbstractPlayerCommand {
         return Message.raw(text).color(color);
     }
 
-    private void showHelp(CommandContext ctx, PlayerRef player) {
+    /**
+     * Handles the /f help command.
+     * Opens the Help GUI unless --text flag is provided.
+     */
+    private void handleHelp(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
+                            PlayerRef player, FactionCommandContext fctx) {
+        // Text mode: show chat-based help
+        if (fctx.isTextMode()) {
+            showHelpText(ctx, player);
+            return;
+        }
+
+        // GUI mode: open help page
+        Player playerEntity = store.getComponent(ref, Player.getComponentType());
+        if (playerEntity != null) {
+            hyperFactions.getGuiManager().openHelpPage(playerEntity, ref, store, player);
+        } else {
+            showHelpText(ctx, player);
+        }
+    }
+
+    /**
+     * Opens the Help GUI to a specific category based on a command.
+     * Used for deep-linking from /f &lt;command&gt; help.
+     *
+     * @param command The command name to find the relevant help category for
+     */
+    private void openHelpForCommand(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
+                                    PlayerRef player, String command) {
+        Player playerEntity = store.getComponent(ref, Player.getComponentType());
+        if (playerEntity == null) {
+            showHelpText(ctx, player);
+            return;
+        }
+
+        // Look up the category for this command
+        HelpCategory category = HelpRegistry.getInstance().getCategoryForCommand(command);
+        if (category == null) {
+            category = HelpCategory.COMMANDS; // Default to commands reference
+        }
+
+        hyperFactions.getGuiManager().openHelp(playerEntity, ref, store, player, category);
+    }
+
+    /**
+     * Shows text-based help in chat (fallback for --text mode or when GUI unavailable).
+     */
+    private void showHelpText(CommandContext ctx, PlayerRef player) {
         List<CommandHelp> commands = new ArrayList<>();
 
         // Core - Basic faction management
@@ -366,14 +415,6 @@ public class FactionCommand extends AbstractPlayerCommand {
             .insert(msg(faction.name(), COLOR_CYAN)).insert(msg("!", COLOR_YELLOW)));
         target.sendMessage(prefix().insert(msg("Type ", COLOR_YELLOW))
             .insert(msg("/f accept " + faction.name(), COLOR_GREEN)).insert(msg(" to join.", COLOR_YELLOW)));
-
-        // Show invites page after sending invite (if not text mode)
-        if (!fctx.isTextMode()) {
-            Player playerEntity = store.getComponent(ref, Player.getComponentType());
-            if (playerEntity != null) {
-                hyperFactions.getGuiManager().openFactionInvites(playerEntity, ref, store, player, faction);
-            }
-        }
     }
 
     // === Accept ===
@@ -549,14 +590,6 @@ public class FactionCommand extends AbstractPlayerCommand {
                 }
             }
         }
-
-        // After action, open faction info page if not text mode (to show the faction they requested to join)
-        if (fctx.shouldOpenGuiAfterAction()) {
-            Player playerEntity = store.getComponent(ref, Player.getComponentType());
-            if (playerEntity != null) {
-                hyperFactions.getGuiManager().openFactionInfo(playerEntity, ref, store, player, faction);
-            }
-        }
     }
 
     // === Leave ===
@@ -565,13 +598,6 @@ public class FactionCommand extends AbstractPlayerCommand {
         Faction faction = hyperFactions.getFactionManager().getPlayerFaction(player.getUuid());
         if (faction == null) {
             ctx.sendMessage(prefix().insert(msg("You are not in a faction.", COLOR_RED)));
-            return;
-        }
-
-        // Check if leader (cannot leave)
-        FactionMember member = faction.getMember(player.getUuid());
-        if (member != null && member.isLeader()) {
-            ctx.sendMessage(prefix().insert(msg("You cannot leave as leader. Transfer leadership or disband first.", COLOR_RED)));
             return;
         }
 

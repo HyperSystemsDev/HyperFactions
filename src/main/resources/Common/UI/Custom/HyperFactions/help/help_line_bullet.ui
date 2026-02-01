@@ -1,0 +1,11 @@
+// Help content line - gray for bullet points
+
+Group {
+  Anchor: (Height: 16);
+
+  Label #Text {
+    Text: "";
+    Style: (FontSize: 11, TextColor: #AAAAAA);
+    Anchor: (Left: 0, Right: 0, Top: 0, Bottom: 0);
+  }
+}

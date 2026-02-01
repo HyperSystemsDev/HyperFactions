@@ -1,0 +1,114 @@
+// Help Center - Two-column layout
+// Left: Category menu (150px), Right: Scrollable content
+$C = "../../Common.ui";
+$S = "../shared/styles.ui";
+$Nav = "../nav/nav_bar.ui";
+
+// Category button styles
+@CategoryButtonLabel = LabelStyle(
+  FontSize: 11,
+  TextColor: #bfcdd5,
+  RenderBold: true,
+  HorizontalAlignment: Center,
+  VerticalAlignment: Center
+);
+
+@CategoryButtonLabelActive = LabelStyle(
+  FontSize: 11,
+  TextColor: #00FFFF,
+  RenderBold: true,
+  HorizontalAlignment: Center,
+  VerticalAlignment: Center
+);
+
+@CategoryButtonStyle = TextButtonStyle(
+  Default: (Background: $C.@DefaultSquareButtonDefaultBackground, LabelStyle: @CategoryButtonLabel),
+  Hovered: (Background: $C.@DefaultSquareButtonHoveredBackground, LabelStyle: @CategoryButtonLabel),
+  Pressed: (Background: $C.@DefaultSquareButtonPressedBackground, LabelStyle: @CategoryButtonLabel),
+  Disabled: (Background: $C.@DefaultSquareButtonDisabledBackground, LabelStyle: @CategoryButtonLabelActive),
+  Sounds: $C.@ButtonSounds
+);
+
+$C.@PageOverlay {
+  $Nav.@HyperFactionsNavBar #HyperFactionsNavBar {}
+
+  $C.@DecoratedContainer {
+    Anchor: (Width: 650, Height: 580);
+
+    #Title {
+      Group {
+        $C.@Title {
+          @Text = "Help Center";
+        }
+      }
+    }
+
+    #Content {
+      LayoutMode: Left;
+      Padding: (Left: 10, Right: 10, Top: 10, Bottom: 10);
+
+      // Left column - Category menu (fixed width)
+      Group #CategoryMenu {
+        Anchor: (Width: 150);
+        LayoutMode: Top;
+        Padding: (Right: 8);
+
+        TextButton #Cat0 {
+          Text: "Getting Started";
+          Anchor: (Height: 32, Bottom: 4, Left: 0, Right: 0);
+          Style: @CategoryButtonStyle;
+        }
+
+        TextButton #Cat1 {
+          Text: "Faction Basics";
+          Anchor: (Height: 32, Bottom: 4, Left: 0, Right: 0);
+          Style: @CategoryButtonStyle;
+        }
+
+        TextButton #Cat2 {
+          Text: "Territory & Claims";
+          Anchor: (Height: 32, Bottom: 4, Left: 0, Right: 0);
+          Style: @CategoryButtonStyle;
+        }
+
+        TextButton #Cat3 {
+          Text: "Relations & Diplomacy";
+          Anchor: (Height: 32, Bottom: 4, Left: 0, Right: 0);
+          Style: @CategoryButtonStyle;
+        }
+
+        TextButton #Cat4 {
+          Text: "Combat & Protection";
+          Anchor: (Height: 32, Bottom: 4, Left: 0, Right: 0);
+          Style: @CategoryButtonStyle;
+        }
+
+        TextButton #Cat5 {
+          Text: "Commands Reference";
+          Anchor: (Height: 32, Bottom: 4, Left: 0, Right: 0);
+          Style: @CategoryButtonStyle;
+        }
+      }
+
+      // Divider
+      Group {
+        Anchor: (Width: 1);
+        Background: (Color: #00AAAA);
+      }
+
+      // Right column - Scrollable content area
+      Group #ContentArea {
+        FlexWeight: 1;
+        LayoutMode: TopScrolling;
+        ScrollbarStyle: $C.@DefaultScrollbarStyle;
+        Padding: (Left: 15, Right: 10, Top: 0, Bottom: 10);
+
+        Group #ContentList {
+          LayoutMode: Top;
+        }
+      }
+    }
+  }
+}
+
+$C.@BackButton {}

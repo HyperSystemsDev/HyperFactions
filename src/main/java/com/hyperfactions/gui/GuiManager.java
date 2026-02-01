@@ -6,6 +6,8 @@ import com.hyperfactions.data.FactionMember;
 import com.hyperfactions.data.FactionRole;
 import com.hyperfactions.gui.faction.*;
 import com.hyperfactions.gui.faction.page.*;
+import com.hyperfactions.gui.help.HelpCategory;
+import com.hyperfactions.gui.help.page.HelpMainPage;
 import com.hyperfactions.gui.shared.page.*;
 import com.hyperfactions.gui.page.admin.*;
 import com.hyperfactions.gui.page.newplayer.*;
@@ -181,6 +183,18 @@ public class GuiManager {
                 6
         ));
 
+        // Help page (available to all players in faction nav bar)
+        registry.registerEntry(new Entry(
+                "help",
+                "Help",
+                null,
+                (player, ref, store, playerRef, faction, guiManager) ->
+                        new HelpMainPage(playerRef, guiManager, factionManager.get()),
+                true, // Show in nav bar
+                false, // Doesn't require faction
+                7
+        ));
+
         // Admin page (requires permission) - accessed via /f admin, not in main nav bar
         registry.registerEntry(new Entry(
                 "admin",
@@ -258,7 +272,7 @@ public class GuiManager {
                 "Help",
                 null,
                 (player, ref, store, playerRef, guiManager) ->
-                        new HelpPage(playerRef, guiManager),
+                        new HelpMainPage(playerRef, guiManager, factionManager.get()),
                 true,
                 4
         ));
@@ -1261,7 +1275,7 @@ public class GuiManager {
     }
 
     /**
-     * Opens the Help page for new players.
+     * Opens the Help page with the default category (GETTING_STARTED).
      *
      * @param player    The Player entity
      * @param ref       The entity reference
@@ -1270,14 +1284,30 @@ public class GuiManager {
      */
     public void openHelpPage(Player player, Ref<EntityStore> ref,
                              Store<EntityStore> store, PlayerRef playerRef) {
-        Logger.debug("[GUI] Opening HelpPage for %s", playerRef.getUsername());
+        openHelp(player, ref, store, playerRef, HelpCategory.GETTING_STARTED);
+    }
+
+    /**
+     * Opens the Help page with a specific category selected.
+     *
+     * @param player    The Player entity
+     * @param ref       The entity reference
+     * @param store     The entity store
+     * @param playerRef The PlayerRef component
+     * @param category  The initial category to display
+     */
+    public void openHelp(Player player, Ref<EntityStore> ref,
+                         Store<EntityStore> store, PlayerRef playerRef,
+                         HelpCategory category) {
+        Logger.debug("[GUI] Opening HelpMainPage for %s (category: %s)",
+                playerRef.getUsername(), category.displayName());
         try {
             PageManager pageManager = player.getPageManager();
-            HelpPage page = new HelpPage(playerRef, this);
+            HelpMainPage page = new HelpMainPage(playerRef, this, factionManager.get(), category);
             pageManager.openCustomPage(ref, store, page);
-            Logger.debug("[GUI] HelpPage opened successfully");
+            Logger.debug("[GUI] HelpMainPage opened successfully");
         } catch (Exception e) {
-            Logger.severe("[GUI] Failed to open HelpPage: %s", e.getMessage());
+            Logger.severe("[GUI] Failed to open HelpMainPage: %s", e.getMessage());
             e.printStackTrace();
         }
     }
