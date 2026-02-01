@@ -134,7 +134,7 @@ public class HyperFactionsConfig {
 
     // Permission settings
     private boolean adminRequiresOp = true;
-    private String permissionFallbackBehavior = "allow";
+    private String permissionFallbackBehavior = "deny";
 
     // Faction territory permission settings
     // Default permissions for new factions

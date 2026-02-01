@@ -77,6 +77,11 @@ public class FactionCommand extends AbstractPlayerCommand {
 
         // parts[0] is "faction", "f", or "hf"
         if (parts.length <= 1) {
+            // Check permission before opening GUI
+            if (!hasPermission(player, Permissions.USE)) {
+                ctx.sendMessage(prefix().insert(msg("You don't have permission to use factions.", COLOR_RED)));
+                return;
+            }
             // Open faction main dashboard GUI
             Player playerEntity = store.getComponent(ref, Player.getComponentType());
             if (playerEntity != null) {
