@@ -3,7 +3,7 @@ package com.hyperfactions.gui.shared.page;
 import com.hyperfactions.data.Faction;
 import com.hyperfactions.gui.GuiManager;
 import com.hyperfactions.gui.shared.data.MainMenuData;
-import com.hyperfactions.integration.HyperPermsIntegration;
+import com.hyperfactions.integration.PermissionManager;
 import com.hyperfactions.manager.FactionManager;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
@@ -44,7 +44,7 @@ public class MainMenuPage extends InteractiveCustomUIPage<MainMenuData> {
 
         UUID uuid = playerRef.getUuid();
         Faction faction = factionManager.getPlayerFaction(uuid);
-        boolean hasAdmin = HyperPermsIntegration.hasPermission(uuid, "hyperfactions.admin");
+        boolean hasAdmin = PermissionManager.get().hasPermission(uuid, "hyperfactions.admin");
 
         // Load the main menu template
         cmd.append("HyperFactions/shared/main_menu.ui");
@@ -200,13 +200,13 @@ public class MainMenuPage extends InteractiveCustomUIPage<MainMenuData> {
             case "BrowseFactions" -> guiManager.openFactionBrowser(player, ref, store, playerRef);
 
             case "AdminPanel" -> {
-                if (HyperPermsIntegration.hasPermission(uuid, "hyperfactions.admin")) {
+                if (PermissionManager.get().hasPermission(uuid, "hyperfactions.admin")) {
                     guiManager.openAdminMain(player, ref, store, playerRef);
                 }
             }
 
             case "AdminZones" -> {
-                if (HyperPermsIntegration.hasPermission(uuid, "hyperfactions.admin.zones")) {
+                if (PermissionManager.get().hasPermission(uuid, "hyperfactions.admin.zones")) {
                     guiManager.openAdminZone(player, ref, store, playerRef);
                 }
             }

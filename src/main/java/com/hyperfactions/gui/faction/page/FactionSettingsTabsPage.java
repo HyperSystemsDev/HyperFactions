@@ -11,7 +11,7 @@ import com.hyperfactions.gui.GuiManager;
 import com.hyperfactions.gui.faction.FactionPageRegistry;
 import com.hyperfactions.gui.faction.data.FactionSettingsTabsData;
 import com.hyperfactions.gui.nav.NavBarHelper;
-import com.hyperfactions.integration.HyperPermsIntegration;
+import com.hyperfactions.integration.PermissionManager;
 import com.hyperfactions.manager.ClaimManager;
 import com.hyperfactions.manager.FactionManager;
 import com.hyperfactions.manager.TeleportManager;
@@ -329,7 +329,7 @@ public class FactionSettingsTabsPage extends InteractiveCustomUIPage<FactionSett
         if (role == FactionRole.OFFICER) {
             FactionPermissions perms = faction.getEffectivePermissions();
             return perms.officersCanEdit() &&
-                   HyperPermsIntegration.hasPermission(uuid, Permissions.FACTION_PERMISSIONS);
+                   PermissionManager.get().hasPermission(uuid, Permissions.FACTION_PERMISSIONS);
         }
 
         return false;

@@ -8,7 +8,10 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.hyperfactions.data.ChunkKey;
 import com.hyperfactions.data.Zone;
+import com.hyperfactions.data.ZoneFlags;
 import com.hyperfactions.data.ZoneType;
+import com.hyperfactions.storage.StorageHealth;
+import com.hyperfactions.storage.StorageUtils;
 import com.hyperfactions.storage.ZoneStorage;
 import com.hyperfactions.util.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -61,24 +64,79 @@ public class JsonZoneStorage implements ZoneStorage {
     public CompletableFuture<Collection<Zone>> loadAllZones() {
         return CompletableFuture.supplyAsync(() -> {
             List<Zone> zones = new ArrayList<>();
+            List<String> failedZones = new ArrayList<>();
 
             if (!Files.exists(zonesFile)) {
-                return zones;
+                // Check if there's a backup we can recover from
+                if (StorageUtils.hasBackup(zonesFile)) {
+                    Logger.warn("Zones file missing but backup exists, attempting recovery");
+                    if (StorageUtils.recoverFromBackup(zonesFile)) {
+                        Logger.info("Successfully recovered zones file from backup");
+                    } else {
+                        Logger.info("Zones file does not exist yet, no zones to load");
+                        return zones;
+                    }
+                } else {
+                    Logger.info("Zones file does not exist yet, no zones to load");
+                    return zones;
+                }
             }
 
             try {
                 String json = Files.readString(zonesFile);
                 JsonArray array = JsonParser.parseString(json).getAsJsonArray();
+                int totalZones = array.size();
 
                 for (JsonElement el : array) {
                     try {
                         zones.add(deserializeZone(el.getAsJsonObject()));
                     } catch (Exception e) {
-                        Logger.warn("Failed to parse zone: %s", e.getMessage());
+                        // Try to get zone name for better error reporting
+                        String zoneName = "unknown";
+                        try {
+                            if (el.isJsonObject() && el.getAsJsonObject().has("name")) {
+                                zoneName = el.getAsJsonObject().get("name").getAsString();
+                            }
+                        } catch (Exception ignored) {}
+                        failedZones.add(zoneName);
+                        Logger.severe("Failed to parse zone '%s': %s", zoneName, e.getMessage());
                     }
                 }
+
+                // Report loading results
+                if (!failedZones.isEmpty()) {
+                    Logger.severe("WARNING: %d of %d zones failed to load: %s",
+                        failedZones.size(), totalZones, String.join(", ", failedZones));
+                }
+
+                if (totalZones > 0 && zones.isEmpty()) {
+                    Logger.severe("CRITICAL: Found %d zones in file but loaded 0 - possible data corruption!", totalZones);
+                    // Attempt backup recovery
+                    if (StorageUtils.recoverFromBackup(zonesFile)) {
+                        Logger.info("Attempting to load zones from recovered backup");
+                        return loadAllZones().join(); // Recursive call with recovered file
+                    }
+                }
+
             } catch (Exception e) {
-                Logger.severe("Failed to load zones", e);
+                Logger.severe("CRITICAL: Failed to load zones file, attempting backup recovery", e);
+                // Attempt backup recovery on parse failure
+                if (StorageUtils.recoverFromBackup(zonesFile)) {
+                    try {
+                        String json = Files.readString(zonesFile);
+                        JsonArray array = JsonParser.parseString(json).getAsJsonArray();
+                        for (JsonElement el : array) {
+                            try {
+                                zones.add(deserializeZone(el.getAsJsonObject()));
+                            } catch (Exception ignored) {}
+                        }
+                        Logger.info("Successfully loaded %d zones from recovered backup", zones.size());
+                        return zones;
+                    } catch (Exception e2) {
+                        Logger.severe("Backup recovery failed for zones file", e2);
+                    }
+                }
+                throw new RuntimeException("Failed to load zones file", e);
             }
 
             Logger.info("Loaded %d zones", zones.size());
@@ -89,13 +147,44 @@ public class JsonZoneStorage implements ZoneStorage {
     @Override
     public CompletableFuture<Void> saveAllZones(@NotNull Collection<Zone> zones) {
         return CompletableFuture.runAsync(() -> {
+            String filePath = zonesFile.toString();
+
             try {
                 JsonArray array = new JsonArray();
                 for (Zone zone : zones) {
                     array.add(serializeZone(zone));
                 }
-                Files.writeString(zonesFile, gson.toJson(array));
-            } catch (IOException e) {
+                String content = gson.toJson(array);
+
+                // Pre-write validation: ensure we can parse what we're about to write
+                try {
+                    JsonArray validation = JsonParser.parseString(content).getAsJsonArray();
+                    if (validation.size() != zones.size()) {
+                        String error = String.format("Pre-write validation failed: expected %d zones, got %d in JSON",
+                            zones.size(), validation.size());
+                        Logger.severe("[ZoneStorage] %s", error);
+                        StorageHealth.get().recordFailure(filePath, error);
+                        return;
+                    }
+                } catch (Exception e) {
+                    String error = "Pre-write validation failed: generated JSON is not valid: " + e.getMessage();
+                    Logger.severe("[ZoneStorage] %s", error);
+                    StorageHealth.get().recordFailure(filePath, error);
+                    return;
+                }
+
+                // Use atomic write for bulletproof data protection
+                StorageUtils.WriteResult result = StorageUtils.writeAtomic(zonesFile, content);
+
+                if (result instanceof StorageUtils.WriteResult.Success success) {
+                    StorageHealth.get().recordSuccess(filePath);
+                    Logger.debug("Saved %d zones (checksum: %s)", zones.size(), success.checksum().substring(0, 8));
+                } else if (result instanceof StorageUtils.WriteResult.Failure failure) {
+                    StorageHealth.get().recordFailure(filePath, failure.error());
+                    Logger.severe("Failed to save zones: %s", failure.error());
+                }
+            } catch (Exception e) {
+                StorageHealth.get().recordFailure(filePath, e.getMessage());
                 Logger.severe("Failed to save zones", e);
             }
         });
@@ -168,6 +257,27 @@ public class JsonZoneStorage implements ZoneStorage {
             JsonObject flagsObj = obj.getAsJsonObject("flags");
             for (String key : flagsObj.keySet()) {
                 flags.put(key, flagsObj.get(key).getAsBoolean());
+            }
+        }
+
+        // Migration: For WarZones, remove explicit BUILD_ALLOWED and CONTAINER_ACCESS flags
+        // so they use the new secure defaults (false for both)
+        if (type == ZoneType.WAR && flags != null) {
+            boolean migrated = false;
+            if (flags.containsKey(ZoneFlags.BUILD_ALLOWED)) {
+                flags.remove(ZoneFlags.BUILD_ALLOWED);
+                migrated = true;
+            }
+            if (flags.containsKey(ZoneFlags.CONTAINER_ACCESS)) {
+                flags.remove(ZoneFlags.CONTAINER_ACCESS);
+                migrated = true;
+            }
+            if (migrated) {
+                Logger.info("Migrated WarZone '%s' to use secure default flags (build/container disabled)", name);
+            }
+            // If flags map is now empty, set to null
+            if (flags.isEmpty()) {
+                flags = null;
             }
         }
 

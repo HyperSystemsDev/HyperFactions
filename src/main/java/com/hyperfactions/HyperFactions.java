@@ -2,6 +2,7 @@ package com.hyperfactions;
 
 import com.hyperfactions.api.events.EventBus;
 import com.hyperfactions.api.events.FactionDisbandEvent;
+import com.hyperfactions.backup.BackupManager;
 import com.hyperfactions.config.HyperFactionsConfig;
 import com.hyperfactions.gui.GuiManager;
 import com.hyperfactions.integration.HyperPermsIntegration;
@@ -65,6 +66,9 @@ public class HyperFactions {
 
     // GUI
     private GuiManager guiManager;
+
+    // Backup
+    private BackupManager backupManager;
 
     // Update checker
     private UpdateChecker updateChecker;
@@ -134,7 +138,7 @@ public class HyperFactions {
     public void enable() {
         // Initialize logger
         Logger.init(javaLogger);
-        Logger.info("HyperFactions v%s starting...", VERSION);
+        Logger.info("HyperFactions v%s starting... (build: %d)", VERSION, BuildInfo.BUILD_TIMESTAMP);
 
         // Load configuration
         HyperFactionsConfig.get().load(dataDir);
@@ -176,6 +180,10 @@ public class HyperFactions {
 
         // Initialize confirmation manager (for text-mode command confirmations)
         confirmationManager = new ConfirmationManager();
+
+        // Initialize backup manager
+        backupManager = new BackupManager(dataDir, this);
+        backupManager.init();
 
         // Load data
         factionManager.loadAll().join();
@@ -236,7 +244,8 @@ public class HyperFactions {
 
         // Initialize update checker if enabled
         if (HyperFactionsConfig.get().isUpdateCheckEnabled()) {
-            updateChecker = new UpdateChecker(dataDir, VERSION, HyperFactionsConfig.get().getUpdateCheckUrl());
+            updateChecker = new UpdateChecker(dataDir, VERSION, HyperFactionsConfig.get().getUpdateCheckUrl(),
+                    HyperFactionsConfig.get().isPreReleaseChannel());
             updateChecker.checkForUpdates();
 
             // Initialize notification preferences
@@ -281,6 +290,11 @@ public class HyperFactions {
 
         // Save all data
         saveAllData();
+
+        // Shutdown backup manager (creates shutdown backup if configured)
+        if (backupManager != null) {
+            backupManager.shutdown();
+        }
 
         // Shutdown invite/request managers (saves persisted data)
         if (inviteManager != null) {
@@ -583,6 +597,16 @@ public class HyperFactions {
     @NotNull
     public GuiManager getGuiManager() {
         return guiManager;
+    }
+
+    /**
+     * Gets the backup manager.
+     *
+     * @return the backup manager
+     */
+    @NotNull
+    public BackupManager getBackupManager() {
+        return backupManager;
     }
 
     /**

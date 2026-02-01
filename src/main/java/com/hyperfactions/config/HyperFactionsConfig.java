@@ -77,10 +77,18 @@ public class HyperFactionsConfig {
     // Update settings
     private boolean updateCheckEnabled = true;
     private String updateCheckUrl = "https://api.github.com/repos/ZenithDevHQ/HyperFactions/releases/latest";
+    private String releaseChannel = "stable";  // "stable" or "prerelease"
 
     // Auto-save settings
     private boolean autoSaveEnabled = true;
     private int autoSaveIntervalMinutes = 5;
+
+    // Backup settings (GFS rotation scheme)
+    private boolean backupEnabled = true;
+    private int backupHourlyRetention = 24;   // Keep last 24 hourly backups
+    private int backupDailyRetention = 7;     // Keep last 7 daily backups
+    private int backupWeeklyRetention = 4;    // Keep last 4 weekly backups
+    private boolean backupOnShutdown = true;  // Create backup on server shutdown
 
     // Economy settings
     private boolean economyEnabled = true;
@@ -182,8 +190,13 @@ public class HyperFactionsConfig {
         return instance;
     }
 
+    // Track if config needs saving (missing keys were found)
+    private boolean configNeedsSave = false;
+
     /**
      * Loads the configuration from file.
+     * Any missing keys will be added with default values and the config will be re-saved.
+     * User-defined values are always preserved.
      *
      * @param dataDir the plugin data directory
      */
@@ -197,12 +210,14 @@ public class HyperFactionsConfig {
             return;
         }
 
+        configNeedsSave = false;  // Reset flag
+
         try {
             String json = Files.readString(configFile);
             JsonObject root = JsonParser.parseString(json).getAsJsonObject();
 
             // Faction settings
-            if (root.has("faction") && root.get("faction").isJsonObject()) {
+            if (hasSection(root, "faction")) {
                 JsonObject faction = root.getAsJsonObject("faction");
                 maxMembers = getInt(faction, "maxMembers", maxMembers);
                 maxNameLength = getInt(faction, "maxNameLength", maxNameLength);
@@ -211,7 +226,7 @@ public class HyperFactionsConfig {
             }
 
             // Power settings
-            if (root.has("power") && root.get("power").isJsonObject()) {
+            if (hasSection(root, "power")) {
                 JsonObject power = root.getAsJsonObject("power");
                 maxPlayerPower = getDouble(power, "maxPlayerPower", maxPlayerPower);
                 startingPower = getDouble(power, "startingPower", startingPower);
@@ -222,7 +237,7 @@ public class HyperFactionsConfig {
             }
 
             // Claim settings
-            if (root.has("claims") && root.get("claims").isJsonObject()) {
+            if (hasSection(root, "claims")) {
                 JsonObject claims = root.getAsJsonObject("claims");
                 maxClaims = getInt(claims, "maxClaims", maxClaims);
                 onlyAdjacent = getBool(claims, "onlyAdjacent", onlyAdjacent);
@@ -233,7 +248,7 @@ public class HyperFactionsConfig {
             }
 
             // Combat settings
-            if (root.has("combat") && root.get("combat").isJsonObject()) {
+            if (hasSection(root, "combat")) {
                 JsonObject combat = root.getAsJsonObject("combat");
                 tagDurationSeconds = getInt(combat, "tagDurationSeconds", tagDurationSeconds);
                 allyDamage = getBool(combat, "allyDamage", allyDamage);
@@ -241,7 +256,7 @@ public class HyperFactionsConfig {
                 taggedLogoutPenalty = getBool(combat, "taggedLogoutPenalty", taggedLogoutPenalty);
 
                 // Spawn protection sub-section
-                if (combat.has("spawnProtection") && combat.get("spawnProtection").isJsonObject()) {
+                if (hasSection(combat, "spawnProtection")) {
                     JsonObject spawnProt = combat.getAsJsonObject("spawnProtection");
                     spawnProtectionEnabled = getBool(spawnProt, "enabled", spawnProtectionEnabled);
                     spawnProtectionDurationSeconds = getInt(spawnProt, "durationSeconds", spawnProtectionDurationSeconds);
@@ -251,28 +266,28 @@ public class HyperFactionsConfig {
             }
 
             // Relation settings
-            if (root.has("relations") && root.get("relations").isJsonObject()) {
+            if (hasSection(root, "relations")) {
                 JsonObject relations = root.getAsJsonObject("relations");
                 maxAllies = getInt(relations, "maxAllies", maxAllies);
                 maxEnemies = getInt(relations, "maxEnemies", maxEnemies);
             }
 
             // Invite/Request settings
-            if (root.has("invites") && root.get("invites").isJsonObject()) {
+            if (hasSection(root, "invites")) {
                 JsonObject invites = root.getAsJsonObject("invites");
                 inviteExpirationMinutes = getInt(invites, "inviteExpirationMinutes", inviteExpirationMinutes);
                 joinRequestExpirationHours = getInt(invites, "joinRequestExpirationHours", joinRequestExpirationHours);
             }
 
             // Stuck settings
-            if (root.has("stuck") && root.get("stuck").isJsonObject()) {
+            if (hasSection(root, "stuck")) {
                 JsonObject stuck = root.getAsJsonObject("stuck");
                 stuckWarmupSeconds = getInt(stuck, "warmupSeconds", stuckWarmupSeconds);
                 stuckCooldownSeconds = getInt(stuck, "cooldownSeconds", stuckCooldownSeconds);
             }
 
             // Teleport settings
-            if (root.has("teleport") && root.get("teleport").isJsonObject()) {
+            if (hasSection(root, "teleport")) {
                 JsonObject teleport = root.getAsJsonObject("teleport");
                 warmupSeconds = getInt(teleport, "warmupSeconds", warmupSeconds);
                 cooldownSeconds = getInt(teleport, "cooldownSeconds", cooldownSeconds);
@@ -281,21 +296,37 @@ public class HyperFactionsConfig {
             }
 
             // Update settings
-            if (root.has("updates") && root.get("updates").isJsonObject()) {
+            if (hasSection(root, "updates")) {
                 JsonObject updates = root.getAsJsonObject("updates");
                 updateCheckEnabled = getBool(updates, "enabled", updateCheckEnabled);
                 updateCheckUrl = getString(updates, "url", updateCheckUrl);
+                releaseChannel = getString(updates, "releaseChannel", releaseChannel);
+                // Validate release channel
+                if (!releaseChannel.equals("stable") && !releaseChannel.equals("prerelease")) {
+                    Logger.warn("Invalid releaseChannel '%s', using 'stable'", releaseChannel);
+                    releaseChannel = "stable";
+                }
             }
 
             // Auto-save settings
-            if (root.has("autoSave") && root.get("autoSave").isJsonObject()) {
+            if (hasSection(root, "autoSave")) {
                 JsonObject autoSave = root.getAsJsonObject("autoSave");
                 autoSaveEnabled = getBool(autoSave, "enabled", autoSaveEnabled);
                 autoSaveIntervalMinutes = getInt(autoSave, "intervalMinutes", autoSaveIntervalMinutes);
             }
 
+            // Backup settings
+            if (hasSection(root, "backup")) {
+                JsonObject backup = root.getAsJsonObject("backup");
+                backupEnabled = getBool(backup, "enabled", backupEnabled);
+                backupHourlyRetention = getInt(backup, "hourlyRetention", backupHourlyRetention);
+                backupDailyRetention = getInt(backup, "dailyRetention", backupDailyRetention);
+                backupWeeklyRetention = getInt(backup, "weeklyRetention", backupWeeklyRetention);
+                backupOnShutdown = getBool(backup, "onShutdown", backupOnShutdown);
+            }
+
             // Economy settings
-            if (root.has("economy") && root.get("economy").isJsonObject()) {
+            if (hasSection(root, "economy")) {
                 JsonObject economy = root.getAsJsonObject("economy");
                 economyEnabled = getBool(economy, "enabled", economyEnabled);
                 economyCurrencyName = getString(economy, "currencyName", economyCurrencyName);
@@ -305,37 +336,37 @@ public class HyperFactionsConfig {
             }
 
             // Message settings
-            if (root.has("messages") && root.get("messages").isJsonObject()) {
+            if (hasSection(root, "messages")) {
                 JsonObject messages = root.getAsJsonObject("messages");
                 prefix = getString(messages, "prefix", prefix);
                 primaryColor = getString(messages, "primaryColor", primaryColor);
             }
 
             // GUI settings
-            if (root.has("gui") && root.get("gui").isJsonObject()) {
+            if (hasSection(root, "gui")) {
                 JsonObject gui = root.getAsJsonObject("gui");
                 guiTitle = getString(gui, "title", guiTitle);
             }
 
             // Territory notification settings
-            if (root.has("territoryNotifications") && root.get("territoryNotifications").isJsonObject()) {
+            if (hasSection(root, "territoryNotifications")) {
                 JsonObject territoryNotifications = root.getAsJsonObject("territoryNotifications");
                 territoryNotificationsEnabled = getBool(territoryNotifications, "enabled", territoryNotificationsEnabled);
             }
 
             // World map marker settings
-            if (root.has("worldMap") && root.get("worldMap").isJsonObject()) {
+            if (hasSection(root, "worldMap")) {
                 JsonObject worldMap = root.getAsJsonObject("worldMap");
                 worldMapMarkersEnabled = getBool(worldMap, "enabled", worldMapMarkersEnabled);
             }
 
             // Debug settings
-            if (root.has("debug") && root.get("debug").isJsonObject()) {
+            if (hasSection(root, "debug")) {
                 JsonObject debug = root.getAsJsonObject("debug");
                 debugEnabledByDefault = getBool(debug, "enabledByDefault", debugEnabledByDefault);
                 debugLogToConsole = getBool(debug, "logToConsole", debugLogToConsole);
 
-                if (debug.has("categories") && debug.get("categories").isJsonObject()) {
+                if (hasSection(debug, "categories")) {
                     JsonObject categories = debug.getAsJsonObject("categories");
                     debugPower = getBool(categories, "power", debugPower);
                     debugClaim = getBool(categories, "claim", debugClaim);
@@ -347,7 +378,7 @@ public class HyperFactionsConfig {
             }
 
             // Chat settings
-            if (root.has("chat") && root.get("chat").isJsonObject()) {
+            if (hasSection(root, "chat")) {
                 JsonObject chat = root.getAsJsonObject("chat");
                 chatFormattingEnabled = getBool(chat, "enabled", chatFormattingEnabled);
                 chatFormat = getString(chat, "format", chatFormat);
@@ -356,7 +387,7 @@ public class HyperFactionsConfig {
                 chatNoFactionTag = getString(chat, "noFactionTag", chatNoFactionTag);
                 chatEventPriority = getString(chat, "priority", chatEventPriority);
 
-                if (chat.has("relationColors") && chat.get("relationColors").isJsonObject()) {
+                if (hasSection(chat, "relationColors")) {
                     JsonObject colors = chat.getAsJsonObject("relationColors");
                     chatRelationColorOwn = getString(colors, "own", chatRelationColorOwn);
                     chatRelationColorAlly = getString(colors, "ally", chatRelationColorAlly);
@@ -366,18 +397,18 @@ public class HyperFactionsConfig {
             }
 
             // Permission settings
-            if (root.has("permissions") && root.get("permissions").isJsonObject()) {
+            if (hasSection(root, "permissions")) {
                 JsonObject permissions = root.getAsJsonObject("permissions");
                 adminRequiresOp = getBool(permissions, "adminRequiresOp", adminRequiresOp);
                 permissionFallbackBehavior = getString(permissions, "fallbackBehavior", permissionFallbackBehavior);
             }
 
             // Faction territory permission settings
-            if (root.has("factionPermissions") && root.get("factionPermissions").isJsonObject()) {
+            if (hasSection(root, "factionPermissions")) {
                 JsonObject factionPerms = root.getAsJsonObject("factionPermissions");
 
                 // Defaults section
-                if (factionPerms.has("defaults") && factionPerms.get("defaults").isJsonObject()) {
+                if (hasSection(factionPerms, "defaults")) {
                     JsonObject defaults = factionPerms.getAsJsonObject("defaults");
                     defaultOutsiderBreak = getBool(defaults, "outsiderBreak", defaultOutsiderBreak);
                     defaultOutsiderPlace = getBool(defaults, "outsiderPlace", defaultOutsiderPlace);
@@ -393,7 +424,7 @@ public class HyperFactionsConfig {
                 }
 
                 // Locks section
-                if (factionPerms.has("locks") && factionPerms.get("locks").isJsonObject()) {
+                if (hasSection(factionPerms, "locks")) {
                     JsonObject locks = factionPerms.getAsJsonObject("locks");
                     lockOutsiderBreak = getBool(locks, "outsiderBreak", lockOutsiderBreak);
                     lockOutsiderPlace = getBool(locks, "outsiderPlace", lockOutsiderPlace);
@@ -409,7 +440,7 @@ public class HyperFactionsConfig {
                 }
 
                 // Forced section
-                if (factionPerms.has("forced") && factionPerms.get("forced").isJsonObject()) {
+                if (hasSection(factionPerms, "forced")) {
                     JsonObject forced = factionPerms.getAsJsonObject("forced");
                     forceOutsiderBreak = getBool(forced, "outsiderBreak", forceOutsiderBreak);
                     forceOutsiderPlace = getBool(forced, "outsiderPlace", forceOutsiderPlace);
@@ -429,6 +460,12 @@ public class HyperFactionsConfig {
             applyDebugSettings();
 
             Logger.info("Configuration loaded");
+
+            // Save config only if there were missing keys to add
+            if (configNeedsSave) {
+                Logger.info("[Config] Adding missing config keys with default values");
+                save(dataDir);
+            }
         } catch (Exception e) {
             Logger.severe("Failed to load configuration", e);
         }
@@ -526,6 +563,7 @@ public class HyperFactionsConfig {
             JsonObject updates = new JsonObject();
             updates.addProperty("enabled", updateCheckEnabled);
             updates.addProperty("url", updateCheckUrl);
+            updates.addProperty("releaseChannel", releaseChannel);
             root.add("updates", updates);
 
             // Auto-save settings
@@ -533,6 +571,15 @@ public class HyperFactionsConfig {
             autoSave.addProperty("enabled", autoSaveEnabled);
             autoSave.addProperty("intervalMinutes", autoSaveIntervalMinutes);
             root.add("autoSave", autoSave);
+
+            // Backup settings
+            JsonObject backup = new JsonObject();
+            backup.addProperty("enabled", backupEnabled);
+            backup.addProperty("hourlyRetention", backupHourlyRetention);
+            backup.addProperty("dailyRetention", backupDailyRetention);
+            backup.addProperty("weeklyRetention", backupWeeklyRetention);
+            backup.addProperty("onShutdown", backupOnShutdown);
+            root.add("backup", backup);
 
             // Economy settings
             JsonObject economy = new JsonObject();
@@ -724,10 +771,19 @@ public class HyperFactionsConfig {
     // === Update Getters ===
     public boolean isUpdateCheckEnabled() { return updateCheckEnabled; }
     public String getUpdateCheckUrl() { return updateCheckUrl; }
+    public String getReleaseChannel() { return releaseChannel; }
+    public boolean isPreReleaseChannel() { return "prerelease".equals(releaseChannel); }
 
     // === Auto-save Getters ===
     public boolean isAutoSaveEnabled() { return autoSaveEnabled; }
     public int getAutoSaveIntervalMinutes() { return autoSaveIntervalMinutes; }
+
+    // === Backup Getters ===
+    public boolean isBackupEnabled() { return backupEnabled; }
+    public int getBackupHourlyRetention() { return backupHourlyRetention; }
+    public int getBackupDailyRetention() { return backupDailyRetention; }
+    public int getBackupWeeklyRetention() { return backupWeeklyRetention; }
+    public boolean isBackupOnShutdown() { return backupOnShutdown; }
 
     // === Economy Getters ===
     public boolean isEconomyEnabled() { return economyEnabled; }
@@ -918,27 +974,59 @@ public class HyperFactionsConfig {
     }
 
     // === Helper methods ===
+    // These methods track missing keys to trigger config save with defaults
+
     private int getInt(JsonObject obj, String key, int def) {
-        return obj.has(key) ? obj.get(key).getAsInt() : def;
+        if (obj.has(key)) {
+            return obj.get(key).getAsInt();
+        }
+        configNeedsSave = true;
+        return def;
     }
 
     private double getDouble(JsonObject obj, String key, double def) {
-        return obj.has(key) ? obj.get(key).getAsDouble() : def;
+        if (obj.has(key)) {
+            return obj.get(key).getAsDouble();
+        }
+        configNeedsSave = true;
+        return def;
     }
 
     private boolean getBool(JsonObject obj, String key, boolean def) {
-        return obj.has(key) ? obj.get(key).getAsBoolean() : def;
+        if (obj.has(key)) {
+            return obj.get(key).getAsBoolean();
+        }
+        configNeedsSave = true;
+        return def;
     }
 
     private String getString(JsonObject obj, String key, String def) {
-        return obj.has(key) ? obj.get(key).getAsString() : def;
+        if (obj.has(key)) {
+            return obj.get(key).getAsString();
+        }
+        configNeedsSave = true;
+        return def;
     }
 
     private List<String> getStringList(JsonObject obj, String key) {
         List<String> list = new ArrayList<>();
         if (obj.has(key) && obj.get(key).isJsonArray()) {
             obj.getAsJsonArray(key).forEach(el -> list.add(el.getAsString()));
+        } else if (!obj.has(key)) {
+            configNeedsSave = true;
         }
         return list;
+    }
+
+    /**
+     * Checks if a section exists in the config.
+     * If not, marks the config as needing save.
+     */
+    private boolean hasSection(JsonObject root, String sectionName) {
+        if (root.has(sectionName) && root.get(sectionName).isJsonObject()) {
+            return true;
+        }
+        configNeedsSave = true;
+        return false;
     }
 }

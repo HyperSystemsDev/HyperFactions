@@ -108,24 +108,42 @@ public class PermissionManager {
      * @return true if the player has the permission
      */
     public boolean hasPermission(@NotNull UUID playerUuid, @NotNull String permission) {
+        boolean isUserLevel = isUserLevelPermission(permission);
+
         // Try each provider in order for the specific permission
         for (PermissionProvider provider : providers) {
             Optional<Boolean> result = provider.hasPermission(playerUuid, permission);
             if (result.isPresent()) {
-                Logger.debug("[PermissionManager] %s answered %s for %s: %s",
-                    provider.getName(), permission, playerUuid, result.get());
-                return result.get();
+                if (result.get()) {
+                    // Permission explicitly granted
+                    Logger.debug("[PermissionManager] %s answered %s for %s: true",
+                        provider.getName(), permission, playerUuid);
+                    return true;
+                } else {
+                    // Permission returned false
+                    // For non-user-level permissions (admin, bypass, limit), false means denied
+                    if (!isUserLevel) {
+                        Logger.debug("[PermissionManager] %s answered %s for %s: false (denied)",
+                            provider.getName(), permission, playerUuid);
+                        return false;
+                    }
+                    // For user-level permissions, false means "not specifically granted"
+                    // Continue to check hyperfactions.use below
+                    Logger.debug("[PermissionManager] %s returned false for %s, checking hyperfactions.use",
+                        provider.getName(), permission);
+                    break;
+                }
             }
         }
 
         // For user-level permissions, check if player has hyperfactions.use as alternative
         // This allows "hyperfactions.use" to grant all basic user permissions
-        if (isUserLevelPermission(permission) && !permission.equals("hyperfactions.use")) {
+        if (isUserLevel && !permission.equals("hyperfactions.use")) {
             for (PermissionProvider provider : providers) {
                 Optional<Boolean> result = provider.hasPermission(playerUuid, "hyperfactions.use");
                 if (result.isPresent() && result.get()) {
-                    Logger.debug("[PermissionManager] %s granted via hyperfactions.use for %s: %s",
-                        permission, playerUuid, true);
+                    Logger.debug("[PermissionManager] %s granted via hyperfactions.use for %s",
+                        permission, playerUuid);
                     return true;
                 }
             }
@@ -155,11 +173,10 @@ public class PermissionManager {
      * Handles fallback when no provider can answer.
      */
     private boolean handleFallback(@NotNull UUID playerUuid, @NotNull String permission) {
-        boolean isAdminPerm = permission.startsWith("hyperfactions.admin");
         HyperFactionsConfig config = HyperFactionsConfig.get();
 
-        if (isAdminPerm) {
-            // Admin permissions require OP when no permission plugin is handling them
+        // Admin permissions require OP when no permission plugin is handling them
+        if (permission.startsWith("hyperfactions.admin")) {
             if (config.isAdminRequiresOp()) {
                 boolean isOp = isPlayerOp(playerUuid);
                 Logger.debug("[PermissionManager] Admin fallback for %s: isOp=%s", playerUuid, isOp);
@@ -170,7 +187,20 @@ public class PermissionManager {
             return false;
         }
 
-        // Normal permissions: use configured fallback behavior
+        // Bypass permissions should always be denied unless explicitly granted
+        // These are powerful permissions that skip protection checks
+        if (permission.startsWith("hyperfactions.bypass")) {
+            Logger.debug("[PermissionManager] Bypass fallback for %s: denied (requires explicit grant)", playerUuid);
+            return false;
+        }
+
+        // Limit permissions should be denied (defaults are used instead)
+        if (permission.startsWith("hyperfactions.limit")) {
+            Logger.debug("[PermissionManager] Limit fallback for %s: denied (uses config defaults)", playerUuid);
+            return false;
+        }
+
+        // Normal user permissions: use configured fallback behavior
         String fallbackBehavior = config.getPermissionFallbackBehavior();
         boolean allow = "allow".equalsIgnoreCase(fallbackBehavior);
         Logger.debug("[PermissionManager] Normal fallback for %s: %s (config: %s)",

@@ -808,25 +808,73 @@ public class HyperFactionsPlugin extends JavaPlugin {
                 String worldName = getWorldName(store);
                 if (worldName == null) return;
 
-                // Use INTERACT for general block use
-                boolean blocked = protectionListener.onBlockInteract(
-                    player.getUuid(),
-                    worldName,
-                    pos.getX(), pos.getY(), pos.getZ()
-                );
+                // Check if this is a door (only doors use INTERACT, everything else uses CONTAINER)
+                boolean isDoor = isDoorBlock(event.getBlockType());
+
+                boolean blocked;
+                com.hyperfactions.protection.ProtectionChecker.InteractionType interactionType;
+
+                if (isDoor) {
+                    // Use INTERACT for doors only - these are allowed in WarZones
+                    interactionType = com.hyperfactions.protection.ProtectionChecker.InteractionType.INTERACT;
+                    blocked = protectionListener.onBlockInteract(
+                        player.getUuid(),
+                        worldName,
+                        pos.getX(), pos.getY(), pos.getZ()
+                    );
+                } else {
+                    // Use CONTAINER for everything else (chests, furnaces, workbenches, etc.)
+                    // This blocks access in WarZones since CONTAINER_ACCESS defaults to false
+                    interactionType = com.hyperfactions.protection.ProtectionChecker.InteractionType.CONTAINER;
+                    blocked = protectionListener.onContainerAccess(
+                        player.getUuid(),
+                        worldName,
+                        pos.getX(), pos.getY(), pos.getZ()
+                    );
+                }
 
                 if (blocked) {
                     event.setCancelled(true);
                     player.sendMessage(Message.raw(protectionListener.getDenialMessage(
                         hyperFactions.getProtectionChecker().canInteract(
                             player.getUuid(), worldName, pos.getX(), pos.getZ(),
-                            com.hyperfactions.protection.ProtectionChecker.InteractionType.INTERACT
+                            interactionType
                         )
                     )).color("#FF5555"));
                 }
             } catch (Exception e) {
                 Logger.severe("Error processing block use event", e);
             }
+        }
+
+        /**
+         * Checks if a block type is a door.
+         * Only doors should use INTERACT permission - everything else requires CONTAINER permission.
+         */
+        private boolean isDoorBlock(com.hypixel.hytale.server.core.asset.type.blocktype.config.BlockType blockType) {
+            if (blockType == null) return false;
+            try {
+                // Check state ID for "Door"
+                var state = blockType.getState();
+                if (state != null) {
+                    String stateId = state.getId();
+                    if ("door".equalsIgnoreCase(stateId)) {
+                        return true;
+                    }
+                }
+                // Also check block ID for door-like blocks
+                String blockId = blockType.getId();
+                if (blockId != null) {
+                    String lowerBlockId = blockId.toLowerCase();
+                    // Match various door types: door, gate, trapdoor, etc.
+                    if (lowerBlockId.contains("door") || lowerBlockId.contains("gate")) {
+                        return true;
+                    }
+                }
+            } catch (Exception e) {
+                // Ignore errors, assume not a door (safer to block)
+            }
+            return false;
         }
 
         private String getWorldName(Store<EntityStore> store) {

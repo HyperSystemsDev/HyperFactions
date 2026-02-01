@@ -33,15 +33,27 @@ public final class UpdateChecker {
     private final Path dataDirectory;
     private final String currentVersion;
     private final String checkUrl;
+    private final boolean includePreReleases;
 
     private final AtomicReference<UpdateInfo> cachedUpdate = new AtomicReference<>();
     private volatile long lastCheckTime = 0;
     private static final long CACHE_DURATION_MS = 300000; // 5 minutes
 
     public UpdateChecker(@NotNull Path dataDirectory, @NotNull String currentVersion, @NotNull String checkUrl) {
+        this(dataDirectory, currentVersion, checkUrl, false);
+    }
+
+    public UpdateChecker(@NotNull Path dataDirectory, @NotNull String currentVersion, @NotNull String checkUrl, boolean includePreReleases) {
         this.dataDirectory = dataDirectory;
         this.currentVersion = currentVersion;
-        this.checkUrl = checkUrl;
+        // Adjust URL based on release channel
+        if (includePreReleases && checkUrl.endsWith("/releases/latest")) {
+            // Change to /releases to get all releases including pre-releases
+            this.checkUrl = checkUrl.replace("/releases/latest", "/releases");
+        } else {
+            this.checkUrl = checkUrl;
+        }
+        this.includePreReleases = includePreReleases;
     }
 
     /**
@@ -103,16 +115,33 @@ public final class UpdateChecker {
                 }
 
                 // Parse GitHub release JSON
-                JsonObject obj = GSON.fromJson(json, JsonObject.class);
-                String tagName = obj.get("tag_name").getAsString();
+                // When using /releases endpoint, response is an array; /releases/latest is a single object
+                JsonObject releaseObj = null;
+
+                if (json.trim().startsWith("[")) {
+                    // Array response from /releases endpoint
+                    JsonArray releases = GSON.fromJson(json, JsonArray.class);
+                    if (releases.isEmpty()) {
+                        Logger.info("[Update] No releases found");
+                        return null;
+                    }
+                    // First release in the array is the latest (including pre-releases)
+                    releaseObj = releases.get(0).getAsJsonObject();
+                } else {
+                    // Single object response from /releases/latest
+                    releaseObj = GSON.fromJson(json, JsonObject.class);
+                }
+
+                String tagName = releaseObj.get("tag_name").getAsString();
                 String latestVersion = tagName.startsWith("v") ? tagName.substring(1) : tagName;
-                String changelog = obj.has("body") && !obj.get("body").isJsonNull()
-                        ? obj.get("body").getAsString() : null;
+                String changelog = releaseObj.has("body") && !releaseObj.get("body").isJsonNull()
+                        ? releaseObj.get("body").getAsString() : null;
+                boolean isPreRelease = releaseObj.has("prerelease") && releaseObj.get("prerelease").getAsBoolean();
 
                 // Find the first .jar asset download URL
                 String downloadUrl = null;
-                if (obj.has("assets") && obj.get("assets").isJsonArray()) {
-                    JsonArray assets = obj.getAsJsonArray("assets");
+                if (releaseObj.has("assets") && releaseObj.get("assets").isJsonArray()) {
+                    JsonArray assets = releaseObj.getAsJsonArray("assets");
                     for (int i = 0; i < assets.size(); i++) {
                         JsonObject asset = assets.get(i).getAsJsonObject();
                         String assetName = asset.get("name").getAsString();
@@ -127,9 +156,10 @@ public final class UpdateChecker {
 
                 // Compare versions
                 if (isNewerVersion(latestVersion, currentVersion)) {
-                    UpdateInfo info = new UpdateInfo(latestVersion, downloadUrl, changelog);
+                    UpdateInfo info = new UpdateInfo(latestVersion, downloadUrl, changelog, isPreRelease);
                     cachedUpdate.set(info);
-                    Logger.info("[Update] New version available: %s (current: %s)", latestVersion, currentVersion);
+                    String channelNote = isPreRelease ? " (pre-release)" : "";
+                    Logger.info("[Update] New version available: %s%s (current: %s)", latestVersion, channelNote, currentVersion);
                     return info;
                 } else {
                     cachedUpdate.set(null);
@@ -278,6 +308,12 @@ public final class UpdateChecker {
     public record UpdateInfo(
             @NotNull String version,
             @Nullable String downloadUrl,
-            @Nullable String changelog
-    ) {}
+            @Nullable String changelog,
+            boolean isPreRelease
+    ) {
+        /** Backwards-compatible constructor without pre-release flag */
+        public UpdateInfo(@NotNull String version, @Nullable String downloadUrl, @Nullable String changelog) {
+            this(version, downloadUrl, changelog, false);
+        }
+    }
 }

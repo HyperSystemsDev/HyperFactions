@@ -25,7 +25,8 @@ public class ConfirmationManager {
     public enum ConfirmationType {
         DISBAND("disband your faction"),
         LEAVE("leave your faction"),
-        TRANSFER("transfer faction leadership");
+        TRANSFER("transfer faction leadership"),
+        RESTORE_BACKUP("restore from backup (this will overwrite current data)");
 
         private final String description;
 

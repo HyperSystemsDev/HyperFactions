@@ -38,26 +38,58 @@ public class FactionManager {
 
     /**
      * Loads all factions from storage.
+     * <p>
+     * SAFETY: This method will NOT clear existing data if loading fails or returns
+     * suspiciously empty results when data was expected. This prevents data loss
+     * from deserialization failures or I/O errors.
      *
      * @return a future that completes when loading is done
      */
     public CompletableFuture<Void> loadAll() {
+        // Capture current state for safety validation
+        final int previousFactionCount = factions.size();
+        final int previousMemberCount = playerToFaction.size();
+
         return storage.loadAllFactions().thenAccept(loaded -> {
-            factions.clear();
-            playerToFaction.clear();
-            nameToFaction.clear();
+            // SAFETY CHECK: If we had data before but loading returned nothing,
+            // this is likely a load failure - DO NOT clear existing data
+            if (previousFactionCount > 0 && loaded.isEmpty()) {
+                Logger.severe("CRITICAL: Load returned 0 factions but %d were previously loaded!",
+                    previousFactionCount);
+                Logger.severe("Keeping existing in-memory data to prevent data loss.");
+                Logger.severe("Check logs above for deserialization errors. Use '/f admin reload' to retry.");
+                return;
+            }
+
+            // Build new indices before clearing old ones (atomic swap pattern)
+            Map<UUID, Faction> newFactions = new HashMap<>();
+            Map<UUID, UUID> newPlayerToFaction = new HashMap<>();
+            Map<String, UUID> newNameToFaction = new HashMap<>();
 
             for (Faction faction : loaded) {
-                factions.put(faction.id(), faction);
-                nameToFaction.put(faction.name().toLowerCase(), faction.id());
+                newFactions.put(faction.id(), faction);
+                newNameToFaction.put(faction.name().toLowerCase(), faction.id());
 
                 for (UUID memberUuid : faction.members().keySet()) {
-                    playerToFaction.put(memberUuid, faction.id());
+                    newPlayerToFaction.put(memberUuid, faction.id());
                 }
             }
 
+            // Now atomically swap the data
+            factions.clear();
+            factions.putAll(newFactions);
+
+            playerToFaction.clear();
+            playerToFaction.putAll(newPlayerToFaction);
+
+            nameToFaction.clear();
+            nameToFaction.putAll(newNameToFaction);
+
             Logger.info("Loaded %d factions with %d members indexed",
                 factions.size(), playerToFaction.size());
+        }).exceptionally(ex -> {
+            Logger.severe("CRITICAL: Exception during faction loading - keeping existing data", (Throwable) ex);
+            return null;
         });
     }
 

@@ -6,6 +6,7 @@ import com.hyperfactions.data.RelationType;
 import com.hyperfactions.integration.PermissionManager;
 import com.hyperfactions.manager.FactionManager;
 import com.hyperfactions.manager.RelationManager;
+import com.hyperfactions.util.LegacyColorParser;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.event.events.player.PlayerChatEvent;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
@@ -72,9 +73,10 @@ public class FactionChatFormatter implements PlayerChatEvent.Formatter {
         RelationType relation = determineRelation(senderFaction, targetFaction, senderUuid, targetUuid);
         String relationColor = getRelationColor(relation);
 
-        // Get permission plugin prefix/suffix
-        String prefix = PermissionManager.get().getPrefix(senderUuid, null);
-        String suffix = PermissionManager.get().getSuffix(senderUuid, null);
+        // Get permission plugin prefix/suffix with world context
+        String worldName = getWorldName(sender);
+        String prefix = PermissionManager.get().getPrefix(senderUuid, worldName);
+        String suffix = PermissionManager.get().getSuffix(senderUuid, worldName);
 
         // Build faction tag with relation color
         String factionTag = buildFactionTag(senderFaction, relationColor);
@@ -249,16 +251,35 @@ public class FactionChatFormatter implements PlayerChatEvent.Formatter {
     }
 
     /**
-     * Parses a string that may contain legacy color codes (&a, &b, etc.) or
-     * section symbol codes (§a, §b, etc.) into a Message with proper coloring.
+     * Parses a string that may contain legacy color codes (&amp;a, &amp;b, etc.),
+     * section symbol codes (§a, §b, etc.), or hex colors (&#RRGGBB) into a
+     * Message with proper coloring preserved.
      *
-     * For simplicity, we just return the string as-is with a neutral color,
-     * stripping legacy codes. A full implementation would parse and apply colors.
+     * This is essential for displaying HyperPerms prefixes/suffixes with
+     * their intended colors in chat.
      */
     @NotNull
     private Message parseColoredString(@NotNull String text) {
-        // Strip legacy color codes for now (§X and &X patterns)
-        String stripped = text.replaceAll("[§&][0-9a-fA-FklmnorKLMNOR]", "");
-        return Message.raw(stripped).color("#AAAAAA");
+        if (text == null || text.isEmpty()) {
+            return Message.raw("");
+        }
+        return LegacyColorParser.parse(text);
+    }
+
+    /**
+     * Gets the world name for a player, used for contextual prefix/suffix lookup.
+     * Note: PlayerRef doesn't expose world directly in the chat formatter context,
+     * so we return null to use the default (non-world-specific) prefix/suffix.
+     * For world-specific lookups, the caller would need to pass the world context.
+     *
+     * @param player the player reference
+     * @return the world name, or null if not available
+     */
+    @Nullable
+    private String getWorldName(@NotNull PlayerRef player) {
+        // PlayerRef doesn't directly expose world in this context
+        // The prefix/suffix lookup will use the default (non-world-specific) values
+        // For full world context support, the format() method would need the World parameter
+        return null;
     }
 }

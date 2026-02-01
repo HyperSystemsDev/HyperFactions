@@ -33,16 +33,39 @@ public class PowerManager {
 
     /**
      * Loads all player power data from storage.
+     * <p>
+     * SAFETY: This method will NOT clear existing data if loading fails or returns
+     * suspiciously empty results when data was expected.
      *
      * @return a future that completes when loading is done
      */
     public CompletableFuture<Void> loadAll() {
+        final int previousCount = powerCache.size();
+
         return storage.loadAllPlayerPower().thenAccept(loaded -> {
-            powerCache.clear();
-            for (PlayerPower power : loaded) {
-                powerCache.put(power.uuid(), power);
+            // SAFETY CHECK: If we had data before but loading returned nothing,
+            // this is likely a load failure - DO NOT clear existing data
+            if (previousCount > 0 && loaded.isEmpty()) {
+                Logger.severe("CRITICAL: Load returned 0 player power records but %d were previously loaded!",
+                    previousCount);
+                Logger.severe("Keeping existing in-memory data to prevent data loss.");
+                return;
             }
+
+            // Build new cache before clearing old one
+            Map<UUID, PlayerPower> newCache = new HashMap<>();
+            for (PlayerPower power : loaded) {
+                newCache.put(power.uuid(), power);
+            }
+
+            // Atomic swap
+            powerCache.clear();
+            powerCache.putAll(newCache);
+
             Logger.info("Loaded %d player power records", powerCache.size());
+        }).exceptionally(ex -> {
+            Logger.severe("CRITICAL: Exception during player power loading - keeping existing data", (Throwable) ex);
+            return null;
         });
     }
 

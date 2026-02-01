@@ -86,6 +86,13 @@ public class PublicChatListener {
             return event;
         }
 
+        // Skip if HyperPerms chat is enabled - let HyperPerms handle formatting
+        // HyperPerms includes faction info via FactionIntegration
+        if (isHyperPermsChatEnabled()) {
+            Logger.debug("[PublicChat] HyperPerms chat enabled, skipping HyperFactions formatter");
+            return event;
+        }
+
         PlayerRef sender = event.getSender();
 
         // Store sender in ThreadLocal for the formatter
@@ -107,5 +114,32 @@ public class PublicChatListener {
         }
 
         return event;
+    }
+
+    /**
+     * Checks if HyperPerms chat formatting is enabled.
+     * If so, we should let HyperPerms handle chat to avoid conflicts.
+     */
+    private boolean isHyperPermsChatEnabled() {
+        try {
+            Class<?> bootstrapClass = Class.forName("com.hyperperms.HyperPermsBootstrap");
+            java.lang.reflect.Method getInstanceMethod = bootstrapClass.getMethod("getInstance");
+            Object hyperPerms = getInstanceMethod.invoke(null);
+            if (hyperPerms == null) return false;
+
+            java.lang.reflect.Method getChatManagerMethod = hyperPerms.getClass().getMethod("getChatManager");
+            Object chatManager = getChatManagerMethod.invoke(hyperPerms);
+            if (chatManager == null) return false;
+
+            java.lang.reflect.Method isEnabledMethod = chatManager.getClass().getMethod("isEnabled");
+            Object result = isEnabledMethod.invoke(chatManager);
+            return result instanceof Boolean && (Boolean) result;
+        } catch (ClassNotFoundException e) {
+            // HyperPerms not installed
+            return false;
+        } catch (Exception e) {
+            Logger.debug("[PublicChat] Error checking HyperPerms chat status: %s", e.getMessage());
+            return false;
+        }
     }
 }

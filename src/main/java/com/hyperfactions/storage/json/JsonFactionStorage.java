@@ -8,6 +8,8 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.hyperfactions.data.*;
 import com.hyperfactions.storage.FactionStorage;
+import com.hyperfactions.storage.StorageHealth;
+import com.hyperfactions.storage.StorageUtils;
 import com.hyperfactions.util.Logger;
 import org.jetbrains.annotations.NotNull;
 
@@ -59,7 +61,17 @@ public class JsonFactionStorage implements FactionStorage {
         return CompletableFuture.supplyAsync(() -> {
             Path file = factionsDir.resolve(factionId + ".json");
             if (!Files.exists(file)) {
-                return Optional.empty();
+                // Check if there's a backup we can recover from
+                if (StorageUtils.hasBackup(file)) {
+                    Logger.warn("Faction file %s missing but backup exists, attempting recovery", factionId);
+                    if (StorageUtils.recoverFromBackup(file)) {
+                        Logger.info("Successfully recovered faction %s from backup", factionId);
+                    } else {
+                        return Optional.empty();
+                    }
+                } else {
+                    return Optional.empty();
+                }
             }
 
             try {
@@ -67,7 +79,18 @@ public class JsonFactionStorage implements FactionStorage {
                 JsonObject obj = JsonParser.parseString(json).getAsJsonObject();
                 return Optional.of(deserializeFaction(obj));
             } catch (Exception e) {
-                Logger.severe("Failed to load faction %s", e, factionId);
+                Logger.severe("Failed to load faction %s, attempting backup recovery", e, factionId);
+                // Attempt backup recovery on parse failure
+                if (StorageUtils.recoverFromBackup(file)) {
+                    try {
+                        String json = Files.readString(file);
+                        JsonObject obj = JsonParser.parseString(json).getAsJsonObject();
+                        Logger.info("Successfully loaded faction %s from recovered backup", factionId);
+                        return Optional.of(deserializeFaction(obj));
+                    } catch (Exception e2) {
+                        Logger.severe("Backup recovery failed for faction %s", e2, factionId);
+                    }
+                }
                 return Optional.empty();
             }
         });
@@ -77,10 +100,24 @@ public class JsonFactionStorage implements FactionStorage {
     public CompletableFuture<Void> saveFaction(@NotNull Faction faction) {
         return CompletableFuture.runAsync(() -> {
             Path file = factionsDir.resolve(faction.id() + ".json");
+            String filePath = file.toString();
+
             try {
                 JsonObject obj = serializeFaction(faction);
-                Files.writeString(file, gson.toJson(obj));
-            } catch (IOException e) {
+                String content = gson.toJson(obj);
+
+                // Use atomic write for bulletproof data protection
+                StorageUtils.WriteResult result = StorageUtils.writeAtomic(file, content);
+
+                if (result instanceof StorageUtils.WriteResult.Success success) {
+                    StorageHealth.get().recordSuccess(filePath);
+                    Logger.debug("Saved faction %s (checksum: %s)", faction.name(), success.checksum().substring(0, 8));
+                } else if (result instanceof StorageUtils.WriteResult.Failure failure) {
+                    StorageHealth.get().recordFailure(filePath, failure.error());
+                    Logger.severe("Failed to save faction %s: %s", faction.name(), failure.error());
+                }
+            } catch (Exception e) {
+                StorageHealth.get().recordFailure(filePath, e.getMessage());
                 Logger.severe("Failed to save faction %s", e, faction.name());
             }
         });
@@ -102,26 +139,45 @@ public class JsonFactionStorage implements FactionStorage {
     public CompletableFuture<Collection<Faction>> loadAllFactions() {
         return CompletableFuture.supplyAsync(() -> {
             List<Faction> factions = new ArrayList<>();
+            List<String> failedFiles = new ArrayList<>();
+            int totalFiles = 0;
 
             if (!Files.exists(factionsDir)) {
+                Logger.info("Factions directory does not exist yet, no factions to load");
                 return factions;
             }
 
             try (DirectoryStream<Path> stream = Files.newDirectoryStream(factionsDir, "*.json")) {
                 for (Path file : stream) {
+                    totalFiles++;
                     try {
                         String json = Files.readString(file);
                         JsonObject obj = JsonParser.parseString(json).getAsJsonObject();
                         factions.add(deserializeFaction(obj));
                     } catch (Exception e) {
-                        Logger.warn("Failed to load faction file %s: %s", file.getFileName(), e.getMessage());
+                        failedFiles.add(file.getFileName().toString());
+                        Logger.severe("Failed to load faction file %s: %s", file.getFileName(), e.getMessage());
+                        // Log full stack trace for debugging
+                        Logger.debug("Stack trace for %s: %s", file.getFileName(), e.toString());
                     }
                 }
             } catch (IOException e) {
-                Logger.severe("Failed to read factions directory", e);
+                Logger.severe("CRITICAL: Failed to read factions directory - data may be lost!", e);
+                throw new RuntimeException("Failed to read factions directory", e);
             }
 
-            Logger.info("Loaded %d factions", factions.size());
+            // Report loading results
+            if (!failedFiles.isEmpty()) {
+                Logger.severe("WARNING: %d of %d faction files failed to load: %s",
+                    failedFiles.size(), totalFiles, String.join(", ", failedFiles));
+                Logger.severe("These factions will NOT be available until the files are fixed!");
+            }
+
+            if (totalFiles > 0 && factions.isEmpty()) {
+                Logger.severe("CRITICAL: Found %d faction files but loaded 0 factions - possible data corruption!", totalFiles);
+            }
+
+            Logger.info("Loaded %d/%d factions successfully", factions.size(), totalFiles);
             return factions;
         });
     }

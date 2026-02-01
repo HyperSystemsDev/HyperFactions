@@ -2,6 +2,9 @@ package com.hyperfactions.command;
 
 import com.hyperfactions.HyperFactions;
 import com.hyperfactions.Permissions;
+import com.hyperfactions.backup.BackupManager;
+import com.hyperfactions.backup.BackupMetadata;
+import com.hyperfactions.backup.BackupType;
 import com.hyperfactions.config.HyperFactionsConfig;
 import com.hyperfactions.data.*;
 import com.hyperfactions.data.ZoneFlags;
@@ -249,9 +252,16 @@ public class FactionCommand extends AbstractPlayerCommand {
 
         // Other
         commands.add(new CommandHelp("/f chat [mode]", "Toggle faction chat", "Other"));
-        commands.add(new CommandHelp("/f admin", "Admin commands", "Other"));
-        commands.add(new CommandHelp("/f debug", "Debug commands", "Other"));
         commands.add(new CommandHelp("/f reload", "Reload config", "Other"));
+
+        // Admin
+        commands.add(new CommandHelp("/f admin zone", "Manage admin zones", "Admin"));
+        commands.add(new CommandHelp("/f admin backup create [name]", "Create manual backup", "Admin"));
+        commands.add(new CommandHelp("/f admin backup list", "List all backups", "Admin"));
+        commands.add(new CommandHelp("/f admin backup restore <name>", "Restore from backup", "Admin"));
+        commands.add(new CommandHelp("/f admin backup delete <name>", "Delete a backup", "Admin"));
+        commands.add(new CommandHelp("/f admin update", "Check for updates", "Admin"));
+        commands.add(new CommandHelp("/f debug", "Debug commands", "Admin"));
 
         ctx.sendMessage(HelpFormatter.buildHelp("HyperFactions", "Faction management and territory control", commands, "Use /f <command> for more details"));
     }
@@ -1909,8 +1919,14 @@ public class FactionCommand extends AbstractPlayerCommand {
             adminCommands.add(new CommandHelp("/f admin safezone [name]", "Quick create SafeZone + claim"));
             adminCommands.add(new CommandHelp("/f admin warzone [name]", "Quick create WarZone + claim"));
             adminCommands.add(new CommandHelp("/f admin removezone", "Unclaim current chunk from zone"));
-            adminCommands.add(new CommandHelp("/f admin zoneflag <flag> [value]", "Manage zone flags"));
+            adminCommands.add(new CommandHelp("/f admin zoneflag [flag] [value]", "View/set zone flags (clearall to reset)"));
             adminCommands.add(new CommandHelp("/f admin bypass", "Toggle admin bypass mode"));
+            adminCommands.add(new CommandHelp("/f admin update", "Download and install plugin update"));
+            adminCommands.add(new CommandHelp("/f admin backup", "Backup management"));
+            adminCommands.add(new CommandHelp("/f admin backup create [name]", "Create manual backup"));
+            adminCommands.add(new CommandHelp("/f admin backup list", "List all backups"));
+            adminCommands.add(new CommandHelp("/f admin backup restore <name>", "Restore from backup"));
+            adminCommands.add(new CommandHelp("/f admin backup delete <name>", "Delete a backup"));
             ctx.sendMessage(HelpFormatter.buildHelp("HyperFactions Admin", null, adminCommands, null));
             return;
         }
@@ -1969,6 +1985,8 @@ public class FactionCommand extends AbstractPlayerCommand {
                 }
             }
             case "zoneflag" -> handleZoneFlag(ctx, world.getName(), chunkX, chunkZ, Arrays.copyOfRange(args, 1, args.length));
+            case "update" -> handleAdminUpdate(ctx, player);
+            case "backup" -> handleAdminBackup(ctx, player, Arrays.copyOfRange(args, 1, args.length));
             default -> ctx.sendMessage(prefix().insert(msg("Unknown admin command. Use /f admin help", COLOR_RED)));
         }
     }
@@ -2200,6 +2218,18 @@ public class FactionCommand extends AbstractPlayerCommand {
             }
             ctx.sendMessage(msg("", COLOR_GRAY));
             ctx.sendMessage(msg("Usage: /f admin zoneflag <flag> <true|false|clear>", COLOR_YELLOW));
+            ctx.sendMessage(msg("Usage: /f admin zoneflag clearall (reset all to defaults)", COLOR_YELLOW));
+            return;
+        }
+
+        // Handle "clearall" - reset all flags to defaults
+        if (args[0].equalsIgnoreCase("clearall") || args[0].equalsIgnoreCase("resetall")) {
+            ZoneManager.ZoneResult result = hyperFactions.getZoneManager().clearAllZoneFlags(zone.id());
+            if (result == ZoneManager.ZoneResult.SUCCESS) {
+                ctx.sendMessage(prefix().insert(msg("Cleared all custom flags for '" + zone.name() + "' - now using zone type defaults.", COLOR_GREEN)));
+            } else {
+                ctx.sendMessage(prefix().insert(msg("Failed to clear flags.", COLOR_RED)));
+            }
             return;
         }
 
@@ -2243,6 +2273,178 @@ public class FactionCommand extends AbstractPlayerCommand {
         } else {
             ctx.sendMessage(prefix().insert(msg("Invalid value. Use: true, false, or clear", COLOR_RED)));
         }
+    }
+
+    // === Admin Update ===
+    private void handleAdminUpdate(CommandContext ctx, PlayerRef player) {
+        var updateChecker = hyperFactions.getUpdateChecker();
+        if (updateChecker == null) {
+            ctx.sendMessage(prefix().insert(msg("Update checker is not available.", COLOR_RED)));
+            return;
+        }
+
+        // Check if there's an update available
+        if (!updateChecker.hasUpdateAvailable()) {
+            ctx.sendMessage(prefix().insert(msg("Checking for updates...", COLOR_YELLOW)));
+            updateChecker.checkForUpdates(true).thenAccept(info -> {
+                if (info == null) {
+                    player.sendMessage(prefix().insert(msg("Plugin is already up-to-date (v" + updateChecker.getCurrentVersion() + ")", COLOR_GREEN)));
+                } else {
+                    player.sendMessage(prefix().insert(msg("Update available: v" + info.version(), COLOR_GREEN)));
+                    startDownload(player, updateChecker, info);
+                }
+            });
+            return;
+        }
+
+        var info = updateChecker.getCachedUpdate();
+        if (info == null) {
+            ctx.sendMessage(prefix().insert(msg("No update information available.", COLOR_RED)));
+            return;
+        }
+
+        startDownload(player, updateChecker, info);
+    }
+
+    private void startDownload(PlayerRef player, com.hyperfactions.update.UpdateChecker updateChecker,
+                               com.hyperfactions.update.UpdateChecker.UpdateInfo info) {
+        player.sendMessage(prefix().insert(msg("Downloading HyperFactions v" + info.version() + "...", COLOR_YELLOW)));
+
+        updateChecker.downloadUpdate(info).thenAccept(path -> {
+            if (path == null) {
+                player.sendMessage(prefix().insert(msg("Failed to download update. Check server logs.", COLOR_RED)));
+            } else {
+                player.sendMessage(prefix().insert(msg("Update downloaded successfully!", COLOR_GREEN)));
+                player.sendMessage(msg("  File: " + path.getFileName(), COLOR_GRAY));
+                player.sendMessage(msg("  Restart the server to apply the update.", COLOR_YELLOW));
+            }
+        });
+    }
+
+    // === Admin Backup Commands ===
+    private void handleAdminBackup(CommandContext ctx, PlayerRef player, String[] args) {
+        if (!hasPermission(player, Permissions.ADMIN_BACKUP)) {
+            ctx.sendMessage(prefix().insert(msg("You don't have permission to manage backups.", COLOR_RED)));
+            return;
+        }
+
+        if (args.length == 0) {
+            showBackupHelp(ctx);
+            return;
+        }
+
+        String subCmd = args[0].toLowerCase();
+        String[] subArgs = args.length > 1 ? Arrays.copyOfRange(args, 1, args.length) : new String[0];
+
+        switch (subCmd) {
+            case "create" -> handleBackupCreate(ctx, player, subArgs);
+            case "list" -> handleBackupList(ctx);
+            case "restore" -> handleBackupRestore(ctx, player, subArgs);
+            case "delete" -> handleBackupDelete(ctx, subArgs);
+            case "help", "?" -> showBackupHelp(ctx);
+            default -> {
+                ctx.sendMessage(prefix().insert(msg("Unknown backup command: " + subCmd, COLOR_RED)));
+                showBackupHelp(ctx);
+            }
+        }
+    }
+
+    private void showBackupHelp(CommandContext ctx) {
+        List<CommandHelp> commands = new ArrayList<>();
+        commands.add(new CommandHelp("/f admin backup create [name]", "Create manual backup"));
+        commands.add(new CommandHelp("/f admin backup list", "List all backups grouped by type"));
+        commands.add(new CommandHelp("/f admin backup restore <name>", "Restore from backup (requires confirmation)"));
+        commands.add(new CommandHelp("/f admin backup delete <name>", "Delete a backup"));
+        ctx.sendMessage(HelpFormatter.buildHelp("Backup Management", "GFS rotation scheme", commands, null));
+    }
+
+    private void handleBackupCreate(CommandContext ctx, PlayerRef player, String[] args) {
+        String customName = args.length > 0 ? String.join("_", args) : null;
+
+        ctx.sendMessage(prefix().insert(msg("Creating backup...", COLOR_YELLOW)));
+
+        hyperFactions.getBackupManager().createBackup(BackupType.MANUAL, customName, player.getUuid())
+            .thenAccept(result -> {
+                if (result instanceof BackupManager.BackupResult.Success success) {
+                    player.sendMessage(prefix().insert(msg("Backup created successfully!", COLOR_GREEN)));
+                    player.sendMessage(msg("  Name: " + success.metadata().name(), COLOR_GRAY));
+                    player.sendMessage(msg("  Size: " + success.metadata().getFormattedSize(), COLOR_GRAY));
+                } else if (result instanceof BackupManager.BackupResult.Failure failure) {
+                    player.sendMessage(prefix().insert(msg("Backup failed: " + failure.error(), COLOR_RED)));
+                }
+            });
+    }
+
+    private void handleBackupList(CommandContext ctx) {
+        Map<BackupType, List<BackupMetadata>> grouped = hyperFactions.getBackupManager().getBackupsGroupedByType();
+
+        if (grouped.isEmpty()) {
+            ctx.sendMessage(prefix().insert(msg("No backups found.", COLOR_GRAY)));
+            return;
+        }
+
+        ctx.sendMessage(msg("=== Backups ===", COLOR_CYAN).bold(true));
+
+        for (BackupType type : BackupType.values()) {
+            List<BackupMetadata> backups = grouped.getOrDefault(type, List.of());
+            if (backups.isEmpty()) continue;
+
+            ctx.sendMessage(msg(type.getDisplayName() + " (" + backups.size() + "):", COLOR_YELLOW));
+            for (BackupMetadata backup : backups) {
+                ctx.sendMessage(msg("  " + backup.name(), COLOR_WHITE)
+                    .insert(msg(" - " + backup.getFormattedTimestamp() + " (" + backup.getFormattedSize() + ")", COLOR_GRAY)));
+            }
+        }
+    }
+
+    private void handleBackupRestore(CommandContext ctx, PlayerRef player, String[] args) {
+        if (args.length < 1) {
+            ctx.sendMessage(prefix().insert(msg("Usage: /f admin backup restore <name>", COLOR_RED)));
+            return;
+        }
+
+        String backupName = args[0];
+
+        // Require confirmation for restore
+        ConfirmationResult confirmResult = hyperFactions.getConfirmationManager().checkOrCreate(
+            player.getUuid(), ConfirmationType.RESTORE_BACKUP, null
+        );
+
+        switch (confirmResult) {
+            case NEEDS_CONFIRMATION, EXPIRED_RECREATED, DIFFERENT_ACTION -> {
+                ctx.sendMessage(prefix().insert(msg("WARNING: Restoring will OVERWRITE current data!", COLOR_RED)));
+                ctx.sendMessage(msg("Run the command again within 30 seconds to confirm.", COLOR_YELLOW));
+            }
+            case CONFIRMED -> {
+                ctx.sendMessage(prefix().insert(msg("Restoring from backup '" + backupName + "'...", COLOR_YELLOW)));
+
+                hyperFactions.getBackupManager().restoreBackup(backupName).thenAccept(result -> {
+                    if (result instanceof BackupManager.RestoreResult.Success success) {
+                        player.sendMessage(prefix().insert(msg("Restore completed! " + success.filesRestored() + " files restored.", COLOR_GREEN)));
+                        player.sendMessage(msg("You should reload the plugin or restart the server.", COLOR_YELLOW));
+                    } else if (result instanceof BackupManager.RestoreResult.Failure failure) {
+                        player.sendMessage(prefix().insert(msg("Restore failed: " + failure.error(), COLOR_RED)));
+                    }
+                });
+            }
+        }
+    }
+
+    private void handleBackupDelete(CommandContext ctx, String[] args) {
+        if (args.length < 1) {
+            ctx.sendMessage(prefix().insert(msg("Usage: /f admin backup delete <name>", COLOR_RED)));
+            return;
+        }
+
+        String backupName = args[0];
+
+        hyperFactions.getBackupManager().deleteBackup(backupName).thenAccept(success -> {
+            if (success) {
+                ctx.sendMessage(prefix().insert(msg("Backup '" + backupName + "' deleted.", COLOR_GREEN)));
+            } else {
+                ctx.sendMessage(prefix().insert(msg("Backup not found: " + backupName, COLOR_RED)));
+            }
+        });
     }
 
     // === Debug ===

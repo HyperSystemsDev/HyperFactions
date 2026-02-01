@@ -176,6 +176,7 @@ public final class UpdateNotificationListener {
 
         String currentVersion = checker.getCurrentVersion();
         String newVersion = info.version();
+        String versionLabel = info.isPreRelease() ? "v" + newVersion + " (pre-release)" : "v" + newVersion;
 
         // [HyperFactions] A new version is available!
         playerRef.sendMessage(
@@ -183,13 +184,13 @@ public final class UpdateNotificationListener {
                 .insert(Message.raw("A new version is available!").color(GOLD).bold(true))
         );
 
-        // Current: v1.0.0 -> Latest: v1.1.0
+        // Current: v1.0.0 -> Latest: v1.1.0 (pre-release)
         playerRef.sendMessage(
             Message.raw("Current: ").color(GRAY)
                 .insert(Message.raw("v" + currentVersion).color(WHITE))
                 .insert(Message.raw(" -> ").color(GRAY))
                 .insert(Message.raw("Latest: ").color(GRAY))
-                .insert(Message.raw("v" + newVersion).color(GREEN))
+                .insert(Message.raw(versionLabel).color(GREEN))
         );
 
         // Run /f admin update to update the plugin.

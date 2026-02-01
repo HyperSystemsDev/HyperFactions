@@ -5,7 +5,7 @@ import com.hyperfactions.data.Faction;
 import com.hyperfactions.gui.GuiManager;
 import com.hyperfactions.gui.faction.FactionPageRegistry;
 import com.hyperfactions.gui.shared.data.NavAwareData;
-import com.hyperfactions.integration.HyperPermsIntegration;
+import com.hyperfactions.integration.PermissionManager;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.protocol.packets.interface_.CustomUIEventBindingType;
@@ -120,7 +120,7 @@ public final class NavBarHelper {
         }
 
         // Check permission
-        if (entry.permission() != null && !HyperPermsIntegration.hasPermission(playerRef.getUuid(), entry.permission())) {
+        if (entry.permission() != null && !PermissionManager.get().hasPermission(playerRef.getUuid(), entry.permission())) {
             return true; // Consumed but no permission
         }
 

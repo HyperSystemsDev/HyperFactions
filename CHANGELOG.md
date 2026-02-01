@@ -7,7 +7,91 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-*No changes yet*
+## [0.3.0] - 2026-02-01
+
+### Fixed
+
+**CRITICAL: Data Loss Prevention**
+- Fixed faction data loss on update/reload when deserialization fails
+  - FactionManager now validates loaded data before clearing caches
+  - If loading returns empty but data existed, keeps in-memory data safe
+  - Added `.exceptionally()` handlers to catch and log exceptions without data loss
+- Fixed silent exception handling in all storage classes
+  - JsonFactionStorage now reports all failed files with SEVERE level logging
+  - JsonPlayerStorage now reports all failed files with SEVERE level logging
+  - JsonZoneStorage now reports all failed zones with SEVERE level logging
+  - Storage methods now throw RuntimeException on critical I/O failures instead of returning empty
+- Added comprehensive loading validation
+  - Detects when 0 items load from non-empty directories (corruption indicator)
+  - Logs CRITICAL warnings when data appears to be missing
+  - Reports total files vs successfully loaded files for debugging
+- Fixed ZoneManager and PowerManager with same safety protections
+  - Both managers now validate loading before clearing caches
+  - Exception handlers prevent data loss on unexpected errors
+
+**WarZone/SafeZone Protection**
+- Fixed container protection in WarZones - chests, furnaces, and workbenches are now properly blocked
+  - Previously only doors were blocked; now all non-door blocks are protected
+  - Uses door-only detection: only blocks with "door" state or door/gate in block ID are allowed
+  - All other block interactions (containers, processing benches, etc.) are blocked
+- Fixed protection denial messages showing raw color codes (e.g., `§c`)
+  - Messages now use clean text without legacy formatting codes
+
+**Help System**
+- Added backup and admin commands to help GUI
+  - `/f admin backup create [name]`, `/f admin backup list`, etc.
+  - `/f admin zone` and `/f admin update` now listed
+
+**HyperPerms Integration**
+- Fixed faction prefix display in HyperPerms chat formatting
+  - Added missing `ReflectiveHyperFactionsProvider` implementation
+  - Faction names now appear correctly in chat when using HyperPerms
+
+### Added
+
+**Update System**
+- `/f admin update` command to download and install plugin updates
+- Release channel config option (`releaseChannel`: "stable" or "prerelease")
+- Pre-release support in update checker (uses /releases endpoint when enabled)
+
+**Configuration**
+- Config merge behavior: missing keys are added with defaults without overwriting user values
+- `configNeedsSave` flag to only write config when new keys are added
+
+### Migration Guide (from v0.1.0)
+
+**Permission Node Changes**
+
+If upgrading from v0.1.0, the permission system has been restructured. Individual permission nodes (e.g., `hyperfactions.create`, `hyperfactions.invite`) are now organized under category wildcards.
+
+**Recommended Setup (HyperPerms commands):**
+
+Grant full faction functionality to default group:
+```
+/hp group setperm default hyperfactions.use
+/hp group setperm default hyperfactions.faction.*
+/hp group setperm default hyperfactions.member.*
+/hp group setperm default hyperfactions.territory.*
+/hp group setperm default hyperfactions.teleport.*
+/hp group setperm default hyperfactions.relation.*
+/hp group setperm default hyperfactions.chat.*
+/hp group setperm default hyperfactions.info.*
+```
+
+**Permission Categories:**
+
+| Category | Description |
+|----------|-------------|
+| `hyperfactions.use` | **Required** - Base permission to use `/f` command |
+| `hyperfactions.faction.*` | Create, disband, rename, tag, color, open/close |
+| `hyperfactions.member.*` | Invite, join, leave, kick, promote, demote, transfer |
+| `hyperfactions.territory.*` | Claim, unclaim, overclaim, map |
+| `hyperfactions.teleport.*` | Home, sethome, stuck |
+| `hyperfactions.relation.*` | Ally, enemy, neutral, view relations |
+| `hyperfactions.chat.*` | Faction chat, ally chat |
+| `hyperfactions.info.*` | Info, list, who, power, members, logs, help |
+
+**Note:** `hyperfactions.use` is required as the base permission to access the `/f` command. Category permissions control specific functionality. Admin, bypass, and limit permissions require explicit grants.
 
 ## [0.2.0] - 2026-02-01
 

@@ -738,8 +738,10 @@ public final class HelpRegistry {
                 "                      Quick create + claim WarZone",
                 "/f admin removezone",
                 "                      Unclaim current chunk from zone",
-                "/f admin zoneflag <flag> [value]",
-                "                      Manage zone flags"
+                "/f admin zoneflag [flag] [value]",
+                "                      View/set zone flags",
+                "/f admin zoneflag clearall",
+                "                      Reset all flags to zone type defaults"
         ), HelpCategory.COMMANDS));
 
         // Additional command mappings for deep-linking

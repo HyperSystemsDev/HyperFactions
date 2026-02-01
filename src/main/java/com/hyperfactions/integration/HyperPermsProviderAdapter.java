@@ -113,11 +113,41 @@ public class HyperPermsProviderAdapter implements PermissionProvider {
     @Override
     @Nullable
     public String getPrefix(@NotNull UUID playerUuid, @Nullable String worldName) {
-        if (!available || hyperPermsInstance == null || getUserManagerMethod == null) {
+        if (!available || hyperPermsInstance == null) {
+            Logger.debug("[HyperPermsProvider] getPrefix: not available or instance null");
             return null;
         }
 
         try {
+            // Try to get effective prefix via ChatManager.getPrefix(UUID) (includes group inheritance)
+            Method getChatManagerMethod = hyperPermsInstance.getClass().getMethod("getChatManager");
+            Object chatManager = getChatManagerMethod.invoke(hyperPermsInstance);
+            Logger.debug("[HyperPermsProvider] ChatManager: %s", chatManager);
+            if (chatManager != null) {
+                // ChatManager.getPrefix(UUID) returns CompletableFuture<String>
+                Method getPrefixMethod = chatManager.getClass().getMethod("getPrefix", UUID.class);
+                Object future = getPrefixMethod.invoke(chatManager, playerUuid);
+                Logger.debug("[HyperPermsProvider] getPrefix future: %s", future);
+                if (future instanceof java.util.concurrent.CompletableFuture<?> cf) {
+                    Object prefix = cf.join();
+                    Logger.debug("[HyperPermsProvider] Resolved prefix for %s: '%s'", playerUuid, prefix);
+                    if (prefix != null && !prefix.toString().isEmpty()) {
+                        return prefix.toString();
+                    }
+                }
+            } else {
+                Logger.debug("[HyperPermsProvider] ChatManager is null");
+            }
+        } catch (NoSuchMethodException e) {
+            Logger.debug("[HyperPermsProvider] ChatManager.getPrefix not found: %s", e.getMessage());
+        } catch (Exception e) {
+            Logger.debug("[HyperPermsProvider] Failed to get prefix via ChatManager: %s", e.getMessage());
+        }
+
+        // Fallback: get user's custom prefix directly (not resolved from groups)
+        try {
+            if (getUserManagerMethod == null) return null;
+
             Object userManager = getUserManagerMethod.invoke(hyperPermsInstance);
             if (userManager == null) return null;
 
@@ -125,29 +155,66 @@ public class HyperPermsProviderAdapter implements PermissionProvider {
             Object user = getUserMethod.invoke(userManager, playerUuid);
             if (user == null) return null;
 
-            // Try getPrefix method
+            // Try getCustomPrefix method (user-specific prefix)
             try {
-                Method getPrefixMethod = user.getClass().getMethod("getPrefix");
-                Object prefix = getPrefixMethod.invoke(user);
-                return prefix != null ? prefix.toString() : null;
-            } catch (NoSuchMethodException e) {
-                // Method doesn't exist
-                return null;
+                Method getCustomPrefixMethod = user.getClass().getMethod("getCustomPrefix");
+                Object prefix = getCustomPrefixMethod.invoke(user);
+                if (prefix != null && !prefix.toString().isEmpty()) {
+                    Logger.debug("[HyperPermsProvider] Got custom prefix for %s: '%s'", playerUuid, prefix);
+                    return prefix.toString();
+                }
+            } catch (NoSuchMethodException ignored) {
+                // Try legacy getPrefix method
+                try {
+                    Method getPrefixMethod = user.getClass().getMethod("getPrefix");
+                    Object prefix = getPrefixMethod.invoke(user);
+                    if (prefix != null && !prefix.toString().isEmpty()) {
+                        return prefix.toString();
+                    }
+                } catch (NoSuchMethodException ignored2) {
+                    // Method doesn't exist
+                }
             }
         } catch (Exception e) {
-            Logger.debug("[HyperPermsProvider] Failed to get prefix: %s", e.getMessage());
-            return null;
+            Logger.debug("[HyperPermsProvider] Failed to get user prefix: %s", e.getMessage());
         }
+
+        return null;
     }
 
     @Override
     @Nullable
     public String getSuffix(@NotNull UUID playerUuid, @Nullable String worldName) {
-        if (!available || hyperPermsInstance == null || getUserManagerMethod == null) {
+        if (!available || hyperPermsInstance == null) {
             return null;
         }
 
         try {
+            // Try to get effective suffix via ChatManager.getSuffix(UUID) (includes group inheritance)
+            Method getChatManagerMethod = hyperPermsInstance.getClass().getMethod("getChatManager");
+            Object chatManager = getChatManagerMethod.invoke(hyperPermsInstance);
+            if (chatManager != null) {
+                // ChatManager.getSuffix(UUID) returns CompletableFuture<String>
+                Method getSuffixMethod = chatManager.getClass().getMethod("getSuffix", UUID.class);
+                Object future = getSuffixMethod.invoke(chatManager, playerUuid);
+                if (future instanceof java.util.concurrent.CompletableFuture<?> cf) {
+                    Object suffix = cf.join();
+                    if (suffix != null && !suffix.toString().isEmpty()) {
+                        Logger.debug("[HyperPermsProvider] Got suffix for %s: '%s'", playerUuid, suffix);
+                        return suffix.toString();
+                    }
+                }
+            }
+        } catch (NoSuchMethodException e) {
+            Logger.debug("[HyperPermsProvider] ChatManager.getSuffix not found, trying User method");
+        } catch (Exception e) {
+            Logger.debug("[HyperPermsProvider] Failed to get suffix via ChatManager: %s", e.getMessage());
+        }
+
+        // Fallback: get user's custom suffix directly (not resolved from groups)
+        try {
+            if (getUserManagerMethod == null) return null;
+
             Object userManager = getUserManagerMethod.invoke(hyperPermsInstance);
             if (userManager == null) return null;
 
@@ -155,19 +222,31 @@ public class HyperPermsProviderAdapter implements PermissionProvider {
             Object user = getUserMethod.invoke(userManager, playerUuid);
             if (user == null) return null;
 
-            // Try getSuffix method
+            // Try getCustomSuffix method (user-specific suffix)
             try {
-                Method getSuffixMethod = user.getClass().getMethod("getSuffix");
-                Object suffix = getSuffixMethod.invoke(user);
-                return suffix != null ? suffix.toString() : null;
-            } catch (NoSuchMethodException e) {
-                // Method doesn't exist
-                return null;
+                Method getCustomSuffixMethod = user.getClass().getMethod("getCustomSuffix");
+                Object suffix = getCustomSuffixMethod.invoke(user);
+                if (suffix != null && !suffix.toString().isEmpty()) {
+                    Logger.debug("[HyperPermsProvider] Got custom suffix for %s: '%s'", playerUuid, suffix);
+                    return suffix.toString();
+                }
+            } catch (NoSuchMethodException ignored) {
+                // Try legacy getSuffix method
+                try {
+                    Method getSuffixMethod = user.getClass().getMethod("getSuffix");
+                    Object suffix = getSuffixMethod.invoke(user);
+                    if (suffix != null && !suffix.toString().isEmpty()) {
+                        return suffix.toString();
+                    }
+                } catch (NoSuchMethodException ignored2) {
+                    // Method doesn't exist
+                }
             }
         } catch (Exception e) {
-            Logger.debug("[HyperPermsProvider] Failed to get suffix: %s", e.getMessage());
-            return null;
+            Logger.debug("[HyperPermsProvider] Failed to get user suffix: %s", e.getMessage());
         }
+
+        return null;
     }
 
     @Override

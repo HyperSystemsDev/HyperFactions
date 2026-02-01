@@ -66,7 +66,8 @@ hyperfactions.*                      All permissions (wildcard)
 │   ├── hyperfactions.admin.zones
 │   ├── hyperfactions.admin.disband
 │   ├── hyperfactions.admin.modify
-│   └── hyperfactions.admin.bypass.limits
+│   ├── hyperfactions.admin.bypass.limits
+│   └── hyperfactions.admin.backup
 └── hyperfactions.limit.*            Numeric limits
     ├── hyperfactions.limit.claims.<N>
     └── hyperfactions.limit.power.<N>
@@ -78,7 +79,28 @@ hyperfactions.*                      All permissions (wildcard)
 
 | Permission | Description | Default |
 |------------|-------------|---------|
-| `hyperfactions.use` | Basic faction access (required for GUI) | true |
+| `hyperfactions.use` | **Required** - Base permission to use `/f` command and GUI | true |
+
+### Permission Setup
+
+Players need `hyperfactions.use` as the base permission to access the `/f` command, plus category permissions for specific functionality.
+
+**Recommended setup (HyperPerms):**
+```
+/hp group setperm default hyperfactions.use
+/hp group setperm default hyperfactions.faction.*
+/hp group setperm default hyperfactions.member.*
+/hp group setperm default hyperfactions.territory.*
+/hp group setperm default hyperfactions.teleport.*
+/hp group setperm default hyperfactions.relation.*
+/hp group setperm default hyperfactions.chat.*
+/hp group setperm default hyperfactions.info.*
+```
+
+**Permissions requiring explicit grant:**
+- `hyperfactions.admin.*` - Admin permissions
+- `hyperfactions.bypass.*` - Bypass permissions
+- `hyperfactions.limit.*` - Limit permissions
 
 ---
 
@@ -197,6 +219,7 @@ These permissions are for server administrators.
 | `hyperfactions.admin.disband` | Force disband any faction | op |
 | `hyperfactions.admin.modify` | Modify any faction | op |
 | `hyperfactions.admin.bypass.limits` | Bypass claim limits | op |
+| `hyperfactions.admin.backup` | Manage backups (create, restore, delete) | op |
 
 ---
 
@@ -248,10 +271,16 @@ HyperFactions supports wildcard permissions at each category level:
 
 ## Fallback Behavior
 
-When no permission plugin is installed:
+When no permission plugin is installed (or the plugin doesn't have a definitive answer):
 
-- **Normal permissions**: Allowed by default (configurable in config.json)
-- **Admin permissions** (`hyperfactions.admin.*`): Requires OP (configurable)
+| Permission Type | Fallback Behavior |
+|-----------------|-------------------|
+| **User permissions** | Allowed by default (configurable) |
+| **Admin permissions** (`hyperfactions.admin.*`) | Requires OP (configurable) |
+| **Bypass permissions** (`hyperfactions.bypass.*`) | **Always denied** (requires explicit grant) |
+| **Limit permissions** (`hyperfactions.limit.*`) | **Always denied** (uses config defaults) |
+
+This ensures that powerful permissions like bypass are never accidentally granted.
 
 Configuration in `config.json`:
 
@@ -263,6 +292,8 @@ Configuration in `config.json`:
   }
 }
 ```
+
+**Note:** The `fallbackBehavior` setting only affects normal user permissions. Admin, bypass, and limit permissions always have secure defaults regardless of this setting.
 
 ---
 
@@ -361,6 +392,11 @@ groups:
 | `/f admin reload` | `hyperfactions.admin.reload` |
 | `/f admin debug` | `hyperfactions.admin.debug` |
 | `/f admin zone` | `hyperfactions.admin.zones` |
+| `/f admin backup` | `hyperfactions.admin.backup` |
+| `/f admin backup create [name]` | `hyperfactions.admin.backup` |
+| `/f admin backup list` | `hyperfactions.admin.backup` |
+| `/f admin backup restore <name>` | `hyperfactions.admin.backup` |
+| `/f admin backup delete <name>` | `hyperfactions.admin.backup` |
 
 ---
 

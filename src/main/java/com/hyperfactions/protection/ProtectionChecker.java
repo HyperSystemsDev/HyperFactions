@@ -6,7 +6,7 @@ import com.hyperfactions.data.FactionPermissions;
 import com.hyperfactions.data.RelationType;
 import com.hyperfactions.data.Zone;
 import com.hyperfactions.data.ZoneFlags;
-import com.hyperfactions.integration.HyperPermsIntegration;
+import com.hyperfactions.integration.PermissionManager;
 import com.hyperfactions.manager.*;
 import com.hyperfactions.util.ChunkUtil;
 import com.hyperfactions.util.Logger;
@@ -124,8 +124,8 @@ public class ProtectionChecker {
             case USE -> "hyperfactions.bypass.use";
         };
 
-        if (HyperPermsIntegration.hasPermission(playerUuid, bypassPerm) ||
-            HyperPermsIntegration.hasPermission(playerUuid, "hyperfactions.bypass.*")) {
+        if (PermissionManager.get().hasPermission(playerUuid, bypassPerm) ||
+            PermissionManager.get().hasPermission(playerUuid, "hyperfactions.bypass.*")) {
             return ProtectionResult.ALLOWED_BYPASS;
         }
 
@@ -142,12 +142,20 @@ public class ProtectionChecker {
             };
 
             boolean allowed = zone.getEffectiveFlag(flagName);
+
+            // Debug: Log zone protection check
+            Logger.debug("[Protection] Zone '%s' (%s) flag '%s' = %s for player %s at %s/%d/%d",
+                zone.name(), zone.type().name(), flagName, allowed, playerUuid, world, chunkX, chunkZ);
+
             if (!allowed) {
-                return zone.isSafeZone() ? ProtectionResult.DENIED_SAFEZONE : ProtectionResult.DENIED_NO_PERMISSION;
+                ProtectionResult result = zone.isSafeZone() ? ProtectionResult.DENIED_SAFEZONE : ProtectionResult.DENIED_NO_PERMISSION;
+                Logger.debug("[Protection] Zone blocked: %s", result);
+                return result;
             }
             // If zone allows this interaction, still need to check claim ownership below
             // For WarZones with build allowed, anyone can interact
             if (zone.isWarZone() && allowed) {
+                Logger.debug("[Protection] WarZone allowed: %s", ProtectionResult.ALLOWED_WARZONE);
                 return ProtectionResult.ALLOWED_WARZONE;
             }
         }
@@ -435,11 +443,11 @@ public class ProtectionChecker {
     @NotNull
     public String getDenialMessage(@NotNull ProtectionResult result) {
         return switch (result) {
-            case DENIED_SAFEZONE -> "\u00A7cYou cannot do that in a SafeZone.";
-            case DENIED_ENEMY_CLAIM -> "\u00A7cYou cannot do that in enemy territory.";
-            case DENIED_NEUTRAL_CLAIM -> "\u00A7cYou cannot do that in claimed territory.";
-            case DENIED_NO_PERMISSION -> "\u00A7cYou don't have permission to do that.";
-            default -> "\u00A7cYou cannot do that here.";
+            case DENIED_SAFEZONE -> "You cannot do that in a SafeZone.";
+            case DENIED_ENEMY_CLAIM -> "You cannot do that in enemy territory.";
+            case DENIED_NEUTRAL_CLAIM -> "You cannot do that in claimed territory.";
+            case DENIED_NO_PERMISSION -> "You don't have permission to do that.";
+            default -> "You cannot do that here.";
         };
     }
 
@@ -452,13 +460,13 @@ public class ProtectionChecker {
     @NotNull
     public String getDenialMessage(@NotNull PvPResult result) {
         return switch (result) {
-            case DENIED_SAFEZONE -> "\u00A7cPvP is disabled in SafeZones.";
-            case DENIED_SAME_FACTION -> "\u00A7cYou cannot attack faction members.";
-            case DENIED_ALLY -> "\u00A7cYou cannot attack allies.";
-            case DENIED_ATTACKER_SAFEZONE, DENIED_DEFENDER_SAFEZONE -> "\u00A7cPvP is disabled in SafeZones.";
-            case DENIED_SPAWN_PROTECTED -> "\u00A7cThat player has spawn protection.";
-            case DENIED_TERRITORY_NO_PVP -> "\u00A7cPvP is disabled in this territory.";
-            default -> "\u00A7cYou cannot attack this player.";
+            case DENIED_SAFEZONE -> "PvP is disabled in SafeZones.";
+            case DENIED_SAME_FACTION -> "You cannot attack faction members.";
+            case DENIED_ALLY -> "You cannot attack allies.";
+            case DENIED_ATTACKER_SAFEZONE, DENIED_DEFENDER_SAFEZONE -> "PvP is disabled in SafeZones.";
+            case DENIED_SPAWN_PROTECTED -> "That player has spawn protection.";
+            case DENIED_TERRITORY_NO_PVP -> "PvP is disabled in this territory.";
+            default -> "You cannot attack this player.";
         };
     }
 

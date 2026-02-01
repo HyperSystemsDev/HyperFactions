@@ -67,25 +67,54 @@ public class ZoneManager {
 
     /**
      * Loads all zones from storage.
+     * <p>
+     * SAFETY: This method will NOT clear existing data if loading fails or returns
+     * suspiciously empty results when data was expected.
      *
      * @return a future that completes when loading is done
      */
     public CompletableFuture<Void> loadAll() {
+        final int previousZoneCount = zonesById.size();
+        final int previousChunkCount = zoneIndex.size();
+
         return storage.loadAllZones().thenAccept(loaded -> {
-            zoneIndex.clear();
-            zonesById.clear();
-            zonesByName.clear();
+            // SAFETY CHECK: If we had data before but loading returned nothing,
+            // this is likely a load failure - DO NOT clear existing data
+            if (previousZoneCount > 0 && loaded.isEmpty()) {
+                Logger.severe("CRITICAL: Load returned 0 zones but %d were previously loaded!",
+                    previousZoneCount);
+                Logger.severe("Keeping existing in-memory data to prevent data loss.");
+                return;
+            }
+
+            // Build new indices before clearing old ones
+            Map<ChunkKey, Zone> newZoneIndex = new HashMap<>();
+            Map<UUID, Zone> newZonesById = new HashMap<>();
+            Map<String, Zone> newZonesByName = new HashMap<>();
 
             for (Zone zone : loaded) {
-                zonesById.put(zone.id(), zone);
-                zonesByName.put(zone.name().toLowerCase(), zone);
+                newZonesById.put(zone.id(), zone);
+                newZonesByName.put(zone.name().toLowerCase(), zone);
                 // Index all chunks belonging to this zone
                 for (ChunkKey chunk : zone.chunks()) {
-                    zoneIndex.put(chunk, zone);
+                    newZoneIndex.put(chunk, zone);
                 }
             }
 
+            // Atomic swap
+            zoneIndex.clear();
+            zoneIndex.putAll(newZoneIndex);
+
+            zonesById.clear();
+            zonesById.putAll(newZonesById);
+
+            zonesByName.clear();
+            zonesByName.putAll(newZonesByName);
+
             Logger.info("Loaded %d zones with %d total chunks", zonesById.size(), zoneIndex.size());
+        }).exceptionally(ex -> {
+            Logger.severe("CRITICAL: Exception during zone loading - keeping existing data", (Throwable) ex);
+            return null;
         });
     }
 
@@ -613,6 +642,25 @@ public class ZoneManager {
         updateZone(updated);
 
         Logger.info("Cleared flag '%s' from zone '%s' (using default)", flagName, zone.name());
+        return ZoneResult.SUCCESS;
+    }
+
+    /**
+     * Clears all custom flags from a zone (reverts all to defaults).
+     *
+     * @param zoneId the zone ID
+     * @return the result
+     */
+    public ZoneResult clearAllZoneFlags(@NotNull UUID zoneId) {
+        Zone zone = zonesById.get(zoneId);
+        if (zone == null) {
+            return ZoneResult.NOT_FOUND;
+        }
+
+        Zone updated = zone.withFlags(null);
+        updateZone(updated);
+
+        Logger.info("Cleared all custom flags from zone '%s' (using type defaults)", zone.name());
         return ZoneResult.SUCCESS;
     }
 
