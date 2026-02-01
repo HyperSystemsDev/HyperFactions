@@ -183,6 +183,29 @@ $C = "../../Common.ui";
   Sounds: $C.@ButtonSounds,
 );
 
+// TOC link style - small text link for table of contents
+@TocLinkLabelStyle = LabelStyle(
+  FontSize: 10,
+  TextColor: #888888,
+  HorizontalAlignment: Left,
+  VerticalAlignment: Center
+);
+
+@TocLinkHoverLabelStyle = LabelStyle(
+  FontSize: 10,
+  TextColor: #00FFFF,
+  HorizontalAlignment: Left,
+  VerticalAlignment: Center
+);
+
+@TocLinkButtonStyle = TextButtonStyle(
+  Default: (Background: $C.@DefaultSquareButtonDefaultBackground, LabelStyle: @TocLinkLabelStyle),
+  Hovered: (Background: $C.@DefaultSquareButtonHoveredBackground, LabelStyle: @TocLinkHoverLabelStyle),
+  Pressed: (Background: $C.@DefaultSquareButtonPressedBackground, LabelStyle: @TocLinkHoverLabelStyle),
+  Disabled: (Background: $C.@DefaultSquareButtonDisabledBackground, LabelStyle: @TocLinkLabelStyle),
+  Sounds: $C.@ButtonSounds,
+);
+
 // Player marker style - white bold text for visibility on any background
 @PlayerMarkerLabelStyle = LabelStyle(
   FontSize: 14,
