@@ -81,6 +81,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+**Multi-Chunk Zone System**
+- Zones can now span multiple chunks (previously limited to single chunk)
+- Zone chunk claiming/unclaiming via GUI and commands
+- Zone changes now trigger world map refresh for all players
+
+**Admin Zone GUI**
+- Zone list page with tab filtering (All/Safe/War)
+- Interactive zone map page for visual chunk claiming/unclaiming
+- Create zone wizard with optional initial chunk claim
+- Zone entry display with chunk counts and edit/delete actions
+
+**Zone Admin Commands**
+- `/f admin zone create <name> <safe|war>` - create empty zone
+- `/f admin zone claim <name>` - claim current chunk for zone
+- `/f admin zone unclaim` - unclaim current chunk from its zone
+- `/f admin zone remove <name>` - delete zone entirely
+- `/f admin zone list [safe|war]` - list zones with optional filter
+- `/f admin zone radius <name> <radius> [circle]` - claim chunks in radius
+
+**Help System**
+- Refactored help GUI with improved layout and organization
+
+### Fixed
+- Codec key mismatch for zone name input (`@Name` vs `Name`)
+- Reload button showing wrong command (`/f reload` not `/f admin reload`)
+- Faction GUI map not updating on claim/unclaim operations
+- In-game world map not updating when zones are created/updated/deleted
+- GUI pages not refreshing properly (replaced `sendUpdate()` with new page instances)
+
+### Changed
+- Zone storage format updated to support multiple chunks per zone
+- Admin zone page now uses tabbed filtering instead of separate pages
+
 ### Planned for Next Release
 - Public API documentation (Phase 3.1)
 - Role-specific territory permissions (Phase 3.2)
