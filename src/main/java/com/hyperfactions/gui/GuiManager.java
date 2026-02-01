@@ -1,6 +1,7 @@
 package com.hyperfactions.gui;
 
 import com.hyperfactions.HyperFactions;
+import com.hyperfactions.Permissions;
 import com.hyperfactions.data.Faction;
 import com.hyperfactions.data.FactionMember;
 import com.hyperfactions.data.FactionRole;
@@ -200,7 +201,7 @@ public class GuiManager {
         registry.registerEntry(new Entry(
                 "admin",
                 "Admin",
-                "hyperfactions.admin",
+                Permissions.ADMIN,
                 (player, ref, store, playerRef, faction, guiManager) ->
                         new AdminMainPage(playerRef, factionManager.get(), powerManager.get(), guiManager),
                 false,  // Not in main nav bar - separate admin GUI
@@ -1308,6 +1309,46 @@ public class GuiManager {
                 color,
                 tag,
                 openRecruitment
+            );
+            pageManager.openCustomPage(ref, store, page);
+            Logger.debug("[GUI] CreateFactionStep2Page opened successfully");
+        } catch (Exception e) {
+            Logger.severe("[GUI] Failed to open CreateFactionStep2Page: %s", e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Opens the Create Faction wizard Step 2 with preserved state including description.
+     * Used when rebuilding the page after recruitment selection to preserve user input.
+     *
+     * @param player              The Player entity
+     * @param ref                 The entity reference
+     * @param store               The entity store
+     * @param playerRef           The PlayerRef component
+     * @param name                The faction name from Step 1
+     * @param color               The faction color from Step 1
+     * @param tag                 The faction tag from Step 1 (may be null)
+     * @param openRecruitment     Whether recruitment is open (true) or invite-only (false)
+     * @param preservedDescription The description text to preserve
+     */
+    public void openCreateFactionStep2WithDescription(Player player, Ref<EntityStore> ref,
+                                                      Store<EntityStore> store, PlayerRef playerRef,
+                                                      String name, String color, String tag,
+                                                      boolean openRecruitment, String preservedDescription) {
+        Logger.debug("[GUI] Opening CreateFactionStep2Page for %s (recruitment=%s, desc preserved=%s)",
+                playerRef.getUsername(), openRecruitment ? "open" : "closed", !preservedDescription.isEmpty());
+        try {
+            PageManager pageManager = player.getPageManager();
+            CreateFactionStep2Page page = new CreateFactionStep2Page(
+                playerRef,
+                factionManager.get(),
+                this,
+                name,
+                color,
+                tag,
+                openRecruitment,
+                preservedDescription
             );
             pageManager.openCustomPage(ref, store, page);
             Logger.debug("[GUI] CreateFactionStep2Page opened successfully");

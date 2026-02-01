@@ -1,7 +1,7 @@
 package com.hyperfactions.gui;
 
 import com.hyperfactions.data.Faction;
-import com.hyperfactions.integration.HyperPermsIntegration;
+import com.hyperfactions.integration.PermissionManager;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.server.core.entity.entities.Player;
@@ -139,7 +139,7 @@ public final class NewPlayerPageRegistry {
                 .filter(entry -> {
                     // Check permission
                     if (entry.permission() != null) {
-                        return HyperPermsIntegration.hasPermission(playerRef.getUuid(), entry.permission());
+                        return PermissionManager.get().hasPermission(playerRef.getUuid(), entry.permission());
                     }
                     return true;
                 })

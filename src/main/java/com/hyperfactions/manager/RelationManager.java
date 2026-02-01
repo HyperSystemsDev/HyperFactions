@@ -1,7 +1,9 @@
 package com.hyperfactions.manager;
 
+import com.hyperfactions.Permissions;
 import com.hyperfactions.config.HyperFactionsConfig;
 import com.hyperfactions.data.*;
+import com.hyperfactions.integration.PermissionManager;
 import com.hyperfactions.util.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -28,6 +30,7 @@ public class RelationManager {
      */
     public enum RelationResult {
         SUCCESS,
+        NO_PERMISSION,
         NOT_IN_FACTION,
         NOT_OFFICER,
         FACTION_NOT_FOUND,
@@ -218,6 +221,11 @@ public class RelationManager {
      * @return the result
      */
     public RelationResult requestAlly(@NotNull UUID actorUuid, @NotNull UUID targetFactionId) {
+        // Check permission first
+        if (!PermissionManager.get().hasPermission(actorUuid, Permissions.ALLY)) {
+            return RelationResult.NO_PERMISSION;
+        }
+
         Faction actorFaction = factionManager.getPlayerFaction(actorUuid);
         if (actorFaction == null) {
             return RelationResult.NOT_IN_FACTION;
@@ -353,6 +361,11 @@ public class RelationManager {
      * @return the result
      */
     public RelationResult setEnemy(@NotNull UUID actorUuid, @NotNull UUID targetFactionId) {
+        // Check permission first
+        if (!PermissionManager.get().hasPermission(actorUuid, Permissions.ENEMY)) {
+            return RelationResult.NO_PERMISSION;
+        }
+
         Faction actorFaction = factionManager.getPlayerFaction(actorUuid);
         if (actorFaction == null) {
             return RelationResult.NOT_IN_FACTION;
@@ -413,6 +426,11 @@ public class RelationManager {
      * @return the result
      */
     public RelationResult setNeutral(@NotNull UUID actorUuid, @NotNull UUID targetFactionId) {
+        // Check permission first
+        if (!PermissionManager.get().hasPermission(actorUuid, Permissions.NEUTRAL)) {
+            return RelationResult.NO_PERMISSION;
+        }
+
         Faction actorFaction = factionManager.getPlayerFaction(actorUuid);
         if (actorFaction == null) {
             return RelationResult.NOT_IN_FACTION;

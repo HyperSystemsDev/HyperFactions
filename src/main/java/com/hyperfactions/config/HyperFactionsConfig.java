@@ -92,6 +92,9 @@ public class HyperFactionsConfig {
     private String prefix = "\u00A7b[HyperFactions]\u00A7r ";
     private String primaryColor = "#00FFFF";
 
+    // GUI settings
+    private String guiTitle = "HyperFactions";  // Title shown in nav bar
+
     // Territory notification settings
     private boolean territoryNotificationsEnabled = true;
 
@@ -107,6 +110,22 @@ public class HyperFactionsConfig {
     private boolean debugProtection = false;
     private boolean debugRelation = false;
     private boolean debugTerritory = false;
+
+    // Chat formatting settings
+    private boolean chatFormattingEnabled = true;
+    private String chatFormat = "{faction_tag}{prefix}{player}{suffix}: {message}";
+    private String chatTagDisplay = "tag";  // "tag", "name", or "none"
+    private String chatTagFormat = "[{tag}] ";
+    private String chatRelationColorOwn = "#00FF00";     // Green - same faction
+    private String chatRelationColorAlly = "#FF69B4";    // Pink - allies
+    private String chatRelationColorNeutral = "#AAAAAA"; // Gray - neutral
+    private String chatRelationColorEnemy = "#FF0000";   // Red - enemies
+    private String chatNoFactionTag = "";                // Empty = no tag for non-faction players
+    private String chatEventPriority = "LATE";           // After LuckPerms (NORMAL)
+
+    // Permission settings
+    private boolean adminRequiresOp = true;
+    private String permissionFallbackBehavior = "allow";
 
     private HyperFactionsConfig() {}
 
@@ -251,6 +270,12 @@ public class HyperFactionsConfig {
                 primaryColor = getString(messages, "primaryColor", primaryColor);
             }
 
+            // GUI settings
+            if (root.has("gui") && root.get("gui").isJsonObject()) {
+                JsonObject gui = root.getAsJsonObject("gui");
+                guiTitle = getString(gui, "title", guiTitle);
+            }
+
             // Territory notification settings
             if (root.has("territoryNotifications") && root.get("territoryNotifications").isJsonObject()) {
                 JsonObject territoryNotifications = root.getAsJsonObject("territoryNotifications");
@@ -278,6 +303,32 @@ public class HyperFactionsConfig {
                     debugRelation = getBool(categories, "relation", debugRelation);
                     debugTerritory = getBool(categories, "territory", debugTerritory);
                 }
+            }
+
+            // Chat settings
+            if (root.has("chat") && root.get("chat").isJsonObject()) {
+                JsonObject chat = root.getAsJsonObject("chat");
+                chatFormattingEnabled = getBool(chat, "enabled", chatFormattingEnabled);
+                chatFormat = getString(chat, "format", chatFormat);
+                chatTagDisplay = getString(chat, "tagDisplay", chatTagDisplay);
+                chatTagFormat = getString(chat, "tagFormat", chatTagFormat);
+                chatNoFactionTag = getString(chat, "noFactionTag", chatNoFactionTag);
+                chatEventPriority = getString(chat, "priority", chatEventPriority);
+
+                if (chat.has("relationColors") && chat.get("relationColors").isJsonObject()) {
+                    JsonObject colors = chat.getAsJsonObject("relationColors");
+                    chatRelationColorOwn = getString(colors, "own", chatRelationColorOwn);
+                    chatRelationColorAlly = getString(colors, "ally", chatRelationColorAlly);
+                    chatRelationColorNeutral = getString(colors, "neutral", chatRelationColorNeutral);
+                    chatRelationColorEnemy = getString(colors, "enemy", chatRelationColorEnemy);
+                }
+            }
+
+            // Permission settings
+            if (root.has("permissions") && root.get("permissions").isJsonObject()) {
+                JsonObject permissions = root.getAsJsonObject("permissions");
+                adminRequiresOp = getBool(permissions, "adminRequiresOp", adminRequiresOp);
+                permissionFallbackBehavior = getString(permissions, "fallbackBehavior", permissionFallbackBehavior);
             }
 
             // Apply debug settings to Logger
@@ -404,6 +455,11 @@ public class HyperFactionsConfig {
             messages.addProperty("primaryColor", primaryColor);
             root.add("messages", messages);
 
+            // GUI settings
+            JsonObject gui = new JsonObject();
+            gui.addProperty("title", guiTitle);
+            root.add("gui", gui);
+
             // Territory notification settings
             JsonObject territoryNotifications = new JsonObject();
             territoryNotifications.addProperty("enabled", territoryNotificationsEnabled);
@@ -428,6 +484,29 @@ public class HyperFactionsConfig {
             categories.addProperty("territory", debugTerritory);
             debug.add("categories", categories);
             root.add("debug", debug);
+
+            // Chat settings
+            JsonObject chat = new JsonObject();
+            chat.addProperty("enabled", chatFormattingEnabled);
+            chat.addProperty("format", chatFormat);
+            chat.addProperty("tagDisplay", chatTagDisplay);
+            chat.addProperty("tagFormat", chatTagFormat);
+            chat.addProperty("noFactionTag", chatNoFactionTag);
+            chat.addProperty("priority", chatEventPriority);
+
+            JsonObject relationColors = new JsonObject();
+            relationColors.addProperty("own", chatRelationColorOwn);
+            relationColors.addProperty("ally", chatRelationColorAlly);
+            relationColors.addProperty("neutral", chatRelationColorNeutral);
+            relationColors.addProperty("enemy", chatRelationColorEnemy);
+            chat.add("relationColors", relationColors);
+            root.add("chat", chat);
+
+            // Permission settings
+            JsonObject permissions = new JsonObject();
+            permissions.addProperty("adminRequiresOp", adminRequiresOp);
+            permissions.addProperty("fallbackBehavior", permissionFallbackBehavior);
+            root.add("permissions", permissions);
 
             Gson gson = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
             Files.writeString(configFile, gson.toJson(root));
@@ -520,6 +599,9 @@ public class HyperFactionsConfig {
     public String getPrefix() { return prefix; }
     public String getPrimaryColor() { return primaryColor; }
 
+    // === GUI Getters ===
+    public String getGuiTitle() { return guiTitle; }
+
     // === Territory Notification Getters ===
     public boolean isTerritoryNotificationsEnabled() { return territoryNotificationsEnabled; }
 
@@ -535,6 +617,22 @@ public class HyperFactionsConfig {
     public boolean isDebugProtection() { return debugProtection; }
     public boolean isDebugRelation() { return debugRelation; }
     public boolean isDebugTerritory() { return debugTerritory; }
+
+    // === Chat Formatting Getters ===
+    public boolean isChatFormattingEnabled() { return chatFormattingEnabled; }
+    public String getChatFormat() { return chatFormat; }
+    public String getChatTagDisplay() { return chatTagDisplay; }
+    public String getChatTagFormat() { return chatTagFormat; }
+    public String getChatRelationColorOwn() { return chatRelationColorOwn; }
+    public String getChatRelationColorAlly() { return chatRelationColorAlly; }
+    public String getChatRelationColorNeutral() { return chatRelationColorNeutral; }
+    public String getChatRelationColorEnemy() { return chatRelationColorEnemy; }
+    public String getChatNoFactionTag() { return chatNoFactionTag; }
+    public String getChatEventPriority() { return chatEventPriority; }
+
+    // === Permission Getters ===
+    public boolean isAdminRequiresOp() { return adminRequiresOp; }
+    public String getPermissionFallbackBehavior() { return permissionFallbackBehavior; }
 
     // === Debug Setters (for runtime toggle) ===
     public void setDebugPower(boolean enabled) { this.debugPower = enabled; applyDebugSettings(); }

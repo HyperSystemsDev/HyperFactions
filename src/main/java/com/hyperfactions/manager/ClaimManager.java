@@ -1,10 +1,12 @@
 package com.hyperfactions.manager;
 
+import com.hyperfactions.Permissions;
 import com.hyperfactions.config.HyperFactionsConfig;
 import com.hyperfactions.data.ChunkKey;
 import com.hyperfactions.data.Faction;
 import com.hyperfactions.data.FactionClaim;
 import com.hyperfactions.data.FactionLog;
+import com.hyperfactions.integration.PermissionManager;
 import com.hyperfactions.util.ChunkUtil;
 import com.hyperfactions.util.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -88,6 +90,7 @@ public class ClaimManager {
      */
     public enum ClaimResult {
         SUCCESS,
+        NO_PERMISSION,
         NOT_IN_FACTION,
         NOT_OFFICER,
         ALREADY_CLAIMED_SELF,
@@ -183,6 +186,11 @@ public class ClaimManager {
      * @return the result
      */
     public ClaimResult claim(@NotNull UUID playerUuid, @NotNull String world, int chunkX, int chunkZ) {
+        // Check permission first
+        if (!PermissionManager.get().hasPermission(playerUuid, Permissions.CLAIM)) {
+            return ClaimResult.NO_PERMISSION;
+        }
+
         // Get player's faction
         Faction faction = factionManager.getPlayerFaction(playerUuid);
         if (faction == null) {
@@ -253,6 +261,11 @@ public class ClaimManager {
      * @return the result
      */
     public ClaimResult unclaim(@NotNull UUID playerUuid, @NotNull String world, int chunkX, int chunkZ) {
+        // Check permission first
+        if (!PermissionManager.get().hasPermission(playerUuid, Permissions.UNCLAIM)) {
+            return ClaimResult.NO_PERMISSION;
+        }
+
         Faction faction = factionManager.getPlayerFaction(playerUuid);
         if (faction == null) {
             return ClaimResult.NOT_IN_FACTION;
@@ -315,6 +328,11 @@ public class ClaimManager {
      * @return the result
      */
     public ClaimResult overclaim(@NotNull UUID playerUuid, @NotNull String world, int chunkX, int chunkZ) {
+        // Check permission first
+        if (!PermissionManager.get().hasPermission(playerUuid, Permissions.OVERCLAIM)) {
+            return ClaimResult.NO_PERMISSION;
+        }
+
         Faction attackerFaction = factionManager.getPlayerFaction(playerUuid);
         if (attackerFaction == null) {
             return ClaimResult.NOT_IN_FACTION;

@@ -6,8 +6,10 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.hyperfactions.Permissions;
 import com.hyperfactions.config.HyperFactionsConfig;
 import com.hyperfactions.data.JoinRequest;
+import com.hyperfactions.integration.PermissionManager;
 import com.hyperfactions.util.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -31,6 +33,7 @@ public class JoinRequestManager {
      */
     public enum RequestResult {
         SUCCESS,
+        NO_PERMISSION,
         ALREADY_REQUESTED,
         PLAYER_IN_FACTION,
         FACTION_NOT_FOUND,
@@ -76,7 +79,44 @@ public class JoinRequestManager {
     }
 
     /**
+     * Result of a permission-checked request creation.
+     *
+     * @param result  the result of the operation
+     * @param request the created request if successful, null otherwise
+     */
+    public record CreateRequestResult(
+        @NotNull RequestResult result,
+        @Nullable JoinRequest request
+    ) {
+        public boolean isSuccess() {
+            return result == RequestResult.SUCCESS;
+        }
+    }
+
+    /**
+     * Creates a new join request with permission check.
+     *
+     * @param factionId  the faction ID
+     * @param playerUuid the player's UUID
+     * @param playerName the player's name
+     * @param message    optional intro message
+     * @return the result with the created request if successful
+     */
+    @NotNull
+    public CreateRequestResult createRequestChecked(@NotNull UUID factionId, @NotNull UUID playerUuid,
+                                                     @NotNull String playerName, @Nullable String message) {
+        // Check permission first
+        if (!PermissionManager.get().hasPermission(playerUuid, Permissions.JOIN)) {
+            return new CreateRequestResult(RequestResult.NO_PERMISSION, null);
+        }
+
+        JoinRequest request = createRequest(factionId, playerUuid, playerName, message);
+        return new CreateRequestResult(RequestResult.SUCCESS, request);
+    }
+
+    /**
      * Creates a new join request.
+     * Note: For permission-checked creation, use {@link #createRequestChecked}.
      *
      * @param factionId  the faction ID
      * @param playerUuid the player's UUID

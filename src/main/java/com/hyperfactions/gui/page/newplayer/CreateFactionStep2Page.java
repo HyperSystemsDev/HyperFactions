@@ -53,6 +53,7 @@ public class CreateFactionStep2Page extends InteractiveCustomUIPage<NewPlayerPag
 
     // Step 2 selections (immutable - set via constructor for fresh page pattern)
     private final boolean openRecruitment;
+    private final String preservedDescription;
 
     /**
      * Default constructor - opens with default recruitment (invite only).
@@ -63,7 +64,7 @@ public class CreateFactionStep2Page extends InteractiveCustomUIPage<NewPlayerPag
                                   String factionName,
                                   String factionColor,
                                   String factionTag) {
-        this(playerRef, factionManager, guiManager, factionName, factionColor, factionTag, false);
+        this(playerRef, factionManager, guiManager, factionName, factionColor, factionTag, false, "");
     }
 
     /**
@@ -77,6 +78,21 @@ public class CreateFactionStep2Page extends InteractiveCustomUIPage<NewPlayerPag
                                   String factionColor,
                                   String factionTag,
                                   boolean openRecruitment) {
+        this(playerRef, factionManager, guiManager, factionName, factionColor, factionTag, openRecruitment, "");
+    }
+
+    /**
+     * Constructor with preserved state for recruitment selection AND description.
+     * Used when toggling recruitment to preserve user-entered description text.
+     */
+    public CreateFactionStep2Page(PlayerRef playerRef,
+                                  FactionManager factionManager,
+                                  GuiManager guiManager,
+                                  String factionName,
+                                  String factionColor,
+                                  String factionTag,
+                                  boolean openRecruitment,
+                                  String preservedDescription) {
         super(playerRef, CustomPageLifetime.CanDismiss, NewPlayerPageData.CODEC);
         this.playerRef = playerRef;
         this.factionManager = factionManager;
@@ -86,6 +102,7 @@ public class CreateFactionStep2Page extends InteractiveCustomUIPage<NewPlayerPag
         // Auto-generate tag if not provided
         this.factionTag = (factionTag != null && !factionTag.isEmpty()) ? factionTag : generateTag(factionName);
         this.openRecruitment = openRecruitment;
+        this.preservedDescription = preservedDescription != null ? preservedDescription : "";
     }
 
     /**
@@ -124,6 +141,11 @@ public class CreateFactionStep2Page extends InteractiveCustomUIPage<NewPlayerPag
 
         // Build recruitment selection
         buildRecruitmentSelection(cmd, events);
+
+        // Pre-fill description if preserved from previous state
+        if (preservedDescription != null && !preservedDescription.isEmpty()) {
+            cmd.set("#DescInput.Value", preservedDescription);
+        }
 
         // BACK button
         events.addEventBinding(
@@ -172,17 +194,22 @@ public class CreateFactionStep2Page extends InteractiveCustomUIPage<NewPlayerPag
         }
 
         // Bind recruitment button events (styled like recruitment_modal)
+        // Capture @Description so it's preserved when page is rebuilt
         events.addEventBinding(
                 CustomUIEventBindingType.Activating,
                 "#InviteOnlyBtn",
-                EventData.of("Button", "SetRecruitment").append("Recruitment", "closed"),
+                EventData.of("Button", "SetRecruitment")
+                        .append("Recruitment", "closed")
+                        .append("@Description", "#DescInput.Value"),
                 false
         );
 
         events.addEventBinding(
                 CustomUIEventBindingType.Activating,
                 "#OpenBtn",
-                EventData.of("Button", "SetRecruitment").append("Recruitment", "open"),
+                EventData.of("Button", "SetRecruitment")
+                        .append("Recruitment", "open")
+                        .append("@Description", "#DescInput.Value"),
                 false
         );
     }
@@ -230,9 +257,11 @@ public class CreateFactionStep2Page extends InteractiveCustomUIPage<NewPlayerPag
 
             case "SetRecruitment" -> {
                 // Open fresh page with new recruitment state - fixes binding-time capture issue
+                // Preserve user-entered description when toggling recruitment
                 boolean newRecruitment = "open".equals(data.inputRecruitment);
-                guiManager.openCreateFactionStep2(player, ref, store, playerRef,
-                        factionName, factionColor, factionTag, newRecruitment);
+                String currentDescription = data.inputDescription != null ? data.inputDescription : "";
+                guiManager.openCreateFactionStep2WithDescription(player, ref, store, playerRef,
+                        factionName, factionColor, factionTag, newRecruitment, currentDescription);
             }
 
             case "Create" -> handleCreate(player, ref, store, playerRef, data);

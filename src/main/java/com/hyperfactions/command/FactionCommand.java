@@ -1,12 +1,14 @@
 package com.hyperfactions.command;
 
 import com.hyperfactions.HyperFactions;
+import com.hyperfactions.Permissions;
 import com.hyperfactions.config.HyperFactionsConfig;
 import com.hyperfactions.data.*;
 import com.hyperfactions.data.ZoneFlags;
 import com.hyperfactions.gui.help.HelpCategory;
 import com.hyperfactions.gui.help.HelpRegistry;
 import com.hyperfactions.integration.HyperPermsIntegration;
+import com.hyperfactions.integration.PermissionManager;
 import com.hyperfactions.manager.*;
 import com.hyperfactions.manager.ConfirmationManager.ConfirmationResult;
 import com.hyperfactions.manager.ConfirmationManager.ConfirmationType;
@@ -151,6 +153,11 @@ public class FactionCommand extends AbstractPlayerCommand {
      */
     private void handleHelp(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
                             PlayerRef player, FactionCommandContext fctx) {
+        if (!hasPermission(player, Permissions.HELP)) {
+            ctx.sendMessage(prefix().insert(msg("You don't have permission to view help.", COLOR_RED)));
+            return;
+        }
+
         // Text mode: show chat-based help
         if (fctx.isTextMode()) {
             showHelpText(ctx, player);
@@ -251,7 +258,7 @@ public class FactionCommand extends AbstractPlayerCommand {
     // === Create ===
     private void handleCreate(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
                               PlayerRef player, FactionCommandContext fctx) {
-        if (!hasPermission(player, "hyperfactions.create")) {
+        if (!hasPermission(player, Permissions.CREATE)) {
             ctx.sendMessage(prefix().insert(msg("You don't have permission to create factions.", COLOR_RED)));
             return;
         }
@@ -310,6 +317,11 @@ public class FactionCommand extends AbstractPlayerCommand {
     // === Disband ===
     private void handleDisband(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
                                PlayerRef player, FactionCommandContext fctx) {
+        if (!hasPermission(player, Permissions.DISBAND)) {
+            ctx.sendMessage(prefix().insert(msg("You don't have permission to disband factions.", COLOR_RED)));
+            return;
+        }
+
         Faction faction = hyperFactions.getFactionManager().getPlayerFaction(player.getUuid());
         if (faction == null) {
             ctx.sendMessage(prefix().insert(msg("You are not in a faction.", COLOR_RED)));
@@ -369,6 +381,11 @@ public class FactionCommand extends AbstractPlayerCommand {
     // === Invite ===
     private void handleInvite(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
                               PlayerRef player, FactionCommandContext fctx) {
+        if (!hasPermission(player, Permissions.INVITE)) {
+            ctx.sendMessage(prefix().insert(msg("You don't have permission to invite players.", COLOR_RED)));
+            return;
+        }
+
         Faction faction = hyperFactions.getFactionManager().getPlayerFaction(player.getUuid());
         if (faction == null) {
             ctx.sendMessage(prefix().insert(msg("You are not in a faction.", COLOR_RED)));
@@ -420,6 +437,11 @@ public class FactionCommand extends AbstractPlayerCommand {
     // === Accept ===
     private void handleAccept(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
                               PlayerRef player, FactionCommandContext fctx) {
+        if (!hasPermission(player, Permissions.JOIN)) {
+            ctx.sendMessage(prefix().insert(msg("You don't have permission to join factions.", COLOR_RED)));
+            return;
+        }
+
         if (hyperFactions.getFactionManager().isInFaction(player.getUuid())) {
             Faction existingFaction = hyperFactions.getFactionManager().getPlayerFaction(player.getUuid());
             if (existingFaction != null) {
@@ -494,6 +516,11 @@ public class FactionCommand extends AbstractPlayerCommand {
     // === Request ===
     private void handleRequest(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
                                 PlayerRef player, FactionCommandContext fctx) {
+        if (!hasPermission(player, Permissions.JOIN)) {
+            ctx.sendMessage(prefix().insert(msg("You don't have permission to request faction membership.", COLOR_RED)));
+            return;
+        }
+
         // Check if player is already in a faction
         if (hyperFactions.getFactionManager().isInFaction(player.getUuid())) {
             Faction existingFaction = hyperFactions.getFactionManager().getPlayerFaction(player.getUuid());
@@ -595,6 +622,11 @@ public class FactionCommand extends AbstractPlayerCommand {
     // === Leave ===
     private void handleLeave(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
                              PlayerRef player, FactionCommandContext fctx) {
+        if (!hasPermission(player, Permissions.LEAVE)) {
+            ctx.sendMessage(prefix().insert(msg("You don't have permission to leave factions.", COLOR_RED)));
+            return;
+        }
+
         Faction faction = hyperFactions.getFactionManager().getPlayerFaction(player.getUuid());
         if (faction == null) {
             ctx.sendMessage(prefix().insert(msg("You are not in a faction.", COLOR_RED)));
@@ -645,6 +677,11 @@ public class FactionCommand extends AbstractPlayerCommand {
     // === Kick ===
     private void handleKick(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
                             PlayerRef player, FactionCommandContext fctx) {
+        if (!hasPermission(player, Permissions.KICK)) {
+            ctx.sendMessage(prefix().insert(msg("You don't have permission to kick members.", COLOR_RED)));
+            return;
+        }
+
         Faction faction = hyperFactions.getFactionManager().getPlayerFaction(player.getUuid());
         if (faction == null) {
             ctx.sendMessage(prefix().insert(msg("You are not in a faction.", COLOR_RED)));
@@ -697,6 +734,11 @@ public class FactionCommand extends AbstractPlayerCommand {
     // === Promote ===
     private void handlePromote(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
                                PlayerRef player, FactionCommandContext fctx) {
+        if (!hasPermission(player, Permissions.PROMOTE)) {
+            ctx.sendMessage(prefix().insert(msg("You don't have permission to promote members.", COLOR_RED)));
+            return;
+        }
+
         Faction faction = hyperFactions.getFactionManager().getPlayerFaction(player.getUuid());
         if (faction == null) {
             ctx.sendMessage(prefix().insert(msg("You are not in a faction.", COLOR_RED)));
@@ -745,6 +787,11 @@ public class FactionCommand extends AbstractPlayerCommand {
     // === Demote ===
     private void handleDemote(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
                               PlayerRef player, FactionCommandContext fctx) {
+        if (!hasPermission(player, Permissions.DEMOTE)) {
+            ctx.sendMessage(prefix().insert(msg("You don't have permission to demote members.", COLOR_RED)));
+            return;
+        }
+
         Faction faction = hyperFactions.getFactionManager().getPlayerFaction(player.getUuid());
         if (faction == null) {
             ctx.sendMessage(prefix().insert(msg("You are not in a faction.", COLOR_RED)));
@@ -793,6 +840,11 @@ public class FactionCommand extends AbstractPlayerCommand {
     // === Transfer ===
     private void handleTransfer(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
                                 PlayerRef player, FactionCommandContext fctx) {
+        if (!hasPermission(player, Permissions.TRANSFER)) {
+            ctx.sendMessage(prefix().insert(msg("You don't have permission to transfer leadership.", COLOR_RED)));
+            return;
+        }
+
         Faction faction = hyperFactions.getFactionManager().getPlayerFaction(player.getUuid());
         if (faction == null) {
             ctx.sendMessage(prefix().insert(msg("You are not in a faction.", COLOR_RED)));
@@ -867,6 +919,11 @@ public class FactionCommand extends AbstractPlayerCommand {
     // === Claim ===
     private void handleClaim(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
                              PlayerRef player, World world, FactionCommandContext fctx) {
+        if (!hasPermission(player, Permissions.CLAIM)) {
+            ctx.sendMessage(prefix().insert(msg("You don't have permission to claim territory.", COLOR_RED)));
+            return;
+        }
+
         // Upfront faction check - consistent error handling
         Faction faction = hyperFactions.getFactionManager().getPlayerFaction(player.getUuid());
         if (faction == null) {
@@ -942,6 +999,11 @@ public class FactionCommand extends AbstractPlayerCommand {
     // === Unclaim ===
     private void handleUnclaim(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
                                PlayerRef player, World world, FactionCommandContext fctx) {
+        if (!hasPermission(player, Permissions.UNCLAIM)) {
+            ctx.sendMessage(prefix().insert(msg("You don't have permission to unclaim territory.", COLOR_RED)));
+            return;
+        }
+
         // Upfront faction check - consistent error handling
         Faction faction = hyperFactions.getFactionManager().getPlayerFaction(player.getUuid());
         if (faction == null) {
@@ -983,6 +1045,11 @@ public class FactionCommand extends AbstractPlayerCommand {
     // === Overclaim ===
     private void handleOverclaim(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
                                  PlayerRef player, World world, FactionCommandContext fctx) {
+        if (!hasPermission(player, Permissions.OVERCLAIM)) {
+            ctx.sendMessage(prefix().insert(msg("You don't have permission to overclaim territory.", COLOR_RED)));
+            return;
+        }
+
         // Upfront faction check - consistent error handling
         Faction faction = hyperFactions.getFactionManager().getPlayerFaction(player.getUuid());
         if (faction == null) {
@@ -1025,6 +1092,11 @@ public class FactionCommand extends AbstractPlayerCommand {
 
     // === Home ===
     private void handleHome(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref, PlayerRef player, World world) {
+        if (!hasPermission(player, Permissions.HOME)) {
+            ctx.sendMessage(prefix().insert(msg("You don't have permission to teleport to faction home.", COLOR_RED)));
+            return;
+        }
+
         // Upfront faction check - consistent error handling
         Faction faction = hyperFactions.getFactionManager().getPlayerFaction(player.getUuid());
         if (faction == null) {
@@ -1103,6 +1175,11 @@ public class FactionCommand extends AbstractPlayerCommand {
 
     // === SetHome ===
     private void handleSetHome(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref, PlayerRef player, World world) {
+        if (!hasPermission(player, Permissions.SETHOME)) {
+            ctx.sendMessage(prefix().insert(msg("You don't have permission to set faction home.", COLOR_RED)));
+            return;
+        }
+
         Faction faction = hyperFactions.getFactionManager().getPlayerFaction(player.getUuid());
         if (faction == null) {
             ctx.sendMessage(prefix().insert(msg("You are not in a faction.", COLOR_RED)));
@@ -1144,6 +1221,11 @@ public class FactionCommand extends AbstractPlayerCommand {
     // === Ally ===
     private void handleAlly(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
                             PlayerRef player, FactionCommandContext fctx) {
+        if (!hasPermission(player, Permissions.ALLY)) {
+            ctx.sendMessage(prefix().insert(msg("You don't have permission to manage alliances.", COLOR_RED)));
+            return;
+        }
+
         Faction myFaction = hyperFactions.getFactionManager().getPlayerFaction(player.getUuid());
         if (myFaction == null) {
             ctx.sendMessage(prefix().insert(msg("You are not in a faction.", COLOR_RED)));
@@ -1194,6 +1276,11 @@ public class FactionCommand extends AbstractPlayerCommand {
     // === Enemy ===
     private void handleEnemy(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
                              PlayerRef player, FactionCommandContext fctx) {
+        if (!hasPermission(player, Permissions.ENEMY)) {
+            ctx.sendMessage(prefix().insert(msg("You don't have permission to declare enemies.", COLOR_RED)));
+            return;
+        }
+
         Faction myFaction = hyperFactions.getFactionManager().getPlayerFaction(player.getUuid());
         if (myFaction == null) {
             ctx.sendMessage(prefix().insert(msg("You are not in a faction.", COLOR_RED)));
@@ -1237,6 +1324,11 @@ public class FactionCommand extends AbstractPlayerCommand {
     // === Neutral ===
     private void handleNeutral(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
                                PlayerRef player, FactionCommandContext fctx) {
+        if (!hasPermission(player, Permissions.NEUTRAL)) {
+            ctx.sendMessage(prefix().insert(msg("You don't have permission to set neutral relations.", COLOR_RED)));
+            return;
+        }
+
         Faction myFaction = hyperFactions.getFactionManager().getPlayerFaction(player.getUuid());
         if (myFaction == null) {
             ctx.sendMessage(prefix().insert(msg("You are not in a faction.", COLOR_RED)));
@@ -1278,6 +1370,11 @@ public class FactionCommand extends AbstractPlayerCommand {
     // === Relations ===
     private void handleRelations(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
                                  PlayerRef player, FactionCommandContext fctx) {
+        if (!hasPermission(player, Permissions.RELATIONS)) {
+            ctx.sendMessage(prefix().insert(msg("You don't have permission to view relations.", COLOR_RED)));
+            return;
+        }
+
         Faction faction = hyperFactions.getFactionManager().getPlayerFaction(player.getUuid());
         if (faction == null) {
             ctx.sendMessage(prefix().insert(msg("You are not in a faction.", COLOR_RED)));
@@ -1327,6 +1424,11 @@ public class FactionCommand extends AbstractPlayerCommand {
     // === Info ===
     private void handleInfo(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
                             PlayerRef player, FactionCommandContext fctx) {
+        if (!hasPermission(player, Permissions.INFO)) {
+            ctx.sendMessage(prefix().insert(msg("You don't have permission to view faction info.", COLOR_RED)));
+            return;
+        }
+
         Faction faction;
         if (fctx.hasArgs()) {
             String factionName = fctx.joinArgs();
@@ -1369,6 +1471,11 @@ public class FactionCommand extends AbstractPlayerCommand {
     // === List ===
     private void handleList(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
                             PlayerRef player, FactionCommandContext fctx) {
+        if (!hasPermission(player, Permissions.LIST)) {
+            ctx.sendMessage(prefix().insert(msg("You don't have permission to view faction list.", COLOR_RED)));
+            return;
+        }
+
         // GUI mode: open FactionBrowserPage
         if (fctx.shouldOpenGui()) {
             Player playerEntity = store.getComponent(ref, Player.getComponentType());
@@ -1397,6 +1504,11 @@ public class FactionCommand extends AbstractPlayerCommand {
     // === Map ===
     private void handleMap(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
                            PlayerRef player, World world, FactionCommandContext fctx) {
+        if (!hasPermission(player, Permissions.MAP)) {
+            ctx.sendMessage(prefix().insert(msg("You don't have permission to view the map.", COLOR_RED)));
+            return;
+        }
+
         // GUI mode: open ChunkMapPage
         if (fctx.shouldOpenGui()) {
             Player playerEntity = store.getComponent(ref, Player.getComponentType());
@@ -1444,7 +1556,7 @@ public class FactionCommand extends AbstractPlayerCommand {
 
     // === GUI ===
     private void handleGui(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref, PlayerRef playerRef) {
-        if (!hasPermission(playerRef, "hyperfactions.use")) {
+        if (!hasPermission(playerRef, Permissions.USE)) {
             ctx.sendMessage(prefix().insert(msg("You don't have permission.", COLOR_RED)));
             return;
         }
@@ -1461,6 +1573,11 @@ public class FactionCommand extends AbstractPlayerCommand {
     // === Members ===
     private void handleMembers(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
                                PlayerRef player, FactionCommandContext fctx) {
+        if (!hasPermission(player, Permissions.MEMBERS)) {
+            ctx.sendMessage(prefix().insert(msg("You don't have permission to view faction members.", COLOR_RED)));
+            return;
+        }
+
         Faction faction = hyperFactions.getFactionManager().getPlayerFaction(player.getUuid());
         if (faction == null) {
             ctx.sendMessage(prefix().insert(msg("You are not in a faction.", COLOR_RED)));
@@ -1583,6 +1700,11 @@ public class FactionCommand extends AbstractPlayerCommand {
     // === Who ===
     private void handleWho(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
                            PlayerRef player, FactionCommandContext fctx) {
+        if (!hasPermission(player, Permissions.WHO)) {
+            ctx.sendMessage(prefix().insert(msg("You don't have permission to view player info.", COLOR_RED)));
+            return;
+        }
+
         String targetName;
         UUID targetUuid = null;
 
@@ -1665,6 +1787,11 @@ public class FactionCommand extends AbstractPlayerCommand {
     // === Power ===
     private void handlePower(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
                              PlayerRef player, FactionCommandContext fctx) {
+        if (!hasPermission(player, Permissions.POWER)) {
+            ctx.sendMessage(prefix().insert(msg("You don't have permission to view power info.", COLOR_RED)));
+            return;
+        }
+
         UUID targetUuid;
         String targetName;
 
@@ -1724,6 +1851,11 @@ public class FactionCommand extends AbstractPlayerCommand {
 
     // === Chat ===
     private void handleChat(CommandContext ctx, PlayerRef player, String[] args) {
+        if (!hasPermission(player, Permissions.CHAT_FACTION)) {
+            ctx.sendMessage(prefix().insert(msg("You don't have permission to use faction chat.", COLOR_RED)));
+            return;
+        }
+
         Faction faction = hyperFactions.getFactionManager().getPlayerFaction(player.getUuid());
         if (faction == null) {
             ctx.sendMessage(prefix().insert(msg("You are not in a faction.", COLOR_RED)));
@@ -1744,7 +1876,7 @@ public class FactionCommand extends AbstractPlayerCommand {
 
     // === Admin ===
     private void handleAdmin(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref, PlayerRef player, World world, String[] args) {
-        if (!hasPermission(player, "hyperfactions.admin")) {
+        if (!hasPermission(player, Permissions.ADMIN)) {
             ctx.sendMessage(prefix().insert(msg("You don't have permission.", COLOR_RED)));
             return;
         }
@@ -2115,7 +2247,7 @@ public class FactionCommand extends AbstractPlayerCommand {
     // === Debug ===
     private void handleDebug(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
                               PlayerRef player, World world, String[] args) {
-        if (!hasPermission(player, "hyperfactions.admin.debug")) {
+        if (!hasPermission(player, Permissions.ADMIN_DEBUG)) {
             ctx.sendMessage(prefix().insert(msg("You don't have permission.", COLOR_RED)));
             return;
         }
@@ -2465,7 +2597,7 @@ public class FactionCommand extends AbstractPlayerCommand {
 
     // === Reload ===
     private void handleReload(CommandContext ctx, PlayerRef player) {
-        if (!hasPermission(player, "hyperfactions.admin")) {
+        if (!hasPermission(player, Permissions.ADMIN)) {
             ctx.sendMessage(prefix().insert(msg("You don't have permission.", COLOR_RED)));
             return;
         }
@@ -2477,7 +2609,7 @@ public class FactionCommand extends AbstractPlayerCommand {
     // === Rename ===
     private void handleRename(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
                                PlayerRef player, FactionCommandContext fctx) {
-        if (!hasPermission(player, "hyperfactions.rename")) {
+        if (!hasPermission(player, Permissions.RENAME)) {
             ctx.sendMessage(prefix().insert(msg("You don't have permission.", COLOR_RED)));
             return;
         }
@@ -2561,7 +2693,7 @@ public class FactionCommand extends AbstractPlayerCommand {
     // === Description ===
     private void handleDesc(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
                             PlayerRef player, FactionCommandContext fctx) {
-        if (!hasPermission(player, "hyperfactions.desc")) {
+        if (!hasPermission(player, Permissions.DESC)) {
             ctx.sendMessage(prefix().insert(msg("You don't have permission.", COLOR_RED)));
             return;
         }
@@ -2619,7 +2751,7 @@ public class FactionCommand extends AbstractPlayerCommand {
     // === Color ===
     private void handleColor(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
                              PlayerRef player, FactionCommandContext fctx) {
-        if (!hasPermission(player, "hyperfactions.color")) {
+        if (!hasPermission(player, Permissions.COLOR)) {
             ctx.sendMessage(prefix().insert(msg("You don't have permission.", COLOR_RED)));
             return;
         }
@@ -2693,7 +2825,7 @@ public class FactionCommand extends AbstractPlayerCommand {
     // === Open ===
     private void handleOpen(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
                             PlayerRef player, FactionCommandContext fctx) {
-        if (!hasPermission(player, "hyperfactions.open")) {
+        if (!hasPermission(player, Permissions.OPEN)) {
             ctx.sendMessage(prefix().insert(msg("You don't have permission.", COLOR_RED)));
             return;
         }
@@ -2740,7 +2872,7 @@ public class FactionCommand extends AbstractPlayerCommand {
     // === Close ===
     private void handleClose(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
                              PlayerRef player, FactionCommandContext fctx) {
-        if (!hasPermission(player, "hyperfactions.close")) {
+        if (!hasPermission(player, Permissions.CLOSE)) {
             ctx.sendMessage(prefix().insert(msg("You don't have permission.", COLOR_RED)));
             return;
         }
@@ -2786,6 +2918,11 @@ public class FactionCommand extends AbstractPlayerCommand {
 
     // === Stuck ===
     private void handleStuck(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref, PlayerRef player, World world) {
+        if (!hasPermission(player, Permissions.STUCK)) {
+            ctx.sendMessage(prefix().insert(msg("You don't have permission to use /f stuck.", COLOR_RED)));
+            return;
+        }
+
         TransformComponent transform = store.getComponent(ref, TransformComponent.getComponentType());
         if (transform == null) return;
 
@@ -2907,7 +3044,7 @@ public class FactionCommand extends AbstractPlayerCommand {
     // === Helpers ===
 
     private boolean hasPermission(PlayerRef player, String permission) {
-        return HyperPermsIntegration.hasPermission(player.getUuid(), permission);
+        return PermissionManager.get().hasPermission(player.getUuid(), permission);
     }
 
     private PlayerRef findOnlinePlayer(String name) {

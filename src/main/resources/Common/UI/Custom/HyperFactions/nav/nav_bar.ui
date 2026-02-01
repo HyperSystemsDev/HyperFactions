@@ -30,12 +30,12 @@
 
   // Title instead of logo for now
   Group #NavBarTitle {
-    Anchor: (Width: 120, Height: 45);
+    Anchor: (Width: 160, Height: 45);
     LayoutMode: Left;
     Padding: (Left: 15);
 
-    Label {
-      Text: "Factions";
+    Label #NavBarTitleLabel {
+      Text: "HyperFactions";
       Style: (FontSize: 18, TextColor: #00FFFF, RenderBold: true, VerticalAlignment: Center);
     }
   }

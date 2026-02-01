@@ -2,6 +2,7 @@ package com.hyperfactions.platform;
 
 import com.hyperfactions.HyperFactions;
 import com.hyperfactions.api.HyperFactionsAPI;
+import com.hyperfactions.chat.PublicChatListener;
 import com.hyperfactions.command.FactionCommand;
 import com.hyperfactions.config.HyperFactionsConfig;
 import com.hyperfactions.listener.PlayerListener;
@@ -67,6 +68,7 @@ public class HyperFactionsPlugin extends JavaPlugin {
     private HyperFactions hyperFactions;
     private PlayerListener playerListener;
     private ProtectionListener protectionListener;
+    private PublicChatListener publicChatListener;
     private TerritoryTickingSystem territoryTickingSystem;
 
     // Task scheduling
@@ -314,12 +316,29 @@ public class HyperFactionsPlugin extends JavaPlugin {
             this::onPlayerChatAsync
         );
 
+        // Public chat formatting (faction tags with relation colors)
+        // Register at configured priority (default LATE) to run after LuckPerms
+        publicChatListener = new PublicChatListener(hyperFactions);
+        EventPriority chatPriority = publicChatListener.getEventPriority();
+        getEventRegistry().registerAsyncGlobal(
+            chatPriority,
+            PlayerChatEvent.class,
+            publicChatListener::onPlayerChatAsync
+        );
+        getLogger().at(Level.INFO).log("Registered public chat formatter at %s priority", chatPriority);
+
         // Create listeners
         playerListener = new PlayerListener(hyperFactions);
         protectionListener = new ProtectionListener(hyperFactions);
 
         // Register ECS event systems for block protection
         registerBlockProtectionSystems();
+
+        // Register update notification listener (if update checking is enabled)
+        if (hyperFactions.getUpdateNotificationListener() != null) {
+            hyperFactions.getUpdateNotificationListener().register(getEventRegistry());
+            getLogger().at(Level.INFO).log("Registered update notification listener");
+        }
 
         getLogger().at(Level.INFO).log("Registered event listeners");
     }
@@ -340,6 +359,9 @@ public class HyperFactionsPlugin extends JavaPlugin {
 
             // Item pickup protection
             getEntityStoreRegistry().registerSystem(new ItemPickupProtectionSystem(hyperFactions, protectionListener));
+
+            // PvP protection
+            getEntityStoreRegistry().registerSystem(new PvPProtectionSystem(hyperFactions, protectionListener));
 
             getLogger().at(Level.INFO).log("Registered block protection systems");
         } catch (Exception e) {
@@ -872,6 +894,89 @@ public class HyperFactionsPlugin extends JavaPlugin {
                 }
             } catch (Exception e) {
                 Logger.severe("Error processing item pickup event", e);
+            }
+        }
+
+        private String getWorldName(Store<EntityStore> store) {
+            try {
+                return store.getExternalData().getWorld().getName();
+            } catch (Exception e) {
+                return null;
+            }
+        }
+    }
+
+    /**
+     * ECS system for handling PvP protection (ally/faction damage prevention).
+     */
+    private static class PvPProtectionSystem extends EntityEventSystem<EntityStore, Damage> {
+        private final HyperFactions hyperFactions;
+        private final ProtectionListener protectionListener;
+
+        public PvPProtectionSystem(HyperFactions hyperFactions, ProtectionListener protectionListener) {
+            super(Damage.class);
+            this.hyperFactions = hyperFactions;
+            this.protectionListener = protectionListener;
+        }
+
+        @Override
+        public Query<EntityStore> getQuery() {
+            return Archetype.empty();
+        }
+
+        @Override
+        public void handle(int entityIndex, ArchetypeChunk<EntityStore> chunk,
+                           Store<EntityStore> store, CommandBuffer<EntityStore> commandBuffer,
+                           Damage event) {
+            try {
+                // Skip if already cancelled
+                if (event.isCancelled()) return;
+
+                // Get the defender (entity being damaged)
+                PlayerRef defender = chunk.getComponent(entityIndex, PlayerRef.getComponentType());
+                if (defender == null) return; // Not a player, skip
+
+                // Check if the attacker is a player
+                Damage.Source source = event.getSource();
+                if (!(source instanceof Damage.EntitySource entitySource)) return; // Not entity damage
+
+                // Get the attacker's entity reference and check if it's a player
+                com.hypixel.hytale.component.Ref<EntityStore> attackerRef = entitySource.getRef();
+                PlayerRef attacker = commandBuffer.getComponent(attackerRef, PlayerRef.getComponentType());
+                if (attacker == null) return; // Attacker is not a player
+
+                // Both are players - check PvP protection
+                UUID attackerUuid = attacker.getUuid();
+                UUID defenderUuid = defender.getUuid();
+
+                // Skip self-damage
+                if (attackerUuid.equals(defenderUuid)) return;
+
+                // Get defender's position for location-based checks
+                TransformComponent transform = chunk.getComponent(entityIndex, TransformComponent.getComponentType());
+                if (transform == null) return;
+
+                String worldName = getWorldName(store);
+                if (worldName == null) return;
+
+                double x = transform.getPosition().getX();
+                double z = transform.getPosition().getZ();
+
+                // Check if PvP is allowed
+                com.hyperfactions.protection.ProtectionChecker.PvPResult result =
+                    hyperFactions.getProtectionChecker().canDamagePlayer(
+                        attackerUuid, defenderUuid, worldName, x, z
+                    );
+
+                if (!hyperFactions.getProtectionChecker().isAllowed(result)) {
+                    event.setCancelled(true);
+                    // Send denial message to attacker
+                    attacker.sendMessage(Message.raw(protectionListener.getDenialMessage(result)).color("#FF5555"));
+                    Logger.debugProtection("PvP blocked: attacker=%s, defender=%s, result=%s",
+                        attackerUuid, defenderUuid, result);
+                }
+            } catch (Exception e) {
+                Logger.severe("Error processing PvP protection event", e);
             }
         }
 

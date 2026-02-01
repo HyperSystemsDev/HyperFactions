@@ -1,9 +1,11 @@
 package com.hyperfactions.manager;
 
+import com.hyperfactions.Permissions;
 import com.hyperfactions.api.events.EventBus;
 import com.hyperfactions.api.events.FactionDisbandEvent;
 import com.hyperfactions.config.HyperFactionsConfig;
 import com.hyperfactions.data.*;
+import com.hyperfactions.integration.PermissionManager;
 import com.hyperfactions.storage.FactionStorage;
 import com.hyperfactions.util.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -219,6 +221,11 @@ public class FactionManager {
      * @return the result
      */
     public FactionResult createFaction(@NotNull String name, @NotNull UUID leaderUuid, @NotNull String leaderName) {
+        // Check permission first
+        if (!PermissionManager.get().hasPermission(leaderUuid, Permissions.CREATE)) {
+            return FactionResult.NO_PERMISSION;
+        }
+
         // Validation
         if (isInFaction(leaderUuid)) {
             return FactionResult.ALREADY_IN_FACTION;
@@ -309,6 +316,11 @@ public class FactionManager {
      * @return the result
      */
     public FactionResult disbandFaction(@NotNull UUID factionId, @NotNull UUID actorUuid) {
+        // Check permission first
+        if (!PermissionManager.get().hasPermission(actorUuid, Permissions.DISBAND)) {
+            return FactionResult.NO_PERMISSION;
+        }
+
         Faction faction = factions.get(factionId);
         if (faction == null) {
             return FactionResult.FACTION_NOT_FOUND;
@@ -492,6 +504,11 @@ public class FactionManager {
      * @return the result
      */
     public FactionResult promoteMember(@NotNull UUID factionId, @NotNull UUID playerUuid, @NotNull UUID actorUuid) {
+        // Check permission first
+        if (!PermissionManager.get().hasPermission(actorUuid, Permissions.PROMOTE)) {
+            return FactionResult.NO_PERMISSION;
+        }
+
         Faction faction = factions.get(factionId);
         if (faction == null) {
             return FactionResult.FACTION_NOT_FOUND;
@@ -535,6 +552,11 @@ public class FactionManager {
      * @return the result
      */
     public FactionResult demoteMember(@NotNull UUID factionId, @NotNull UUID playerUuid, @NotNull UUID actorUuid) {
+        // Check permission first
+        if (!PermissionManager.get().hasPermission(actorUuid, Permissions.DEMOTE)) {
+            return FactionResult.NO_PERMISSION;
+        }
+
         Faction faction = factions.get(factionId);
         if (faction == null) {
             return FactionResult.FACTION_NOT_FOUND;
@@ -577,6 +599,11 @@ public class FactionManager {
      * @return the result
      */
     public FactionResult transferLeadership(@NotNull UUID factionId, @NotNull UUID newLeader, @NotNull UUID actorUuid) {
+        // Check permission first
+        if (!PermissionManager.get().hasPermission(actorUuid, Permissions.TRANSFER)) {
+            return FactionResult.NO_PERMISSION;
+        }
+
         Faction faction = factions.get(factionId);
         if (faction == null) {
             return FactionResult.FACTION_NOT_FOUND;
@@ -618,6 +645,11 @@ public class FactionManager {
      * @return the result
      */
     public FactionResult setHome(@NotNull UUID factionId, @Nullable Faction.FactionHome home, @NotNull UUID actorUuid) {
+        // Check permission first
+        if (!PermissionManager.get().hasPermission(actorUuid, Permissions.SETHOME)) {
+            return FactionResult.NO_PERMISSION;
+        }
+
         Faction faction = factions.get(factionId);
         if (faction == null) {
             return FactionResult.FACTION_NOT_FOUND;

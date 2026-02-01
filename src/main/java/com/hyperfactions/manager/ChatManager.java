@@ -1,7 +1,9 @@
 package com.hyperfactions.manager;
 
+import com.hyperfactions.Permissions;
 import com.hyperfactions.data.Faction;
 import com.hyperfactions.data.FactionRelation;
+import com.hyperfactions.integration.PermissionManager;
 import com.hyperfactions.util.Logger;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
@@ -26,6 +28,29 @@ public class ChatManager {
         NORMAL,
         FACTION,
         ALLY
+    }
+
+    /**
+     * Result of a chat channel toggle operation.
+     */
+    public enum ChatResult {
+        SUCCESS,
+        NO_PERMISSION
+    }
+
+    /**
+     * Result of toggling a chat channel.
+     *
+     * @param result  the result of the operation
+     * @param channel the new channel if successful, null otherwise
+     */
+    public record ToggleResult(
+        @NotNull ChatResult result,
+        @Nullable ChatChannel channel
+    ) {
+        public boolean isSuccess() {
+            return result == ChatResult.SUCCESS;
+        }
     }
 
     // Player UUID -> current chat channel
@@ -76,7 +101,25 @@ public class ChatManager {
     }
 
     /**
+     * Toggles faction chat for a player with permission check.
+     *
+     * @param playerUuid the player's UUID
+     * @return the result with new channel state if successful
+     */
+    @NotNull
+    public ToggleResult toggleFactionChatChecked(@NotNull UUID playerUuid) {
+        // Check permission first
+        if (!PermissionManager.get().hasPermission(playerUuid, Permissions.CHAT_FACTION)) {
+            return new ToggleResult(ChatResult.NO_PERMISSION, null);
+        }
+
+        ChatChannel newChannel = toggleFactionChat(playerUuid);
+        return new ToggleResult(ChatResult.SUCCESS, newChannel);
+    }
+
+    /**
      * Toggles faction chat for a player.
+     * Note: For permission-checked toggle, use {@link #toggleFactionChatChecked}.
      *
      * @param playerUuid the player's UUID
      * @return the new channel state
@@ -94,7 +137,25 @@ public class ChatManager {
     }
 
     /**
+     * Toggles ally chat for a player with permission check.
+     *
+     * @param playerUuid the player's UUID
+     * @return the result with new channel state if successful
+     */
+    @NotNull
+    public ToggleResult toggleAllyChatChecked(@NotNull UUID playerUuid) {
+        // Check permission first
+        if (!PermissionManager.get().hasPermission(playerUuid, Permissions.CHAT_ALLY)) {
+            return new ToggleResult(ChatResult.NO_PERMISSION, null);
+        }
+
+        ChatChannel newChannel = toggleAllyChat(playerUuid);
+        return new ToggleResult(ChatResult.SUCCESS, newChannel);
+    }
+
+    /**
      * Toggles ally chat for a player.
+     * Note: For permission-checked toggle, use {@link #toggleAllyChatChecked}.
      *
      * @param playerUuid the player's UUID
      * @return the new channel state

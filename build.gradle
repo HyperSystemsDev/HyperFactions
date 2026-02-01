@@ -1,14 +1,26 @@
 plugins {
     id 'java'
-    id 'com.gradleup.shadow' version '8.3.5'
+    id 'com.gradleup.shadow' version '9.3.1'
 }
 
 group = 'com.hyperfactions'
 version = '0.1.0'
 
+// Shared version property avoids accessing project at execution time
+def buildVersion = objects.property(String).convention(version)
+
+// Override version for dev builds
+gradle.taskGraph.whenReady { graph ->
+    if (graph.hasTask(':buildDev')) {
+        project.version = '0.0.0'
+        buildVersion.set('0.0.0')
+    }
+}
+
 java {
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
 }
 
 repositories {
@@ -33,6 +45,44 @@ dependencies {
     // Testing
     testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+// Generate BuildInfo.java with project version
+def generatedSrcDir = layout.buildDirectory.dir("generated/sources/buildinfo/java")
+sourceSets.main.java.srcDir(generatedSrcDir)
+
+tasks.register('generateBuildInfo') {
+    def outputDir = generatedSrcDir
+    def ver = buildVersion
+    inputs.property('version', ver)
+    outputs.dir(outputDir)
+    doLast {
+        def v = ver.get()
+        def dir = outputDir.get().asFile.toPath().resolve("com/hyperfactions").toFile()
+        dir.mkdirs()
+        new File(dir, "BuildInfo.java").text = """\
+package com.hyperfactions;
+
+/**
+ * Auto-generated build information.
+ */
+public final class BuildInfo {
+    public static final String VERSION = "${v}";
+    public static final String JAVA_VERSION = "${System.getProperty('java.version')}";
+    public static final long BUILD_TIMESTAMP = ${System.currentTimeMillis()}L;
+    private BuildInfo() {}
+}
+"""
+    }
+}
+
+// Expand version placeholder in manifest.json
+processResources {
+    def ver = buildVersion
+    inputs.property('version', ver)
+    filesMatching('manifest.json') {
+        expand(version: ver.get())
+    }
 }
 
 shadowJar {
@@ -60,4 +110,16 @@ tasks.withType(JavaCompile).configureEach {
 // Ensure HyperPerms is built before compiling HyperFactions
 tasks.named('compileJava') {
     dependsOn ':HyperPerms:shadowJar'
+    dependsOn 'generateBuildInfo'
+}
+
+// Dev build task - clean build with version set to 'dev'
+tasks.register('buildDev') {
+    group = 'build'
+    description = 'Clean build with dev version identifier'
+    dependsOn 'clean', 'build'
+}
+
+tasks.named('build') {
+    mustRunAfter 'clean'
 }

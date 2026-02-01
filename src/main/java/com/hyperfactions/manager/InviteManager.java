@@ -6,8 +6,10 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.hyperfactions.Permissions;
 import com.hyperfactions.config.HyperFactionsConfig;
 import com.hyperfactions.data.PendingInvite;
+import com.hyperfactions.integration.PermissionManager;
 import com.hyperfactions.util.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -63,7 +65,50 @@ public class InviteManager {
     }
 
     /**
+     * Result of an invite operation.
+     */
+    public enum InviteResult {
+        SUCCESS,
+        NO_PERMISSION
+    }
+
+    /**
+     * Result of a permission-checked invite creation.
+     *
+     * @param result the result of the operation
+     * @param invite the created invite if successful, null otherwise
+     */
+    public record CreateInviteResult(
+        @NotNull InviteResult result,
+        @Nullable PendingInvite invite
+    ) {
+        public boolean isSuccess() {
+            return result == InviteResult.SUCCESS;
+        }
+    }
+
+    /**
+     * Creates a new invite with permission check.
+     *
+     * @param factionId  the faction ID
+     * @param playerUuid the invited player's UUID
+     * @param invitedBy  UUID of the inviter
+     * @return the result with the created invite if successful
+     */
+    @NotNull
+    public CreateInviteResult createInviteChecked(@NotNull UUID factionId, @NotNull UUID playerUuid, @NotNull UUID invitedBy) {
+        // Check permission first
+        if (!PermissionManager.get().hasPermission(invitedBy, Permissions.INVITE)) {
+            return new CreateInviteResult(InviteResult.NO_PERMISSION, null);
+        }
+
+        PendingInvite invite = createInvite(factionId, playerUuid, invitedBy);
+        return new CreateInviteResult(InviteResult.SUCCESS, invite);
+    }
+
+    /**
      * Creates a new invite.
+     * Note: For permission-checked creation, use {@link #createInviteChecked}.
      *
      * @param factionId  the faction ID
      * @param playerUuid the invited player's UUID

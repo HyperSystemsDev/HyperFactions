@@ -1,9 +1,10 @@
 package com.hyperfactions.manager;
 
+import com.hyperfactions.Permissions;
 import com.hyperfactions.config.HyperFactionsConfig;
 import com.hyperfactions.data.Faction;
 import com.hyperfactions.data.TeleportContext;
-import com.hyperfactions.integration.HyperPermsIntegration;
+import com.hyperfactions.integration.PermissionManager;
 import com.hyperfactions.util.Logger;
 import com.hyperfactions.util.TimeUtil;
 import org.jetbrains.annotations.NotNull;
@@ -51,6 +52,7 @@ public class TeleportManager {
     public enum TeleportResult {
         SUCCESS_INSTANT,     // Teleport completed immediately (no warmup)
         SUCCESS_WARMUP,      // Warmup scheduled, teleport pending
+        NO_PERMISSION,
         NO_HOME,
         NOT_IN_FACTION,
         ON_COOLDOWN,
@@ -148,6 +150,11 @@ public class TeleportManager {
         @NotNull Consumer<String> sendMessage,
         @NotNull java.util.function.Supplier<Boolean> isTagged
     ) {
+        // Check permission first
+        if (!PermissionManager.get().hasPermission(playerUuid, Permissions.HOME)) {
+            return TeleportResult.NO_PERMISSION;
+        }
+
         HyperFactionsConfig config = HyperFactionsConfig.get();
 
         // Get player's faction
@@ -167,7 +174,7 @@ public class TeleportManager {
         }
 
         // Check cooldown
-        if (!HyperPermsIntegration.hasPermission(playerUuid, "hyperfactions.bypass.cooldown")) {
+        if (!PermissionManager.get().hasPermission(playerUuid, Permissions.BYPASS_COOLDOWN)) {
             if (isOnCooldown(playerUuid)) {
                 int remaining = getCooldownRemaining(playerUuid);
                 sendMessage.accept(config.getPrefix() + "\u00A7cYou must wait " +
@@ -328,7 +335,7 @@ public class TeleportManager {
      * @return warmup seconds, 0 if bypassed
      */
     private int getWarmupSeconds(@NotNull UUID playerUuid) {
-        if (HyperPermsIntegration.hasPermission(playerUuid, "hyperfactions.bypass.warmup")) {
+        if (PermissionManager.get().hasPermission(playerUuid, Permissions.BYPASS_WARMUP)) {
             return 0;
         }
         return HyperFactionsConfig.get().getWarmupSeconds();
@@ -340,7 +347,7 @@ public class TeleportManager {
      * @param playerUuid the player's UUID
      */
     private void applyCooldown(@NotNull UUID playerUuid) {
-        if (HyperPermsIntegration.hasPermission(playerUuid, "hyperfactions.bypass.cooldown")) {
+        if (PermissionManager.get().hasPermission(playerUuid, Permissions.BYPASS_COOLDOWN)) {
             return;
         }
         int cooldownSeconds = HyperFactionsConfig.get().getCooldownSeconds();
@@ -356,6 +363,7 @@ public class TeleportManager {
         HyperFactionsConfig config = HyperFactionsConfig.get();
         switch (result) {
             case SUCCESS_INSTANT -> sendMessage.accept(config.getPrefix() + "\u00A7aTeleported to faction home!");
+            case NO_PERMISSION -> sendMessage.accept(config.getPrefix() + "\u00A7cYou don't have permission to teleport home.");
             case NO_HOME -> sendMessage.accept(config.getPrefix() + "\u00A7cYour faction has no home set.");
             case WORLD_NOT_FOUND -> sendMessage.accept(config.getPrefix() + "\u00A7cWorld not found.");
             case COMBAT_TAGGED -> sendMessage.accept(config.getPrefix() + "\u00A7cYou cannot teleport while in combat!");

@@ -5,6 +5,7 @@ import com.hyperfactions.api.events.FactionDisbandEvent;
 import com.hyperfactions.config.HyperFactionsConfig;
 import com.hyperfactions.gui.GuiManager;
 import com.hyperfactions.integration.HyperPermsIntegration;
+import com.hyperfactions.integration.PermissionManager;
 import com.hyperfactions.manager.*;
 import com.hyperfactions.protection.ProtectionChecker;
 import com.hyperfactions.storage.FactionStorage;
@@ -15,6 +16,8 @@ import com.hyperfactions.storage.json.JsonPlayerStorage;
 import com.hyperfactions.storage.json.JsonZoneStorage;
 import com.hyperfactions.territory.TerritoryNotifier;
 import com.hyperfactions.update.UpdateChecker;
+import com.hyperfactions.update.UpdateNotificationListener;
+import com.hyperfactions.update.UpdateNotificationPreferences;
 import com.hyperfactions.util.Logger;
 import com.hyperfactions.worldmap.WorldMapService;
 import org.jetbrains.annotations.NotNull;
@@ -33,7 +36,8 @@ import java.util.function.Consumer;
  */
 public class HyperFactions {
 
-    public static final String VERSION = "1.0.0";
+    /** Plugin version from BuildInfo (auto-generated at build time) */
+    public static final String VERSION = BuildInfo.VERSION;
 
     private final Path dataDir;
     private final java.util.logging.Logger javaLogger;
@@ -64,6 +68,8 @@ public class HyperFactions {
 
     // Update checker
     private UpdateChecker updateChecker;
+    private UpdateNotificationListener updateNotificationListener;
+    private UpdateNotificationPreferences notificationPreferences;
 
     // Territory features
     private TerritoryNotifier territoryNotifier;
@@ -133,8 +139,11 @@ public class HyperFactions {
         // Load configuration
         HyperFactionsConfig.get().load(dataDir);
 
-        // Initialize HyperPerms integration
+        // Initialize HyperPerms integration (legacy, for backward compatibility)
         HyperPermsIntegration.init();
+
+        // Initialize unified permission manager (new chain-based system)
+        PermissionManager.get().init();
 
         // Preload Gson classes to avoid ClassNotFoundException on Timer threads
         // The Hytale PluginClassLoader doesn't properly propagate to Timer threads,
@@ -229,6 +238,13 @@ public class HyperFactions {
         if (HyperFactionsConfig.get().isUpdateCheckEnabled()) {
             updateChecker = new UpdateChecker(dataDir, VERSION, HyperFactionsConfig.get().getUpdateCheckUrl());
             updateChecker.checkForUpdates();
+
+            // Initialize notification preferences
+            notificationPreferences = new UpdateNotificationPreferences(dataDir);
+            notificationPreferences.load();
+
+            // Initialize update notification listener
+            updateNotificationListener = new UpdateNotificationListener(this);
         }
 
         // Start periodic tasks (auto-save, invite cleanup)
@@ -283,6 +299,11 @@ public class HyperFactions {
         }
         if (zoneStorage != null) {
             zoneStorage.shutdown().join();
+        }
+
+        // Shutdown update notification listener
+        if (updateNotificationListener != null) {
+            updateNotificationListener.shutdown();
         }
 
         // Shutdown territory services
@@ -372,6 +393,8 @@ public class HyperFactions {
 
     public void setPlayerLookup(@NotNull java.util.function.Function<UUID, com.hypixel.hytale.server.core.universe.PlayerRef> lookup) {
         this.playerLookup = lookup;
+        // Also set up the permission manager's player lookup for OP checks
+        PermissionManager.get().setPlayerLookup(lookup);
     }
 
     // === Task scheduling ===
@@ -570,6 +593,36 @@ public class HyperFactions {
     @Nullable
     public UpdateChecker getUpdateChecker() {
         return updateChecker;
+    }
+
+    /**
+     * Gets the update notification listener.
+     *
+     * @return the update notification listener, or null if update checking is disabled
+     */
+    @Nullable
+    public UpdateNotificationListener getUpdateNotificationListener() {
+        return updateNotificationListener;
+    }
+
+    /**
+     * Gets the notification preferences manager.
+     *
+     * @return the notification preferences, or null if update checking is disabled
+     */
+    @Nullable
+    public UpdateNotificationPreferences getNotificationPreferences() {
+        return notificationPreferences;
+    }
+
+    /**
+     * Gets the data directory.
+     *
+     * @return the plugin data directory
+     */
+    @NotNull
+    public Path getDataDirectory() {
+        return dataDir;
     }
 
     /**

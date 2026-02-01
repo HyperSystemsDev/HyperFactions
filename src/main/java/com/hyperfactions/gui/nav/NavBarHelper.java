@@ -1,5 +1,6 @@
 package com.hyperfactions.gui.nav;
 
+import com.hyperfactions.config.HyperFactionsConfig;
 import com.hyperfactions.data.Faction;
 import com.hyperfactions.gui.GuiManager;
 import com.hyperfactions.gui.faction.FactionPageRegistry;
@@ -54,6 +55,10 @@ public final class NavBarHelper {
         if (entries.isEmpty()) {
             return;
         }
+
+        // Set the nav bar title from config (default: "HyperFactions")
+        String guiTitle = HyperFactionsConfig.get().getGuiTitle();
+        cmd.set("#HyperFactionsNavBar #NavBarTitle #NavBarTitleLabel.Text", guiTitle);
 
         // Following AdminUI pattern exactly:
         // 1. Create #NavCards container inline inside #NavBarButtons
