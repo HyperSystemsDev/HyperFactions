@@ -2,6 +2,8 @@ package com.hyperfactions.importer;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.hyperfactions.backup.BackupManager;
+import com.hyperfactions.backup.BackupType;
 import com.hyperfactions.config.HyperFactionsConfig;
 import com.hyperfactions.data.*;
 import com.hyperfactions.importer.hyfactions.*;
@@ -19,12 +21,15 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
  * Imports faction data from HyFactions mod into HyperFactions.
+ * Thread-safe: only one import can run at a time.
  */
 public class HyFactionsImporter {
 
@@ -32,18 +37,25 @@ public class HyFactionsImporter {
     private final FactionManager factionManager;
     private final ZoneManager zoneManager;
     private final PowerManager powerManager;
+    @Nullable
+    private final BackupManager backupManager;
+
+    // Thread safety: only one import at a time
+    private static final ReentrantLock importLock = new ReentrantLock();
+    private static final AtomicBoolean importInProgress = new AtomicBoolean(false);
 
     // Import options
     private boolean dryRun = true;
     private boolean overwrite = false;
     private boolean skipZones = false;
     private boolean skipPower = false;
+    private boolean createBackup = true;
 
     // Progress callback
     @Nullable
     private Consumer<String> progressCallback;
 
-    // Name cache for UUID → username lookups
+    // Name cache for UUID -> username lookups
     private final Map<UUID, String> nameCache = new HashMap<>();
 
     // Minecraft color codes mapped from common colors
@@ -69,12 +81,25 @@ public class HyFactionsImporter {
     public HyFactionsImporter(
             @NotNull FactionManager factionManager,
             @NotNull ZoneManager zoneManager,
-            @NotNull PowerManager powerManager
+            @NotNull PowerManager powerManager,
+            @Nullable BackupManager backupManager
     ) {
         this.factionManager = factionManager;
         this.zoneManager = zoneManager;
         this.powerManager = powerManager;
+        this.backupManager = backupManager;
         this.gson = new GsonBuilder().create();
+    }
+
+    /**
+     * Legacy constructor without backup manager support.
+     */
+    public HyFactionsImporter(
+            @NotNull FactionManager factionManager,
+            @NotNull ZoneManager zoneManager,
+            @NotNull PowerManager powerManager
+    ) {
+        this(factionManager, zoneManager, powerManager, null);
     }
 
     // === Configuration Methods ===
@@ -99,15 +124,30 @@ public class HyFactionsImporter {
         return this;
     }
 
+    public HyFactionsImporter setCreateBackup(boolean createBackup) {
+        this.createBackup = createBackup;
+        return this;
+    }
+
     public HyFactionsImporter setProgressCallback(@Nullable Consumer<String> callback) {
         this.progressCallback = callback;
         return this;
+    }
+
+    /**
+     * Checks if an import is currently in progress.
+     *
+     * @return true if an import is running
+     */
+    public static boolean isImportInProgress() {
+        return importInProgress.get();
     }
 
     // === Main Import Method ===
 
     /**
      * Imports HyFactions data from the specified directory.
+     * Thread-safe: only one import can run at a time.
      *
      * @param sourcePath the path to the Kaws_Hyfaction directory
      * @return the import result
@@ -115,6 +155,25 @@ public class HyFactionsImporter {
     public ImportResult importFrom(@NotNull Path sourcePath) {
         ImportResult.Builder result = ImportResult.builder().dryRun(dryRun);
 
+        // Thread safety: prevent concurrent imports
+        if (!importLock.tryLock()) {
+            result.error("Another import is already in progress. Please wait for it to complete.");
+            return result.build();
+        }
+
+        try {
+            importInProgress.set(true);
+            return doImport(sourcePath, result);
+        } finally {
+            importInProgress.set(false);
+            importLock.unlock();
+        }
+    }
+
+    /**
+     * Internal import implementation.
+     */
+    private ImportResult doImport(@NotNull Path sourcePath, ImportResult.Builder result) {
         progress("Starting HyFactions import from: " + sourcePath);
 
         // Validate directory structure
@@ -128,6 +187,30 @@ public class HyFactionsImporter {
         if (!configDir.exists()) {
             result.error("Config directory not found: " + configDir.getPath());
             return result.build();
+        }
+
+        // Create pre-import backup if not dry run
+        if (!dryRun && createBackup && backupManager != null) {
+            progress("Creating pre-import backup...");
+            try {
+                var backupResult = backupManager.createBackup(
+                    BackupType.MANUAL, "pre-import", null
+                ).join();
+
+                if (backupResult instanceof BackupManager.BackupResult.Success success) {
+                    progress("Pre-import backup created: %s (%s)",
+                        success.metadata().name(), success.metadata().getFormattedSize());
+                } else if (backupResult instanceof BackupManager.BackupResult.Failure failure) {
+                    result.warning("Failed to create pre-import backup: " + failure.error());
+                    progress("WARNING: Pre-import backup failed, continuing anyway...");
+                }
+            } catch (Exception e) {
+                result.warning("Exception creating pre-import backup: " + e.getMessage());
+                progress("WARNING: Pre-import backup failed, continuing anyway...");
+            }
+        } else if (!dryRun && createBackup && backupManager == null) {
+            progress("WARNING: Backup manager not available, skipping pre-import backup");
+            result.warning("Pre-import backup skipped (backup manager not available)");
         }
 
         // Load name cache first
@@ -424,10 +507,16 @@ public class HyFactionsImporter {
                         null // System action
                     ));
 
+                // CRITICAL: Remove player from the player-to-faction index
+                // This must be done for the import to properly add them to the new faction
+                factionManager.removePlayerFromIndex(memberUuid);
+
                 // Check if faction is now empty
                 if (updatedExisting.getMemberCount() == 0) {
-                    progress("    - Faction '%s' is now empty, disbanding...", existingFaction.name());
+                    progress("    - Faction '%s' is now empty, will be disbanded...", existingFaction.name());
                     factionsToCheck.add(existingFaction.id());
+                    // Update the faction in cache so disband check works correctly
+                    factionManager.updateFaction(updatedExisting);
                 } else {
                     // Check if leader was removed - need to promote a successor
                     if (existingMember != null && existingMember.isLeader()) {
@@ -449,7 +538,7 @@ public class HyFactionsImporter {
             }
 
             playersRemoved++;
-            result.warning(String.format("Player %s removed from faction '%s' (already in faction)",
+            result.warning(String.format("Player %s removed from faction '%s' (imported to another faction)",
                 playerName, existingFaction.name()));
         }
 
@@ -489,8 +578,13 @@ public class HyFactionsImporter {
                                    ImportResult.Builder result) {
         UUID factionId = UUID.fromString(hyFaction.Id());
 
-        // Convert color
+        // Convert color - use default if missing or black (0)
         String color = convertColor(hyFaction.Color());
+        if (color.equals("0") || hyFaction.Color() == 0) {
+            // Black is often a missing value, assign a random color
+            color = getRandomColor();
+            progress("  - Generated random color for faction (original was black/missing)");
+        }
 
         // Get creation timestamp
         long createdAt = hyFaction.CreatedTracker() != null
@@ -529,11 +623,18 @@ public class HyFactionsImporter {
         // Convert logs
         List<FactionLog> logs = convertLogs(hyFaction.Logs());
 
+        // Generate unique tag from faction name
+        String tag = factionManager.generateUniqueTag(hyFaction.Name());
+        progress("  - Generated tag: %s", tag);
+
+        // Generate description if missing
+        String description = "Imported from HyFactions";
+
         return new Faction(
             factionId,
             hyFaction.Name(),
-            null, // description
-            null, // tag - will be auto-generated
+            description,
+            tag,
             color,
             createdAt,
             home,
@@ -541,9 +642,19 @@ public class HyFactionsImporter {
             claims,
             relations,
             logs,
-            false, // not open
-            null   // default permissions
+            false, // not open by default
+            null   // use default permissions
         );
+    }
+
+    /**
+     * Gets a random color code for factions missing color data.
+     */
+    @NotNull
+    private String getRandomColor() {
+        // Exclude black (0) and white (f) as they're hard to see
+        String[] colors = {"1", "2", "3", "4", "5", "6", "9", "a", "b", "c", "d", "e"};
+        return colors[new Random().nextInt(colors.length)];
     }
 
     private Map<UUID, FactionMember> buildMembers(HyFaction hyFaction, long createdAt, ImportResult.Builder result) {

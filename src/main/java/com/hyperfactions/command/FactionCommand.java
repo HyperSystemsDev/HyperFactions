@@ -2553,17 +2553,25 @@ public class FactionCommand extends AbstractPlayerCommand {
 
         ctx.sendMessage(prefix().insert(msg("Starting HyFactions import from: " + finalPath, COLOR_CYAN)));
 
+        // Check if import is already in progress
+        if (HyFactionsImporter.isImportInProgress()) {
+            ctx.sendMessage(prefix().insert(msg("An import is already in progress. Please wait for it to complete.", COLOR_RED)));
+            return;
+        }
+
         // Run import
         HyFactionsImporter importer = new HyFactionsImporter(
             hyperFactions.getFactionManager(),
             hyperFactions.getZoneManager(),
-            hyperFactions.getPowerManager()
+            hyperFactions.getPowerManager(),
+            hyperFactions.getBackupManager()
         );
 
         importer.setDryRun(finalDryRun)
             .setOverwrite(finalOverwrite)
             .setSkipZones(finalSkipZones)
             .setSkipPower(finalSkipPower)
+            .setCreateBackup(!finalDryRun) // Only create backup if not dry run
             .setProgressCallback(msg -> player.sendMessage(prefix().insert(msg(msg, COLOR_GRAY))));
 
         ImportResult result = importer.importFrom(finalPath);

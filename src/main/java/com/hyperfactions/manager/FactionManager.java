@@ -886,11 +886,57 @@ public class FactionManager {
      * Updates a faction in the cache and saves it.
      * Used by other managers (e.g., ClaimManager) to persist changes.
      *
+     * NOTE: This does NOT update player indices. If members were added or removed,
+     * use updateFactionWithMemberChanges() instead.
+     *
      * @param faction the updated faction
      */
     public void updateFaction(@NotNull Faction faction) {
         factions.put(faction.id(), faction);
         storage.saveFaction(faction);
+    }
+
+    /**
+     * Updates a faction and synchronizes player indices for member changes.
+     * This method compares old and new member lists and updates playerToFaction accordingly.
+     *
+     * @param faction the updated faction
+     */
+    public void updateFactionWithMemberChanges(@NotNull Faction faction) {
+        Faction oldFaction = factions.get(faction.id());
+
+        if (oldFaction != null) {
+            // Find removed members and remove from index
+            for (UUID memberUuid : oldFaction.members().keySet()) {
+                if (!faction.members().containsKey(memberUuid)) {
+                    playerToFaction.remove(memberUuid);
+                }
+            }
+            // Find added members and add to index
+            for (UUID memberUuid : faction.members().keySet()) {
+                if (!oldFaction.members().containsKey(memberUuid)) {
+                    playerToFaction.put(memberUuid, faction.id());
+                }
+            }
+        } else {
+            // New faction - add all members to index
+            for (UUID memberUuid : faction.members().keySet()) {
+                playerToFaction.put(memberUuid, faction.id());
+            }
+        }
+
+        factions.put(faction.id(), faction);
+        storage.saveFaction(faction);
+    }
+
+    /**
+     * Removes a player from the player-to-faction index.
+     * Used during import when manually handling member removals.
+     *
+     * @param playerUuid the player UUID to remove from the index
+     */
+    public void removePlayerFromIndex(@NotNull UUID playerUuid) {
+        playerToFaction.remove(playerUuid);
     }
 
     /**
