@@ -416,15 +416,28 @@ public class ClaimManager {
     }
 
     /**
-     * Unclaims all chunks for a faction (used when disbanding).
+     * Unclaims all chunks for a faction (used when disbanding or admin unclaim).
      *
      * @param factionId the faction ID
      */
     public void unclaimAll(@NotNull UUID factionId) {
+        // Get the faction to update its record
+        Faction faction = factionManager.getFaction(factionId);
+
         // Remove from main index
         claimIndex.entrySet().removeIf(entry -> entry.getValue().equals(factionId));
         // Remove from reverse index
         factionClaimsIndex.remove(factionId);
+
+        // Update the Faction record to clear claims (if faction still exists)
+        if (faction != null && faction.getClaimCount() > 0) {
+            Faction updated = faction.withoutAllClaims()
+                .withLog(FactionLog.create(FactionLog.LogType.UNCLAIM,
+                    "All territory unclaimed", null));
+            factionManager.updateFaction(updated);
+            Logger.debugClaim("Unclaim all: faction=%s, claims removed=%d", faction.name(), faction.getClaimCount());
+        }
+
         notifyClaimChange();
     }
 

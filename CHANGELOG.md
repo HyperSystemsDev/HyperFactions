@@ -9,6 +9,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 *No changes yet*
 
+## [0.4.2] - 2026-02-02
+
+### Fixed
+
+**Admin Debug Commands**
+- Fixed debug commands to be under `/f admin debug` instead of `/f debug`
+- Debug subcommands: `power`, `combat`, `claim`, `zone`, `protection`
+
+**Admin Unclaim All GUI**
+- Fixed "unclaim all" in admin factions menu not updating faction's claim count
+- GUI map now correctly shows 0 claims after unclaiming all territory
+- Faction record is now properly updated when bulk unclaiming
+
+### Changed
+
+**Help GUI Overhaul**
+- Added command syntax legend at top explaining `<required>` vs `[optional]` notation
+- Restructured command reference with descriptions on separate indented lines
+- Added new description line template for cleaner visual hierarchy
+- Corrected all command syntax to match actual code:
+  - `/f admin zone create <name> <safe|war>` (was `<type>`)
+  - `/f admin zone radius <name> <radius> [circle|square]` (was `<r> [shape]`)
+  - `/f admin zone info [name]` (was missing entirely)
+- Removed non-existent `/f admin bypass` command from help
+- Removed non-functional `--text` flag references from all help content
+
 ## [0.4.1] - 2026-02-02
 
 ### Fixed

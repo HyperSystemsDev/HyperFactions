@@ -268,6 +268,15 @@ public record Faction(
         return new Faction(id, name, description, tag, color, createdAt, home, members, newClaims, relations, logs, open, permissions);
     }
 
+    /**
+     * Creates a copy with all claims removed.
+     *
+     * @return a new Faction with no claims
+     */
+    public Faction withoutAllClaims() {
+        return new Faction(id, name, description, tag, color, createdAt, home, members, Set.of(), relations, logs, open, permissions);
+    }
+
     // === Relation operations ===
 
     /**

@@ -161,9 +161,6 @@ public final class HelpRegistry {
                 "  Creates faction immediately.",
                 "  Then opens your faction dashboard.",
                 "",
-                "/f create <name> --text",
-                "  Creates faction, chat confirmation only.",
-                "",
                 "Requires: Not in a faction"
         ), List.of("create"), HelpCategory.FACTION_BASICS));
 
@@ -173,10 +170,6 @@ public final class HelpRegistry {
                 "/f disband",
                 "  Opens confirmation dialog GUI.",
                 "  Click Confirm to proceed.",
-                "",
-                "/f disband --text",
-                "  Chat confirmation required.",
-                "  Run again within 30 seconds to confirm.",
                 "",
                 "Requires: Leader only",
                 "",
@@ -189,10 +182,6 @@ public final class HelpRegistry {
                 "",
                 "/f leave",
                 "  Opens confirmation dialog GUI.",
-                "",
-                "/f leave --text",
-                "  Chat confirmation required.",
-                "  Run again within 30 seconds to confirm.",
                 "",
                 "Requires: Any member",
                 "",
@@ -210,9 +199,6 @@ public final class HelpRegistry {
                 "",
                 "/f invite <player>",
                 "  Invites the player immediately.",
-                "",
-                "/f invite <player> --text",
-                "  Invites player, chat output only.",
                 "",
                 "Requires: Officer or Leader"
         ), List.of("invite"), HelpCategory.FACTION_BASICS));
@@ -258,9 +244,6 @@ public final class HelpRegistry {
                 "  Kicks the player immediately.",
                 "  Then opens Members page.",
                 "",
-                "/f kick <player> --text",
-                "  Kicks player, chat output only.",
-                "",
                 "Requires: Officer or Leader",
                 "",
                 "Permissions:",
@@ -294,9 +277,6 @@ public final class HelpRegistry {
                 "  Promotes immediately.",
                 "  Then opens Members page.",
                 "",
-                "/f promote <player> --text",
-                "  Promotes, chat output only.",
-                "",
                 "Requires: Leader only",
                 "",
                 "Officers gain permissions:",
@@ -310,9 +290,6 @@ public final class HelpRegistry {
                 "/f demote <player>",
                 "  Demotes immediately.",
                 "  Then opens Members page.",
-                "",
-                "/f demote <player> --text",
-                "  Demotes, chat output only.",
                 "",
                 "Requires: Leader only",
                 "",
@@ -348,9 +325,6 @@ public final class HelpRegistry {
                 "  Claims the current chunk.",
                 "  Then opens the Chunk Map.",
                 "",
-                "/f claim --text",
-                "  Claims chunk, chat output only.",
-                "",
                 "Requires: Officer or Leader",
                 "",
                 "Claims protect your territory:",
@@ -366,9 +340,6 @@ public final class HelpRegistry {
                 "  Unclaims the chunk.",
                 "  Then opens the Chunk Map.",
                 "",
-                "/f unclaim --text",
-                "  Unclaims, chat output only.",
-                "",
                 "Requires: Officer or Leader",
                 "",
                 "The chunk becomes wilderness.",
@@ -382,9 +353,6 @@ public final class HelpRegistry {
                 "/f map",
                 "  Opens interactive Chunk Map GUI.",
                 "  Click chunks to claim/unclaim.",
-                "",
-                "/f map --text",
-                "  Shows ASCII map in chat.",
                 "",
                 "Map legend:",
                 "- Your faction: Your color",
@@ -466,9 +434,6 @@ public final class HelpRegistry {
                 "  View power for yourself or a player.",
                 "  Opens Player Info page (GUI).",
                 "",
-                "/f power --text",
-                "  Shows power in chat only.",
-                "",
                 "How power works:",
                 "- Each player has personal power",
                 "- Faction power = sum of members",
@@ -507,9 +472,6 @@ public final class HelpRegistry {
                 "  Sends alliance request.",
                 "  Then opens Relations page.",
                 "",
-                "/f ally <faction> --text",
-                "  Sends request, chat only.",
-                "",
                 "Requires: Officer or Leader",
                 "",
                 "Alliances are MUTUAL - both must agree.",
@@ -522,9 +484,6 @@ public final class HelpRegistry {
                 "/f enemy <faction>",
                 "  Declares enemy immediately.",
                 "  Then opens Relations page.",
-                "",
-                "/f enemy <faction> --text",
-                "  Declares, chat only.",
                 "",
                 "Requires: Officer or Leader",
                 "",
@@ -539,9 +498,6 @@ public final class HelpRegistry {
                 "  Sets relation to neutral.",
                 "  Then opens Relations page.",
                 "",
-                "/f neutral <faction> --text",
-                "  Sets neutral, chat only.",
-                "",
                 "Requires: Officer or Leader",
                 "",
                 "Ends alliance or enemy status.",
@@ -554,9 +510,6 @@ public final class HelpRegistry {
                 "/f relations",
                 "  Opens Relations page (GUI).",
                 "  See allies, enemies, requests.",
-                "",
-                "/f relations --text",
-                "  Lists relations in chat.",
                 "",
                 "From the GUI, officers can:",
                 "- Accept/decline ally requests",
@@ -654,94 +607,212 @@ public final class HelpRegistry {
         // COMMANDS REFERENCE
         // =====================================================================
 
-        register(HelpTopic.of("cmd_essential", "Essential Commands", List.of(
-                "/f                    Open faction GUI",
-                "/f help               Open this help system",
-                "/f create [name]      Create a faction",
-                "/f disband            Disband your faction",
-                "/f leave              Leave your faction",
-                "/f invite <player>    Invite a player",
-                "/f accept [faction]   Accept an invite",
-                "/f request <faction> [msg]  Request to join",
-                "/f kick <player>      Kick a member"
-        ), HelpCategory.COMMANDS));
-
-        register(HelpTopic.of("cmd_info", "Information Commands", List.of(
-                "Add --text for chat output:",
+        // Legend and syntax guide - MUST be first
+        register(HelpTopic.of("cmd_legend", "Command Syntax Guide", List.of(
+                "<arg>  = Required argument",
+                "[arg]  = Optional argument",
+                "a|b    = Choose one option",
                 "",
-                "/f info [faction]     View faction details",
-                "/f list               Browse all factions",
-                "/f members            View faction roster",
-                "/f invites            Manage invites/requests",
-                "/f who [player]       View player info",
-                "/f power [player]     Check power levels",
-                "/f relations          View all relations"
+                "Most commands open a GUI when run",
+                "without arguments."
         ), HelpCategory.COMMANDS));
 
+        // Core commands - creating and joining factions
+        register(HelpTopic.of("cmd_core", "Core Commands", List.of(
+                "/f",
+                "  Open faction main menu",
+                "/f help",
+                "  Open this help center",
+                "/f create [name]",
+                "  Create a new faction",
+                "/f disband",
+                "  Permanently delete your faction (Leader)",
+                "/f leave",
+                "  Leave your current faction",
+                "/f invite <player>",
+                "  Invite a player to join (Officer+)",
+                "/f accept [faction]",
+                "  Accept a faction invitation",
+                "/f join [faction]",
+                "  Alias for accept",
+                "/f request <faction> [message]",
+                "  Request to join a closed faction",
+                "/f kick <player>",
+                "  Remove a member (Officer+)"
+        ), HelpCategory.COMMANDS));
+
+        // Information commands
+        register(HelpTopic.of("cmd_info", "Information Commands", List.of(
+                "/f info [faction]",
+                "  View faction details",
+                "/f list",
+                "  Browse all factions",
+                "/f members",
+                "  View your faction's roster",
+                "/f invites",
+                "  Manage invites and join requests",
+                "/f who [player]",
+                "  View player info (yourself if none)",
+                "/f power [player]",
+                "  Check power levels",
+                "/f relations",
+                "  View diplomatic relations"
+        ), HelpCategory.COMMANDS));
+
+        // Territory commands
         register(HelpTopic.of("cmd_territory", "Territory Commands", List.of(
-                "/f claim              Claim current chunk",
-                "/f unclaim            Unclaim current chunk",
-                "/f overclaim          Overclaim weak faction",
-                "/f map                View territory map",
-                "/f home               Teleport to home",
-                "/f sethome            Set faction home",
-                "/f stuck              Escape enemy land"
+                "/f claim",
+                "  Claim the chunk you're in (Officer+)",
+                "/f unclaim",
+                "  Release the current chunk (Officer+)",
+                "/f overclaim",
+                "  Take land from a weakened faction",
+                "/f map",
+                "  View interactive territory map",
+                "/f home",
+                "  Teleport to faction home",
+                "/f sethome",
+                "  Set faction home location (Officer+)",
+                "/f stuck",
+                "  Emergency escape from enemy land"
         ), HelpCategory.COMMANDS));
 
+        // Member management
         register(HelpTopic.of("cmd_members", "Member Management", List.of(
-                "/f invite <player>    Invite player",
-                "/f kick <player>      Kick member",
-                "/f promote <player>   Promote to officer",
-                "/f demote <player>    Demote to member",
-                "/f transfer <player>  Transfer leadership"
+                "/f promote <player>",
+                "  Promote member to Officer (Leader)",
+                "/f demote <player>",
+                "  Demote Officer to member (Leader)",
+                "/f transfer <player>",
+                "  Transfer leadership (Leader)"
         ), HelpCategory.COMMANDS));
 
-        register(HelpTopic.of("cmd_relations", "Relation Commands", List.of(
-                "/f ally <faction>     Request alliance",
-                "/f enemy <faction>    Declare enemy",
-                "/f neutral <faction>  Set neutral relation",
-                "/f relations          View all relations"
+        // Diplomacy commands
+        register(HelpTopic.of("cmd_diplomacy", "Diplomacy Commands", List.of(
+                "/f ally <faction>",
+                "  Send alliance request (Officer+)",
+                "/f enemy <faction>",
+                "  Declare faction as enemy (Officer+)",
+                "/f neutral <faction>",
+                "  Reset to neutral relation (Officer+)"
         ), HelpCategory.COMMANDS));
 
-        register(HelpTopic.of("cmd_settings", "Settings Commands", List.of(
-                "/f rename <name>      Rename faction",
-                "/f desc [text]        Set description",
-                "/f color <code>       Set color (0-9, a-f)",
-                "/f open               Open to public",
-                "/f close              Require invites"
+        // Settings commands
+        register(HelpTopic.of("cmd_settings", "Faction Settings", List.of(
+                "/f settings",
+                "  Open faction settings GUI (Officer+)",
+                "/f rename <name>",
+                "  Rename your faction (Leader)",
+                "/f desc [text]",
+                "  Set faction description (Officer+)",
+                "/f color <code>",
+                "  Set faction color: 0-9, a-f (Officer+)",
+                "/f open",
+                "  Allow anyone to join (Officer+)",
+                "/f close",
+                "  Require invitation to join (Officer+)"
         ), HelpCategory.COMMANDS));
 
-        register(HelpTopic.of("cmd_chat", "Chat & Other", List.of(
-                "/f chat <message>     Faction chat",
-                "/f c <message>        Faction chat (short)",
-                "/f gui                Open faction GUI",
-                "/f reload             Reload config (Admin)"
+        // Chat and utilities
+        register(HelpTopic.of("cmd_other", "Chat & Utilities", List.of(
+                "/f chat <message>",
+                "  Send message to faction members",
+                "/f c <message>",
+                "  Shorthand for faction chat",
+                "/f gui",
+                "  Open faction main menu"
         ), HelpCategory.COMMANDS));
 
-        register(HelpTopic.of("cmd_admin", "Admin Commands", List.of(
-                "/f admin              Open admin GUI",
-                "/f admin zone         Zone management GUI",
-                "/f admin zone list    List all zones",
-                "/f admin zone create <type> <name>",
-                "                      Create new zone",
+        // Admin commands - General
+        register(HelpTopic.of("cmd_admin1", "Admin: General", List.of(
+                "Requires hyperfactions.admin permission",
+                "",
+                "/f admin",
+                "  Open admin control panel",
+                "/f admin reload",
+                "  Reload configuration from disk",
+                "/f admin sync",
+                "  Sync faction data from storage",
+                "/f admin factions",
+                "  Faction management GUI",
+                "/f admin config",
+                "  Configuration editor GUI",
+                "/f admin update",
+                "  Check for and install updates"
+        ), HelpCategory.COMMANDS));
+
+        // Admin commands - Backups
+        register(HelpTopic.of("cmd_admin2", "Admin: Backups", List.of(
+                "/f admin backups",
+                "  Backup management GUI",
+                "/f admin backup create [name]",
+                "  Create a manual backup",
+                "/f admin backup list",
+                "  List all available backups",
+                "/f admin backup restore <name>",
+                "  Restore data from a backup",
+                "/f admin backup delete <name>",
+                "  Delete a backup file",
+                "/f admin import hyfactions <path> [flags]",
+                "  Import data from HyFactions mod"
+        ), HelpCategory.COMMANDS));
+
+        // Admin commands - Zones
+        register(HelpTopic.of("cmd_admin3", "Admin: Zones", List.of(
+                "/f admin zone",
+                "  Zone management GUI",
+                "/f admin zone list",
+                "  List all defined zones",
+                "/f admin zone info [name]",
+                "  View zone details",
+                "/f admin zone create <safe|war> <name>",
+                "  Create a new zone (empty)",
                 "/f admin zone delete <name>",
-                "                      Delete zone by name",
+                "  Delete a zone and release chunks",
                 "/f admin zone claim <name>",
-                "                      Claim current chunk for zone",
+                "  Add current chunk to zone",
                 "/f admin zone unclaim",
-                "                      Unclaim current chunk",
-                "/f admin zone radius <name> <r> [shape]",
-                "                      Radius claim (circle/square)",
+                "  Remove current chunk from zone",
+                "/f admin zone radius <name> <r> [circle|square]",
+                "  Claim radius of chunks for zone"
+        ), HelpCategory.COMMANDS));
+
+        // Admin commands - Zone shortcuts
+        register(HelpTopic.of("cmd_admin4", "Admin: Zone Shortcuts", List.of(
                 "/f admin safezone [name]",
-                "                      Quick create + claim SafeZone",
+                "  Create SafeZone + claim current chunk",
                 "/f admin warzone [name]",
-                "                      Quick create + claim WarZone",
+                "  Create WarZone + claim current chunk",
                 "/f admin removezone",
-                "                      Unclaim current chunk from zone",
-                "/f admin zoneflag [flag] [value]",
-                "                      View/set zone flags",
+                "  Unclaim current chunk from its zone",
+                "/f admin zoneflag <flag> <true|false|clear>",
+                "  Set a zone flag on current chunk",
                 "/f admin zoneflag clearall",
-                "                      Reset all flags to zone type defaults"
+                "  Reset all flags to zone defaults"
+        ), HelpCategory.COMMANDS));
+
+        // Admin commands - Debug
+        register(HelpTopic.of("cmd_admin5", "Admin: Debug", List.of(
+                "/f admin debug",
+                "  Show debug command help",
+                "/f admin debug status",
+                "  Show which debug categories are on",
+                "/f admin debug toggle <category> [on|off]",
+                "  Toggle debug logging for a category",
+                "",
+                "Categories: power, claim, combat,",
+                "protection, relation, territory, all",
+                "",
+                "/f admin debug power <player>",
+                "  Inspect player/faction power",
+                "/f admin debug claim [x z]",
+                "  Inspect claim at location",
+                "/f admin debug protection <player>",
+                "  Check protection rules at location",
+                "/f admin debug combat <player>",
+                "  View combat tag status",
+                "/f admin debug relation <faction1> <faction2>",
+                "  Check relation between factions"
         ), HelpCategory.COMMANDS));
 
         // Additional command mappings for deep-linking

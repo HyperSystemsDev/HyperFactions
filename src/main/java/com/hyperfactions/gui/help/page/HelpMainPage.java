@@ -36,6 +36,7 @@ public class HelpMainPage extends InteractiveCustomUIPage<HelpPageData> {
     private static final String TPL_LINE_DEFAULT = "HyperFactions/help/help_line_default.ui";
     private static final String TPL_LINE_COMMAND = "HyperFactions/help/help_line_command.ui";
     private static final String TPL_LINE_BULLET = "HyperFactions/help/help_line_bullet.ui";
+    private static final String TPL_LINE_DESC = "HyperFactions/help/help_line_desc.ui";
     private static final String TPL_SPACER_SMALL = "HyperFactions/help/help_spacer_small.ui";
     private static final String TPL_SPACER_LARGE = "HyperFactions/help/help_spacer_large.ui";
 
@@ -168,6 +169,8 @@ public class HelpMainPage extends InteractiveCustomUIPage<HelpPageData> {
     private String getTemplateForLine(String line) {
         if (line.startsWith("/f ")) {
             return TPL_LINE_COMMAND; // Yellow for commands
+        } else if (line.startsWith("  ")) {
+            return TPL_LINE_DESC; // Cyan-gray, indented for descriptions
         } else if (line.startsWith("- ")) {
             return TPL_LINE_BULLET; // Gray for bullet points
         }

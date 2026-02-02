@@ -140,7 +140,6 @@ public class FactionCommand extends AbstractPlayerCommand {
             case "gui", "menu" -> handleGui(ctx, store, ref, player);
             case "settings" -> handleSettings(ctx, store, ref, player, fctx);
             case "admin" -> handleAdmin(ctx, store, ref, player, currentWorld, fctx.getArgs());
-            case "debug" -> handleDebug(ctx, store, ref, player, currentWorld, fctx.getArgs());
             case "reload" -> handleReloadDeprecated(ctx, player);
             case "sync" -> handleSyncDeprecated(ctx, player);
             case "rename" -> handleRename(ctx, store, ref, player, fctx);
@@ -263,13 +262,14 @@ public class FactionCommand extends AbstractPlayerCommand {
         commands.add(new CommandHelp("/f browse", "Browse factions (alias for list)", "Information"));
         commands.add(new CommandHelp("/f members", "View faction members", "Information"));
         commands.add(new CommandHelp("/f invites", "Manage invites/requests", "Information"));
-        commands.add(new CommandHelp("/f who <player>", "View player info", "Information"));
+        commands.add(new CommandHelp("/f who [player]", "View player info", "Information"));
         commands.add(new CommandHelp("/f power [player]", "View power level", "Information"));
         commands.add(new CommandHelp("/f gui", "Open faction GUI", "Information"));
         commands.add(new CommandHelp("/f settings", "Open faction settings", "Information"));
 
         // Other
-        commands.add(new CommandHelp("/f chat [mode]", "Toggle faction chat", "Other"));
+        commands.add(new CommandHelp("/f chat <message>", "Send faction chat message", "Other"));
+        commands.add(new CommandHelp("/f c <message>", "Faction chat (short)", "Other"));
 
         // Admin
         commands.add(new CommandHelp("/f admin", "Open admin GUI", "Admin"));
@@ -280,7 +280,7 @@ public class FactionCommand extends AbstractPlayerCommand {
         commands.add(new CommandHelp("/f admin config", "View/edit config", "Admin"));
         commands.add(new CommandHelp("/f admin backups", "Manage backups", "Admin"));
         commands.add(new CommandHelp("/f admin update", "Check for updates", "Admin"));
-        commands.add(new CommandHelp("/f debug", "Debug commands", "Admin"));
+        commands.add(new CommandHelp("/f admin debug", "Debug commands", "Admin"));
 
         ctx.sendMessage(HelpFormatter.buildHelp("HyperFactions", "Faction management and territory control", commands, "Use /f <command> for more details"));
     }
@@ -1941,23 +1941,32 @@ public class FactionCommand extends AbstractPlayerCommand {
             adminCommands.add(new CommandHelp("/f admin config", "Open config GUI"));
             adminCommands.add(new CommandHelp("/f admin backups", "Open backups management GUI"));
             adminCommands.add(new CommandHelp("/f admin zone list", "List all zones"));
-            adminCommands.add(new CommandHelp("/f admin zone create <type> <name>", "Create a new zone"));
+            adminCommands.add(new CommandHelp("/f admin zone info [name]", "Show zone info"));
+            adminCommands.add(new CommandHelp("/f admin zone create <safe|war> <name>", "Create a new zone"));
             adminCommands.add(new CommandHelp("/f admin zone delete <name>", "Delete a zone"));
             adminCommands.add(new CommandHelp("/f admin zone claim <name>", "Claim current chunk for zone"));
             adminCommands.add(new CommandHelp("/f admin zone unclaim", "Unclaim current chunk from zone"));
-            adminCommands.add(new CommandHelp("/f admin zone radius <name> <r> [shape]", "Radius claim for zone"));
+            adminCommands.add(new CommandHelp("/f admin zone radius <name> <radius> [circle|square]", "Radius claim for zone"));
             adminCommands.add(new CommandHelp("/f admin safezone [name]", "Quick create SafeZone + claim"));
             adminCommands.add(new CommandHelp("/f admin warzone [name]", "Quick create WarZone + claim"));
             adminCommands.add(new CommandHelp("/f admin removezone", "Unclaim current chunk from zone"));
-            adminCommands.add(new CommandHelp("/f admin zoneflag [flag] [value]", "View/set zone flags (clearall to reset)"));
-            adminCommands.add(new CommandHelp("/f admin bypass", "Toggle admin bypass mode"));
+            adminCommands.add(new CommandHelp("/f admin zoneflag <flag> <true|false|clear>", "Set zone flag"));
+            adminCommands.add(new CommandHelp("/f admin zoneflag clearall", "Reset all flags to defaults"));
             adminCommands.add(new CommandHelp("/f admin update", "Download and install plugin update"));
             adminCommands.add(new CommandHelp("/f admin backup", "Backup management"));
             adminCommands.add(new CommandHelp("/f admin backup create [name]", "Create manual backup"));
             adminCommands.add(new CommandHelp("/f admin backup list", "List all backups"));
             adminCommands.add(new CommandHelp("/f admin backup restore <name>", "Restore from backup"));
             adminCommands.add(new CommandHelp("/f admin backup delete <name>", "Delete a backup"));
-            adminCommands.add(new CommandHelp("/f admin import hyfactions <path>", "Import from HyFactions mod"));
+            adminCommands.add(new CommandHelp("/f admin import hyfactions <path> [flags]", "Import from HyFactions mod"));
+            adminCommands.add(new CommandHelp("/f admin debug", "Show debug help"));
+            adminCommands.add(new CommandHelp("/f admin debug toggle <category> [on|off]", "Toggle debug logging"));
+            adminCommands.add(new CommandHelp("/f admin debug status", "Show debug status"));
+            adminCommands.add(new CommandHelp("/f admin debug power <player>", "Show power details"));
+            adminCommands.add(new CommandHelp("/f admin debug claim [x z]", "Show claim info"));
+            adminCommands.add(new CommandHelp("/f admin debug protection <player>", "Show protection info"));
+            adminCommands.add(new CommandHelp("/f admin debug combat <player>", "Show combat tag status"));
+            adminCommands.add(new CommandHelp("/f admin debug relation <faction1> <faction2>", "Show relation info"));
             ctx.sendMessage(HelpFormatter.buildHelp("HyperFactions Admin", null, adminCommands, null));
             return;
         }
@@ -2039,6 +2048,7 @@ public class FactionCommand extends AbstractPlayerCommand {
             case "update" -> handleAdminUpdate(ctx, player);
             case "backup" -> handleAdminBackup(ctx, player, Arrays.copyOfRange(args, 1, args.length));
             case "import" -> handleAdminImport(ctx, player, Arrays.copyOfRange(args, 1, args.length));
+            case "debug" -> handleDebug(ctx, store, ref, player, world, Arrays.copyOfRange(args, 1, args.length));
             default -> ctx.sendMessage(prefix().insert(msg("Unknown admin command. Use /f admin help", COLOR_RED)));
         }
     }
@@ -2683,53 +2693,71 @@ public class FactionCommand extends AbstractPlayerCommand {
 
     private void showDebugHelp(CommandContext ctx) {
         List<CommandHelp> debugCommands = new ArrayList<>();
-        debugCommands.add(new CommandHelp("/f debug toggle <category|all>", "Toggle debug logging"));
-        debugCommands.add(new CommandHelp("/f debug status", "Show debug status"));
-        debugCommands.add(new CommandHelp("/f debug power <player>", "Show player/faction power details"));
-        debugCommands.add(new CommandHelp("/f debug claim [x z]", "Show claim info at location"));
-        debugCommands.add(new CommandHelp("/f debug protection <player>", "Show protection at location"));
-        debugCommands.add(new CommandHelp("/f debug combat <player>", "Show combat tag status"));
-        debugCommands.add(new CommandHelp("/f debug relation <f1> <f2>", "Show relation between factions"));
+        debugCommands.add(new CommandHelp("/f admin debug toggle <category|all>", "Toggle debug logging"));
+        debugCommands.add(new CommandHelp("/f admin debug status", "Show debug status"));
+        debugCommands.add(new CommandHelp("/f admin debug power <player>", "Show player/faction power details"));
+        debugCommands.add(new CommandHelp("/f admin debug claim [x z]", "Show claim info at location"));
+        debugCommands.add(new CommandHelp("/f admin debug protection <player>", "Show protection at location"));
+        debugCommands.add(new CommandHelp("/f admin debug combat <player>", "Show combat tag status"));
+        debugCommands.add(new CommandHelp("/f admin debug relation <f1> <f2>", "Show relation between factions"));
         ctx.sendMessage(HelpFormatter.buildHelp("HyperFactions Debug", "Server diagnostics", debugCommands, null));
     }
 
     private void handleDebugToggle(CommandContext ctx, String[] args) {
         if (args.length == 0) {
-            ctx.sendMessage(prefix().insert(msg("Usage: /f debug toggle <category|all>", COLOR_YELLOW)));
-            ctx.sendMessage(msg("Categories: power, claim, combat, protection, relation, all", COLOR_GRAY));
+            ctx.sendMessage(prefix().insert(msg("Usage: /f admin debug toggle <category> [on|off]", COLOR_YELLOW)));
+            ctx.sendMessage(msg("Categories: power, claim, combat, protection, relation, territory, all", COLOR_GRAY));
             return;
         }
 
         String category = args[0].toLowerCase();
 
+        // Parse optional on/off argument
+        Boolean explicitState = null;
+        if (args.length >= 2) {
+            String stateArg = args[1].toLowerCase();
+            if (stateArg.equals("on") || stateArg.equals("true") || stateArg.equals("1")) {
+                explicitState = true;
+            } else if (stateArg.equals("off") || stateArg.equals("false") || stateArg.equals("0")) {
+                explicitState = false;
+            }
+        }
+
         if (category.equals("all")) {
-            // Toggle all - if any are enabled, disable all. Otherwise enable all.
-            boolean anyEnabled = false;
-            for (Logger.DebugCategory cat : Logger.DebugCategory.values()) {
-                if (Logger.isDebugEnabled(cat)) {
-                    anyEnabled = true;
-                    break;
+            // Handle "all" category
+            boolean newState;
+            if (explicitState != null) {
+                newState = explicitState;
+            } else {
+                // Toggle all - if any are enabled, disable all. Otherwise enable all.
+                boolean anyEnabled = false;
+                for (Logger.DebugCategory cat : Logger.DebugCategory.values()) {
+                    if (Logger.isDebugEnabled(cat)) {
+                        anyEnabled = true;
+                        break;
+                    }
                 }
+                newState = !anyEnabled;
             }
 
-            if (anyEnabled) {
-                Logger.disableAll();
-                ctx.sendMessage(prefix().insert(msg("Disabled all debug categories.", COLOR_RED)));
-            } else {
+            if (newState) {
                 Logger.enableAll();
                 ctx.sendMessage(prefix().insert(msg("Enabled all debug categories.", COLOR_GREEN)));
+            } else {
+                Logger.disableAll();
+                ctx.sendMessage(prefix().insert(msg("Disabled all debug categories.", COLOR_RED)));
             }
         } else {
             // Toggle specific category
             try {
                 Logger.DebugCategory cat = Logger.DebugCategory.valueOf(category.toUpperCase());
-                boolean newState = !Logger.isDebugEnabled(cat);
+                boolean newState = explicitState != null ? explicitState : !Logger.isDebugEnabled(cat);
                 Logger.setDebugEnabled(cat, newState);
                 ctx.sendMessage(prefix().insert(msg((newState ? "Enabled" : "Disabled") + " debug for: " + cat.name(),
                     newState ? COLOR_GREEN : COLOR_RED)));
             } catch (IllegalArgumentException e) {
                 ctx.sendMessage(prefix().insert(msg("Unknown category: " + category, COLOR_RED)));
-                ctx.sendMessage(msg("Valid categories: power, claim, combat, protection, relation", COLOR_GRAY));
+                ctx.sendMessage(msg("Valid categories: power, claim, combat, protection, relation, territory", COLOR_GRAY));
             }
         }
     }
@@ -2745,12 +2773,12 @@ public class FactionCommand extends AbstractPlayerCommand {
         }
 
         ctx.sendMessage(msg("", COLOR_GRAY));
-        ctx.sendMessage(msg("Use /f debug toggle <category> to toggle", COLOR_GRAY));
+        ctx.sendMessage(msg("Use /f admin debug toggle <category> to toggle", COLOR_GRAY));
     }
 
     private void handleDebugPower(CommandContext ctx, String[] args) {
         if (args.length == 0) {
-            ctx.sendMessage(prefix().insert(msg("Usage: /f debug power <player>", COLOR_YELLOW)));
+            ctx.sendMessage(prefix().insert(msg("Usage: /f admin debug power <player>", COLOR_YELLOW)));
             return;
         }
 
@@ -2857,7 +2885,7 @@ public class FactionCommand extends AbstractPlayerCommand {
 
     private void handleDebugProtection(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref, World world, String[] args) {
         if (args.length == 0) {
-            ctx.sendMessage(prefix().insert(msg("Usage: /f debug protection <player>", COLOR_YELLOW)));
+            ctx.sendMessage(prefix().insert(msg("Usage: /f admin debug protection <player>", COLOR_YELLOW)));
             return;
         }
 
@@ -2910,7 +2938,7 @@ public class FactionCommand extends AbstractPlayerCommand {
 
     private void handleDebugCombat(CommandContext ctx, String[] args) {
         if (args.length == 0) {
-            ctx.sendMessage(prefix().insert(msg("Usage: /f debug combat <player>", COLOR_YELLOW)));
+            ctx.sendMessage(prefix().insert(msg("Usage: /f admin debug combat <player>", COLOR_YELLOW)));
             return;
         }
 
@@ -2947,7 +2975,7 @@ public class FactionCommand extends AbstractPlayerCommand {
 
     private void handleDebugRelation(CommandContext ctx, String[] args) {
         if (args.length < 2) {
-            ctx.sendMessage(prefix().insert(msg("Usage: /f debug relation <faction1> <faction2>", COLOR_YELLOW)));
+            ctx.sendMessage(prefix().insert(msg("Usage: /f admin debug relation <faction1> <faction2>", COLOR_YELLOW)));
             return;
         }
 

@@ -64,6 +64,12 @@ public class HyFactionsImporter {
     // Name cache for UUID -> username lookups
     private final Map<UUID, String> nameCache = new HashMap<>();
 
+    /**
+     * Wrapper to hold chunk info with its dimension name.
+     * HyFactions stores claims per dimension, but HyFactionChunkInfo doesn't carry the dimension.
+     */
+    private record ChunkWithDimension(String dimension, HyFactionChunkInfo chunk) {}
+
     // Minecraft color codes mapped from common colors
     private static final Map<String, String> COLOR_NAMES = Map.ofEntries(
         Map.entry("0", "black"),
@@ -564,7 +570,7 @@ public class HyFactionsImporter {
         }
 
         // Load claims
-        Map<UUID, List<HyFactionChunkInfo>> claimsByFaction = loadClaims(configDir, result);
+        Map<UUID, List<ChunkWithDimension>> claimsByFaction = loadClaims(configDir, result);
 
         // Load zones
         List<HyFactionZoneChunk> safeZones = Collections.emptyList();
@@ -574,9 +580,17 @@ public class HyFactionsImporter {
             warZones = loadWarZones(configDir, result);
         }
 
-        progress("Found %d factions, %d claims, %d safe zone chunks, %d war zone chunks",
+        // Calculate claim stats and dimensions
+        int totalClaims = claimsByFaction.values().stream().mapToInt(List::size).sum();
+        Set<String> dimensions = claimsByFaction.values().stream()
+            .flatMap(List::stream)
+            .map(ChunkWithDimension::dimension)
+            .collect(Collectors.toSet());
+
+        progress("Found %d factions, %d claims in dimensions %s, %d safe zone chunks, %d war zone chunks",
             hyFactions.size(),
-            claimsByFaction.values().stream().mapToInt(List::size).sum(),
+            totalClaims,
+            dimensions.isEmpty() ? "[none]" : dimensions.toString(),
             safeZones.size(),
             warZones.size()
         );
@@ -682,8 +696,8 @@ public class HyFactionsImporter {
         return factions;
     }
 
-    private Map<UUID, List<HyFactionChunkInfo>> loadClaims(File configDir, ImportResult.Builder result) {
-        Map<UUID, List<HyFactionChunkInfo>> claimsByFaction = new HashMap<>();
+    private Map<UUID, List<ChunkWithDimension>> loadClaims(File configDir, ImportResult.Builder result) {
+        Map<UUID, List<ChunkWithDimension>> claimsByFaction = new HashMap<>();
         File claimsFile = new File(configDir, "Claims.json");
 
         if (!claimsFile.exists()) {
@@ -697,20 +711,24 @@ public class HyFactionsImporter {
                 for (HyFactionDimension dim : claims.Dimensions()) {
                     if (dim.ChunkInfo() == null) continue;
 
+                    // Get dimension name, default to "default" if not specified
+                    String dimension = dim.Dimension() != null ? dim.Dimension() : "default";
+
                     for (HyFactionChunkInfo chunk : dim.ChunkInfo()) {
                         if (chunk.UUID() == null) continue;
 
                         try {
                             UUID factionId = UUID.fromString(chunk.UUID());
+                            HyFactionChunkInfo chunkInfo = new HyFactionChunkInfo(
+                                chunk.UUID(),
+                                chunk.ChunkX(),
+                                chunk.ChunkY(),
+                                chunk.CreatedTracker() != null ? chunk.CreatedTracker() :
+                                    new HyFactionTracker(null, null, null)
+                            );
                             claimsByFaction
                                 .computeIfAbsent(factionId, k -> new ArrayList<>())
-                                .add(new HyFactionChunkInfo(
-                                    chunk.UUID(),
-                                    chunk.ChunkX(),
-                                    chunk.ChunkY(),
-                                    chunk.CreatedTracker() != null ? chunk.CreatedTracker() :
-                                        new HyFactionTracker(null, null, null)
-                                ));
+                                .add(new ChunkWithDimension(dimension, chunkInfo));
                         } catch (IllegalArgumentException e) {
                             // Skip invalid UUIDs
                         }
@@ -762,7 +780,7 @@ public class HyFactionsImporter {
 
     // === Processing Methods ===
 
-    private void processFaction(HyFaction hyFaction, Map<UUID, List<HyFactionChunkInfo>> claimsByFaction,
+    private void processFaction(HyFaction hyFaction, Map<UUID, List<ChunkWithDimension>> claimsByFaction,
                                 ImportResult.Builder result) {
         if (hyFaction.Id() == null || hyFaction.Name() == null) {
             result.warning("Skipping faction with missing ID or name");
@@ -929,7 +947,7 @@ public class HyFactionsImporter {
         }
     }
 
-    private Faction convertFaction(HyFaction hyFaction, Map<UUID, List<HyFactionChunkInfo>> claimsByFaction,
+    private Faction convertFaction(HyFaction hyFaction, Map<UUID, List<ChunkWithDimension>> claimsByFaction,
                                    ImportResult.Builder result) {
         UUID factionId = UUID.fromString(hyFaction.Id());
 
@@ -1054,15 +1072,18 @@ public class HyFactionsImporter {
         return members;
     }
 
-    private Set<FactionClaim> convertClaims(UUID factionId, Map<UUID, List<HyFactionChunkInfo>> claimsByFaction) {
+    private Set<FactionClaim> convertClaims(UUID factionId, Map<UUID, List<ChunkWithDimension>> claimsByFaction) {
         Set<FactionClaim> claims = new HashSet<>();
-        List<HyFactionChunkInfo> factionClaims = claimsByFaction.get(factionId);
+        List<ChunkWithDimension> factionClaims = claimsByFaction.get(factionId);
 
         if (factionClaims == null) {
             return claims;
         }
 
-        for (HyFactionChunkInfo chunk : factionClaims) {
+        for (ChunkWithDimension chunkWithDim : factionClaims) {
+            HyFactionChunkInfo chunk = chunkWithDim.chunk();
+            String dimension = chunkWithDim.dimension();
+
             long claimedAt = chunk.CreatedTracker() != null
                 ? chunk.CreatedTracker().toEpochMillis()
                 : System.currentTimeMillis();
@@ -1076,8 +1097,9 @@ public class HyFactionsImporter {
             }
 
             // Note: HyFactions uses ChunkY for chunkZ
+            // Use the dimension name from HyFactions data instead of hardcoding "default"
             claims.add(new FactionClaim(
-                "default", // Assume default world for claims
+                dimension,
                 chunk.ChunkX(),
                 chunk.getChunkZ(),
                 claimedAt,
