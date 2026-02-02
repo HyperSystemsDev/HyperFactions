@@ -18,7 +18,6 @@ import java.util.concurrent.*;
 
 /**
  * Listens for player connect events and notifies operators about available updates.
- * <p>
  * Notifications are sent only to players with the required permission and who have
  * not disabled notifications via their preferences.
  */

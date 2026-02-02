@@ -6,19 +6,15 @@ import org.jetbrains.annotations.NotNull;
  * Constants for zone flag names.
  * These flags control various behaviors within zones.
  *
- * <p>Flags are verified against actual Hytale server events:
- * <ul>
- *   <li>Combat flags: Use {@code Damage} event with different source types</li>
- *   <li>Building flags: Use {@code BreakBlockEvent}, {@code PlaceBlockEvent}, {@code UseBlockEvent}</li>
- *   <li>Item flags: Use {@code DropItemEvent}, {@code InteractivelyPickupItemEvent}</li>
- * </ul>
+ * Flags are verified against actual Hytale server events:
+ * - Combat flags: Use Damage event with different source types
+ * - Building flags: Use BreakBlockEvent, PlaceBlockEvent, UseBlockEvent
+ * - Item flags: Use DropItemEvent, InteractivelyPickupItemEvent
  *
- * <p>Removed Minecraft-specific flags:
- * <ul>
- *   <li>{@code hunger_loss} - No hunger system in Hytale</li>
- *   <li>{@code mob_spawning} - Not exposed to plugins</li>
- *   <li>{@code container_access} + {@code interact_allowed} - Consolidated to {@code block_interact}</li>
- * </ul>
+ * Removed Minecraft-specific flags:
+ * - hunger_loss - No hunger system in Hytale
+ * - mob_spawning - Not exposed to plugins
+ * - container_access + interact_allowed - Consolidated to block_interact
  */
 public final class ZoneFlags {
 

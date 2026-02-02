@@ -14,14 +14,12 @@ import java.util.function.Function;
  * Coordinates all damage protection systems.
  * Delegates to specific protection handlers based on damage type.
  *
- * <p>Processing order:
- * <ol>
- *   <li>Fall damage - checked first (uses NULL_SOURCE in Hytale)</li>
- *   <li>Environmental damage - drowning, suffocation, etc. (uses NULL_SOURCE)</li>
- *   <li>Projectile damage - from bows, thrown items, etc.</li>
- *   <li>Mob damage - from non-player entities</li>
- *   <li>PvP damage - player vs player</li>
- * </ol>
+ * Processing order:
+ * 1. Fall damage - checked first (uses NULL_SOURCE in Hytale)
+ * 2. Environmental damage - drowning, suffocation, etc. (uses NULL_SOURCE)
+ * 3. Projectile damage - from bows, thrown items, etc.
+ * 4. Mob damage - from non-player entities
+ * 5. PvP damage - player vs player
  */
 public class DamageProtectionHandler {
 

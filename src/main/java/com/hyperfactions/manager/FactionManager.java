@@ -38,7 +38,7 @@ public class FactionManager {
 
     /**
      * Loads all factions from storage.
-     * <p>
+     *
      * SAFETY: This method will NOT clear existing data if loading fails or returns
      * suspiciously empty results when data was expected. This prevents data loss
      * from deserialization failures or I/O errors.

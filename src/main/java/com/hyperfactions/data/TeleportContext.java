@@ -14,8 +14,7 @@ import java.util.function.Supplier;
 /**
  * Context object for teleportation operations.
  * Encapsulates all the callbacks and data needed for a teleport request.
- * 
- * <p>This replaces the previous 7-parameter method signature with a cleaner builder pattern.</p>
+ * This replaces the previous 7-parameter method signature with a cleaner builder pattern.
  */
 public record TeleportContext(
     @NotNull UUID playerUuid,

@@ -17,7 +17,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Manages player preferences for update notifications.
- * <p>
  * Stores a simple UUID -> boolean mapping in a JSON file to persist
  * notification preferences across server restarts.
  */
@@ -83,7 +82,6 @@ public final class UpdateNotificationPreferences {
 
     /**
      * Checks if notifications are enabled for a player.
-     * <p>
      * Returns true by default if no preference is set (opt-out model).
      *
      * @param uuid the player's UUID

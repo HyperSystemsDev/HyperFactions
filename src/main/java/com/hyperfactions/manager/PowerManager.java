@@ -33,7 +33,7 @@ public class PowerManager {
 
     /**
      * Loads all player power data from storage.
-     * <p>
+     *
      * SAFETY: This method will NOT clear existing data if loading fails or returns
      * suspiciously empty results when data was expected.
      *

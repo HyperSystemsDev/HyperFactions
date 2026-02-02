@@ -56,14 +56,12 @@ public final class StorageUtils {
      * Atomically writes content to a file using a temp file and rename pattern.
      * This ensures the file is never in a corrupted state, even if the process crashes.
      *
-     * <p>Steps:
-     * <ol>
-     *   <li>Write content to file.tmp</li>
-     *   <li>Calculate SHA-256 checksum</li>
-     *   <li>Verify by reading back and comparing checksum</li>
-     *   <li>Backup existing file to file.bak</li>
-     *   <li>Atomic rename: tmp → target</li>
-     * </ol>
+     * Steps:
+     * 1. Write content to file.tmp
+     * 2. Calculate SHA-256 checksum
+     * 3. Verify by reading back and comparing checksum
+     * 4. Backup existing file to file.bak
+     * 5. Atomic rename: tmp -> target
      *
      * @param targetFile the final destination file
      * @param content    the content to write

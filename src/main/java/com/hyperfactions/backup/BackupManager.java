@@ -25,21 +25,17 @@ import java.util.zip.ZipOutputStream;
 /**
  * Manages backup creation, restoration, and GFS (Grandfather-Father-Son) rotation.
  *
- * <p>Backup schedule:
- * <ul>
- *   <li><b>Hourly (Son)</b>: Every hour, keep last N hours (default: 24)</li>
- *   <li><b>Daily (Father)</b>: At midnight, keep last N days (default: 7)</li>
- *   <li><b>Weekly (Grandfather)</b>: Sunday midnight, keep last N weeks (default: 4)</li>
- *   <li><b>Manual</b>: User-created, never auto-deleted</li>
- * </ul>
+ * Backup schedule:
+ * - Hourly (Son): Every hour, keep last N hours (default: 24)
+ * - Daily (Father): At midnight, keep last N days (default: 7)
+ * - Weekly (Grandfather): Sunday midnight, keep last N weeks (default: 4)
+ * - Manual: User-created, never auto-deleted
  *
- * <p>Backup contents:
- * <ul>
- *   <li>data/factions/ directory</li>
- *   <li>data/players/ directory</li>
- *   <li>data/zones.json</li>
- *   <li>config.json</li>
- * </ul>
+ * Backup contents:
+ * - data/factions/ directory
+ * - data/players/ directory
+ * - data/zones.json
+ * - config.json
  */
 public class BackupManager {
 

@@ -10,17 +10,14 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Parses legacy Minecraft color codes (&amp;X, &#167;X) and hex colors (&#RRGGBB, &amp;#RRGGBB)
- * into Hytale's Message API with proper coloring.
+ * Parses legacy Minecraft color codes and hex colors into Hytale's Message API.
  *
- * <p>Supported formats:
- * <ul>
- *   <li>&amp;0-9, &amp;a-f - Standard Minecraft color codes</li>
- *   <li>&amp;k, &amp;l, &amp;m, &amp;n, &amp;o, &amp;r - Format codes</li>
- *   <li>&#167;0-9, &#167;a-f, &#167;k-r - Section symbol variants</li>
- *   <li>&amp;#RRGGBB - Hex color codes</li>
- *   <li>&#167;x&#167;R&#167;R&#167;G&#167;G&#167;B&#167;B - Spigot/Paper hex format</li>
- * </ul>
+ * Supported formats:
+ * - &0-9, &a-f - Standard Minecraft color codes
+ * - &k, &l, &m, &n, &o, &r - Format codes
+ * - Section symbol variants (0-9, a-f, k-r)
+ * - &#RRGGBB, &#RRGGBB - Hex color codes
+ * - Spigot/Paper hex format
  */
 public final class LegacyColorParser {
 

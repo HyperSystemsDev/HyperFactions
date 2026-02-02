@@ -346,13 +346,6 @@ public final class HyperFactionsAPI {
 
     /**
      * Gets the EventBus for subscribing to faction events.
-     * 
-     * <p>Example usage:</p>
-     * <pre>{@code
-     * HyperFactionsAPI.getEventBus().register(FactionCreateEvent.class, event -> {
-     *     System.out.println("Faction created: " + event.faction().name());
-     * });
-     * }</pre>
      *
      * @return the EventBus class for static access
      */

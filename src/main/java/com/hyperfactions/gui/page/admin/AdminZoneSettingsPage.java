@@ -25,11 +25,9 @@ import java.util.UUID;
  * Admin Zone Settings page - configure zone flags visually.
  * Shows all 15 zone flags with toggle buttons and default indicators in 2-column layout.
  *
- * <p>Layout:
- * <ul>
- *   <li>Left column: Combat (0-3), Building (4-5), Damage (13-14)</li>
- *   <li>Right column: Interaction (6-10), Items (11-12)</li>
- * </ul>
+ * Layout:
+ * - Left column: Combat (0-3), Building (4-5), Damage (13-14)
+ * - Right column: Interaction (6-10), Items (11-12)
  */
 public class AdminZoneSettingsPage extends InteractiveCustomUIPage<AdminZoneSettingsData> {
 

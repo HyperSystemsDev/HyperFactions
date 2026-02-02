@@ -11,16 +11,14 @@ import org.jetbrains.annotations.Nullable;
  * Utility class for zone-based interaction protection checks.
  * Provides methods for checking various interaction types against zone flags.
  *
- * <p>Interaction types:
- * <ul>
- *   <li>Doors/Gates: Uses DOOR_USE flag</li>
- *   <li>Containers (chests, barrels): Uses CONTAINER_USE flag</li>
- *   <li>Benches (crafting tables): Uses BENCH_USE flag</li>
- *   <li>Processing (furnaces, smelters): Uses PROCESSING_USE flag</li>
- *   <li>Seats: Uses SEAT_USE flag</li>
- *   <li>Item drop: Uses ITEM_DROP flag</li>
- *   <li>Item pickup: Uses ITEM_PICKUP flag</li>
- * </ul>
+ * Interaction types:
+ * - Doors/Gates: Uses DOOR_USE flag
+ * - Containers (chests, barrels): Uses CONTAINER_USE flag
+ * - Benches (crafting tables): Uses BENCH_USE flag
+ * - Processing (furnaces, smelters): Uses PROCESSING_USE flag
+ * - Seats: Uses SEAT_USE flag
+ * - Item drop: Uses ITEM_DROP flag
+ * - Item pickup: Uses ITEM_PICKUP flag
  */
 public class ZoneInteractionProtection {
 

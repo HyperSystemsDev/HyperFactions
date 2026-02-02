@@ -19,10 +19,9 @@ import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Checks for plugin updates from the GitHub Releases API.
- * <p>
  * Uses the GitHub API endpoint for the latest release, parsing
- * {@code tag_name} for the version, {@code body} for the changelog,
- * and the first JAR asset's {@code browser_download_url} for the download.
+ * tag_name for the version, body for the changelog,
+ * and the first JAR asset's browser_download_url for the download.
  */
 public final class UpdateChecker {
 
