@@ -1,5 +1,6 @@
 package com.hyperfactions.protection.damage;
 
+import com.hyperfactions.manager.CombatTagManager;
 import com.hyperfactions.protection.zone.ZoneDamageProtection;
 import com.hypixel.hytale.component.CommandBuffer;
 import com.hypixel.hytale.server.core.modules.entity.damage.Damage;
@@ -14,9 +15,12 @@ import org.jetbrains.annotations.NotNull;
 public class MobDamageProtection {
 
     private final ZoneDamageProtection zoneDamage;
+    private final CombatTagManager combatTagManager;
 
-    public MobDamageProtection(@NotNull ZoneDamageProtection zoneDamage) {
+    public MobDamageProtection(@NotNull ZoneDamageProtection zoneDamage,
+                               @NotNull CombatTagManager combatTagManager) {
         this.zoneDamage = zoneDamage;
+        this.combatTagManager = combatTagManager;
     }
 
     /**
@@ -43,6 +47,7 @@ public class MobDamageProtection {
      *
      * @param event         the damage event
      * @param entitySource  the entity source
+     * @param defender      the player being damaged
      * @param worldName     the world name
      * @param x             the X coordinate
      * @param z             the Z coordinate
@@ -51,6 +56,7 @@ public class MobDamageProtection {
      */
     public boolean handle(@NotNull Damage event,
                           @NotNull Damage.EntitySource entitySource,
+                          @NotNull PlayerRef defender,
                           @NotNull String worldName,
                           double x, double z,
                           @NotNull CommandBuffer<EntityStore> commandBuffer) {
@@ -63,6 +69,9 @@ public class MobDamageProtection {
             event.setCancelled(true);
             return true;
         }
+
+        // Tag the player in combat (PvE combat tagging)
+        combatTagManager.tagPlayer(defender.getUuid());
 
         return true; // Handled
     }

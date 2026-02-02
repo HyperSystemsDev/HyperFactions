@@ -336,6 +336,7 @@ public class HyperFactionsPlugin extends JavaPlugin {
         DamageProtectionHandler damageHandler = new DamageProtectionHandler(
             hyperFactions.getZoneDamageProtection(),
             hyperFactions.getProtectionChecker(),
+            hyperFactions.getCombatTagManager(),
             protectionListener::getDenialMessage
         );
         hyperFactions.setDamageProtectionHandler(damageHandler);

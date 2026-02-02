@@ -1,5 +1,6 @@
 package com.hyperfactions.protection.damage;
 
+import com.hyperfactions.manager.CombatTagManager;
 import com.hyperfactions.protection.ProtectionChecker;
 import com.hyperfactions.protection.zone.ZoneDamageProtection;
 import com.hypixel.hytale.component.CommandBuffer;
@@ -31,12 +32,13 @@ public class DamageProtectionHandler {
 
     public DamageProtectionHandler(@NotNull ZoneDamageProtection zoneDamage,
                                     @NotNull ProtectionChecker protectionChecker,
+                                    @NotNull CombatTagManager combatTagManager,
                                     @NotNull Function<ProtectionChecker.PvPResult, String> pvpDenialMessageProvider) {
         this.fallDamage = new FallDamageProtection(zoneDamage);
         this.environmentalDamage = new EnvironmentalDamageProtection(zoneDamage);
         this.projectileDamage = new ProjectileDamageProtection(zoneDamage);
-        this.mobDamage = new MobDamageProtection(zoneDamage);
-        this.pvpDamage = new PvPDamageProtection(protectionChecker, pvpDenialMessageProvider);
+        this.mobDamage = new MobDamageProtection(zoneDamage, combatTagManager);
+        this.pvpDamage = new PvPDamageProtection(protectionChecker, combatTagManager, pvpDenialMessageProvider);
     }
 
     /**
@@ -80,7 +82,7 @@ public class DamageProtectionHandler {
         }
 
         // 5. Check mob damage (non-player entities)
-        if (mobDamage.handle(event, entitySource, worldName, x, z, commandBuffer)) {
+        if (mobDamage.handle(event, entitySource, defender, worldName, x, z, commandBuffer)) {
             return; // Handled (either blocked or allowed mob damage)
         }
 

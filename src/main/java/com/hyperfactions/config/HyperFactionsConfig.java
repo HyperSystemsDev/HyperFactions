@@ -49,6 +49,7 @@ public class HyperFactionsConfig {
     private boolean allyDamage = false;
     private boolean factionDamage = false;
     private boolean taggedLogoutPenalty = true;
+    private double logoutPowerLoss = 1.0;  // Power loss on combat logout (default same as death penalty)
 
     // Spawn protection settings
     private boolean spawnProtectionEnabled = true;
@@ -255,6 +256,7 @@ public class HyperFactionsConfig {
                 allyDamage = getBool(combat, "allyDamage", allyDamage);
                 factionDamage = getBool(combat, "factionDamage", factionDamage);
                 taggedLogoutPenalty = getBool(combat, "taggedLogoutPenalty", taggedLogoutPenalty);
+                logoutPowerLoss = getDouble(combat, "logoutPowerLoss", logoutPowerLoss);
 
                 // Spawn protection sub-section
                 if (hasSection(combat, "spawnProtection")) {
@@ -524,6 +526,7 @@ public class HyperFactionsConfig {
             combat.addProperty("allyDamage", allyDamage);
             combat.addProperty("factionDamage", factionDamage);
             combat.addProperty("taggedLogoutPenalty", taggedLogoutPenalty);
+            combat.addProperty("logoutPowerLoss", logoutPowerLoss);
 
             // Spawn protection sub-section
             JsonObject spawnProt = new JsonObject();
@@ -744,6 +747,7 @@ public class HyperFactionsConfig {
     public boolean isAllyDamage() { return allyDamage; }
     public boolean isFactionDamage() { return factionDamage; }
     public boolean isTaggedLogoutPenalty() { return taggedLogoutPenalty; }
+    public double getLogoutPowerLoss() { return logoutPowerLoss; }
 
     // === Spawn Protection Getters ===
     public boolean isSpawnProtectionEnabled() { return spawnProtectionEnabled; }

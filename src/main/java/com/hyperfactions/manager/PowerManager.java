@@ -166,6 +166,26 @@ public class PowerManager {
     }
 
     /**
+     * Applies combat logout penalty to a player.
+     * Uses the same logic as death penalty (updates lastDeath, clamps at 0).
+     *
+     * @param playerUuid the player's UUID
+     * @param penalty the amount of power to remove
+     * @return the new power level
+     */
+    public double applyCombatLogoutPenalty(@NotNull UUID playerUuid, double penalty) {
+        PlayerPower power = getPlayerPower(playerUuid);
+        // Reuse withDeathPenalty - combat logout is treated as a "virtual death"
+        PlayerPower updated = power.withDeathPenalty(penalty);
+        powerCache.put(playerUuid, updated);
+        storage.savePlayerPower(updated);
+
+        Logger.debugPower("Combat logout penalty: player=%s, before=%.2f, after=%.2f, penalty=%.2f",
+            playerUuid, power.power(), updated.power(), penalty);
+        return updated.power();
+    }
+
+    /**
      * Regenerates power for a player.
      *
      * @param playerUuid the player's UUID

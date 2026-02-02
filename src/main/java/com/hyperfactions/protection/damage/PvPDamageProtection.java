@@ -1,5 +1,6 @@
 package com.hyperfactions.protection.damage;
 
+import com.hyperfactions.manager.CombatTagManager;
 import com.hyperfactions.protection.ProtectionChecker;
 import com.hypixel.hytale.component.CommandBuffer;
 import com.hypixel.hytale.server.core.Message;
@@ -19,11 +20,14 @@ import java.util.function.Function;
 public class PvPDamageProtection {
 
     private final ProtectionChecker protectionChecker;
+    private final CombatTagManager combatTagManager;
     private final Function<ProtectionChecker.PvPResult, String> denialMessageProvider;
 
     public PvPDamageProtection(@NotNull ProtectionChecker protectionChecker,
+                               @NotNull CombatTagManager combatTagManager,
                                @NotNull Function<ProtectionChecker.PvPResult, String> denialMessageProvider) {
         this.protectionChecker = protectionChecker;
+        this.combatTagManager = combatTagManager;
         this.denialMessageProvider = denialMessageProvider;
     }
 
@@ -90,6 +94,9 @@ public class PvPDamageProtection {
             attacker.sendMessage(Message.raw(message).color("#FF5555"));
             return true;
         }
+
+        // Tag both players in combat
+        combatTagManager.tagCombat(attackerUuid, defenderUuid);
 
         return true; // Handled
     }

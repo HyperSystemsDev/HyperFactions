@@ -7,7 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-*No changes yet*
+### Fixed
+
+**Combat Tagging Restored**
+- Fixed combat tagging not working after protection system refactor to ECS-based handlers
+  - PvP combat now properly tags both attacker and defender
+  - PvE combat (mob damage) now properly tags the player being attacked
+- Added configurable `logoutPowerLoss` setting for combat logout penalty (default: 1.0)
+  - Separate from normal death penalty for finer control
+  - Set to 0 to disable combat logout power loss while keeping other penalties
 
 ## [0.4.0] - 2026-02-01
 

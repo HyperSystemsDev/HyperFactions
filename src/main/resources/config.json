@@ -25,7 +25,8 @@
     "tagDurationSeconds": 15,
     "allyDamage": false,
     "factionDamage": false,
-    "taggedLogoutPenalty": true
+    "taggedLogoutPenalty": true,
+    "logoutPowerLoss": 1.0
   },
   "teleport": {
     "warmupSeconds": 5,

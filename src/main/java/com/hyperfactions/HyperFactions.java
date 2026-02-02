@@ -237,9 +237,10 @@ public class HyperFactions {
 
         // Setup combat tag callbacks
         combatTagManager.setOnCombatLogout(playerUuid -> {
-            // Apply death penalty on combat logout
-            powerManager.applyDeathPenalty(playerUuid);
-            Logger.info("Player %s combat logged - death penalty applied", playerUuid);
+            // Apply combat logout penalty (configurable, default same as death penalty)
+            double penalty = HyperFactionsConfig.get().getLogoutPowerLoss();
+            powerManager.applyCombatLogoutPenalty(playerUuid, penalty);
+            Logger.info("Player %s combat logged - %.1f power penalty applied", playerUuid, penalty);
         });
 
         // Register faction disband event listener to clean up all associated data
