@@ -154,17 +154,17 @@ public final class ZoneFlags {
             case FRIENDLY_FIRE -> false;
             case PROJECTILE_DAMAGE -> false;
             case MOB_DAMAGE -> false;
-            // Building: Disabled, but interaction allowed
+            // Building: Disabled, but basic interaction allowed
             case BUILD_ALLOWED -> false;
             case BLOCK_INTERACT -> true;
-            // Interaction: All allowed in SafeZones
+            // Interaction: Doors/seats allowed, but no containers/benches/processing
             case DOOR_USE -> true;
-            case CONTAINER_USE -> true;
-            case BENCH_USE -> true;
-            case PROCESSING_USE -> true;
+            case CONTAINER_USE -> false;
+            case BENCH_USE -> false;
+            case PROCESSING_USE -> false;
             case SEAT_USE -> true;
-            // Items: Allowed
-            case ITEM_DROP -> true;
+            // Items: Pickup allowed, but no dropping (prevents littering spawn)
+            case ITEM_DROP -> false;
             case ITEM_PICKUP -> true;
             // Damage: No environmental damage in safe zones
             case FALL_DAMAGE -> false;
@@ -187,14 +187,14 @@ public final class ZoneFlags {
             case FRIENDLY_FIRE -> false;      // Faction members still protected
             case PROJECTILE_DAMAGE -> true;
             case MOB_DAMAGE -> true;
-            // Building: Disabled to prevent griefing, but interaction allowed
+            // Building: Disabled to prevent griefing, but basic interaction allowed
             case BUILD_ALLOWED -> false;
             case BLOCK_INTERACT -> true;
-            // Interaction: All allowed in WarZones
+            // Interaction: Doors/seats allowed, but no containers/benches/processing
             case DOOR_USE -> true;
-            case CONTAINER_USE -> true;
-            case BENCH_USE -> true;
-            case PROCESSING_USE -> true;
+            case CONTAINER_USE -> false;
+            case BENCH_USE -> false;
+            case PROCESSING_USE -> false;
             case SEAT_USE -> true;
             // Items: Allowed
             case ITEM_DROP -> true;
