@@ -54,7 +54,10 @@ public class BackupManager {
     private final Path dataDir;
     private final Path backupsDir;
     private final HyperFactions hyperFactions;
-    private int scheduledTaskId = -1;
+    private volatile int scheduledTaskId = -1;
+    private volatile boolean initialized = false;
+    private volatile boolean backupInProgress = false;
+    private final Object backupLock = new Object();
 
     /**
      * Creates a new BackupManager.
@@ -69,18 +72,42 @@ public class BackupManager {
     }
 
     /**
-     * Initializes the backup manager and starts scheduled tasks.
+     * Initializes the backup manager (creates directories).
+     * Call startScheduledBackups() separately after the task scheduler is available.
      */
     public void init() {
         try {
             Files.createDirectories(backupsDir);
+            initialized = true;
             Logger.info("[BackupManager] Initialized, backup directory: %s", backupsDir);
         } catch (IOException e) {
             Logger.severe("[BackupManager] Failed to create backups directory: %s", e.getMessage());
         }
+    }
 
-        if (HyperFactionsConfig.get().isBackupEnabled()) {
-            startScheduledBackups();
+    /**
+     * Starts scheduled backups. Must be called after the task scheduler is set up.
+     * This is safe to call multiple times - subsequent calls are ignored.
+     */
+    public synchronized void startScheduledBackups() {
+        if (scheduledTaskId > 0) {
+            Logger.debug("[BackupManager] Scheduled backups already running (task ID: %d)", scheduledTaskId);
+            return;
+        }
+
+        if (!HyperFactionsConfig.get().isBackupEnabled()) {
+            Logger.info("[BackupManager] Backups are disabled in config");
+            return;
+        }
+
+        // Run every hour (20 ticks/sec * 60 sec * 60 min = 72000 ticks)
+        int periodTicks = 60 * 60 * 20;
+        scheduledTaskId = hyperFactions.scheduleRepeatingTask(periodTicks, periodTicks, this::runScheduledBackup);
+
+        if (scheduledTaskId > 0) {
+            Logger.info("[BackupManager] Scheduled backups enabled (hourly, task ID: %d)", scheduledTaskId);
+        } else {
+            Logger.warn("[BackupManager] Failed to schedule backup task - task scheduler may not be available");
         }
     }
 
@@ -89,9 +116,26 @@ public class BackupManager {
      * Creates a shutdown backup if configured.
      */
     public void shutdown() {
+        // Cancel scheduled task first
         if (scheduledTaskId > 0) {
             hyperFactions.cancelTask(scheduledTaskId);
             scheduledTaskId = -1;
+        }
+
+        // Wait for any in-progress backup to complete
+        synchronized (backupLock) {
+            if (backupInProgress) {
+                Logger.info("[BackupManager] Waiting for in-progress backup to complete...");
+                // Simple spin-wait with sleep (max ~10 seconds)
+                for (int i = 0; i < 20 && backupInProgress; i++) {
+                    try {
+                        backupLock.wait(500);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        break;
+                    }
+                }
+            }
         }
 
         // Create shutdown backup if enabled
@@ -102,33 +146,52 @@ public class BackupManager {
     }
 
     /**
-     * Starts the scheduled backup task.
-     */
-    private void startScheduledBackups() {
-        // Run every hour (20 ticks/sec * 60 sec * 60 min = 72000 ticks)
-        int periodTicks = 60 * 60 * 20;
-        scheduledTaskId = hyperFactions.scheduleRepeatingTask(periodTicks, periodTicks, this::runScheduledBackup);
-        if (scheduledTaskId > 0) {
-            Logger.info("[BackupManager] Scheduled backups enabled (hourly)");
-        }
-    }
-
-    /**
      * Runs a scheduled backup with automatic type determination.
+     * Thread-safe - skips if a backup is already in progress.
      */
     private void runScheduledBackup() {
-        BackupType type = determineBackupType();
-        Logger.info("[BackupManager] Running scheduled %s backup", type.getDisplayName().toLowerCase());
-
-        createBackup(type, null, null).thenAccept(result -> {
-            if (result instanceof BackupResult.Success success) {
-                Logger.info("[BackupManager] %s backup created: %s (%s)",
-                    type.getDisplayName(), success.metadata().name(), success.metadata().getFormattedSize());
-                performRotation();
-            } else if (result instanceof BackupResult.Failure failure) {
-                Logger.severe("[BackupManager] %s backup failed: %s", type.getDisplayName(), failure.error());
+        synchronized (backupLock) {
+            if (backupInProgress) {
+                Logger.warn("[BackupManager] Skipping scheduled backup - another backup is already in progress");
+                return;
             }
-        });
+            backupInProgress = true;
+        }
+
+        try {
+            BackupType type = determineBackupType();
+            Logger.info("[BackupManager] Running scheduled %s backup", type.getDisplayName().toLowerCase());
+
+            createBackup(type, null, null).thenAccept(result -> {
+                try {
+                    if (result instanceof BackupResult.Success success) {
+                        Logger.info("[BackupManager] %s backup created: %s (%s)",
+                            type.getDisplayName(), success.metadata().name(), success.metadata().getFormattedSize());
+                        performRotation();
+                    } else if (result instanceof BackupResult.Failure failure) {
+                        Logger.severe("[BackupManager] %s backup failed: %s", type.getDisplayName(), failure.error());
+                    }
+                } finally {
+                    synchronized (backupLock) {
+                        backupInProgress = false;
+                        backupLock.notifyAll();
+                    }
+                }
+            }).exceptionally(ex -> {
+                Logger.severe("[BackupManager] Backup task failed with exception: %s", ex.getMessage());
+                synchronized (backupLock) {
+                    backupInProgress = false;
+                    backupLock.notifyAll();
+                }
+                return null;
+            });
+        } catch (Exception e) {
+            synchronized (backupLock) {
+                backupInProgress = false;
+                backupLock.notifyAll();
+            }
+            Logger.severe("[BackupManager] Failed to start backup: %s", e.getMessage());
+        }
     }
 
     /**
@@ -358,7 +421,11 @@ public class BackupManager {
         rotateBackups(grouped.getOrDefault(BackupType.WEEKLY, List.of()),
             config.getBackupWeeklyRetention());
 
-        // Manual backups are never auto-deleted
+        // Rotate manual backups if retention is configured (0 = keep all)
+        int manualRetention = config.getBackupManualRetention();
+        if (manualRetention > 0) {
+            rotateBackups(grouped.getOrDefault(BackupType.MANUAL, List.of()), manualRetention);
+        }
     }
 
     /**

@@ -88,6 +88,7 @@ public class HyperFactionsConfig {
     private int backupHourlyRetention = 24;   // Keep last 24 hourly backups
     private int backupDailyRetention = 7;     // Keep last 7 daily backups
     private int backupWeeklyRetention = 4;    // Keep last 4 weekly backups
+    private int backupManualRetention = 10;   // Keep last 10 manual backups (0 = keep all)
     private boolean backupOnShutdown = true;  // Create backup on server shutdown
 
     // Economy settings
@@ -322,6 +323,7 @@ public class HyperFactionsConfig {
                 backupHourlyRetention = getInt(backup, "hourlyRetention", backupHourlyRetention);
                 backupDailyRetention = getInt(backup, "dailyRetention", backupDailyRetention);
                 backupWeeklyRetention = getInt(backup, "weeklyRetention", backupWeeklyRetention);
+                backupManualRetention = getInt(backup, "manualRetention", backupManualRetention);
                 backupOnShutdown = getBool(backup, "onShutdown", backupOnShutdown);
             }
 
@@ -578,6 +580,7 @@ public class HyperFactionsConfig {
             backup.addProperty("hourlyRetention", backupHourlyRetention);
             backup.addProperty("dailyRetention", backupDailyRetention);
             backup.addProperty("weeklyRetention", backupWeeklyRetention);
+            backup.addProperty("manualRetention", backupManualRetention);
             backup.addProperty("onShutdown", backupOnShutdown);
             root.add("backup", backup);
 
@@ -783,6 +786,7 @@ public class HyperFactionsConfig {
     public int getBackupHourlyRetention() { return backupHourlyRetention; }
     public int getBackupDailyRetention() { return backupDailyRetention; }
     public int getBackupWeeklyRetention() { return backupWeeklyRetention; }
+    public int getBackupManualRetention() { return backupManualRetention; }
     public boolean isBackupOnShutdown() { return backupOnShutdown; }
 
     // === Economy Getters ===

@@ -101,7 +101,7 @@ public record BackupMetadata(
     }
 
     /**
-     * Generates a manual backup name with a custom suffix.
+     * Generates a manual backup name with a custom suffix and timestamp.
      *
      * @param customName the custom name provided by the user
      * @return the generated backup name
@@ -113,7 +113,9 @@ public record BackupMetadata(
         if (sanitized.length() > 32) {
             sanitized = sanitized.substring(0, 32);
         }
-        return "backup_manual_" + sanitized;
+        // Include timestamp to prevent overwrites
+        String timestamp = FILENAME_FORMATTER.format(Instant.now());
+        return "backup_manual_" + sanitized + "_" + timestamp;
     }
 
     /**

@@ -283,12 +283,16 @@ public class HyperFactions {
     }
 
     /**
-     * Starts periodic tasks (auto-save, invite cleanup).
+     * Starts periodic tasks (auto-save, invite cleanup, scheduled backups).
      * Should be called by the platform after setting up task scheduler callbacks.
      */
     public void startPeriodicTasks() {
         startAutoSaveTask();
         startInviteCleanupTask();
+        // Start scheduled backups now that the task scheduler is available
+        if (backupManager != null) {
+            backupManager.startScheduledBackups();
+        }
     }
 
     /**
