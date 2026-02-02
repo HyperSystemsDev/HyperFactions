@@ -7,6 +7,7 @@ import com.hyperfactions.backup.BackupType;
 import com.hyperfactions.config.HyperFactionsConfig;
 import com.hyperfactions.data.*;
 import com.hyperfactions.importer.hyfactions.*;
+import com.hyperfactions.manager.ClaimManager;
 import com.hyperfactions.manager.FactionManager;
 import com.hyperfactions.manager.PowerManager;
 import com.hyperfactions.manager.ZoneManager;
@@ -35,10 +36,15 @@ public class HyFactionsImporter {
 
     private final Gson gson;
     private final FactionManager factionManager;
+    private final ClaimManager claimManager;
     private final ZoneManager zoneManager;
     private final PowerManager powerManager;
     @Nullable
     private final BackupManager backupManager;
+
+    // Callback to refresh world maps after import
+    @Nullable
+    private Runnable onImportComplete;
 
     // Thread safety: only one import at a time
     private static final ReentrantLock importLock = new ReentrantLock();
@@ -80,11 +86,13 @@ public class HyFactionsImporter {
 
     public HyFactionsImporter(
             @NotNull FactionManager factionManager,
+            @NotNull ClaimManager claimManager,
             @NotNull ZoneManager zoneManager,
             @NotNull PowerManager powerManager,
             @Nullable BackupManager backupManager
     ) {
         this.factionManager = factionManager;
+        this.claimManager = claimManager;
         this.zoneManager = zoneManager;
         this.powerManager = powerManager;
         this.backupManager = backupManager;
@@ -96,10 +104,11 @@ public class HyFactionsImporter {
      */
     public HyFactionsImporter(
             @NotNull FactionManager factionManager,
+            @NotNull ClaimManager claimManager,
             @NotNull ZoneManager zoneManager,
             @NotNull PowerManager powerManager
     ) {
-        this(factionManager, zoneManager, powerManager, null);
+        this(factionManager, claimManager, zoneManager, powerManager, null);
     }
 
     // === Configuration Methods ===
@@ -131,6 +140,11 @@ public class HyFactionsImporter {
 
     public HyFactionsImporter setProgressCallback(@Nullable Consumer<String> callback) {
         this.progressCallback = callback;
+        return this;
+    }
+
+    public HyFactionsImporter setOnImportComplete(@Nullable Runnable callback) {
+        this.onImportComplete = callback;
         return this;
     }
 
@@ -590,6 +604,20 @@ public class HyFactionsImporter {
         if (dryRun) {
             progress("Dry run complete - no changes made");
         } else {
+            // Rebuild claim index so ClaimManager knows about imported claims
+            progress("Rebuilding claim index...");
+            claimManager.buildIndex();
+
+            // Trigger world map refresh callback
+            if (onImportComplete != null) {
+                progress("Refreshing world maps...");
+                try {
+                    onImportComplete.run();
+                } catch (Exception e) {
+                    result.warning("Failed to refresh world maps: " + e.getMessage());
+                }
+            }
+
             progress("Import complete!");
         }
 

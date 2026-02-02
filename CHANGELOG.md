@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+*No changes yet*
+
+## [0.4.1] - 2026-02-02
+
 ### Fixed
 
 **Combat Tagging Restored**
@@ -16,6 +20,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added configurable `logoutPowerLoss` setting for combat logout penalty (default: 1.0)
   - Separate from normal death penalty for finer control
   - Set to 0 to disable combat logout power loss while keeping other penalties
+
+**HyFactions Import Map Display**
+- Fixed in-game world map not showing imported claims and zones after import
+- Fixed GUI territory map not displaying imported faction claims
+- Import now rebuilds claim index and refreshes world maps after completion
 
 ## [0.4.0] - 2026-02-01
 

@@ -2603,6 +2603,7 @@ public class FactionCommand extends AbstractPlayerCommand {
         // Run import
         HyFactionsImporter importer = new HyFactionsImporter(
             hyperFactions.getFactionManager(),
+            hyperFactions.getClaimManager(),
             hyperFactions.getZoneManager(),
             hyperFactions.getPowerManager(),
             hyperFactions.getBackupManager()
@@ -2613,7 +2614,8 @@ public class FactionCommand extends AbstractPlayerCommand {
             .setSkipZones(finalSkipZones)
             .setSkipPower(finalSkipPower)
             .setCreateBackup(!finalDryRun) // Only create backup if not dry run
-            .setProgressCallback(msg -> player.sendMessage(prefix().insert(msg(msg, COLOR_GRAY))));
+            .setProgressCallback(msg -> player.sendMessage(prefix().insert(msg(msg, COLOR_GRAY))))
+            .setOnImportComplete(() -> hyperFactions.getWorldMapService().refreshAllWorldMaps());
 
         ImportResult result = importer.importFrom(finalPath);
 
