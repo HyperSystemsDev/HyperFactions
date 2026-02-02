@@ -48,6 +48,8 @@ public class JsonZoneStorage implements ZoneStorage {
         return CompletableFuture.runAsync(() -> {
             try {
                 Files.createDirectories(dataDir);
+                // Clean up orphaned temp files from previous crashes
+                StorageUtils.cleanupOrphanedFiles(dataDir);
                 Logger.info("Zone storage initialized");
             } catch (IOException e) {
                 Logger.severe("Failed to create data directory", e);

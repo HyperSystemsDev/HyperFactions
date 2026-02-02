@@ -212,6 +212,94 @@ public final class StorageUtils {
     }
 
     /**
+     * Deletes a file and its associated backup file.
+     * Use this instead of Files.delete when removing data files.
+     *
+     * @param targetFile the file to delete
+     * @return true if the main file was deleted (backup deletion is best-effort)
+     */
+    public static boolean deleteWithBackup(@NotNull Path targetFile) {
+        Path backupFile = getBackupPath(targetFile);
+        boolean mainDeleted = false;
+
+        try {
+            mainDeleted = Files.deleteIfExists(targetFile);
+        } catch (IOException e) {
+            Logger.warn("[StorageUtils] Failed to delete %s: %s", targetFile.getFileName(), e.getMessage());
+        }
+
+        try {
+            if (Files.deleteIfExists(backupFile)) {
+                Logger.debug("[StorageUtils] Deleted backup file: %s", backupFile.getFileName());
+            }
+        } catch (IOException e) {
+            Logger.warn("[StorageUtils] Failed to delete backup %s: %s", backupFile.getFileName(), e.getMessage());
+        }
+
+        return mainDeleted;
+    }
+
+    /**
+     * Cleans up orphaned temporary and backup files in a directory.
+     * Call this on startup to remove leftover files from crashes.
+     *
+     * Removes:
+     * - .tmp files (orphaned from interrupted writes)
+     * - .bak files without a corresponding .json file (orphaned from deletions)
+     *
+     * @param directory the directory to clean
+     * @return the number of files cleaned up
+     */
+    public static int cleanupOrphanedFiles(@NotNull Path directory) {
+        if (!Files.exists(directory) || !Files.isDirectory(directory)) {
+            return 0;
+        }
+
+        int cleaned = 0;
+
+        try (var stream = Files.newDirectoryStream(directory)) {
+            for (Path file : stream) {
+                String fileName = file.getFileName().toString();
+
+                // Clean up orphaned .tmp files (any file ending in .tmp)
+                if (fileName.endsWith(TMP_SUFFIX)) {
+                    try {
+                        Files.delete(file);
+                        cleaned++;
+                        Logger.debug("[StorageUtils] Cleaned orphaned temp file: %s", fileName);
+                    } catch (IOException e) {
+                        Logger.warn("[StorageUtils] Failed to clean temp file %s: %s", fileName, e.getMessage());
+                    }
+                    continue;
+                }
+
+                // Clean up orphaned .bak files (backup without corresponding .json)
+                if (fileName.endsWith(BAK_SUFFIX)) {
+                    String baseName = fileName.substring(0, fileName.length() - BAK_SUFFIX.length());
+                    Path mainFile = directory.resolve(baseName);
+                    if (!Files.exists(mainFile)) {
+                        try {
+                            Files.delete(file);
+                            cleaned++;
+                            Logger.debug("[StorageUtils] Cleaned orphaned backup file: %s", fileName);
+                        } catch (IOException e) {
+                            Logger.warn("[StorageUtils] Failed to clean backup file %s: %s", fileName, e.getMessage());
+                        }
+                    }
+                }
+            }
+        } catch (IOException e) {
+            Logger.warn("[StorageUtils] Failed to scan directory for cleanup: %s", e.getMessage());
+        }
+
+        if (cleaned > 0) {
+            Logger.info("[StorageUtils] Cleaned up %d orphaned file(s) from %s", cleaned, directory.getFileName());
+        }
+
+        return cleaned;
+    }
+
+    /**
      * Converts a byte array to a hexadecimal string.
      */
     @NotNull

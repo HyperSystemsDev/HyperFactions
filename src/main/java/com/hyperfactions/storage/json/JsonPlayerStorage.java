@@ -42,6 +42,8 @@ public class JsonPlayerStorage implements PlayerStorage {
         return CompletableFuture.runAsync(() -> {
             try {
                 Files.createDirectories(playersDir);
+                // Clean up orphaned temp and backup files from previous crashes
+                StorageUtils.cleanupOrphanedFiles(playersDir);
                 Logger.info("Player storage initialized at %s", playersDir);
             } catch (IOException e) {
                 Logger.severe("Failed to create players directory", e);
@@ -124,11 +126,8 @@ public class JsonPlayerStorage implements PlayerStorage {
     public CompletableFuture<Void> deletePlayerPower(@NotNull UUID uuid) {
         return CompletableFuture.runAsync(() -> {
             Path file = playersDir.resolve(uuid + ".json");
-            try {
-                Files.deleteIfExists(file);
-            } catch (IOException e) {
-                Logger.severe("Failed to delete player power %s", e, uuid);
-            }
+            // Delete both the main file and its backup
+            StorageUtils.deleteWithBackup(file);
         });
     }
 

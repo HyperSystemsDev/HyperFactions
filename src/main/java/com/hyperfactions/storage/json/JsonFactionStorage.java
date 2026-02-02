@@ -44,6 +44,8 @@ public class JsonFactionStorage implements FactionStorage {
         return CompletableFuture.runAsync(() -> {
             try {
                 Files.createDirectories(factionsDir);
+                // Clean up orphaned temp and backup files from previous crashes
+                StorageUtils.cleanupOrphanedFiles(factionsDir);
                 Logger.info("Faction storage initialized at %s", factionsDir);
             } catch (IOException e) {
                 Logger.severe("Failed to create factions directory", e);
@@ -127,11 +129,8 @@ public class JsonFactionStorage implements FactionStorage {
     public CompletableFuture<Void> deleteFaction(@NotNull UUID factionId) {
         return CompletableFuture.runAsync(() -> {
             Path file = factionsDir.resolve(factionId + ".json");
-            try {
-                Files.deleteIfExists(file);
-            } catch (IOException e) {
-                Logger.severe("Failed to delete faction %s", e, factionId);
-            }
+            // Delete both the main file and its backup
+            StorageUtils.deleteWithBackup(file);
         });
     }
 
