@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 *No changes yet*
 
+## [0.4.3] - 2026-02-02
+
+### Fixed
+
+**In-Game World Map Not Showing Claims**
+- Fixed world map claim overlays not appearing on production servers
+- Root cause: `setWorldMapProvider()` only affects future world loads, not the live WorldMapManager
+- Now calling `setGenerator()` directly on WorldMapManager to properly register our claim renderer
+- Added auto-recovery if another mod overwrites the generator during runtime
+
 ## [0.4.2] - 2026-02-02
 
 ### Fixed
