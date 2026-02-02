@@ -1,6 +1,8 @@
 package com.hyperfactions.gui.faction;
 
 import com.hyperfactions.data.Faction;
+import com.hyperfactions.data.FactionMember;
+import com.hyperfactions.data.FactionRole;
 import com.hyperfactions.gui.GuiManager;
 import com.hyperfactions.integration.PermissionManager;
 import com.hypixel.hytale.component.Ref;
@@ -42,6 +44,7 @@ public final class FactionPageRegistry {
      * @param guiSupplier  Function to create the page instance
      * @param showsInNavBar Whether this page appears in the navigation bar
      * @param requiresFaction Whether this page requires the player to be in a faction
+     * @param minimumRole  Minimum faction role required to access this page (null for no role requirement)
      * @param order        Display order in navigation (lower = first)
      */
     public record Entry(
@@ -51,8 +54,24 @@ public final class FactionPageRegistry {
             @NotNull PageSupplier guiSupplier,
             boolean showsInNavBar,
             boolean requiresFaction,
+            @Nullable FactionRole minimumRole,
             int order
     ) implements Comparable<Entry> {
+
+        /**
+         * Convenience constructor for entries without role requirements.
+         */
+        public Entry(
+                @NotNull String id,
+                @NotNull String displayName,
+                @Nullable String permission,
+                @NotNull PageSupplier guiSupplier,
+                boolean showsInNavBar,
+                boolean requiresFaction,
+                int order
+        ) {
+            this(id, displayName, permission, guiSupplier, showsInNavBar, requiresFaction, null, order);
+        }
 
         @Override
         public int compareTo(@NotNull Entry other) {
@@ -131,14 +150,15 @@ public final class FactionPageRegistry {
     }
 
     /**
-     * Gets entries accessible to a player (permission check).
+     * Gets entries accessible to a player (permission and role check).
      *
      * @param playerRef The player to check
-     * @param hasFaction Whether the player has a faction
+     * @param faction   The player's faction (may be null)
      * @return List of accessible entries
      */
     @NotNull
-    public List<Entry> getAccessibleEntries(@NotNull PlayerRef playerRef, boolean hasFaction) {
+    public List<Entry> getAccessibleEntries(@NotNull PlayerRef playerRef, @Nullable Faction faction) {
+        boolean hasFaction = faction != null;
         return orderedEntries.stream()
                 .filter(entry -> {
                     // Check faction requirement
@@ -147,7 +167,16 @@ public final class FactionPageRegistry {
                     }
                     // Check permission
                     if (entry.permission() != null) {
-                        return PermissionManager.get().hasPermission(playerRef.getUuid(), entry.permission());
+                        if (!PermissionManager.get().hasPermission(playerRef.getUuid(), entry.permission())) {
+                            return false;
+                        }
+                    }
+                    // Check role requirement
+                    if (entry.minimumRole() != null && faction != null) {
+                        FactionMember member = faction.getMember(playerRef.getUuid());
+                        if (member == null || !member.role().isAtLeast(entry.minimumRole())) {
+                            return false;
+                        }
                     }
                     return true;
                 })
@@ -158,12 +187,12 @@ public final class FactionPageRegistry {
      * Gets nav bar entries accessible to a player.
      *
      * @param playerRef The player to check
-     * @param hasFaction Whether the player has a faction
+     * @param faction   The player's faction (may be null)
      * @return List of accessible nav bar entries
      */
     @NotNull
-    public List<Entry> getAccessibleNavBarEntries(@NotNull PlayerRef playerRef, boolean hasFaction) {
-        return getAccessibleEntries(playerRef, hasFaction).stream()
+    public List<Entry> getAccessibleNavBarEntries(@NotNull PlayerRef playerRef, @Nullable Faction faction) {
+        return getAccessibleEntries(playerRef, faction).stream()
                 .filter(Entry::showsInNavBar)
                 .toList();
     }

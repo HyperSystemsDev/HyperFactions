@@ -1,0 +1,141 @@
+// Faction Invite/Request Entry - Expandable
+// Unified entry for both outgoing invites and incoming join requests
+$S = "../shared/styles.ui";
+
+Group {
+  LayoutMode: Top;
+  Anchor: (Bottom: 4);
+
+  // Header wrapper - contains content and clickable overlay
+  Group #HeaderWrapper {
+    Anchor: (Height: 40);
+
+    // Header content (visual layout)
+    Group #HeaderContent {
+      Anchor: (Left: 0, Right: 0, Top: 0, Bottom: 0);
+      Background: (Color: #1a2a3a);
+      Padding: (Left: 12, Right: 12, Top: 6, Bottom: 6);
+      LayoutMode: Left;
+
+      // Player name
+      Group {
+        Anchor: (Width: 180);
+        LayoutMode: Top;
+
+        Label #PlayerName {
+          Text: "PlayerName";
+          Style: (FontSize: 13, TextColor: #55FFFF, RenderBold: true, VerticalAlignment: Center);
+          Anchor: (Height: 16);
+        }
+        Label #StatusInfo {
+          Text: "Expires: 5m";
+          Style: (FontSize: 10, TextColor: #666666, VerticalAlignment: Center);
+          Anchor: (Height: 12);
+        }
+      }
+
+      // Type badge (OUTGOING or REQUEST)
+      Group #TypeBadge {
+        Anchor: (Width: 80);
+        LayoutMode: Left;
+
+        Label #TypeLabel {
+          Text: "OUTGOING";
+          Style: (FontSize: 10, TextColor: #55FFFF, RenderBold: true, VerticalAlignment: Center, HorizontalAlignment: Center);
+        }
+      }
+
+      Group { FlexWeight: 1; }
+
+      // Expand indicators
+      Label #ExpandIcon {
+        Text: ">";
+        Style: (FontSize: 14, TextColor: #666666, VerticalAlignment: Center, HorizontalAlignment: Center);
+        Anchor: (Width: 20);
+      }
+      Label #CollapseIcon {
+        Text: "v";
+        Style: (FontSize: 14, TextColor: #00AAAA, VerticalAlignment: Center, HorizontalAlignment: Center);
+        Anchor: (Width: 20);
+      }
+    }
+
+    // Clickable overlay button
+    TextButton #Header {
+      Text: "";
+      Anchor: (Left: 0, Right: 0, Top: 0, Bottom: 0);
+      Style: $S.@InvisibleButtonStyle;
+    }
+  }
+
+  // Expanded content
+  Group #ExtendedInfo {
+    LayoutMode: Top;
+    Background: (Color: #0d1520);
+    Padding: (Left: 25, Right: 12, Top: 8, Bottom: 10);
+
+    // Info row
+    Group #InfoRow {
+      LayoutMode: Left;
+      Anchor: (Height: 18, Bottom: 6);
+
+      Label #InfoLabel {
+        Text: "Invited by:";
+        Style: (FontSize: 10, TextColor: #666666, VerticalAlignment: Center);
+        Anchor: (Width: 70);
+      }
+      Label #InfoValue {
+        Text: "Unknown";
+        Style: (FontSize: 10, TextColor: #aaaaaa, VerticalAlignment: Center);
+        FlexWeight: 1;
+      }
+    }
+
+    // Message row (for requests)
+    Group #MessageRow {
+      LayoutMode: Left;
+      Anchor: (Height: 18, Bottom: 6);
+
+      Label {
+        Text: "Message:";
+        Style: (FontSize: 10, TextColor: #666666, VerticalAlignment: Center);
+        Anchor: (Width: 70);
+      }
+      Label #MessageValue {
+        Text: "No message";
+        Style: (FontSize: 10, TextColor: #888888, VerticalAlignment: Center);
+        FlexWeight: 1;
+      }
+    }
+
+    // Action buttons
+    Group #ActionButtons {
+      LayoutMode: Left;
+      Anchor: (Height: 32);
+
+      // For outgoing invites: Cancel button
+      TextButton #CancelBtn {
+        Text: "CANCEL";
+        Anchor: (Height: 28, Width: 75);
+        Style: $S.@SmallRedButtonStyle;
+      }
+
+      // For requests: Accept and Decline buttons
+      TextButton #AcceptBtn {
+        Text: "ACCEPT";
+        Anchor: (Height: 28, Width: 75);
+        Style: $S.@SmallGreenButtonStyle;
+      }
+
+      Group { Anchor: (Width: 8); }
+
+      TextButton #DeclineBtn {
+        Text: "DECLINE";
+        Anchor: (Height: 28, Width: 80);
+        Style: $S.@SmallRedButtonStyle;
+      }
+
+      Group { FlexWeight: 1; }
+    }
+  }
+}

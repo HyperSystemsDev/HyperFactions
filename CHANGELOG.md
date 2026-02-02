@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-02-01
+
 ### Added
 
 **Admin GUI System**
@@ -25,6 +27,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Admins can now edit faction settings (name, tag, description, color, recruitment) without being a member
 - All admin actions are prefixed with `[Admin]` in chat messages
 
+**Faction Dashboard Redesign**
+- New admin-style info blocks with 6 key statistics:
+  - Power (current/max with percentage)
+  - Claims (used/max with available count)
+  - Members (total with online count)
+  - Relations (ally/enemy counts)
+  - Status (Open/Invite Only indicator)
+  - Invites (sent invites and join requests count)
+
+**Leader Leave Flow**
+- New leader leave confirmation page with succession information
+- Shows who will become the new leader (highest officer, then most senior member)
+- If no successor available, offers faction disband option
+- Automatic leadership transfer on leader departure
+
+**Browser Page Improvements**
+- Both faction browsers now use expandable IndexCards pattern (matching admin pages)
+- Expandable entries with faction details and action buttons
+- Improved search and sort functionality
+
+**Zone Import Improvements**
+- `ZoneFlags.getDefaultFlags()` helper method for importing zones
+- Zones imported from mods without flag systems now get proper defaults
+- Import validation report for HyFactions importer
+
 ### Changed
 
 **Protection System Reorganization**
@@ -39,6 +66,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Converted verbose zone lookup logs to debug level
 - Converted GUI build/event logs to debug level
 - Converted world map provider logs to debug level
+
+**Nav Bar Role-Based Filtering**
+- Invites button now only visible to officers and leaders
+- FactionPageRegistry now supports `minimumRole` for page visibility
+- NavBarHelper updated to filter buttons based on viewer's role
+
+### Fixed
+
+**Search Not Working**
+- Fixed search functionality in faction browser and new player browser
+- Codec key mismatch (`SearchQuery` vs `@SearchQuery`) now resolved
+- Search input values now correctly passed to event handlers
+
+**Sort Buttons Breaking Navigation**
+- Fixed sort buttons causing nav bar to disappear
+- Implemented proper `rebuildList()` pattern instead of full page rebuild
+
+**Leader Cannot Leave**
+- Leaders can now properly leave their faction
+- Leadership is automatically transferred to the best successor
+- Fixed `transferLeadership` parameter order bug (newLeader, actorUuid)
+
+**CustomUI Visible Property**
+- Fixed `.Visible` property using string instead of boolean
+- Changed `cmd.set("#Element.Visible", "true")` to `cmd.set("#Element.Visible", true)`
+
+**New Player Map Relation Indicators**
+- New player map no longer shows ally/enemy indicators
+- Players not in a faction no longer see relation-based colors
 
 ## [0.3.1] - 2026-02-01
 

@@ -57,8 +57,8 @@ $C.@PageOverlay {
         LayoutMode: Left;
         Anchor: (Height: 50);
 
-        // Column 1
-        Group {
+        // Column 1 - Faction-specific (Your/Ally/Enemy) - hidden for new players
+        Group #FactionLegend {
           LayoutMode: Top;
           Anchor: (Width: 120);
 

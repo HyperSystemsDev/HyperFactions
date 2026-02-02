@@ -35,6 +35,9 @@ public class FactionPageData implements NavAwareData {
     /** Tab selection for multi-tab pages (e.g., "allies", "enemies") */
     public String tab;
 
+    /** Search query for filtered lists */
+    public String searchQuery;
+
     /** Codec for serialization/deserialization */
     public static final BuilderCodec<FactionPageData> CODEC = BuilderCodec
             .builder(FactionPageData.class, FactionPageData::new)
@@ -84,6 +87,11 @@ public class FactionPageData implements NavAwareData {
                     (data, value) -> data.tab = value,
                     data -> data.tab
             )
+            .addField(
+                    new KeyedCodec<>("@SearchQuery", Codec.STRING),
+                    (data, value) -> data.searchQuery = value,
+                    data -> data.searchQuery
+            )
             .build();
 
     public FactionPageData() {
@@ -105,6 +113,7 @@ public class FactionPageData implements NavAwareData {
                 ", playerUuid='" + playerUuid + '\'' +
                 ", sortMode='" + sortMode + '\'' +
                 ", tab='" + tab + '\'' +
+                ", searchQuery='" + searchQuery + '\'' +
                 '}';
     }
 }

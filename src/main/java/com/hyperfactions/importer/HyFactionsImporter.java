@@ -143,6 +143,333 @@ public class HyFactionsImporter {
         return importInProgress.get();
     }
 
+    // === Validation Method ===
+
+    /**
+     * Validates HyFactions data before import without making any changes.
+     * Use this to preview what will be imported and identify potential issues.
+     *
+     * @param sourcePath the path to the Kaws_Hyfaction directory
+     * @return validation report with conflicts and warnings
+     */
+    public ImportValidationReport validate(@NotNull Path sourcePath) {
+        ImportValidationReport.Builder report = ImportValidationReport.builder();
+
+        // Validate directory structure
+        File sourceDir = sourcePath.toFile();
+        if (!sourceDir.exists() || !sourceDir.isDirectory()) {
+            report.error("Source directory not found: " + sourcePath);
+            return report.build();
+        }
+
+        File configDir = new File(sourceDir, "config");
+        if (!configDir.exists()) {
+            report.error("Config directory not found: " + configDir.getPath());
+            return report.build();
+        }
+
+        // Load name cache
+        loadNameCacheForValidation(configDir, report);
+
+        // Load and validate factions
+        List<HyFaction> hyFactions = loadFactionsForValidation(configDir, report);
+        report.totalFactions(hyFactions.size());
+
+        // Track seen names and IDs for duplicate detection within import
+        Set<String> seenNames = new HashSet<>();
+        Set<String> seenIds = new HashSet<>();
+        Set<String> seenMembers = new HashSet<>();
+
+        for (HyFaction hyFaction : hyFactions) {
+            validateFaction(hyFaction, seenNames, seenIds, seenMembers, report);
+        }
+
+        // Load and validate claims
+        Map<UUID, List<HyFactionChunkInfo>> claimsByFaction = loadClaimsForValidation(configDir, report);
+        int totalClaims = claimsByFaction.values().stream().mapToInt(List::size).sum();
+        report.totalClaims(totalClaims);
+
+        // Validate claims reference existing factions
+        Set<UUID> factionIds = new HashSet<>();
+        for (HyFaction f : hyFactions) {
+            if (f.Id() != null) {
+                try {
+                    factionIds.add(UUID.fromString(f.Id()));
+                } catch (IllegalArgumentException ignored) {}
+            }
+        }
+
+        for (UUID claimOwner : claimsByFaction.keySet()) {
+            if (!factionIds.contains(claimOwner)) {
+                report.warning("Claims reference unknown faction: " + claimOwner);
+            }
+        }
+
+        // Load zones
+        if (!skipZones) {
+            List<HyFactionZoneChunk> safeZones = loadSafeZonesForValidation(configDir, report);
+            List<HyFactionZoneChunk> warZones = loadWarZonesForValidation(configDir, report);
+            report.totalSafeZoneChunks(safeZones.size());
+            report.totalWarZoneChunks(warZones.size());
+        }
+
+        return report.build();
+    }
+
+    /**
+     * Validates a single faction and adds issues to the report.
+     */
+    private void validateFaction(HyFaction hyFaction, Set<String> seenNames, Set<String> seenIds,
+                                  Set<String> seenMembers, ImportValidationReport.Builder report) {
+        // Validate ID
+        if (hyFaction.Id() == null || hyFaction.Id().isEmpty()) {
+            report.error("Faction missing ID: " + hyFaction.Name());
+            return;
+        }
+
+        // Validate UUID format
+        UUID factionId;
+        try {
+            factionId = UUID.fromString(hyFaction.Id());
+        } catch (IllegalArgumentException e) {
+            report.invalidUuid("Invalid faction ID format: " + hyFaction.Id());
+            return;
+        }
+
+        // Check for duplicate IDs within import data
+        if (seenIds.contains(hyFaction.Id())) {
+            report.idConflict("Duplicate faction ID in import data: " + hyFaction.Id());
+        }
+        seenIds.add(hyFaction.Id());
+
+        // Validate name
+        if (hyFaction.Name() == null || hyFaction.Name().isEmpty()) {
+            report.error("Faction missing name: " + hyFaction.Id());
+            return;
+        }
+
+        // Check for duplicate names within import data
+        String lowerName = hyFaction.Name().toLowerCase();
+        if (seenNames.contains(lowerName)) {
+            report.nameConflict("Duplicate faction name in import data: " + hyFaction.Name());
+        }
+        seenNames.add(lowerName);
+
+        // Check for name conflict with existing HyperFactions factions
+        Faction existingByName = factionManager.getFactionByName(hyFaction.Name());
+        if (existingByName != null && !existingByName.id().equals(factionId)) {
+            if (overwrite) {
+                report.nameConflict("Faction '" + hyFaction.Name() + "' exists with different ID - will use imported ID");
+            } else {
+                report.nameConflict("Faction '" + hyFaction.Name() + "' already exists (different ID) - use --overwrite to replace");
+            }
+        }
+
+        // Check for ID conflict with existing HyperFactions factions
+        Faction existingById = factionManager.getFaction(factionId);
+        if (existingById != null) {
+            if (overwrite) {
+                report.idConflict("Faction ID " + factionId + " exists - will be overwritten");
+            } else {
+                report.idConflict("Faction ID " + factionId + " already exists - use --overwrite to replace");
+            }
+        }
+
+        // Validate members
+        if (hyFaction.Members() == null || hyFaction.Members().isEmpty()) {
+            report.warning("Faction '" + hyFaction.Name() + "' has no members");
+        } else {
+            report.addMembers(hyFaction.Members().size());
+
+            for (String memberUuidStr : hyFaction.Members()) {
+                // Validate member UUID format
+                try {
+                    UUID.fromString(memberUuidStr);
+                } catch (IllegalArgumentException e) {
+                    report.invalidUuid("Invalid member UUID in " + hyFaction.Name() + ": " + memberUuidStr);
+                    continue;
+                }
+
+                // Check for members in multiple imported factions
+                if (seenMembers.contains(memberUuidStr)) {
+                    String memberName = nameCache.getOrDefault(parseUUID(memberUuidStr), memberUuidStr);
+                    report.memberConflict("Player '" + memberName + "' appears in multiple imported factions");
+                }
+                seenMembers.add(memberUuidStr);
+
+                // Check if member is already in an existing HyperFactions faction
+                UUID memberUuid = parseUUID(memberUuidStr);
+                if (memberUuid != null) {
+                    Faction existingFaction = factionManager.getPlayerFaction(memberUuid);
+                    if (existingFaction != null && !existingFaction.id().equals(factionId)) {
+                        String memberName = nameCache.getOrDefault(memberUuid, memberUuidStr);
+                        report.memberConflict("Player '" + memberName + "' already in faction '" +
+                            existingFaction.name() + "' - will be moved to '" + hyFaction.Name() + "'");
+                    }
+                }
+            }
+        }
+
+        // Validate owner
+        if (hyFaction.Owner() == null || hyFaction.Owner().isEmpty()) {
+            report.warning("Faction '" + hyFaction.Name() + "' has no owner - first member will become leader");
+        } else {
+            try {
+                UUID.fromString(hyFaction.Owner());
+            } catch (IllegalArgumentException e) {
+                report.invalidUuid("Invalid owner UUID in " + hyFaction.Name() + ": " + hyFaction.Owner());
+            }
+        }
+
+        // Validate home dimension (world)
+        if (hyFaction.hasHome() && hyFaction.HomeDimension() != null) {
+            String worldName = hyFaction.HomeDimension();
+            // Common dimension names that might need mapping
+            if (!worldName.equals("default") && !worldName.equals("overworld") &&
+                !worldName.equals("nether") && !worldName.equals("end")) {
+                report.worldWarning("Faction '" + hyFaction.Name() + "' home in unknown world: " + worldName);
+            }
+        }
+    }
+
+    /**
+     * Loads name cache for validation (doesn't modify state).
+     */
+    private void loadNameCacheForValidation(File configDir, ImportValidationReport.Builder report) {
+        File nameCacheFile = new File(configDir, "NameCache.json");
+        if (!nameCacheFile.exists()) {
+            report.warning("NameCache.json not found - usernames may be unavailable");
+            return;
+        }
+
+        try (FileReader reader = new FileReader(nameCacheFile)) {
+            HyFactionNameCache cache = gson.fromJson(reader, HyFactionNameCache.class);
+            if (cache != null && cache.Values() != null) {
+                for (HyFactionNameEntry entry : cache.Values()) {
+                    if (entry.UUID() != null && entry.Name() != null) {
+                        try {
+                            UUID uuid = UUID.fromString(entry.UUID());
+                            nameCache.put(uuid, entry.Name());
+                        } catch (IllegalArgumentException ignored) {}
+                    }
+                }
+            }
+        } catch (Exception e) {
+            report.warning("Failed to load NameCache.json: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Loads factions for validation (doesn't modify state).
+     */
+    private List<HyFaction> loadFactionsForValidation(File configDir, ImportValidationReport.Builder report) {
+        List<HyFaction> factions = new ArrayList<>();
+        File factionDir = new File(configDir, "faction");
+
+        if (!factionDir.exists() || !factionDir.isDirectory()) {
+            report.warning("No faction directory found");
+            return factions;
+        }
+
+        File[] files = factionDir.listFiles((dir, name) -> name.endsWith(".json"));
+        if (files == null || files.length == 0) {
+            report.warning("No faction files found");
+            return factions;
+        }
+
+        for (File file : files) {
+            try (FileReader reader = new FileReader(file)) {
+                HyFaction faction = gson.fromJson(reader, HyFaction.class);
+                if (faction != null && faction.Id() != null) {
+                    factions.add(faction);
+                }
+            } catch (Exception e) {
+                report.warning("Failed to load faction file " + file.getName() + ": " + e.getMessage());
+            }
+        }
+
+        return factions;
+    }
+
+    /**
+     * Loads claims for validation (doesn't modify state).
+     */
+    private Map<UUID, List<HyFactionChunkInfo>> loadClaimsForValidation(File configDir, ImportValidationReport.Builder report) {
+        Map<UUID, List<HyFactionChunkInfo>> claimsByFaction = new HashMap<>();
+        File claimsFile = new File(configDir, "Claims.json");
+
+        if (!claimsFile.exists()) {
+            report.warning("Claims.json not found");
+            return claimsByFaction;
+        }
+
+        try (FileReader reader = new FileReader(claimsFile)) {
+            HyFactionClaims claims = gson.fromJson(reader, HyFactionClaims.class);
+            if (claims != null && claims.Dimensions() != null) {
+                for (HyFactionDimension dim : claims.Dimensions()) {
+                    if (dim.ChunkInfo() == null) continue;
+
+                    for (HyFactionChunkInfo chunk : dim.ChunkInfo()) {
+                        if (chunk.UUID() == null) continue;
+
+                        try {
+                            UUID factionId = UUID.fromString(chunk.UUID());
+                            claimsByFaction.computeIfAbsent(factionId, k -> new ArrayList<>()).add(chunk);
+                        } catch (IllegalArgumentException e) {
+                            report.invalidUuid("Invalid faction UUID in claim: " + chunk.UUID());
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            report.warning("Failed to load Claims.json: " + e.getMessage());
+        }
+
+        return claimsByFaction;
+    }
+
+    /**
+     * Loads safe zones for validation (doesn't modify state).
+     */
+    private List<HyFactionZoneChunk> loadSafeZonesForValidation(File configDir, ImportValidationReport.Builder report) {
+        File file = new File(configDir, "SafeZones.json");
+        if (!file.exists()) {
+            return Collections.emptyList();
+        }
+
+        try (FileReader reader = new FileReader(file)) {
+            HyFactionSafeZones zones = gson.fromJson(reader, HyFactionSafeZones.class);
+            if (zones != null && zones.SafeZones() != null) {
+                return zones.SafeZones();
+            }
+        } catch (Exception e) {
+            report.warning("Failed to load SafeZones.json: " + e.getMessage());
+        }
+
+        return Collections.emptyList();
+    }
+
+    /**
+     * Loads war zones for validation (doesn't modify state).
+     */
+    private List<HyFactionZoneChunk> loadWarZonesForValidation(File configDir, ImportValidationReport.Builder report) {
+        File file = new File(configDir, "WarZones.json");
+        if (!file.exists()) {
+            return Collections.emptyList();
+        }
+
+        try (FileReader reader = new FileReader(file)) {
+            HyFactionWarZones zones = gson.fromJson(reader, HyFactionWarZones.class);
+            if (zones != null && zones.WarZones() != null) {
+                return zones.WarZones();
+            }
+        } catch (Exception e) {
+            report.warning("Failed to load WarZones.json: " + e.getMessage());
+        }
+
+        return Collections.emptyList();
+    }
+
     // === Main Import Method ===
 
     /**
@@ -876,8 +1203,10 @@ public class HyFactionsImporter {
 
                 if (!dryRun) {
                     // Create the zone atomically with all its chunks
+                    // Apply default flags since HyFactions doesn't have a flag system
+                    Map<String, Boolean> defaultFlags = ZoneFlags.getDefaultFlags(type);
                     CompletableFuture<ZoneManager.ZoneResult> future = zoneManager.createZoneWithChunks(
-                        zoneName, type, dimension, UUID.randomUUID(), cluster
+                        zoneName, type, dimension, UUID.randomUUID(), cluster, defaultFlags
                     ).thenApply(zoneResult -> {
                         if (zoneResult == ZoneManager.ZoneResult.SUCCESS) {
                             result.incrementZonesCreated();

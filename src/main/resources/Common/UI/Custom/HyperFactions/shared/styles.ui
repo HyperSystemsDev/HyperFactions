@@ -183,6 +183,23 @@ $C = "../../Common.ui";
   Sounds: $C.@ButtonSounds,
 );
 
+// Disabled button style - grayed out, non-interactive
+@DisabledLabelStyle = LabelStyle(
+  FontSize: 13,
+  TextColor: #555555,
+  RenderBold: true,
+  HorizontalAlignment: Center,
+  VerticalAlignment: Center
+);
+
+@DisabledButtonStyle = TextButtonStyle(
+  Default: (Background: $C.@DefaultSquareButtonDisabledBackground, LabelStyle: @DisabledLabelStyle),
+  Hovered: (Background: $C.@DefaultSquareButtonDisabledBackground, LabelStyle: @DisabledLabelStyle),
+  Pressed: (Background: $C.@DefaultSquareButtonDisabledBackground, LabelStyle: @DisabledLabelStyle),
+  Disabled: (Background: $C.@DefaultSquareButtonDisabledBackground, LabelStyle: @DisabledLabelStyle),
+  Sounds: $C.@ButtonSounds,
+);
+
 // =============================================================================
 // ZONE BUTTON STYLES (SafeZone = Teal, WarZone = Purple)
 // =============================================================================

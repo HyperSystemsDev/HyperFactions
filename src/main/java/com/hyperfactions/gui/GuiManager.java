@@ -120,16 +120,12 @@ public class GuiManager {
                 null,
                 (player, ref, store, playerRef, faction, guiManager) -> {
                     if (faction == null) return null;
-                    // Only show for officers and above
-                    FactionMember member = faction.getMember(playerRef.getUuid());
-                    if (member == null || member.role().getLevel() < FactionRole.OFFICER.getLevel()) {
-                        return null;  // Returns null = page hidden from nav bar
-                    }
                     return new FactionInvitesPage(playerRef, factionManager.get(), inviteManager.get(),
                             joinRequestManager.get(), guiManager, plugin.get(), faction);
                 },
-                true, // Show in nav bar (conditionally returns null for non-officers)
+                true, // Show in nav bar
                 true, // Requires faction
+                FactionRole.OFFICER, // Minimum role required
                 2
         ));
 
@@ -265,7 +261,7 @@ public class GuiManager {
                 null,
                 (player, ref, store, playerRef, guiManager) ->
                         new NewPlayerMapPage(playerRef, factionManager.get(), claimManager.get(),
-                                relationManager.get(), zoneManager.get(), guiManager),
+                                zoneManager.get(), guiManager),
                 true,
                 3
         ));
@@ -1112,6 +1108,36 @@ public class GuiManager {
     }
 
     /**
+     * Opens the Leader Leave Confirmation modal.
+     * Shows succession information when a leader wants to leave.
+     *
+     * @param player    The Player entity
+     * @param ref       The entity reference
+     * @param store     The entity store
+     * @param playerRef The PlayerRef component
+     * @param faction   The faction the leader is leaving
+     */
+    public void openLeaderLeaveConfirm(Player player, Ref<EntityStore> ref,
+                                        Store<EntityStore> store, PlayerRef playerRef,
+                                        Faction faction) {
+        Logger.debug("[GUI] Opening LeaderLeaveConfirmPage for %s", playerRef.getUsername());
+        try {
+            PageManager pageManager = player.getPageManager();
+            LeaderLeaveConfirmPage page = new LeaderLeaveConfirmPage(
+                playerRef,
+                factionManager.get(),
+                this,
+                faction
+            );
+            pageManager.openCustomPage(ref, store, page);
+            Logger.debug("[GUI] LeaderLeaveConfirmPage opened successfully");
+        } catch (Exception e) {
+            Logger.severe("[GUI] Failed to open LeaderLeaveConfirmPage: %s", e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
      * Opens the Faction Modules page.
      *
      * @param player    The Player entity
@@ -1693,8 +1719,24 @@ public class GuiManager {
     public void openFactionInfo(Player player, Ref<EntityStore> ref,
                                 Store<EntityStore> store, PlayerRef playerRef,
                                 Faction targetFaction) {
-        Logger.debug("[GUI] Opening FactionInfoPage for %s (viewing %s)",
-                playerRef.getUsername(), targetFaction.name());
+        openFactionInfo(player, ref, store, playerRef, targetFaction, null);
+    }
+
+    /**
+     * Opens the Faction Info page with source tracking.
+     *
+     * @param player        The player viewing the page
+     * @param ref           The entity reference
+     * @param store         The entity store
+     * @param playerRef     The PlayerRef component
+     * @param targetFaction The faction to view info for
+     * @param sourcePage    The source page to return to ("browser", "newplayer_browser", "admin_factions", or null)
+     */
+    public void openFactionInfo(Player player, Ref<EntityStore> ref,
+                                Store<EntityStore> store, PlayerRef playerRef,
+                                Faction targetFaction, String sourcePage) {
+        Logger.debug("[GUI] Opening FactionInfoPage for %s (viewing %s, source: %s)",
+                playerRef.getUsername(), targetFaction.name(), sourcePage);
         try {
             PageManager pageManager = player.getPageManager();
             FactionInfoPage page = new FactionInfoPage(
@@ -1703,7 +1745,8 @@ public class GuiManager {
                 factionManager.get(),
                 powerManager.get(),
                 relationManager.get(),
-                this
+                this,
+                sourcePage
             );
             pageManager.openCustomPage(ref, store, page);
             Logger.debug("[GUI] FactionInfoPage opened successfully");
@@ -1775,8 +1818,25 @@ public class GuiManager {
     public void openNewPlayerBrowse(Player player, Ref<EntityStore> ref,
                                     Store<EntityStore> store, PlayerRef playerRef,
                                     int page, String sortBy) {
-        Logger.debug("[GUI] Opening NewPlayerBrowsePage for %s (page=%d, sort=%s)",
-                playerRef.getUsername(), page, sortBy);
+        openNewPlayerBrowse(player, ref, store, playerRef, page, sortBy, "");
+    }
+
+    /**
+     * Opens the New Player Browse page with custom page, sort, and search state.
+     *
+     * @param player      The Player entity
+     * @param ref         The entity reference
+     * @param store       The entity store
+     * @param playerRef   The PlayerRef component
+     * @param page        The page number (0-indexed)
+     * @param sortBy      The sort mode (power, members, name)
+     * @param searchQuery The search query to filter factions
+     */
+    public void openNewPlayerBrowse(Player player, Ref<EntityStore> ref,
+                                    Store<EntityStore> store, PlayerRef playerRef,
+                                    int page, String sortBy, String searchQuery) {
+        Logger.debug("[GUI] Opening NewPlayerBrowsePage for %s (page=%d, sort=%s, search=%s)",
+                playerRef.getUsername(), page, sortBy, searchQuery);
         try {
             PageManager pageManager = player.getPageManager();
             NewPlayerBrowsePage browsePage = new NewPlayerBrowsePage(
@@ -1786,7 +1846,8 @@ public class GuiManager {
                 inviteManager.get(),
                 this,
                 page,
-                sortBy
+                sortBy,
+                searchQuery
             );
             pageManager.openCustomPage(ref, store, browsePage);
             Logger.debug("[GUI] NewPlayerBrowsePage opened successfully");
@@ -1998,7 +2059,6 @@ public class GuiManager {
                 playerRef,
                 factionManager.get(),
                 claimManager.get(),
-                relationManager.get(),
                 zoneManager.get(),
                 this
             );

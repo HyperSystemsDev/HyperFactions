@@ -33,6 +33,7 @@ import java.util.*;
 public class FactionMembersPage extends InteractiveCustomUIPage<FactionMembersData> {
 
     private static final String PAGE_ID = "members";
+    private static final int ITEMS_PER_PAGE = 8;
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("MMM d, yyyy")
             .withZone(ZoneId.systemDefault());
 
@@ -44,6 +45,7 @@ public class FactionMembersPage extends InteractiveCustomUIPage<FactionMembersDa
 
     private Set<UUID> expandedMembers = new HashSet<>();
     private SortMode sortMode = SortMode.ROLE;
+    private int currentPage = 0;
 
     private enum SortMode {
         ROLE,
@@ -71,16 +73,31 @@ public class FactionMembersPage extends InteractiveCustomUIPage<FactionMembersDa
         cmd.append("HyperFactions/faction/faction_members.ui");
 
         // Setup navigation bar
-        NavBarHelper.setupBar(playerRef, true, PAGE_ID, cmd, events);
+        NavBarHelper.setupBar(playerRef, faction, PAGE_ID, cmd, events);
 
         // Build member list
         buildMemberList(cmd, events);
     }
 
     private void buildMemberList(UICommandBuilder cmd, UIEventBuilder events) {
-        List<FactionMember> members = getFilteredSortedMembers();
+        List<FactionMember> allMembers = getFilteredSortedMembers();
+        int totalMembers = allMembers.size();
+        int totalPages = Math.max(1, (int) Math.ceil((double) totalMembers / ITEMS_PER_PAGE));
 
-        cmd.set("#MemberCount.Text", members.size() + " members");
+        // Clamp current page
+        if (currentPage >= totalPages) {
+            currentPage = totalPages - 1;
+        }
+        if (currentPage < 0) {
+            currentPage = 0;
+        }
+
+        // Get members for current page
+        int startIdx = currentPage * ITEMS_PER_PAGE;
+        int endIdx = Math.min(startIdx + ITEMS_PER_PAGE, totalMembers);
+        List<FactionMember> pageMembers = allMembers.subList(startIdx, endIdx);
+
+        cmd.set("#MemberCount.Text", totalMembers + " members");
 
         // Sort buttons
         cmd.set("#SortByRole.Disabled", sortMode == SortMode.ROLE);
@@ -99,13 +116,41 @@ public class FactionMembersPage extends InteractiveCustomUIPage<FactionMembersDa
                 false
         );
 
+        // Pagination controls
+        boolean hasPrev = currentPage > 0;
+        boolean hasNext = currentPage < totalPages - 1;
+
+        cmd.set("#PrevBtn.Visible", totalPages > 1);
+        cmd.set("#NextBtn.Visible", totalPages > 1);
+        cmd.set("#PageIndicator.Visible", totalPages > 1);
+        cmd.set("#PrevBtn.Disabled", !hasPrev);
+        cmd.set("#NextBtn.Disabled", !hasNext);
+        cmd.set("#PageIndicator.Text", (currentPage + 1) + " / " + totalPages);
+
+        if (hasPrev) {
+            events.addEventBinding(
+                    CustomUIEventBindingType.Activating,
+                    "#PrevBtn",
+                    EventData.of("Button", "PrevPage"),
+                    false
+            );
+        }
+        if (hasNext) {
+            events.addEventBinding(
+                    CustomUIEventBindingType.Activating,
+                    "#NextBtn",
+                    EventData.of("Button", "NextPage"),
+                    false
+            );
+        }
+
         // Clear MembersList (exists in template), then create IndexCards container inside it
         cmd.clear("#MembersList");
         cmd.appendInline("#MembersList", "Group #IndexCards { LayoutMode: Top; }");
 
-        // Build entries
+        // Build entries for current page
         int i = 0;
-        for (FactionMember member : members) {
+        for (FactionMember member : pageMembers) {
             buildMemberEntry(cmd, events, i, member);
             i++;
         }
@@ -338,11 +383,25 @@ public class FactionMembersPage extends InteractiveCustomUIPage<FactionMembersDa
 
             case "SortByRole" -> {
                 sortMode = SortMode.ROLE;
+                currentPage = 0;
                 rebuildList(ref, store);
             }
 
             case "SortByOnline" -> {
                 sortMode = SortMode.LAST_ONLINE;
+                currentPage = 0;
+                rebuildList(ref, store);
+            }
+
+            case "PrevPage" -> {
+                if (currentPage > 0) {
+                    currentPage--;
+                    rebuildList(ref, store);
+                }
+            }
+
+            case "NextPage" -> {
+                currentPage++;
                 rebuildList(ref, store);
             }
 

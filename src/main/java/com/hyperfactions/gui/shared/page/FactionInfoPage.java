@@ -38,6 +38,7 @@ public class FactionInfoPage extends InteractiveCustomUIPage<FactionPageData> {
     private final PowerManager powerManager;
     private final RelationManager relationManager;
     private final GuiManager guiManager;
+    private final String sourcePage;
 
     public FactionInfoPage(PlayerRef viewerRef,
                            Faction targetFaction,
@@ -45,6 +46,24 @@ public class FactionInfoPage extends InteractiveCustomUIPage<FactionPageData> {
                            PowerManager powerManager,
                            RelationManager relationManager,
                            GuiManager guiManager) {
+        this(viewerRef, targetFaction, factionManager, powerManager, relationManager, guiManager, null);
+    }
+
+    /**
+     * Constructor with source page tracking.
+     * @param sourcePage The page to return to when back is clicked:
+     *                   "browser" - FactionBrowserPage
+     *                   "newplayer_browser" - NewPlayerBrowsePage
+     *                   "admin_factions" - AdminFactionsPage
+     *                   null - just close the page
+     */
+    public FactionInfoPage(PlayerRef viewerRef,
+                           Faction targetFaction,
+                           FactionManager factionManager,
+                           PowerManager powerManager,
+                           RelationManager relationManager,
+                           GuiManager guiManager,
+                           String sourcePage) {
         super(viewerRef, CustomPageLifetime.CanDismiss, FactionPageData.CODEC);
         this.viewerRef = viewerRef;
         this.targetFaction = targetFaction;
@@ -52,6 +71,7 @@ public class FactionInfoPage extends InteractiveCustomUIPage<FactionPageData> {
         this.powerManager = powerManager;
         this.relationManager = relationManager;
         this.guiManager = guiManager;
+        this.sourcePage = sourcePage;
     }
 
     @Override
@@ -60,6 +80,10 @@ public class FactionInfoPage extends InteractiveCustomUIPage<FactionPageData> {
 
         // Load the faction info template
         cmd.append("HyperFactions/shared/faction_info.ui");
+
+        // Check if viewer is viewing their own faction
+        Faction viewerFaction = factionManager.getPlayerFaction(viewerRef.getUuid());
+        boolean isOwnFaction = viewerFaction != null && viewerFaction.id().equals(targetFaction.id());
 
         // === Header Section ===
         // Faction name
@@ -142,23 +166,28 @@ public class FactionInfoPage extends InteractiveCustomUIPage<FactionPageData> {
         }
 
         // === Event Bindings ===
-        // View Members button
-        events.addEventBinding(
-                CustomUIEventBindingType.Activating,
-                "#ViewMembersBtn",
-                EventData.of("Button", "ViewMembers")
-                        .append("FactionId", targetFaction.id().toString()),
-                false
-        );
+        // View Members and Relations buttons - only show for own faction
+        if (isOwnFaction) {
+            events.addEventBinding(
+                    CustomUIEventBindingType.Activating,
+                    "#ViewMembersBtn",
+                    EventData.of("Button", "ViewMembers")
+                            .append("FactionId", targetFaction.id().toString()),
+                    false
+            );
 
-        // View Relations button
-        events.addEventBinding(
-                CustomUIEventBindingType.Activating,
-                "#ViewRelationsBtn",
-                EventData.of("Button", "ViewRelations")
-                        .append("FactionId", targetFaction.id().toString()),
-                false
-        );
+            events.addEventBinding(
+                    CustomUIEventBindingType.Activating,
+                    "#ViewRelationsBtn",
+                    EventData.of("Button", "ViewRelations")
+                            .append("FactionId", targetFaction.id().toString()),
+                    false
+            );
+        } else {
+            // Hide buttons when viewing another faction
+            cmd.set("#ViewMembersBtn.Visible", false);
+            cmd.set("#ViewRelationsBtn.Visible", false);
+        }
 
         // Back button
         events.addEventBinding(
@@ -206,7 +235,21 @@ public class FactionInfoPage extends InteractiveCustomUIPage<FactionPageData> {
                 }
             }
 
-            case "Back" -> guiManager.closePage(player, ref, store);
+            case "Back" -> handleBack(player, ref, store, playerRef);
+        }
+    }
+
+    private void handleBack(Player player, Ref<EntityStore> ref, Store<EntityStore> store, PlayerRef playerRef) {
+        if (sourcePage == null) {
+            guiManager.closePage(player, ref, store);
+            return;
+        }
+
+        switch (sourcePage) {
+            case "browser" -> guiManager.openFactionBrowser(player, ref, store, playerRef);
+            case "newplayer_browser" -> guiManager.openNewPlayerBrowse(player, ref, store, playerRef, 0, null, "");
+            case "admin_factions" -> guiManager.openAdminFactions(player, ref, store, playerRef);
+            default -> guiManager.closePage(player, ref, store);
         }
     }
 }

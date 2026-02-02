@@ -42,7 +42,7 @@ public class FactionHelpPage extends InteractiveCustomUIPage<FactionPageData> {
         cmd.append("HyperFactions/newplayer/help.ui");
 
         // Setup faction navigation bar
-        NavBarHelper.setupBar(playerRef, faction != null, PAGE_ID, cmd, events);
+        NavBarHelper.setupBar(playerRef, faction, PAGE_ID, cmd, events);
     }
 
     @Override

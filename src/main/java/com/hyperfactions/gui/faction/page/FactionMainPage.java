@@ -71,7 +71,7 @@ public class FactionMainPage extends InteractiveCustomUIPage<FactionPageData> {
         cmd.append("HyperFactions/faction/faction_main.ui");
 
         // Setup navigation bar (AdminUI pattern with indexed selectors)
-        NavBarHelper.setupBar(playerRef, hasFaction, PAGE_ID, cmd, events);
+        NavBarHelper.setupBar(playerRef, faction, PAGE_ID, cmd, events);
 
         // Check for pending invites
         buildInviteNotification(cmd, events, uuid);

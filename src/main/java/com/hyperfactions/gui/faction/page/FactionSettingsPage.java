@@ -111,7 +111,7 @@ public class FactionSettingsPage extends InteractiveCustomUIPage<FactionSettings
         cmd.append("HyperFactions/faction/faction_settings.ui");
 
         // Setup navigation bar
-        NavBarHelper.setupBar(playerRef, true, PAGE_ID, cmd, events);
+        NavBarHelper.setupBar(playerRef, faction, PAGE_ID, cmd, events);
 
         // === GENERAL SECTION ===
         cmd.set("#NameValue.Text", faction.name());

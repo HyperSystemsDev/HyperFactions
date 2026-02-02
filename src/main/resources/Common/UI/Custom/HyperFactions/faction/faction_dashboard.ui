@@ -9,7 +9,7 @@ $C.@PageOverlay {
   $Nav.@HyperFactionsNavBar #HyperFactionsNavBar {}
 
   $C.@DecoratedContainer {
-    Anchor: (Width: 600, Height: 480);
+    Anchor: (Width: 600, Height: 580);
 
     #Title {
       Group {
@@ -51,25 +51,195 @@ $C.@PageOverlay {
         }
       }
 
-      // Stat cards row
-      Group #StatCardsRow {
-        Anchor: (Height: 90, Bottom: 15);
+      // Stats Grid - Row 1: Power, Claims, Members
+      Group #StatsRow1 {
+        Anchor: (Height: 80, Bottom: 10);
         LayoutMode: Left;
 
-        Group #PowerCard {
-          Anchor: (Width: 155);
+        // Power stat
+        Group #PowerStat {
+          FlexWeight: 1;
+          Background: (Color: #1a2a3a);
+          Padding: (Left: 15, Right: 15, Top: 12, Bottom: 12);
+          LayoutMode: Top;
+          Anchor: (Right: 5);
+
+          Label {
+            Text: "POWER";
+            Style: (FontSize: 10, TextColor: #666666, HorizontalAlignment: Center, VerticalAlignment: Center);
+            Anchor: (Height: 16);
+          }
+          Label #PowerValue {
+            Text: "0 / 0";
+            Style: (FontSize: 22, TextColor: #44CC44, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center);
+            FlexWeight: 1;
+          }
+          Label #PowerPercent {
+            Text: "0%";
+            Style: (FontSize: 10, TextColor: #888888, HorizontalAlignment: Center, VerticalAlignment: Center);
+            Anchor: (Height: 14);
+          }
         }
 
-        Label { Anchor: (Width: 15); }
+        // Claims stat
+        Group #ClaimsStat {
+          FlexWeight: 1;
+          Background: (Color: #1a2a3a);
+          Padding: (Left: 15, Right: 15, Top: 12, Bottom: 12);
+          LayoutMode: Top;
+          Anchor: (Left: 5, Right: 5);
 
-        Group #ClaimsCard {
-          Anchor: (Width: 155);
+          Label {
+            Text: "CLAIMS";
+            Style: (FontSize: 10, TextColor: #666666, HorizontalAlignment: Center, VerticalAlignment: Center);
+            Anchor: (Height: 16);
+          }
+          Label #ClaimsValue {
+            Text: "0 / 0";
+            Style: (FontSize: 22, TextColor: #FFAA00, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center);
+            FlexWeight: 1;
+          }
+          Label #ClaimsAvailable {
+            Text: "0 available";
+            Style: (FontSize: 10, TextColor: #888888, HorizontalAlignment: Center, VerticalAlignment: Center);
+            Anchor: (Height: 14);
+          }
         }
 
-        Label { Anchor: (Width: 15); }
+        // Members stat
+        Group #MembersStat {
+          FlexWeight: 1;
+          Background: (Color: #1a2a3a);
+          Padding: (Left: 15, Right: 15, Top: 12, Bottom: 12);
+          LayoutMode: Top;
+          Anchor: (Left: 5);
 
-        Group #MembersCard {
-          Anchor: (Width: 155);
+          Label {
+            Text: "MEMBERS";
+            Style: (FontSize: 10, TextColor: #666666, HorizontalAlignment: Center, VerticalAlignment: Center);
+            Anchor: (Height: 16);
+          }
+          Label #MembersValue {
+            Text: "0";
+            Style: (FontSize: 22, TextColor: #00FFFF, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center);
+            FlexWeight: 1;
+          }
+          Label #MembersOnline {
+            Text: "0 online";
+            Style: (FontSize: 10, TextColor: #888888, HorizontalAlignment: Center, VerticalAlignment: Center);
+            Anchor: (Height: 14);
+          }
+        }
+      }
+
+      // Stats Grid - Row 2: Relations, Status, Invites
+      Group #StatsRow2 {
+        Anchor: (Height: 80, Bottom: 15);
+        LayoutMode: Left;
+
+        // Relations stat
+        Group #RelationsStat {
+          FlexWeight: 1;
+          Background: (Color: #1a2a3a);
+          Padding: (Left: 15, Right: 15, Top: 12, Bottom: 12);
+          LayoutMode: Top;
+          Anchor: (Right: 5);
+
+          Label {
+            Text: "RELATIONS";
+            Style: (FontSize: 10, TextColor: #666666, HorizontalAlignment: Center, VerticalAlignment: Center);
+            Anchor: (Height: 16);
+          }
+          Group {
+            FlexWeight: 1;
+            LayoutMode: Left;
+
+            Label #AllyCount {
+              Text: "0";
+              Style: (FontSize: 20, TextColor: #55FF55, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center);
+              FlexWeight: 1;
+            }
+            Label {
+              Text: "/";
+              Style: (FontSize: 16, TextColor: #444444, HorizontalAlignment: Center, VerticalAlignment: Center);
+              Anchor: (Width: 15);
+            }
+            Label #EnemyCount {
+              Text: "0";
+              Style: (FontSize: 20, TextColor: #FF5555, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center);
+              FlexWeight: 1;
+            }
+          }
+          Label {
+            Text: "ally / enemy";
+            Style: (FontSize: 9, TextColor: #444444, HorizontalAlignment: Center, VerticalAlignment: Center);
+            Anchor: (Height: 14);
+          }
+        }
+
+        // Status stat
+        Group #StatusStat {
+          FlexWeight: 1;
+          Background: (Color: #1a2a3a);
+          Padding: (Left: 15, Right: 15, Top: 12, Bottom: 12);
+          LayoutMode: Top;
+          Anchor: (Left: 5, Right: 5);
+
+          Label {
+            Text: "STATUS";
+            Style: (FontSize: 10, TextColor: #666666, HorizontalAlignment: Center, VerticalAlignment: Center);
+            Anchor: (Height: 16);
+          }
+          Label #StatusValue {
+            Text: "OPEN";
+            Style: (FontSize: 18, TextColor: #55FF55, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center);
+            FlexWeight: 1;
+          }
+          Label #StatusDesc {
+            Text: "";
+            Style: (FontSize: 9, TextColor: #888888, HorizontalAlignment: Center, VerticalAlignment: Center);
+            Anchor: (Height: 14);
+          }
+        }
+
+        // Invites stat
+        Group #InvitesStat {
+          FlexWeight: 1;
+          Background: (Color: #1a2a3a);
+          Padding: (Left: 15, Right: 15, Top: 12, Bottom: 12);
+          LayoutMode: Top;
+          Anchor: (Left: 5);
+
+          Label {
+            Text: "INVITES";
+            Style: (FontSize: 10, TextColor: #666666, HorizontalAlignment: Center, VerticalAlignment: Center);
+            Anchor: (Height: 16);
+          }
+          Group {
+            FlexWeight: 1;
+            LayoutMode: Left;
+
+            Label #InvitesSent {
+              Text: "0";
+              Style: (FontSize: 20, TextColor: #00AAFF, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center);
+              FlexWeight: 1;
+            }
+            Label {
+              Text: "/";
+              Style: (FontSize: 16, TextColor: #444444, HorizontalAlignment: Center, VerticalAlignment: Center);
+              Anchor: (Width: 15);
+            }
+            Label #InvitesReceived {
+              Text: "0";
+              Style: (FontSize: 20, TextColor: #FFAA00, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center);
+              FlexWeight: 1;
+            }
+          }
+          Label {
+            Text: "sent / requests";
+            Style: (FontSize: 9, TextColor: #444444, HorizontalAlignment: Center, VerticalAlignment: Center);
+            Anchor: (Height: 14);
+          }
         }
       }
 

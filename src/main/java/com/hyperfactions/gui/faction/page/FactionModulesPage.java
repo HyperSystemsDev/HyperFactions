@@ -60,7 +60,7 @@ public class FactionModulesPage extends InteractiveCustomUIPage<FactionModulesDa
         cmd.append("HyperFactions/faction/faction_modules.ui");
 
         // Setup navigation bar
-        NavBarHelper.setupBar(playerRef, true, PAGE_ID, cmd, events);
+        NavBarHelper.setupBar(playerRef, faction, PAGE_ID, cmd, events);
 
         // Populate module cards
         for (int i = 0; i < MODULES.size(); i++) {

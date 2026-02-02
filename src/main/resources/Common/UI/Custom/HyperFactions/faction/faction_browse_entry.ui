@@ -1,0 +1,192 @@
+// Faction Browse Entry - Expandable
+// For faction browser page - similar to admin_faction_entry.ui but without admin buttons
+$S = "../shared/styles.ui";
+
+Group {
+  LayoutMode: Top;
+  Anchor: (Bottom: 4);
+
+  // Header wrapper - contains content and clickable overlay
+  Group #HeaderWrapper {
+    Anchor: (Height: 44);
+
+    // Header content (visual layout)
+    Group #HeaderContent {
+      Anchor: (Left: 0, Right: 0, Top: 0, Bottom: 0);
+      Background: (Color: #1a2a3a);
+      Padding: (Left: 12, Right: 12, Top: 6, Bottom: 6);
+      LayoutMode: Left;
+
+      // Relation indicator slot (for faction members viewing)
+      // Width is fixed - content appended when needed
+      Group #RelationSlot {
+        Anchor: (Width: 50);
+      }
+
+      // Faction name and leader
+      Group {
+        Anchor: (Width: 180);
+        LayoutMode: Top;
+
+        Group {
+          LayoutMode: Left;
+          Anchor: (Height: 18);
+
+          Label #FactionName {
+            Text: "Faction";
+            Style: (FontSize: 13, TextColor: #00FFFF, RenderBold: true, VerticalAlignment: Center);
+          }
+
+          Label #OwnIndicator {
+            Text: "";
+            Style: (FontSize: 9, TextColor: #44CC44, VerticalAlignment: Center);
+            Anchor: (Left: 5);
+          }
+        }
+        Label #LeaderName {
+          Text: "Leader: Unknown";
+          Style: (FontSize: 10, TextColor: #FFD700, VerticalAlignment: Center);
+          Anchor: (Height: 14);
+        }
+      }
+
+      // Power display
+      Group {
+        Anchor: (Width: 90);
+        LayoutMode: Top;
+
+        Label #PowerDisplay {
+          Text: "0/0";
+          Style: (FontSize: 12, TextColor: #44CC44, VerticalAlignment: Center, HorizontalAlignment: Center);
+          Anchor: (Height: 18);
+        }
+        Label {
+          Text: "power";
+          Style: (FontSize: 9, TextColor: #666666, VerticalAlignment: Center, HorizontalAlignment: Center);
+          Anchor: (Height: 14);
+        }
+      }
+
+      // Claims display
+      Group {
+        Anchor: (Width: 70);
+        LayoutMode: Top;
+
+        Label #ClaimsDisplay {
+          Text: "0";
+          Style: (FontSize: 12, TextColor: #FFAA00, VerticalAlignment: Center, HorizontalAlignment: Center);
+          Anchor: (Height: 18);
+        }
+        Label {
+          Text: "claims";
+          Style: (FontSize: 9, TextColor: #666666, VerticalAlignment: Center, HorizontalAlignment: Center);
+          Anchor: (Height: 14);
+        }
+      }
+
+      // Member count
+      Group {
+        Anchor: (Width: 70);
+        LayoutMode: Top;
+
+        Label #MemberCount {
+          Text: "0";
+          Style: (FontSize: 12, TextColor: #888888, VerticalAlignment: Center, HorizontalAlignment: Center);
+          Anchor: (Height: 18);
+        }
+        Label {
+          Text: "members";
+          Style: (FontSize: 9, TextColor: #666666, VerticalAlignment: Center, HorizontalAlignment: Center);
+          Anchor: (Height: 14);
+        }
+      }
+
+      Group { FlexWeight: 1; }
+
+      // Expand indicators
+      Label #ExpandIcon {
+        Text: ">";
+        Style: (FontSize: 14, TextColor: #666666, VerticalAlignment: Center, HorizontalAlignment: Center);
+        Anchor: (Width: 20);
+      }
+      Label #CollapseIcon {
+        Text: "v";
+        Style: (FontSize: 14, TextColor: #00AAAA, VerticalAlignment: Center, HorizontalAlignment: Center);
+        Anchor: (Width: 20);
+      }
+    }
+
+    // Clickable overlay button
+    TextButton #Header {
+      Text: "";
+      Anchor: (Left: 0, Right: 0, Top: 0, Bottom: 0);
+      Style: $S.@InvisibleButtonStyle;
+    }
+  }
+
+  // Expanded content
+  Group #ExtendedInfo {
+    LayoutMode: Top;
+    Background: (Color: #0d1520);
+    Padding: (Left: 25, Right: 12, Top: 8, Bottom: 10);
+
+    // Stats row
+    Group #StatsRow {
+      LayoutMode: Left;
+      Anchor: (Height: 20, Bottom: 4);
+
+      Label {
+        Text: "Recruitment:";
+        Style: (FontSize: 10, TextColor: #666666, VerticalAlignment: Center);
+        Anchor: (Width: 75);
+      }
+      Label #RecruitmentStatus {
+        Text: "Unknown";
+        Style: (FontSize: 10, TextColor: #888888, VerticalAlignment: Center);
+        Anchor: (Width: 100);
+      }
+
+      Label {
+        Text: "Created:";
+        Style: (FontSize: 10, TextColor: #666666, VerticalAlignment: Center);
+        Anchor: (Width: 55);
+      }
+      Label #CreatedDate {
+        Text: "Unknown";
+        Style: (FontSize: 10, TextColor: #888888, VerticalAlignment: Center);
+        FlexWeight: 1;
+      }
+    }
+
+    // Description row (if available)
+    Group #DescriptionRow {
+      LayoutMode: Left;
+      Anchor: (Height: 18, Bottom: 6);
+
+      Label {
+        Text: "Description:";
+        Style: (FontSize: 10, TextColor: #666666, VerticalAlignment: Center);
+        Anchor: (Width: 75);
+      }
+      Label #Description {
+        Text: "No description set";
+        Style: (FontSize: 10, TextColor: #aaaaaa, VerticalAlignment: Center);
+        FlexWeight: 1;
+      }
+    }
+
+    // Action buttons
+    Group #ActionButtons {
+      LayoutMode: Left;
+      Anchor: (Height: 32);
+
+      TextButton #ViewInfoBtn {
+        Text: "VIEW INFO";
+        Anchor: (Height: 28, Width: 90);
+        Style: $S.@SmallCyanButtonStyle;
+      }
+
+      Group { FlexWeight: 1; }
+    }
+  }
+}

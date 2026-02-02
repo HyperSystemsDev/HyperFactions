@@ -5,8 +5,8 @@ $C = "../../Common.ui";
 $S = "../shared/styles.ui";
 
 Group {
-  Anchor: (Height: 60, Bottom: 5);
-  Background: (Color: #2a2a1a);
+  Anchor: (Height: 55, Bottom: 5);
+  Background: (Color: #1a2a3a);
   Padding: (Left: 10, Right: 10, Top: 5, Bottom: 5);
   LayoutMode: Left;
 

@@ -408,6 +408,25 @@ public class ZoneManager {
     public CompletableFuture<ZoneResult> createZoneWithChunks(@NotNull String name, @NotNull ZoneType type,
                                                               @NotNull String world, @NotNull UUID createdBy,
                                                               @NotNull Set<ChunkKey> chunks) {
+        return createZoneWithChunks(name, type, world, createdBy, chunks, null);
+    }
+
+    /**
+     * Creates a zone with multiple chunks and optional explicit flags.
+     * Used by import to apply default flags explicitly.
+     *
+     * @param name      the zone name
+     * @param type      the zone type
+     * @param world     the world name
+     * @param createdBy UUID of creator
+     * @param chunks    the chunks to include
+     * @param flags     explicit flags (null = use lazy defaults)
+     * @return future with result
+     */
+    public CompletableFuture<ZoneResult> createZoneWithChunks(@NotNull String name, @NotNull ZoneType type,
+                                                              @NotNull String world, @NotNull UUID createdBy,
+                                                              @NotNull Set<ChunkKey> chunks,
+                                                              @Nullable Map<String, Boolean> flags) {
         // Validate name
         if (name.isBlank() || name.length() > 32) {
             return CompletableFuture.completedFuture(ZoneResult.INVALID_NAME);
@@ -437,7 +456,7 @@ public class ZoneManager {
                 new java.util.HashSet<>(chunks),
                 System.currentTimeMillis(),
                 createdBy,
-                null
+                flags
         );
 
         // Update all indexes atomically

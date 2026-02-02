@@ -1,4 +1,5 @@
 // Faction Invites Management Page
+// Admin zones style with tabs: OUTGOING | REQUESTS
 // For officers+ to manage outgoing invites and incoming join requests
 
 $C = "../../Common.ui";
@@ -8,54 +9,104 @@ $Nav = "../nav/nav_bar.ui";
 $C.@PageOverlay {
   $Nav.@HyperFactionsNavBar #HyperFactionsNavBar {}
 
-  $C.@DecoratedContainer {
-    Anchor: (Width: 520, Height: 540);
+  $C.@Container {
+    Anchor: (Width: 550, Height: 450);
 
     #Title {
-      Group {
-        $C.@Title {
-          @Text = "Invites";
-        }
+      $C.@Title {
+        @Text = "Invites";
       }
     }
 
     #Content {
-      LayoutMode: TopScrolling;
-      ScrollbarStyle: $C.@DefaultScrollbarStyle;
+      LayoutMode: Top;
       Padding: (Left: 15, Right: 15, Top: 10, Bottom: 10);
 
-      // === OUTGOING INVITES SECTION ===
-      Group {
-        Anchor: (Height: 24, Bottom: 6);
+      // Tab row with action button
+      Group #Tabs {
+        Anchor: (Height: 35, Bottom: 10);
+        LayoutMode: Left;
 
-        Label #OutgoingHeader {
-          Text: "OUTGOING INVITES (0)";
-          Style: (FontSize: 12, TextColor: #55FFFF, RenderBold: true, VerticalAlignment: Center);
+        TextButton #TabOutgoing {
+          Text: "OUTGOING";
+          Anchor: (Height: 26, Width: 90);
+          Style: $S.@SmallCyanButtonStyle;
+        }
+
+        Label { Anchor: (Width: 5); }
+
+        TextButton #TabRequests {
+          Text: "REQUESTS";
+          Anchor: (Height: 26, Width: 90);
+          Style: $S.@SmallButtonStyle;
+        }
+
+        Label { FlexWeight: 1; }
+      }
+
+      // Divider
+      Group {
+        Anchor: (Height: 1, Bottom: 8);
+        Background: (Color: #00AAAA);
+      }
+
+      // Count label
+      Group {
+        Anchor: (Height: 25, Bottom: 5);
+        LayoutMode: Left;
+
+        Label #ItemCount {
+          Text: "0 invites";
+          Style: (FontSize: 12, TextColor: #888888, VerticalAlignment: Center);
         }
       }
 
-      Group #OutgoingList {
-        LayoutMode: Top;
-        Anchor: (Bottom: 16);
-      }
+      // Scrollable list
+      Group #ListContainer {
+        LayoutMode: TopScrolling;
+        ScrollbarStyle: $C.@DefaultScrollbarStyle;
+        FlexWeight: 1;
 
-      // === JOIN REQUESTS SECTION ===
-      Group {
-        Anchor: (Height: 24, Bottom: 6);
-
-        Label #RequestsHeader {
-          Text: "JOIN REQUESTS (0)";
-          Style: (FontSize: 12, TextColor: #FFAA00, RenderBold: true, VerticalAlignment: Center);
+        Group #ItemList {
+          LayoutMode: Top;
         }
       }
 
-      Group #RequestsList {
-        LayoutMode: Top;
-        Anchor: (Bottom: 12);
+      // Divider
+      Group {
+        Anchor: (Height: 1, Top: 8, Bottom: 8);
+        Background: (Color: #00AAAA);
+      }
+
+      // Pagination
+      Group #Pagination {
+        Anchor: (Height: 35);
+        LayoutMode: Left;
+
+        TextButton #PrevBtn {
+          Text: "< PREV";
+          Anchor: (Height: 26, Width: 80);
+          Style: $S.@ButtonStyle;
+        }
+
+        Label { FlexWeight: 1; }
+
+        Label #PageInfo {
+          Text: "1/1";
+          Style: (FontSize: 14, TextColor: #888888, HorizontalAlignment: Center, VerticalAlignment: Center);
+          Anchor: (Width: 60);
+        }
+
+        Label { FlexWeight: 1; }
+
+        TextButton #NextBtn {
+          Text: "NEXT >";
+          Anchor: (Height: 26, Width: 80);
+          Style: $S.@ButtonStyle;
+        }
       }
     }
   }
 }
 
-// Native Hytale back button (bottom-left ESC)
 $C.@BackButton {}

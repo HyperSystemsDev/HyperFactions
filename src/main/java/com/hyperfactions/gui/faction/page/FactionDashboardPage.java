@@ -4,13 +4,17 @@ import com.hyperfactions.HyperFactions;
 import com.hyperfactions.data.Faction;
 import com.hyperfactions.data.FactionLog;
 import com.hyperfactions.data.FactionMember;
+import com.hyperfactions.data.FactionRelation;
 import com.hyperfactions.data.FactionRole;
+import com.hyperfactions.data.RelationType;
 import com.hyperfactions.gui.GuiManager;
 import com.hyperfactions.gui.nav.NavBarHelper;
 import com.hyperfactions.gui.faction.data.FactionDashboardData;
 import com.hyperfactions.manager.ChatManager;
 import com.hyperfactions.manager.ClaimManager;
 import com.hyperfactions.manager.FactionManager;
+import com.hyperfactions.manager.InviteManager;
+import com.hyperfactions.manager.JoinRequestManager;
 import com.hyperfactions.manager.PowerManager;
 import com.hyperfactions.manager.TeleportManager;
 import com.hyperfactions.util.ChunkUtil;
@@ -105,7 +109,7 @@ public class FactionDashboardPage extends InteractiveCustomUIPage<FactionDashboa
 
     private void setupNavBar(UICommandBuilder cmd, UIEventBuilder events) {
         // Use NavBarHelper for consistent nav bar setup across all pages
-        NavBarHelper.setupBar(playerRef, true, PAGE_ID, cmd, events);
+        NavBarHelper.setupBar(playerRef, faction, PAGE_ID, cmd, events);
     }
 
     private void buildFactionHeader(UICommandBuilder cmd) {
@@ -126,34 +130,81 @@ public class FactionDashboardPage extends InteractiveCustomUIPage<FactionDashboa
     private void buildStatCards(UICommandBuilder cmd) {
         PowerManager.FactionPowerStats stats = powerManager.getFactionPowerStats(faction.id());
 
-        // Power card
-        cmd.append("#PowerCard", "HyperFactions/faction/dashboard_stat_card.ui");
-        cmd.set("#PowerCard #StatTitle.Text", "POWER");
-        cmd.set("#PowerCard #StatValue.Text", String.format("%.0f / %.0f", stats.currentPower(), stats.maxPower()));
+        // Row 1: Power, Claims, Members
+
+        // Power stat - current/max and percentage
+        cmd.set("#PowerValue.Text", String.format("%.0f / %.0f", stats.currentPower(), stats.maxPower()));
         int powerPercent = stats.maxPower() > 0 ? (int) ((stats.currentPower() / stats.maxPower()) * 100) : 0;
-        cmd.set("#PowerCard #StatSecondary.Text", powerPercent + "%");
+        cmd.set("#PowerPercent.Text", powerPercent + "%");
 
-        // Claims card
-        cmd.append("#ClaimsCard", "HyperFactions/faction/dashboard_stat_card.ui");
-        cmd.set("#ClaimsCard #StatTitle.Text", "CLAIMS");
-        cmd.set("#ClaimsCard #StatValue.Text", faction.claims().size() + " / " + stats.maxClaims());
-        int available = Math.max(0, stats.maxClaims() - faction.claims().size());
-        cmd.set("#ClaimsCard #StatSecondary.Text", available + " available");
+        // Claims stat - used/max and available
+        int claimCount = faction.claims().size();
+        int maxClaims = stats.maxClaims();
+        int available = Math.max(0, maxClaims - claimCount);
+        cmd.set("#ClaimsValue.Text", claimCount + " / " + maxClaims);
+        cmd.set("#ClaimsAvailable.Text", available + " available");
 
-        // Members card
-        cmd.append("#MembersCard", "HyperFactions/faction/dashboard_stat_card.ui");
-        cmd.set("#MembersCard #StatTitle.Text", "MEMBERS");
-        cmd.set("#MembersCard #StatValue.Text", String.valueOf(faction.members().size()));
-        // Count online members (simplified - in reality you'd check online status)
-        cmd.set("#MembersCard #StatSecondary.Text", "");
+        // Members stat - total and online
+        int totalMembers = faction.members().size();
+        int onlineCount = countOnlineMembers();
+        cmd.set("#MembersValue.Text", String.valueOf(totalMembers));
+        cmd.set("#MembersOnline.Text", onlineCount + " online");
+
+        // Row 2: Relations, Status, Invites
+
+        // Relations stat - ally/enemy count
+        int allyCount = 0;
+        int enemyCount = 0;
+        for (FactionRelation relation : faction.relations().values()) {
+            if (relation.type() == RelationType.ALLY) {
+                allyCount++;
+            } else if (relation.type() == RelationType.ENEMY) {
+                enemyCount++;
+            }
+        }
+        cmd.set("#AllyCount.Text", String.valueOf(allyCount));
+        cmd.set("#EnemyCount.Text", String.valueOf(enemyCount));
+
+        // Status stat - Open/Invite Only
+        if (faction.open()) {
+            cmd.set("#StatusValue.Text", "OPEN");
+            cmd.set("#StatusValue.Style.TextColor", "#55FF55");
+        } else {
+            cmd.set("#StatusValue.Text", "INVITE");
+            cmd.set("#StatusValue.Style.TextColor", "#FFAA00");
+        }
+        cmd.set("#StatusDesc.Text", "");
+
+        // Invites stat - sent/requests
+        InviteManager inviteManager = plugin.getInviteManager();
+        JoinRequestManager joinRequestManager = plugin.getJoinRequestManager();
+        int sentInvites = inviteManager.getFactionInviteCount(faction.id());
+        int requestCount = joinRequestManager.getFactionRequests(faction.id()).size();
+        cmd.set("#InvitesSent.Text", String.valueOf(sentInvites));
+        cmd.set("#InvitesReceived.Text", String.valueOf(requestCount));
+    }
+
+    private int countOnlineMembers() {
+        int count = 0;
+        Universe universe = Universe.get();
+        for (UUID memberUuid : faction.members().keySet()) {
+            if (universe.getPlayer(memberUuid) != null) {
+                count++;
+            }
+        }
+        return count;
     }
 
     private void buildQuickActions(UICommandBuilder cmd, UIEventBuilder events,
                                     boolean isOfficerPlus, boolean isLeader) {
-        // HOME button - only if faction has a home
-        if (faction.hasHome()) {
+        // HOME button - show for anyone if home exists, or for officers+ to set home
+        if (faction.hasHome() || isOfficerPlus) {
             cmd.append("#HomeBtnContainer", "HyperFactions/faction/dashboard_action_btn.ui");
-            cmd.set("#HomeBtnContainer #ActionBtn.Text", "HOME");
+            if (faction.hasHome()) {
+                cmd.set("#HomeBtnContainer #ActionBtn.Text", "HOME");
+            } else {
+                cmd.set("#HomeBtnContainer #ActionBtn.Text", "SET HOME");
+            }
             events.addEventBinding(
                     CustomUIEventBindingType.Activating,
                     "#HomeBtnContainer #ActionBtn",
@@ -174,7 +225,7 @@ public class FactionDashboardPage extends InteractiveCustomUIPage<FactionDashboa
             );
         }
 
-        // F-CHAT button (placeholder - chat system not implemented yet)
+        // F-CHAT button - faction chat toggle
         cmd.append("#FChatBtnContainer", "HyperFactions/faction/dashboard_action_btn.ui");
         cmd.set("#FChatBtnContainer #ActionBtn.Text", "F-CHAT");
         events.addEventBinding(
@@ -184,27 +235,20 @@ public class FactionDashboardPage extends InteractiveCustomUIPage<FactionDashboa
                 false
         );
 
-        // A-CHAT button (placeholder - chat system not implemented yet)
-        cmd.append("#AChatBtnContainer", "HyperFactions/faction/dashboard_action_btn.ui");
+        // A-CHAT button - grayed out, coming soon
+        cmd.append("#AChatBtnContainer", "HyperFactions/faction/dashboard_action_btn_disabled.ui");
         cmd.set("#AChatBtnContainer #ActionBtn.Text", "A-CHAT");
+        cmd.set("#AChatBtnContainer #ComingSoon.Text", "Coming Soon");
+
+        // LEAVE button - show for all members including leaders
+        cmd.append("#LeaveBtnContainer", "HyperFactions/faction/dashboard_action_btn.ui");
+        cmd.set("#LeaveBtnContainer #ActionBtn.Text", "LEAVE");
         events.addEventBinding(
                 CustomUIEventBindingType.Activating,
-                "#AChatBtnContainer #ActionBtn",
-                EventData.of("Button", "AChat"),
+                "#LeaveBtnContainer #ActionBtn",
+                EventData.of("Button", "Leave"),
                 false
         );
-
-        // LEAVE button - only for non-leaders
-        if (!isLeader) {
-            cmd.append("#LeaveBtnContainer", "HyperFactions/faction/dashboard_action_btn.ui");
-            cmd.set("#LeaveBtnContainer #ActionBtn.Text", "LEAVE");
-            events.addEventBinding(
-                    CustomUIEventBindingType.Activating,
-                    "#LeaveBtnContainer #ActionBtn",
-                    EventData.of("Button", "Leave"),
-                    false
-            );
-        }
     }
 
     private void buildActivityFeed(UICommandBuilder cmd, UIEventBuilder events) {
@@ -283,7 +327,19 @@ public class FactionDashboardPage extends InteractiveCustomUIPage<FactionDashboa
         boolean isLeader = viewerRole == FactionRole.LEADER;
 
         switch (data.button) {
-            case "Home" -> handleHomeAction(player, ref, store, uuid, currentFaction);
+            case "Home" -> {
+                if (!currentFaction.hasHome()) {
+                    // No home set - for officers+, prompt to set home
+                    if (isOfficerPlus) {
+                        handleSetHomeAction(player, ref, store, uuid, currentFaction);
+                    } else {
+                        player.sendMessage(Message.raw("Your faction has no home set. Ask an officer to set one.").color("#FF5555"));
+                        sendUpdate();
+                    }
+                } else {
+                    handleHomeAction(player, ref, store, uuid, currentFaction);
+                }
+            }
 
             case "Claim" -> {
                 if (!isOfficerPlus) {
@@ -305,22 +361,18 @@ public class FactionDashboardPage extends InteractiveCustomUIPage<FactionDashboa
             }
 
             case "AChat" -> {
-                ChatManager chatManager = plugin.getChatManager();
-                ChatManager.ChatChannel newChannel = chatManager.toggleAllyChat(uuid);
-                String display = ChatManager.getChannelDisplay(newChannel);
-                String color = ChatManager.getChannelColor(newChannel);
-                player.sendMessage(Message.raw("Chat mode: ").color("#AAAAAA")
-                        .insert(Message.raw(display).color(color)));
+                // A-CHAT is disabled/coming soon - show message if clicked
+                player.sendMessage(Message.raw("Ally chat is coming soon!").color("#FFAA00"));
                 sendUpdate();
             }
 
             case "Leave" -> {
                 if (isLeader) {
-                    player.sendMessage(Message.raw("Leaders cannot leave. Transfer leadership or disband.").color("#FF5555"));
-                    sendUpdate();
-                    return;
+                    // Leaders get a special confirmation page with succession info
+                    guiManager.openLeaderLeaveConfirm(player, ref, store, playerRef, currentFaction);
+                } else {
+                    guiManager.openLeaveConfirm(player, ref, store, playerRef, currentFaction);
                 }
-                guiManager.openLeaveConfirm(player, ref, store, playerRef, currentFaction);
             }
 
             // TODO: Enable when Activity Logs page (logs_viewer.ui) is implemented
@@ -410,6 +462,64 @@ public class FactionDashboardPage extends InteractiveCustomUIPage<FactionDashboa
             case SUCCESS_INSTANT -> player.sendMessage(Message.raw("Teleported to faction home!").color("#55FF55"));
             case ON_COOLDOWN, SUCCESS_WARMUP -> {} // Message sent by TeleportManager
             default -> {}
+        }
+    }
+
+    private void handleSetHomeAction(Player player, Ref<EntityStore> ref, Store<EntityStore> store,
+                                      UUID uuid, Faction faction) {
+        // Get player's current location
+        TransformComponent transform = store.getComponent(ref, TransformComponent.getComponentType());
+        if (transform == null) {
+            player.sendMessage(Message.raw("Could not determine your location.").color("#FF5555"));
+            sendUpdate();
+            return;
+        }
+
+        World world = player.getWorld();
+        if (world == null) {
+            player.sendMessage(Message.raw("Could not determine your world.").color("#FF5555"));
+            sendUpdate();
+            return;
+        }
+
+        Vector3d pos = transform.getPosition();
+        int chunkX = ChunkUtil.toChunkCoord(pos.getX());
+        int chunkZ = ChunkUtil.toChunkCoord(pos.getZ());
+
+        // Check if in faction territory
+        UUID owner = claimManager.getClaimOwner(world.getName(), chunkX, chunkZ);
+        if (owner == null || !owner.equals(faction.id())) {
+            player.sendMessage(Message.raw("You can only set home in your faction's territory.").color("#FF5555"));
+            sendUpdate();
+            return;
+        }
+
+        // Get rotation from transform
+        Vector3f rot = transform.getRotation();
+        float yaw = rot != null ? rot.getY() : 0;
+        float pitch = rot != null ? rot.getX() : 0;
+
+        // Set the home
+        Faction.FactionHome home = new Faction.FactionHome(
+                world.getName(),
+                pos.getX(),
+                pos.getY(),
+                pos.getZ(),
+                yaw,
+                pitch,
+                System.currentTimeMillis(),
+                uuid
+        );
+
+        Faction updated = faction.withHome(home);
+        factionManager.updateFaction(updated);
+
+        player.sendMessage(Message.raw("Faction home set!").color("#55FF55"));
+
+        // Refresh dashboard
+        Faction fresh = factionManager.getFaction(faction.id());
+        if (fresh != null) {
+            guiManager.openFactionDashboard(player, ref, store, playerRef, fresh);
         }
     }
 

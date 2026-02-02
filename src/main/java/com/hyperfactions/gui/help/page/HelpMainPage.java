@@ -43,7 +43,7 @@ public class HelpMainPage extends InteractiveCustomUIPage<HelpPageData> {
     private final GuiManager guiManager;
     private final FactionManager factionManager;
     private final HelpCategory selectedCategory;
-    private final boolean hasFaction;
+    private final Faction faction;
 
     /**
      * Creates a help page with the default category (GETTING_STARTED).
@@ -67,7 +67,7 @@ public class HelpMainPage extends InteractiveCustomUIPage<HelpPageData> {
         this.guiManager = guiManager;
         this.factionManager = factionManager;
         this.selectedCategory = initialCategory;
-        this.hasFaction = factionManager.getPlayerFaction(playerRef.getUuid()) != null;
+        this.faction = factionManager.getPlayerFaction(playerRef.getUuid());
     }
 
     @Override
@@ -78,8 +78,8 @@ public class HelpMainPage extends InteractiveCustomUIPage<HelpPageData> {
         cmd.append("HyperFactions/help/help_main.ui");
 
         // Setup navigation bar based on player's faction status
-        if (hasFaction) {
-            NavBarHelper.setupBar(playerRef, true, PAGE_ID, cmd, events);
+        if (faction != null) {
+            NavBarHelper.setupBar(playerRef, faction, PAGE_ID, cmd, events);
         } else {
             NewPlayerNavBarHelper.setupBar(playerRef, PAGE_ID, cmd, events);
         }
@@ -189,8 +189,7 @@ public class HelpMainPage extends InteractiveCustomUIPage<HelpPageData> {
 
         // Handle navigation bar events
         if (data.navBar != null && !data.navBar.isEmpty()) {
-            if (hasFaction) {
-                Faction faction = factionManager.getPlayerFaction(playerRef.getUuid());
+            if (faction != null) {
                 if (NavBarHelper.handleNavEvent(data, player, ref, store, playerRef, faction, guiManager)) {
                     return;
                 }

@@ -2,6 +2,9 @@ package com.hyperfactions.data;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * Constants for zone flag names.
  * These flags control various behaviors within zones.
@@ -211,6 +214,22 @@ public final class ZoneFlags {
      */
     public static boolean getDefault(String flagName, @NotNull ZoneType type) {
         return type == ZoneType.SAFE ? getSafeZoneDefault(flagName) : getWarZoneDefault(flagName);
+    }
+
+    /**
+     * Gets a map of all default flags for a zone type.
+     * Useful for importing zones from mods that don't have a flag system.
+     *
+     * @param type the zone type
+     * @return map of flag name to default value
+     */
+    @NotNull
+    public static Map<String, Boolean> getDefaultFlags(@NotNull ZoneType type) {
+        Map<String, Boolean> defaults = new HashMap<>();
+        for (String flag : ALL_FLAGS) {
+            defaults.put(flag, getDefault(flag, type));
+        }
+        return defaults;
     }
 
     /**

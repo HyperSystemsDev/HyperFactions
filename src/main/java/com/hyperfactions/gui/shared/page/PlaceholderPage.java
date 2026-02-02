@@ -30,7 +30,7 @@ public class PlaceholderPage extends InteractiveCustomUIPage<PlaceholderData> {
     private final PlayerRef playerRef;
     private final FactionManager factionManager;
     private final GuiManager guiManager;
-    private final boolean hasFaction;
+    private final Faction faction;
 
     /**
      * Creates a new placeholder page.
@@ -42,7 +42,7 @@ public class PlaceholderPage extends InteractiveCustomUIPage<PlaceholderData> {
      * @param playerRef     The player reference
      * @param factionManager The faction manager
      * @param guiManager    The GUI manager
-     * @param hasFaction    Whether the player has a faction (for nav bar filtering)
+     * @param faction       The player's faction (null if not in faction)
      */
     public PlaceholderPage(
             @NotNull String pageId,
@@ -52,7 +52,7 @@ public class PlaceholderPage extends InteractiveCustomUIPage<PlaceholderData> {
             @NotNull PlayerRef playerRef,
             @NotNull FactionManager factionManager,
             @NotNull GuiManager guiManager,
-            boolean hasFaction
+            @Nullable Faction faction
     ) {
         super(playerRef, CustomPageLifetime.CanDismiss, PlaceholderData.CODEC);
         this.pageId = pageId;
@@ -62,7 +62,7 @@ public class PlaceholderPage extends InteractiveCustomUIPage<PlaceholderData> {
         this.playerRef = playerRef;
         this.factionManager = factionManager;
         this.guiManager = guiManager;
-        this.hasFaction = hasFaction;
+        this.faction = faction;
     }
 
     @Override
@@ -73,7 +73,7 @@ public class PlaceholderPage extends InteractiveCustomUIPage<PlaceholderData> {
         cmd.append("HyperFactions/shared/placeholder_page.ui");
 
         // Setup navigation bar
-        NavBarHelper.setupBar(playerRef, hasFaction, pageId, cmd, events);
+        NavBarHelper.setupBar(playerRef, faction, pageId, cmd, events);
 
         // Set page content
         cmd.set("#Title @Text", title.toUpperCase());

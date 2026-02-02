@@ -97,7 +97,7 @@ public class ChunkMapPage extends InteractiveCustomUIPage<ChunkMapData> {
         cmd.append("HyperFactions/faction/chunk_map.ui");
 
         // Setup navigation bar
-        NavBarHelper.setupBar(playerRef, viewerFaction != null, PAGE_ID, cmd, events);
+        NavBarHelper.setupBar(playerRef, viewerFaction, PAGE_ID, cmd, events);
 
         // Current position info
         cmd.set("#PositionInfo.Text", String.format("Your Position: Chunk (%d, %d)", playerChunkX, playerChunkZ));

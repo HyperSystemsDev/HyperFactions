@@ -1,4 +1,5 @@
 // Faction Relations Page
+// Admin zones style with tabs: ALLIES | ENEMIES | PENDING
 // Following AdminUI pattern with nav bar
 
 $C = "../../Common.ui";
@@ -8,81 +9,118 @@ $Nav = "../nav/nav_bar.ui";
 $C.@PageOverlay {
   $Nav.@HyperFactionsNavBar #HyperFactionsNavBar {}
 
-  $C.@DecoratedContainer {
-    Anchor: (Width: 500, Height: 520);
+  $C.@Container {
+    Anchor: (Width: 550, Height: 450);
 
     #Title {
-      Group {
-        $C.@Title {
-          @Text = "Relations";
-        }
+      $C.@Title {
+        @Text = "Relations";
       }
     }
 
     #Content {
-      LayoutMode: TopScrolling;
-      ScrollbarStyle: $C.@DefaultScrollbarStyle;
+      LayoutMode: Top;
       Padding: (Left: 15, Right: 15, Top: 10, Bottom: 10);
 
-      // === ALLIES SECTION ===
-      Group {
-        Anchor: (Height: 24, Bottom: 6);
+      // Tab row with action button
+      Group #Tabs {
+        Anchor: (Height: 35, Bottom: 10);
+        LayoutMode: Left;
 
-        Label #AlliesHeader {
-          Text: "ALLIES (0)";
-          Style: (FontSize: 12, TextColor: #00AAFF, RenderBold: true, VerticalAlignment: Center);
+        TextButton #TabAllies {
+          Text: "ALLIES";
+          Anchor: (Height: 26, Width: 65);
+          Style: $S.@SmallCyanButtonStyle;
+        }
+
+        Label { Anchor: (Width: 5); }
+
+        TextButton #TabEnemies {
+          Text: "ENEMIES";
+          Anchor: (Height: 26, Width: 75);
+          Style: $S.@SmallRedButtonStyle;
+        }
+
+        Label { Anchor: (Width: 5); }
+
+        TextButton #TabPending {
+          Text: "PENDING";
+          Anchor: (Height: 26, Width: 75);
+          Style: $S.@SmallButtonStyle;
+        }
+
+        Label { FlexWeight: 1; }
+
+        TextButton #SetRelationBtn {
+          Text: "+ SET RELATION";
+          Anchor: (Height: 26, Width: 110);
+          Style: $S.@SmallGreenButtonStyle;
         }
       }
 
-      Group #AlliesList {
-        LayoutMode: Top;
-        Anchor: (Bottom: 12);
+      // Divider
+      Group {
+        Anchor: (Height: 1, Bottom: 8);
+        Background: (Color: #00AAAA);
       }
 
-      // === ENEMIES SECTION ===
+      // Count label
       Group {
-        Anchor: (Height: 24, Bottom: 6);
+        Anchor: (Height: 25, Bottom: 5);
+        LayoutMode: Left;
 
-        Label #EnemiesHeader {
-          Text: "ENEMIES (0)";
-          Style: (FontSize: 12, TextColor: #FF5555, RenderBold: true, VerticalAlignment: Center);
+        Label #ItemCount {
+          Text: "0 relations";
+          Style: (FontSize: 12, TextColor: #888888, VerticalAlignment: Center);
         }
       }
 
-      Group #EnemiesList {
-        LayoutMode: Top;
-        Anchor: (Bottom: 12);
-      }
+      // Scrollable list
+      Group #ListContainer {
+        LayoutMode: TopScrolling;
+        ScrollbarStyle: $C.@DefaultScrollbarStyle;
+        FlexWeight: 1;
 
-      // === PENDING REQUESTS SECTION ===
-      Group {
-        Anchor: (Height: 24, Bottom: 6);
-
-        Label #RequestsHeader {
-          Text: "PENDING REQUESTS (0)";
-          Style: (FontSize: 12, TextColor: #FFAA00, RenderBold: true, VerticalAlignment: Center);
+        Group #ItemList {
+          LayoutMode: Top;
         }
       }
 
-      Group #RequestsList {
-        LayoutMode: Top;
-        Anchor: (Bottom: 12);
-      }
-
-      // Divider before action buttons
+      // Divider
       Group {
         Anchor: (Height: 1, Top: 8, Bottom: 8);
         Background: (Color: #00AAAA);
       }
 
-      // Container for SET RELATION button (appended for officers+)
-      Group #ActionBtnContainer {
-        Anchor: (Height: 50);
+      // Pagination
+      Group #Pagination {
+        Anchor: (Height: 35);
         LayoutMode: Left;
+
+        TextButton #PrevBtn {
+          Text: "< PREV";
+          Anchor: (Height: 26, Width: 80);
+          Style: $S.@ButtonStyle;
+        }
+
+        Label { FlexWeight: 1; }
+
+        Label #PageInfo {
+          Text: "1/1";
+          Style: (FontSize: 14, TextColor: #888888, HorizontalAlignment: Center, VerticalAlignment: Center);
+          Anchor: (Width: 60);
+        }
+
+        Label { FlexWeight: 1; }
+
+        TextButton #NextBtn {
+          Text: "NEXT >";
+          Anchor: (Height: 26, Width: 80);
+          Style: $S.@ButtonStyle;
+        }
       }
     }
   }
 }
 
-// Native Hytale back button (bottom-left ESC)
 $C.@BackButton {}

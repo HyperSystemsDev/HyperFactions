@@ -52,7 +52,6 @@ public class NewPlayerMapPage extends InteractiveCustomUIPage<NewPlayerPageData>
     public NewPlayerMapPage(PlayerRef playerRef,
                             FactionManager factionManager,
                             ClaimManager claimManager,
-                            RelationManager relationManager,
                             ZoneManager zoneManager,
                             GuiManager guiManager) {
         super(playerRef, CustomPageLifetime.CanDismiss, NewPlayerPageData.CODEC);
@@ -96,6 +95,9 @@ public class NewPlayerMapPage extends InteractiveCustomUIPage<NewPlayerPageData>
         // Hide claim/power stats (not relevant for new players)
         cmd.set("#ClaimStats.Text", "");
         cmd.set("#PowerStatus.Text", "");
+
+        // Hide faction-specific legend (Your/Ally/Enemy territory)
+        cmd.set("#FactionLegend.Visible", false);
 
         // Build the map grid (same as ChunkMapPage but without click events)
         buildChunkGrid(cmd, worldName, playerChunkX, playerChunkZ);

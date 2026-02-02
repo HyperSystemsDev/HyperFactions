@@ -28,6 +28,9 @@ public class NewPlayerPageData implements NavAwareData {
     /** Sort mode for lists (e.g., "power", "members", "name") */
     public String sortMode;
 
+    /** Search query for filtered lists */
+    public String searchQuery;
+
     // === Create Wizard Fields ===
 
     /** Faction name input from Step 1 */
@@ -85,6 +88,11 @@ public class NewPlayerPageData implements NavAwareData {
                     (data, value) -> data.sortMode = value,
                     data -> data.sortMode
             )
+            .addField(
+                    new KeyedCodec<>("@SearchQuery", Codec.STRING),
+                    (data, value) -> data.searchQuery = value,
+                    data -> data.searchQuery
+            )
             // Create wizard input fields (@ prefix for input binding)
             .addField(
                     new KeyedCodec<>("@Name", Codec.STRING),
@@ -130,6 +138,7 @@ public class NewPlayerPageData implements NavAwareData {
                 ", factionId='" + factionId + '\'' +
                 ", factionName='" + factionName + '\'' +
                 ", sortMode='" + sortMode + '\'' +
+                ", searchQuery='" + searchQuery + '\'' +
                 ", inputName='" + inputName + '\'' +
                 ", inputColor='" + inputColor + '\'' +
                 ", inputTag='" + inputTag + '\'' +

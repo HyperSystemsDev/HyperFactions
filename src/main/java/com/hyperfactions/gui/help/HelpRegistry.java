@@ -745,26 +745,56 @@ public final class HelpRegistry {
         ), HelpCategory.COMMANDS));
 
         // Additional command mappings for deep-linking
-        registerCommandMapping("info", HelpCategory.FACTION_BASICS);
-        registerCommandMapping("list", HelpCategory.FACTION_BASICS);
-        registerCommandMapping("members", HelpCategory.FACTION_BASICS);
-        registerCommandMapping("invites", HelpCategory.FACTION_BASICS);
-        registerCommandMapping("who", HelpCategory.FACTION_BASICS);
-        registerCommandMapping("chat", HelpCategory.COMMANDS);
-        registerCommandMapping("c", HelpCategory.COMMANDS);
+        // Getting Started
         registerCommandMapping("gui", HelpCategory.GETTING_STARTED);
         registerCommandMapping("help", HelpCategory.GETTING_STARTED);
         registerCommandMapping("menu", HelpCategory.GETTING_STARTED);
+
+        // Faction Basics
+        registerCommandMapping("info", HelpCategory.FACTION_BASICS);
+        registerCommandMapping("show", HelpCategory.FACTION_BASICS);
+        registerCommandMapping("list", HelpCategory.FACTION_BASICS);
+        registerCommandMapping("browse", HelpCategory.FACTION_BASICS);
+        registerCommandMapping("members", HelpCategory.FACTION_BASICS);
+        registerCommandMapping("invites", HelpCategory.FACTION_BASICS);
+        registerCommandMapping("who", HelpCategory.FACTION_BASICS);
         registerCommandMapping("rename", HelpCategory.FACTION_BASICS);
         registerCommandMapping("desc", HelpCategory.FACTION_BASICS);
+        registerCommandMapping("description", HelpCategory.FACTION_BASICS);
         registerCommandMapping("color", HelpCategory.FACTION_BASICS);
         registerCommandMapping("open", HelpCategory.FACTION_BASICS);
         registerCommandMapping("close", HelpCategory.FACTION_BASICS);
+        registerCommandMapping("settings", HelpCategory.FACTION_BASICS);
+
+        // Territory
+        registerCommandMapping("map", HelpCategory.TERRITORY);
+
+        // Relations
+        registerCommandMapping("ally", HelpCategory.RELATIONS);
+        registerCommandMapping("enemy", HelpCategory.RELATIONS);
+        registerCommandMapping("neutral", HelpCategory.RELATIONS);
+        registerCommandMapping("relations", HelpCategory.RELATIONS);
+
+        // Commands/Other
+        registerCommandMapping("chat", HelpCategory.COMMANDS);
+        registerCommandMapping("c", HelpCategory.COMMANDS);
+        registerCommandMapping("debug", HelpCategory.COMMANDS);
+
+        // Admin commands
         registerCommandMapping("admin", HelpCategory.COMMANDS);
+        registerCommandMapping("reload", HelpCategory.COMMANDS);
+        registerCommandMapping("sync", HelpCategory.COMMANDS);
         registerCommandMapping("zone", HelpCategory.COMMANDS);
+        registerCommandMapping("zones", HelpCategory.COMMANDS);
         registerCommandMapping("safezone", HelpCategory.COMMANDS);
         registerCommandMapping("warzone", HelpCategory.COMMANDS);
         registerCommandMapping("removezone", HelpCategory.COMMANDS);
         registerCommandMapping("zoneflag", HelpCategory.COMMANDS);
+        registerCommandMapping("backup", HelpCategory.COMMANDS);
+        registerCommandMapping("backups", HelpCategory.COMMANDS);
+        registerCommandMapping("config", HelpCategory.COMMANDS);
+        registerCommandMapping("factions", HelpCategory.COMMANDS);
+        registerCommandMapping("update", HelpCategory.COMMANDS);
+        registerCommandMapping("import", HelpCategory.COMMANDS);
     }
 }

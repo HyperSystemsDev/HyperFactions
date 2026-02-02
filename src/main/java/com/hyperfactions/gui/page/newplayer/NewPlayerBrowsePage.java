@@ -24,8 +24,8 @@ import java.util.*;
 
 /**
  * Enhanced Browse Factions page for new players.
+ * Uses IndexCards pattern with expandable entries like AdminFactionsPage.
  * Default landing page showing all factions with JOIN/REQUEST buttons.
- * Helps players discover and join existing factions.
  */
 public class NewPlayerBrowsePage extends InteractiveCustomUIPage<NewPlayerPageData> {
 
@@ -39,7 +39,15 @@ public class NewPlayerBrowsePage extends InteractiveCustomUIPage<NewPlayerPageDa
     private final GuiManager guiManager;
 
     private int currentPage = 0;
-    private String sortBy = "power"; // power, members, name
+    private SortMode sortMode = SortMode.POWER;
+    private String searchQuery = "";
+    private Set<UUID> expandedFactions = new HashSet<>();
+
+    private enum SortMode {
+        POWER,
+        NAME,
+        MEMBERS
+    }
 
     public NewPlayerBrowsePage(PlayerRef playerRef,
                                FactionManager factionManager,
@@ -66,7 +74,28 @@ public class NewPlayerBrowsePage extends InteractiveCustomUIPage<NewPlayerPageDa
                                String sortBy) {
         this(playerRef, factionManager, powerManager, inviteManager, guiManager);
         this.currentPage = page;
-        this.sortBy = sortBy != null ? sortBy : "power";
+        if (sortBy != null) {
+            this.sortMode = switch (sortBy) {
+                case "name" -> SortMode.NAME;
+                case "members" -> SortMode.MEMBERS;
+                default -> SortMode.POWER;
+            };
+        }
+    }
+
+    /**
+     * Constructor with custom page, sort, and search state.
+     */
+    public NewPlayerBrowsePage(PlayerRef playerRef,
+                               FactionManager factionManager,
+                               PowerManager powerManager,
+                               InviteManager inviteManager,
+                               GuiManager guiManager,
+                               int page,
+                               String sortBy,
+                               String searchQuery) {
+        this(playerRef, factionManager, powerManager, inviteManager, guiManager, page, sortBy);
+        this.searchQuery = searchQuery != null ? searchQuery : "";
     }
 
     @Override
@@ -79,168 +108,90 @@ public class NewPlayerBrowsePage extends InteractiveCustomUIPage<NewPlayerPageDa
         // Setup navigation bar for new players
         NewPlayerNavBarHelper.setupBar(playerRef, PAGE_ID, cmd, events);
 
-        // Get all factions and sort
+        // Build faction list
+        buildFactionList(cmd, events);
+    }
+
+    private void buildFactionList(UICommandBuilder cmd, UIEventBuilder events) {
+        UUID viewerUuid = playerRef.getUuid();
+
+        // Get all factions sorted and filtered
         List<FactionEntry> entries = buildFactionEntryList();
 
-        // Total count with friendly message
         cmd.set("#FactionCount.Text", entries.size() + " factions");
         cmd.set("#Subtitle.Text", "Find your new home!");
 
-        // Sort button bindings
-        setupSortButtons(cmd, events);
+        // Sort buttons - highlight the active one using Disabled property
+        cmd.set("#SortByPower.Disabled", sortMode == SortMode.POWER);
+        cmd.set("#SortByName.Disabled", sortMode == SortMode.NAME);
+        cmd.set("#SortByMembers.Disabled", sortMode == SortMode.MEMBERS);
+
+        events.addEventBinding(
+                CustomUIEventBindingType.Activating,
+                "#SortByPower",
+                EventData.of("Button", "SortByPower"),
+                false
+        );
+        events.addEventBinding(
+                CustomUIEventBindingType.Activating,
+                "#SortByName",
+                EventData.of("Button", "SortByName"),
+                false
+        );
+        events.addEventBinding(
+                CustomUIEventBindingType.Activating,
+                "#SortByMembers",
+                EventData.of("Button", "SortByMembers"),
+                false
+        );
+
+        // Search bindings
+        if (!searchQuery.isEmpty()) {
+            cmd.set("#SearchInput.Value", searchQuery);
+            cmd.set("#ClearSearchBtn.Visible", true);
+        } else {
+            cmd.set("#ClearSearchBtn.Visible", false);
+        }
+
+        events.addEventBinding(
+                CustomUIEventBindingType.Activating,
+                "#SearchBtn",
+                EventData.of("Button", "Search").append("@SearchQuery", "#SearchInput.Value"),
+                false
+        );
+        events.addEventBinding(
+                CustomUIEventBindingType.Activating,
+                "#ClearSearchBtn",
+                EventData.of("Button", "ClearSearch"),
+                false
+        );
 
         // Calculate pagination
         int totalPages = Math.max(1, (int) Math.ceil((double) entries.size() / FACTIONS_PER_PAGE));
         currentPage = Math.min(currentPage, totalPages - 1);
         int startIdx = currentPage * FACTIONS_PER_PAGE;
 
-        // Build faction cards with JOIN/REQUEST buttons
-        buildFactionCards(cmd, events, entries, startIdx);
+        // Clear FactionList, then create IndexCards container inside it
+        cmd.clear("#FactionList");
+        cmd.appendInline("#FactionList", "Group #IndexCards { LayoutMode: Top; }");
+
+        // Build entries
+        int i = 0;
+        for (int idx = startIdx; idx < Math.min(startIdx + FACTIONS_PER_PAGE, entries.size()); idx++) {
+            FactionEntry entry = entries.get(idx);
+            buildFactionEntry(cmd, events, i, entry, viewerUuid);
+            i++;
+        }
 
         // Pagination
-        setupPagination(cmd, events, totalPages);
-    }
-
-    private List<FactionEntry> buildFactionEntryList() {
-        List<FactionEntry> entries = new ArrayList<>();
-        for (Faction faction : factionManager.getAllFactions()) {
-            PowerManager.FactionPowerStats stats = powerManager.getFactionPowerStats(faction.id());
-            entries.add(new FactionEntry(
-                    faction.id(),
-                    faction.name(),
-                    faction.color() != null ? faction.color() : "#00FFFF",
-                    faction.members().size(),
-                    stats.currentPower(),
-                    faction.claims().size(),
-                    faction.open()
-            ));
-        }
-
-        // Sort
-        switch (sortBy) {
-            case "power" -> entries.sort(Comparator.comparingDouble(FactionEntry::power).reversed());
-            case "members" -> entries.sort(Comparator.comparingInt(FactionEntry::memberCount).reversed());
-            case "name" -> entries.sort(Comparator.comparing(FactionEntry::name));
-        }
-
-        return entries;
-    }
-
-    private void setupSortButtons(UICommandBuilder cmd, UIEventBuilder events) {
-        // Indicate active sort with brackets (cannot set .Style dynamically)
-        cmd.set("#SortPower.Text", sortBy.equals("power") ? "[Power]" : "Power");
-        cmd.set("#SortMembers.Text", sortBy.equals("members") ? "[Members]" : "Members");
-        cmd.set("#SortName.Text", sortBy.equals("name") ? "[Name]" : "Name");
-
-        events.addEventBinding(
-                CustomUIEventBindingType.Activating,
-                "#SortPower",
-                EventData.of("Button", "Sort").append("SortMode", "power"),
-                false
-        );
-        events.addEventBinding(
-                CustomUIEventBindingType.Activating,
-                "#SortMembers",
-                EventData.of("Button", "Sort").append("SortMode", "members"),
-                false
-        );
-        events.addEventBinding(
-                CustomUIEventBindingType.Activating,
-                "#SortName",
-                EventData.of("Button", "Sort").append("SortMode", "name"),
-                false
-        );
-    }
-
-    private void buildFactionCards(UICommandBuilder cmd, UIEventBuilder events,
-                                   List<FactionEntry> entries, int startIdx) {
-        UUID viewerUuid = playerRef.getUuid();
-
-        for (int i = 0; i < FACTIONS_PER_PAGE; i++) {
-            String cardId = "#FactionCard" + i;
-            int factionIdx = startIdx + i;
-
-            if (factionIdx < entries.size()) {
-                FactionEntry entry = entries.get(factionIdx);
-
-                cmd.append(cardId, "HyperFactions/newplayer/faction_card.ui");
-
-                String prefix = cardId + " ";
-
-                // Faction info
-                cmd.set(prefix + "#FactionName.Text", entry.name);
-                cmd.set(prefix + "#MemberCount.Text", entry.memberCount + " members");
-                cmd.set(prefix + "#PowerCount.Text", String.format("%.0f power", entry.power));
-                cmd.set(prefix + "#ClaimCount.Text", entry.claimCount + " claims");
-
-                // Recruitment status badge (use TextSpans for color - cannot set .Style dynamically)
-                if (entry.isOpen) {
-                    cmd.set(prefix + "#RecruitmentBadge.TextSpans", Message.raw("OPEN RECRUITMENT").color("#44CC44"));
-                } else {
-                    cmd.set(prefix + "#RecruitmentBadge.TextSpans", Message.raw("INVITE ONLY").color("#FFAA00"));
-                }
-
-                // Action button - JOIN for open factions, REQUEST for invite-only
-                // Check if player already has an invite or pending request
-                boolean hasInvite = inviteManager.hasInvite(entry.id, viewerUuid);
-                boolean hasRequest = guiManager.getJoinRequestManager().hasRequest(entry.id, viewerUuid);
-
-                // Action button (cannot set .Style dynamically - uses default template style)
-                if (hasInvite) {
-                    // Player has pending invite - show ACCEPT button
-                    cmd.set(prefix + "#ActionBtn.Text", "ACCEPT");
-                    events.addEventBinding(
-                            CustomUIEventBindingType.Activating,
-                            prefix + "#ActionBtn",
-                            EventData.of("Button", "AcceptInvite")
-                                    .append("FactionId", entry.id.toString())
-                                    .append("FactionName", entry.name),
-                            false
-                    );
-                } else if (hasRequest) {
-                    // Player already requested - show PENDING button that goes to invites page
-                    cmd.set(prefix + "#ActionBtn.Text", "PENDING");
-                    events.addEventBinding(
-                            CustomUIEventBindingType.Activating,
-                            prefix + "#ActionBtn",
-                            EventData.of("Button", "ViewRequests"),
-                            false
-                    );
-                } else if (entry.isOpen) {
-                    // Open faction - JOIN button
-                    cmd.set(prefix + "#ActionBtn.Text", "JOIN");
-                    events.addEventBinding(
-                            CustomUIEventBindingType.Activating,
-                            prefix + "#ActionBtn",
-                            EventData.of("Button", "JoinFaction")
-                                    .append("FactionId", entry.id.toString())
-                                    .append("FactionName", entry.name),
-                            false
-                    );
-                } else {
-                    // Invite-only faction - REQUEST button
-                    cmd.set(prefix + "#ActionBtn.Text", "REQUEST");
-                    events.addEventBinding(
-                            CustomUIEventBindingType.Activating,
-                            prefix + "#ActionBtn",
-                            EventData.of("Button", "RequestJoin")
-                                    .append("FactionId", entry.id.toString())
-                                    .append("FactionName", entry.name),
-                            false
-                    );
-                }
-            }
-        }
-    }
-
-    private void setupPagination(UICommandBuilder cmd, UIEventBuilder events, int totalPages) {
         cmd.set("#PageInfo.Text", (currentPage + 1) + "/" + totalPages);
 
         if (currentPage > 0) {
             events.addEventBinding(
                     CustomUIEventBindingType.Activating,
                     "#PrevBtn",
-                    EventData.of("Button", "Page").append("Page", String.valueOf(currentPage - 1)),
+                    EventData.of("Button", "PrevPage")
+                            .append("Page", String.valueOf(currentPage - 1)),
                     false
             );
         }
@@ -249,13 +200,180 @@ public class NewPlayerBrowsePage extends InteractiveCustomUIPage<NewPlayerPageDa
             events.addEventBinding(
                     CustomUIEventBindingType.Activating,
                     "#NextBtn",
-                    EventData.of("Button", "Page").append("Page", String.valueOf(currentPage + 1)),
+                    EventData.of("Button", "NextPage")
+                            .append("Page", String.valueOf(currentPage + 1)),
                     false
             );
         }
     }
 
-    private record FactionEntry(UUID id, String name, String color, int memberCount, double power, int claimCount, boolean isOpen) {}
+    private List<FactionEntry> buildFactionEntryList() {
+        List<FactionEntry> entries = new ArrayList<>();
+        String lowerQuery = searchQuery.toLowerCase();
+
+        for (Faction faction : factionManager.getAllFactions()) {
+            // Apply search filter
+            if (!searchQuery.isEmpty()) {
+                boolean matches = faction.name().toLowerCase().contains(lowerQuery);
+                if (!matches && faction.tag() != null) {
+                    matches = faction.tag().toLowerCase().contains(lowerQuery);
+                }
+                if (!matches) continue;
+            }
+
+            PowerManager.FactionPowerStats stats = powerManager.getFactionPowerStats(faction.id());
+            FactionMember leader = faction.getLeader();
+            entries.add(new FactionEntry(
+                    faction.id(),
+                    faction.name(),
+                    faction.color() != null ? faction.color() : "#00FFFF",
+                    faction.members().size(),
+                    stats.currentPower(),
+                    stats.maxPower(),
+                    faction.claims().size(),
+                    leader != null ? leader.username() : "None",
+                    faction.open(),
+                    faction.description()
+            ));
+        }
+
+        // Sort
+        switch (sortMode) {
+            case POWER -> entries.sort(Comparator.comparingDouble(FactionEntry::power).reversed());
+            case MEMBERS -> entries.sort(Comparator.comparingInt(FactionEntry::memberCount).reversed());
+            case NAME -> entries.sort(Comparator.comparing(FactionEntry::name, String.CASE_INSENSITIVE_ORDER));
+        }
+
+        return entries;
+    }
+
+    private void buildFactionEntry(UICommandBuilder cmd, UIEventBuilder events, int index,
+                                   FactionEntry entry, UUID viewerUuid) {
+        boolean isExpanded = expandedFactions.contains(entry.id);
+
+        // Check player's status with this faction
+        boolean hasInvite = inviteManager.hasInvite(entry.id, viewerUuid);
+        boolean hasRequest = guiManager.getJoinRequestManager().hasRequest(entry.id, viewerUuid);
+
+        // Append entry template to IndexCards
+        cmd.append("#IndexCards", "HyperFactions/newplayer/newplayer_faction_entry.ui");
+
+        // Use indexed selector
+        String idx = "#IndexCards[" + index + "]";
+
+        // Basic info
+        cmd.set(idx + " #FactionName.Text", entry.name);
+
+        // Recruitment badge
+        if (entry.isOpen) {
+            cmd.set(idx + " #RecruitmentBadge.Text", "OPEN");
+            cmd.set(idx + " #RecruitmentBadge.Style.TextColor", "#44CC44");
+        } else {
+            cmd.set(idx + " #RecruitmentBadge.Text", "INVITE ONLY");
+            cmd.set(idx + " #RecruitmentBadge.Style.TextColor", "#FFAA00");
+        }
+
+        // Stats
+        cmd.set(idx + " #PowerDisplay.Text", String.format("%.0f/%.0f", entry.power, entry.maxPower));
+        cmd.set(idx + " #MemberCount.Text", String.valueOf(entry.memberCount));
+
+        // Expansion state
+        cmd.set(idx + " #ExpandIcon.Visible", !isExpanded);
+        cmd.set(idx + " #CollapseIcon.Visible", isExpanded);
+        cmd.set(idx + " #ExtendedInfo.Visible", isExpanded);
+
+        // Bind header click for expand/collapse
+        events.addEventBinding(
+                CustomUIEventBindingType.Activating,
+                idx + " #Header",
+                EventData.of("Button", "ToggleExpanded")
+                        .append("FactionId", entry.id.toString()),
+                false
+        );
+
+        // Extended info (only set values if expanded)
+        if (isExpanded) {
+            // Leader and claims
+            cmd.set(idx + " #LeaderName.Text", entry.leaderName);
+            cmd.set(idx + " #ClaimsDisplay.Text", String.valueOf(entry.claimCount));
+
+            // Description
+            if (entry.description != null && !entry.description.isEmpty()) {
+                String desc = entry.description.length() > 60
+                        ? entry.description.substring(0, 57) + "..."
+                        : entry.description;
+                cmd.set(idx + " #Description.Text", desc);
+            }
+
+            // Action button - varies by player's status with faction
+            // Note: TextButtons can't have Style.TextColor changed dynamically - use button text to convey state
+            if (hasInvite) {
+                // Player has pending invite - show ACCEPT button
+                cmd.set(idx + " #ActionBtn.Text", "ACCEPT");
+                events.addEventBinding(
+                        CustomUIEventBindingType.Activating,
+                        idx + " #ActionBtn",
+                        EventData.of("Button", "AcceptInvite")
+                                .append("FactionId", entry.id.toString())
+                                .append("FactionName", entry.name),
+                        false
+                );
+            } else if (hasRequest) {
+                // Player already requested - show PENDING button (goes to invites page)
+                cmd.set(idx + " #ActionBtn.Text", "PENDING");
+                events.addEventBinding(
+                        CustomUIEventBindingType.Activating,
+                        idx + " #ActionBtn",
+                        EventData.of("Button", "ViewRequests"),
+                        false
+                );
+            } else if (entry.isOpen) {
+                // Open faction - JOIN button
+                cmd.set(idx + " #ActionBtn.Text", "JOIN");
+                events.addEventBinding(
+                        CustomUIEventBindingType.Activating,
+                        idx + " #ActionBtn",
+                        EventData.of("Button", "JoinFaction")
+                                .append("FactionId", entry.id.toString())
+                                .append("FactionName", entry.name),
+                        false
+                );
+            } else {
+                // Invite-only faction - REQUEST button
+                cmd.set(idx + " #ActionBtn.Text", "REQUEST");
+                events.addEventBinding(
+                        CustomUIEventBindingType.Activating,
+                        idx + " #ActionBtn",
+                        EventData.of("Button", "RequestJoin")
+                                .append("FactionId", entry.id.toString())
+                                .append("FactionName", entry.name),
+                        false
+                );
+            }
+
+            // View Info button
+            events.addEventBinding(
+                    CustomUIEventBindingType.Activating,
+                    idx + " #ViewInfoBtn",
+                    EventData.of("Button", "ViewFaction")
+                            .append("FactionId", entry.id.toString()),
+                    false
+            );
+        }
+    }
+
+    private record FactionEntry(
+            UUID id,
+            String name,
+            String color,
+            int memberCount,
+            double power,
+            double maxPower,
+            int claimCount,
+            String leaderName,
+            boolean isOpen,
+            String description
+    ) {}
 
     @Override
     public void handleDataEvent(Ref<EntityStore> ref, Store<EntityStore> store,
@@ -276,16 +394,71 @@ public class NewPlayerBrowsePage extends InteractiveCustomUIPage<NewPlayerPageDa
         }
 
         switch (data.button) {
-            case "Page" -> {
-                guiManager.openNewPlayerBrowse(player, ref, store, playerRef, data.page, sortBy);
+            case "ToggleExpanded" -> {
+                if (data.factionId != null) {
+                    try {
+                        UUID uuid = UUID.fromString(data.factionId);
+                        if (expandedFactions.contains(uuid)) {
+                            expandedFactions.remove(uuid);
+                        } else {
+                            expandedFactions.add(uuid);
+                        }
+                        rebuildList();
+                    } catch (IllegalArgumentException e) {
+                        sendUpdate();
+                    }
+                }
             }
 
-            case "Sort" -> {
-                if (data.sortMode != null) {
-                    guiManager.openNewPlayerBrowse(player, ref, store, playerRef, 0, data.sortMode);
+            case "SortByPower" -> {
+                sortMode = SortMode.POWER;
+                currentPage = 0;
+                expandedFactions.clear();
+                rebuildList();
+            }
+
+            case "SortByName" -> {
+                sortMode = SortMode.NAME;
+                currentPage = 0;
+                expandedFactions.clear();
+                rebuildList();
+            }
+
+            case "SortByMembers" -> {
+                sortMode = SortMode.MEMBERS;
+                currentPage = 0;
+                expandedFactions.clear();
+                rebuildList();
+            }
+
+            case "PrevPage" -> {
+                currentPage = Math.max(0, data.page);
+                expandedFactions.clear();
+                rebuildList();
+            }
+
+            case "NextPage" -> {
+                currentPage = data.page;
+                expandedFactions.clear();
+                rebuildList();
+            }
+
+            case "Search" -> {
+                if (data.searchQuery != null) {
+                    searchQuery = data.searchQuery;
+                    currentPage = 0;
+                    expandedFactions.clear();
+                    rebuildList();
                 } else {
                     sendUpdate();
                 }
+            }
+
+            case "ClearSearch" -> {
+                searchQuery = "";
+                currentPage = 0;
+                expandedFactions.clear();
+                rebuildList();
             }
 
             case "JoinFaction" -> handleJoinFaction(player, ref, store, playerRef, data);
@@ -296,7 +469,24 @@ public class NewPlayerBrowsePage extends InteractiveCustomUIPage<NewPlayerPageDa
 
             case "ViewRequests" -> guiManager.openInvitesPage(player, ref, store, playerRef);
 
+            case "ViewFaction" -> handleViewFaction(player, ref, store, playerRef, data);
+
             default -> sendUpdate();
+        }
+    }
+
+    private void handleViewFaction(Player player, Ref<EntityStore> ref, Store<EntityStore> store,
+                                   PlayerRef playerRef, NewPlayerPageData data) {
+        if (data.factionId == null) return;
+
+        try {
+            UUID factionId = UUID.fromString(data.factionId);
+            Faction faction = factionManager.getFaction(factionId);
+            if (faction != null) {
+                guiManager.openFactionInfo(player, ref, store, playerRef, faction, "newplayer_browser");
+            }
+        } catch (IllegalArgumentException e) {
+            player.sendMessage(Message.raw("Invalid faction.").color("#FF5555"));
         }
     }
 
@@ -339,10 +529,20 @@ public class NewPlayerBrowsePage extends InteractiveCustomUIPage<NewPlayerPageDa
                     );
                     // Clear any pending invites
                     inviteManager.clearPlayerInvites(playerRef.getUuid());
-                    // Open faction dashboard
+                    // Open faction dashboard - use fresh faction data
                     Faction freshFaction = factionManager.getPlayerFaction(playerRef.getUuid());
                     if (freshFaction != null) {
                         guiManager.openFactionDashboard(player, ref, store, playerRef, freshFaction);
+                    } else {
+                        // Fallback: use the faction we looked up earlier (shouldn't happen but safety net)
+                        Faction updatedFaction = factionManager.getFaction(factionId);
+                        if (updatedFaction != null) {
+                            guiManager.openFactionDashboard(player, ref, store, playerRef, updatedFaction);
+                        } else {
+                            // Last resort: close page and let them reopen
+                            player.sendMessage(Message.raw("Welcome! Use /f to open faction menu.").color("#AAAAAA"));
+                            guiManager.closePage(player, ref, store);
+                        }
                     }
                 }
                 case ALREADY_IN_FACTION -> {
@@ -485,11 +685,24 @@ public class NewPlayerBrowsePage extends InteractiveCustomUIPage<NewPlayerPageDa
             );
             player.sendMessage(Message.raw("An officer will review your request.").color("#AAAAAA"));
 
-            // Re-open the page to show updated state (PENDING button)
-            guiManager.openNewPlayerBrowse(player, ref, store, playerRef, currentPage, sortBy);
+            // Rebuild list to show updated state (PENDING button)
+            rebuildList();
         } catch (IllegalArgumentException e) {
             player.sendMessage(Message.raw("Invalid faction.").color("#FF5555"));
             sendUpdate();
         }
+    }
+
+    /**
+     * Rebuild only the list portion of the page, not the entire template.
+     * This avoids re-appending the whole page and breaking the nav bar.
+     */
+    private void rebuildList() {
+        UICommandBuilder cmd = new UICommandBuilder();
+        UIEventBuilder events = new UIEventBuilder();
+
+        buildFactionList(cmd, events);
+
+        sendUpdate(cmd, events, false);
     }
 }

@@ -1,0 +1,21 @@
+// Dashboard Action Button Template - Disabled/Coming Soon state
+
+$C = "../../Common.ui";
+$S = "../shared/styles.ui";
+
+Group {
+  LayoutMode: Top;
+
+  TextButton #ActionBtn {
+    Text: "ACTION";
+    Anchor: (Height: 32, Width: 80);
+    Style: $S.@DisabledButtonStyle;
+    Disabled: true;
+  }
+
+  Label #ComingSoon {
+    Text: "Coming Soon";
+    Anchor: (Height: 12);
+    Style: (FontSize: 9, TextColor: #666666, HorizontalAlignment: Center);
+  }
+}

@@ -1,0 +1,93 @@
+// Leader Leave Faction Confirmation Modal
+// Shows succession information when leader wants to leave
+
+$C = "../../Common.ui";
+$S = "styles.ui";
+
+$C.@PageOverlay {
+  $C.@DecoratedContainer {
+    Anchor: (Width: 420, Height: 280);
+
+    #Title {
+      Group {
+        $C.@Title {
+          @Text = "Leave as Leader";
+        }
+      }
+    }
+
+    #Content {
+      LayoutMode: Top;
+      Padding: (Left: 20, Right: 20, Top: 15, Bottom: 15);
+
+      Label {
+        Text: "You are leaving";
+        Style: (FontSize: 13, TextColor: #AAAAAA, HorizontalAlignment: Center);
+        Anchor: (Height: 22);
+      }
+
+      Label #FactionName {
+        Text: "Faction Name";
+        Style: (FontSize: 14, TextColor: #00FFFF, RenderBold: true, HorizontalAlignment: Center);
+        Anchor: (Height: 24, Bottom: 12);
+      }
+
+      // Succession information
+      Label #SuccessionTitle {
+        Text: "Leadership will transfer to:";
+        Style: (FontSize: 12, TextColor: #55FF55, HorizontalAlignment: Center);
+        Anchor: (Height: 20);
+      }
+
+      Label #SuccessorName {
+        Text: "";
+        Style: (FontSize: 14, TextColor: #FFFF55, RenderBold: true, HorizontalAlignment: Center);
+        Anchor: (Height: 24);
+      }
+
+      Label #SuccessorRole {
+        Text: "";
+        Style: (FontSize: 11, TextColor: #888888, HorizontalAlignment: Center);
+        Anchor: (Height: 18, Bottom: 8);
+      }
+
+      Label #WarningText {
+        Text: "";
+        Style: (FontSize: 12, TextColor: #FF5555, HorizontalAlignment: Center);
+        Anchor: (Height: 20, Bottom: 15);
+      }
+
+      Group {
+        Anchor: (Height: 40);
+        LayoutMode: Left;
+
+        TextButton #CancelBtn {
+          Text: "CANCEL";
+          Anchor: (Height: 32, Width: 100);
+          Style: $S.@ButtonStyle;
+        }
+
+        Label { FlexWeight: 1; }
+
+        // Leave button (when successor exists)
+        TextButton #LeaveBtn {
+          Text: "LEAVE";
+          Anchor: (Height: 32, Width: 100);
+          Style: $S.@RedButtonStyle;
+          Visible: true;
+        }
+
+        // Disband button (when no successor)
+        TextButton #DisbandBtn {
+          Text: "DISBAND";
+          Anchor: (Height: 32, Width: 100);
+          Style: $S.@RedButtonStyle;
+          Visible: false;
+        }
+      }
+    }
+  }
+}
+
+// Native Hytale back button (bottom-left ESC)
+$C.@BackButton {}

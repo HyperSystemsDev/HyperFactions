@@ -103,6 +103,12 @@ public class FactionCommand extends AbstractPlayerCommand {
         // Parse flags (--text, -t) from arguments
         FactionCommandContext fctx = FactionCommandContext.parse(rawSubArgs);
 
+        // Check for /f <command> help syntax
+        if (fctx.hasArgs() && fctx.getArg(fctx.getArgs().length - 1).equalsIgnoreCase("help")) {
+            openHelpForCommand(ctx, store, ref, player, subcommand);
+            return;
+        }
+
         switch (subcommand) {
             case "create" -> handleCreate(ctx, store, ref, player, fctx);
             case "disband" -> handleDisband(ctx, store, ref, player, fctx);
@@ -123,7 +129,7 @@ public class FactionCommand extends AbstractPlayerCommand {
             case "neutral" -> handleNeutral(ctx, store, ref, player, fctx);
             case "relations" -> handleRelations(ctx, store, ref, player, fctx);
             case "info", "show" -> handleInfo(ctx, store, ref, player, fctx);
-            case "list" -> handleList(ctx, store, ref, player, fctx);
+            case "list", "browse" -> handleList(ctx, store, ref, player, fctx);
             case "map" -> handleMap(ctx, store, ref, player, currentWorld, fctx);
             case "members" -> handleMembers(ctx, store, ref, player, fctx);
             case "invites" -> handleInvites(ctx, store, ref, player, fctx);
@@ -132,10 +138,11 @@ public class FactionCommand extends AbstractPlayerCommand {
             case "chat", "c" -> handleChat(ctx, player, fctx.getArgs());
             case "help", "?" -> handleHelp(ctx, store, ref, player, fctx);
             case "gui", "menu" -> handleGui(ctx, store, ref, player);
+            case "settings" -> handleSettings(ctx, store, ref, player, fctx);
             case "admin" -> handleAdmin(ctx, store, ref, player, currentWorld, fctx.getArgs());
             case "debug" -> handleDebug(ctx, store, ref, player, currentWorld, fctx.getArgs());
-            case "reload" -> handleReload(ctx, player);
-            case "sync" -> handleSync(ctx, player);
+            case "reload" -> handleReloadDeprecated(ctx, player);
+            case "sync" -> handleSyncDeprecated(ctx, player);
             case "rename" -> handleRename(ctx, store, ref, player, fctx);
             case "desc", "description" -> handleDesc(ctx, store, ref, player, fctx);
             case "color" -> handleColor(ctx, store, ref, player, fctx);
@@ -253,22 +260,25 @@ public class FactionCommand extends AbstractPlayerCommand {
         // Information - Viewing faction data
         commands.add(new CommandHelp("/f info [faction]", "View faction info", "Information"));
         commands.add(new CommandHelp("/f list", "List all factions", "Information"));
+        commands.add(new CommandHelp("/f browse", "Browse factions (alias for list)", "Information"));
         commands.add(new CommandHelp("/f members", "View faction members", "Information"));
         commands.add(new CommandHelp("/f invites", "Manage invites/requests", "Information"));
         commands.add(new CommandHelp("/f who <player>", "View player info", "Information"));
         commands.add(new CommandHelp("/f power [player]", "View power level", "Information"));
         commands.add(new CommandHelp("/f gui", "Open faction GUI", "Information"));
+        commands.add(new CommandHelp("/f settings", "Open faction settings", "Information"));
 
         // Other
         commands.add(new CommandHelp("/f chat [mode]", "Toggle faction chat", "Other"));
-        commands.add(new CommandHelp("/f reload", "Reload config", "Other"));
 
         // Admin
-        commands.add(new CommandHelp("/f admin zone", "Manage admin zones", "Admin"));
-        commands.add(new CommandHelp("/f admin backup create [name]", "Create manual backup", "Admin"));
-        commands.add(new CommandHelp("/f admin backup list", "List all backups", "Admin"));
-        commands.add(new CommandHelp("/f admin backup restore <name>", "Restore from backup", "Admin"));
-        commands.add(new CommandHelp("/f admin backup delete <name>", "Delete a backup", "Admin"));
+        commands.add(new CommandHelp("/f admin", "Open admin GUI", "Admin"));
+        commands.add(new CommandHelp("/f admin reload", "Reload config", "Admin"));
+        commands.add(new CommandHelp("/f admin sync", "Sync data from disk", "Admin"));
+        commands.add(new CommandHelp("/f admin factions", "Manage factions", "Admin"));
+        commands.add(new CommandHelp("/f admin zones", "Manage zones", "Admin"));
+        commands.add(new CommandHelp("/f admin config", "View/edit config", "Admin"));
+        commands.add(new CommandHelp("/f admin backups", "Manage backups", "Admin"));
         commands.add(new CommandHelp("/f admin update", "Check for updates", "Admin"));
         commands.add(new CommandHelp("/f debug", "Debug commands", "Admin"));
 
@@ -653,11 +663,17 @@ public class FactionCommand extends AbstractPlayerCommand {
             return;
         }
 
-        // GUI mode: open LeaveConfirmPage
+        // GUI mode: open appropriate confirm page based on role
         if (!fctx.isTextMode()) {
             Player playerEntity = store.getComponent(ref, Player.getComponentType());
             if (playerEntity != null) {
-                hyperFactions.getGuiManager().openLeaveConfirm(playerEntity, ref, store, player, faction);
+                FactionMember member = faction.getMember(player.getUuid());
+                boolean isLeader = member != null && member.role() == FactionRole.LEADER;
+                if (isLeader) {
+                    hyperFactions.getGuiManager().openLeaderLeaveConfirm(playerEntity, ref, store, player, faction);
+                } else {
+                    hyperFactions.getGuiManager().openLeaveConfirm(playerEntity, ref, store, player, faction);
+                }
                 return;
             }
         }
@@ -1918,7 +1934,12 @@ public class FactionCommand extends AbstractPlayerCommand {
         if (adminCmd.equals("help") || adminCmd.equals("?")) {
             List<CommandHelp> adminCommands = new ArrayList<>();
             adminCommands.add(new CommandHelp("/f admin", "Open admin GUI"));
-            adminCommands.add(new CommandHelp("/f admin zone", "Open zone management GUI"));
+            adminCommands.add(new CommandHelp("/f admin reload", "Reload plugin configuration"));
+            adminCommands.add(new CommandHelp("/f admin sync", "Sync faction data from disk"));
+            adminCommands.add(new CommandHelp("/f admin factions", "Open factions management GUI"));
+            adminCommands.add(new CommandHelp("/f admin zones", "Open zone management GUI"));
+            adminCommands.add(new CommandHelp("/f admin config", "Open config GUI"));
+            adminCommands.add(new CommandHelp("/f admin backups", "Open backups management GUI"));
             adminCommands.add(new CommandHelp("/f admin zone list", "List all zones"));
             adminCommands.add(new CommandHelp("/f admin zone create <type> <name>", "Create a new zone"));
             adminCommands.add(new CommandHelp("/f admin zone delete <name>", "Delete a zone"));
@@ -1948,7 +1969,27 @@ public class FactionCommand extends AbstractPlayerCommand {
         int chunkZ = ChunkUtil.toChunkCoord(pos.getZ());
 
         switch (adminCmd) {
-            case "zone" -> handleAdminZone(ctx, store, ref, player, world, chunkX, chunkZ, Arrays.copyOfRange(args, 1, args.length));
+            case "reload" -> handleReload(ctx, player);
+            case "sync" -> handleSync(ctx, player);
+            case "factions" -> {
+                Player playerEntity = store.getComponent(ref, Player.getComponentType());
+                if (playerEntity != null) {
+                    hyperFactions.getGuiManager().openAdminFactions(playerEntity, ref, store, player);
+                }
+            }
+            case "zones", "zone" -> handleAdminZone(ctx, store, ref, player, world, chunkX, chunkZ, Arrays.copyOfRange(args, 1, args.length));
+            case "config" -> {
+                Player playerEntity = store.getComponent(ref, Player.getComponentType());
+                if (playerEntity != null) {
+                    hyperFactions.getGuiManager().openAdminConfig(playerEntity, ref, store, player);
+                }
+            }
+            case "backups" -> {
+                Player playerEntity = store.getComponent(ref, Player.getComponentType());
+                if (playerEntity != null) {
+                    hyperFactions.getGuiManager().openAdminBackups(playerEntity, ref, store, player);
+                }
+            }
             case "safezone" -> {
                 // Quick shortcut: create SafeZone + claim current chunk
                 String zoneName = args.length > 1 ? args[1] : "SafeZone-" + chunkX + "_" + chunkZ;
@@ -2957,6 +2998,33 @@ public class FactionCommand extends AbstractPlayerCommand {
         };
     }
 
+    // === Settings ===
+    private void handleSettings(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
+                                PlayerRef player, FactionCommandContext fctx) {
+        Faction faction = hyperFactions.getFactionManager().getPlayerFaction(player.getUuid());
+        if (faction == null) {
+            ctx.sendMessage(prefix().insert(msg("You are not in a faction.", COLOR_RED)));
+            return;
+        }
+
+        FactionMember member = faction.getMember(player.getUuid());
+        if (member == null || !member.isOfficerOrHigher()) {
+            ctx.sendMessage(prefix().insert(msg("You must be an officer to access settings.", COLOR_RED)));
+            return;
+        }
+
+        Player playerEntity = store.getComponent(ref, Player.getComponentType());
+        if (playerEntity != null) {
+            hyperFactions.getGuiManager().openFactionSettings(playerEntity, ref, store, player, faction);
+        }
+    }
+
+    // === Reload (Deprecated) ===
+    private void handleReloadDeprecated(CommandContext ctx, PlayerRef player) {
+        ctx.sendMessage(prefix().insert(msg("Warning: /f reload is deprecated. Use /f admin reload instead.", COLOR_YELLOW)));
+        handleReload(ctx, player);
+    }
+
     // === Reload ===
     private void handleReload(CommandContext ctx, PlayerRef player) {
         if (!hasPermission(player, Permissions.ADMIN)) {
@@ -2966,6 +3034,12 @@ public class FactionCommand extends AbstractPlayerCommand {
 
         plugin.reloadConfig();
         ctx.sendMessage(prefix().insert(msg("Configuration reloaded.", COLOR_GREEN)));
+    }
+
+    // === Sync (Deprecated) ===
+    private void handleSyncDeprecated(CommandContext ctx, PlayerRef player) {
+        ctx.sendMessage(prefix().insert(msg("Warning: /f sync is deprecated. Use /f admin sync instead.", COLOR_YELLOW)));
+        handleSync(ctx, player);
     }
 
     // === Sync ===

@@ -4,6 +4,7 @@ import com.hyperfactions.config.HyperFactionsConfig;
 import com.hyperfactions.data.Faction;
 import com.hyperfactions.gui.GuiManager;
 import com.hyperfactions.gui.faction.FactionPageRegistry;
+import com.hyperfactions.manager.FactionManager;
 import com.hyperfactions.gui.shared.data.NavAwareData;
 import com.hyperfactions.integration.PermissionManager;
 import com.hypixel.hytale.component.Ref;
@@ -36,21 +37,21 @@ public final class NavBarHelper {
      * Follows AdminUI pattern exactly with indexed selectors.
      *
      * @param playerRef   The player viewing the page
-     * @param hasFaction  Whether the player has a faction
+     * @param faction     The player's faction (may be null)
      * @param currentPage The ID of the current page (to highlight it)
      * @param cmd         The UI command builder
      * @param events      The UI event builder
      */
     public static void setupBar(
             @NotNull PlayerRef playerRef,
-            boolean hasFaction,
+            @Nullable Faction faction,
             @NotNull String currentPage,
             @NotNull UICommandBuilder cmd,
             @NotNull UIEventBuilder events
     ) {
         // Get accessible nav bar entries
         List<FactionPageRegistry.Entry> entries = FactionPageRegistry.getInstance()
-                .getAccessibleNavBarEntries(playerRef, hasFaction);
+                .getAccessibleNavBarEntries(playerRef, faction);
 
         if (entries.isEmpty()) {
             return;

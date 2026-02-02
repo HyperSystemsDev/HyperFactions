@@ -2,7 +2,6 @@ package com.hyperfactions.gui.faction.page;
 
 import com.hyperfactions.HyperFactions;
 import com.hyperfactions.data.*;
-import com.hyperfactions.gui.faction.FactionPageRegistry;
 import com.hyperfactions.gui.GuiManager;
 import com.hyperfactions.gui.nav.NavBarHelper;
 import com.hyperfactions.gui.faction.data.FactionPageData;
@@ -26,11 +25,13 @@ import java.util.*;
 
 /**
  * Faction Invites Management page - manages outgoing invites and incoming join requests.
+ * Uses tab-based filtering and expandable entries like AdminZonePage.
  * Only visible to officers and above.
  */
 public class FactionInvitesPage extends InteractiveCustomUIPage<FactionPageData> {
 
     private static final String PAGE_ID = "invites";
+    private static final int ITEMS_PER_PAGE = 8;
 
     private final PlayerRef playerRef;
     private final FactionManager factionManager;
@@ -39,6 +40,15 @@ public class FactionInvitesPage extends InteractiveCustomUIPage<FactionPageData>
     private final GuiManager guiManager;
     private final HyperFactions plugin;
     private final Faction faction;
+
+    private Tab currentTab = Tab.OUTGOING;
+    private int currentPage = 0;
+    private Set<String> expandedItems = new HashSet<>();
+
+    private enum Tab {
+        OUTGOING,
+        REQUESTS
+    }
 
     public FactionInvitesPage(PlayerRef playerRef,
                               FactionManager factionManager,
@@ -65,36 +75,91 @@ public class FactionInvitesPage extends InteractiveCustomUIPage<FactionPageData>
         cmd.append("HyperFactions/faction/faction_invites.ui");
 
         // Setup navigation bar
-        NavBarHelper.setupBar(playerRef, true, PAGE_ID, cmd, events);
+        NavBarHelper.setupBar(playerRef, faction, PAGE_ID, cmd, events);
 
-        // Get outgoing invites
-        Set<UUID> invitedPlayers = inviteManager.getFactionInvites(faction.id());
-        List<InviteEntry> outgoingInvites = buildOutgoingInvites(invitedPlayers);
+        // Build the list
+        buildList(cmd, events);
+    }
 
-        // Get join requests
-        List<JoinRequest> joinRequests = joinRequestManager.getFactionRequests(faction.id());
+    private void buildList(UICommandBuilder cmd, UIEventBuilder events) {
+        // Tab buttons - highlight active tab using Disabled property
+        cmd.set("#TabOutgoing.Disabled", currentTab == Tab.OUTGOING);
+        cmd.set("#TabRequests.Disabled", currentTab == Tab.REQUESTS);
 
-        // === OUTGOING INVITES SECTION ===
-        cmd.set("#OutgoingHeader.Text", "OUTGOING INVITES (" + outgoingInvites.size() + ")");
-        if (outgoingInvites.isEmpty()) {
-            cmd.append("#OutgoingList", "HyperFactions/faction/relation_empty.ui");
-            cmd.set("#OutgoingList[0] #EmptyText.Text", "No outgoing invites. Use /f invite <player> to invite someone.");
-        } else {
-            buildOutgoingEntries(cmd, events, outgoingInvites);
+        events.addEventBinding(
+                CustomUIEventBindingType.Activating,
+                "#TabOutgoing",
+                EventData.of("Button", "Tab").append("Tab", "OUTGOING"),
+                false
+        );
+        events.addEventBinding(
+                CustomUIEventBindingType.Activating,
+                "#TabRequests",
+                EventData.of("Button", "Tab").append("Tab", "REQUESTS"),
+                false
+        );
+
+        // Get items based on current tab
+        List<InviteItem> items = currentTab == Tab.OUTGOING
+                ? getOutgoingInvites()
+                : getJoinRequests();
+
+        // Count
+        String countText = items.size() + (currentTab == Tab.OUTGOING ? " invites" : " requests");
+        cmd.set("#ItemCount.Text", countText);
+
+        // Calculate pagination
+        int totalPages = Math.max(1, (int) Math.ceil((double) items.size() / ITEMS_PER_PAGE));
+        currentPage = Math.min(currentPage, totalPages - 1);
+        int startIdx = currentPage * ITEMS_PER_PAGE;
+
+        // Clear list, create IndexCards container
+        cmd.clear("#ItemList");
+        cmd.appendInline("#ItemList", "Group #IndexCards { LayoutMode: Top; }");
+
+        // Build entries
+        int i = 0;
+        for (int idx = startIdx; idx < Math.min(startIdx + ITEMS_PER_PAGE, items.size()); idx++) {
+            InviteItem item = items.get(idx);
+            buildEntry(cmd, events, i, item);
+            i++;
         }
 
-        // === JOIN REQUESTS SECTION ===
-        cmd.set("#RequestsHeader.Text", "JOIN REQUESTS (" + joinRequests.size() + ")");
-        if (joinRequests.isEmpty()) {
-            cmd.append("#RequestsList", "HyperFactions/faction/relation_empty.ui");
-            cmd.set("#RequestsList[0] #EmptyText.Text", "No join requests. Players can request to join with /f request.");
-        } else {
-            buildRequestEntries(cmd, events, joinRequests);
+        // Show empty message if no items
+        if (items.isEmpty()) {
+            cmd.clear("#ItemList");
+            cmd.appendInline("#ItemList", "Group { LayoutMode: Top; Padding: (Top: 20); " +
+                    "Label #EmptyText { Text: \"" + getEmptyMessage() + "\"; " +
+                    "Style: (FontSize: 12, TextColor: #666666, HorizontalAlignment: Center); } }");
+        }
+
+        // Pagination
+        cmd.set("#PageInfo.Text", (currentPage + 1) + "/" + totalPages);
+
+        if (currentPage > 0) {
+            events.addEventBinding(
+                    CustomUIEventBindingType.Activating,
+                    "#PrevBtn",
+                    EventData.of("Button", "PrevPage")
+                            .append("Page", String.valueOf(currentPage - 1)),
+                    false
+            );
+        }
+
+        if (currentPage < totalPages - 1) {
+            events.addEventBinding(
+                    CustomUIEventBindingType.Activating,
+                    "#NextBtn",
+                    EventData.of("Button", "NextPage")
+                            .append("Page", String.valueOf(currentPage + 1)),
+                    false
+            );
         }
     }
 
-    private List<InviteEntry> buildOutgoingInvites(Set<UUID> invitedPlayers) {
-        List<InviteEntry> entries = new ArrayList<>();
+    private List<InviteItem> getOutgoingInvites() {
+        List<InviteItem> items = new ArrayList<>();
+        Set<UUID> invitedPlayers = inviteManager.getFactionInvites(faction.id());
 
         for (UUID playerUuid : invitedPlayers) {
             PendingInvite invite = inviteManager.getInvite(faction.id(), playerUuid);
@@ -102,102 +167,143 @@ public class FactionInvitesPage extends InteractiveCustomUIPage<FactionPageData>
                 continue;
             }
 
-            // Try to get player name from faction members
             String playerName = getPlayerName(playerUuid);
             String inviterName = getPlayerName(invite.invitedBy());
 
-            entries.add(new InviteEntry(
-                playerUuid,
-                playerName,
-                inviterName,
-                invite.getRemainingSeconds()
+            items.add(new InviteItem(
+                    playerUuid.toString(),
+                    playerName,
+                    true,
+                    "Invited by: " + inviterName,
+                    null,
+                    invite.getRemainingSeconds()
             ));
         }
 
         // Sort by remaining time (expiring soonest first)
-        entries.sort(Comparator.comparingInt(InviteEntry::remainingSeconds));
-        return entries;
+        items.sort(Comparator.comparingInt(InviteItem::remainingSeconds));
+        return items;
     }
 
-    private void buildOutgoingEntries(UICommandBuilder cmd, UIEventBuilder events,
-                                       List<InviteEntry> entries) {
-        for (int i = 0; i < entries.size(); i++) {
-            InviteEntry entry = entries.get(i);
+    private List<InviteItem> getJoinRequests() {
+        List<InviteItem> items = new ArrayList<>();
+        List<JoinRequest> requests = joinRequestManager.getFactionRequests(faction.id());
 
-            // Append the entry template
-            cmd.append("#OutgoingList", "HyperFactions/faction/invite_entry.ui");
-
-            String prefix = "#OutgoingList[" + i + "] ";
-
-            // Player info
-            cmd.set(prefix + "#PlayerName.Text", entry.playerName);
-            cmd.set(prefix + "#InviterName.Text", "Invited by: " + entry.inviterName);
-            cmd.set(prefix + "#TimeRemaining.Text", "Expires: " + formatTime(entry.remainingSeconds));
-
-            // Cancel button event
-            events.addEventBinding(
-                CustomUIEventBindingType.Activating,
-                prefix + "#CancelBtn",
-                EventData.of("Button", "CancelInvite")
-                    .append("PlayerUuid", entry.playerUuid.toString()),
-                false
-            );
-        }
-    }
-
-    private void buildRequestEntries(UICommandBuilder cmd, UIEventBuilder events,
-                                      List<JoinRequest> requests) {
-        for (int i = 0; i < requests.size(); i++) {
-            JoinRequest request = requests.get(i);
-
-            // Append the entry template
-            cmd.append("#RequestsList", "HyperFactions/faction/request_entry.ui");
-
-            String prefix = "#RequestsList[" + i + "] ";
-
-            // Player info
-            cmd.set(prefix + "#PlayerName.Text", request.playerName());
-
-            // Message (truncate if too long)
+        for (JoinRequest request : requests) {
             String message = request.message();
             if (message == null || message.isBlank()) {
-                cmd.set(prefix + "#RequestMessage.Text", "\"No message\"");
-            } else {
-                if (message.length() > 40) {
-                    message = message.substring(0, 37) + "...";
-                }
-                cmd.set(prefix + "#RequestMessage.Text", "\"" + message + "\"");
+                message = "No message";
+            } else if (message.length() > 50) {
+                message = message.substring(0, 47) + "...";
             }
 
-            // Time remaining
-            int remainingHours = request.getRemainingHours();
-            cmd.set(prefix + "#TimeRemaining.Text", "Expires: " + remainingHours + "h");
+            items.add(new InviteItem(
+                    request.playerUuid().toString(),
+                    request.playerName(),
+                    false,
+                    null,
+                    message,
+                    request.getRemainingHours() * 3600 // Convert to seconds for consistency
+            ));
+        }
 
-            // Accept button event
-            events.addEventBinding(
-                CustomUIEventBindingType.Activating,
-                prefix + "#AcceptBtn",
-                EventData.of("Button", "AcceptRequest")
-                    .append("PlayerUuid", request.playerUuid().toString()),
-                false
-            );
+        // Sort by remaining time (expiring soonest first)
+        items.sort(Comparator.comparingInt(InviteItem::remainingSeconds));
+        return items;
+    }
 
-            // Decline button event
-            events.addEventBinding(
+    private void buildEntry(UICommandBuilder cmd, UIEventBuilder events, int index, InviteItem item) {
+        boolean isExpanded = expandedItems.contains(item.id);
+
+        // Append entry template
+        cmd.append("#IndexCards", "HyperFactions/faction/faction_invite_entry.ui");
+
+        String idx = "#IndexCards[" + index + "]";
+
+        // Basic info
+        cmd.set(idx + " #PlayerName.Text", item.playerName);
+        cmd.set(idx + " #StatusInfo.Text", "Expires: " + formatTime(item.remainingSeconds));
+
+        // Type badge
+        if (item.isOutgoing) {
+            cmd.set(idx + " #TypeLabel.Text", "OUTGOING");
+            cmd.set(idx + " #TypeLabel.Style.TextColor", "#55FFFF");
+        } else {
+            cmd.set(idx + " #TypeLabel.Text", "REQUEST");
+            cmd.set(idx + " #TypeLabel.Style.TextColor", "#FFAA00");
+        }
+
+        // Expansion state
+        cmd.set(idx + " #ExpandIcon.Visible", !isExpanded);
+        cmd.set(idx + " #CollapseIcon.Visible", isExpanded);
+        cmd.set(idx + " #ExtendedInfo.Visible", isExpanded);
+
+        // Bind header click
+        events.addEventBinding(
                 CustomUIEventBindingType.Activating,
-                prefix + "#DeclineBtn",
-                EventData.of("Button", "DeclineRequest")
-                    .append("PlayerUuid", request.playerUuid().toString()),
+                idx + " #Header",
+                EventData.of("Button", "ToggleExpanded")
+                        .append("PlayerUuid", item.id),
                 false
-            );
+        );
+
+        // Extended info (only set if expanded)
+        if (isExpanded) {
+            if (item.isOutgoing) {
+                // Outgoing invite - show inviter info
+                cmd.set(idx + " #InfoLabel.Text", "Invited by:");
+                cmd.set(idx + " #InfoValue.Text", item.inviterInfo);
+                cmd.set(idx + " #MessageRow.Visible", false);
+
+                // Show cancel button, hide accept/decline
+                cmd.set(idx + " #CancelBtn.Visible", true);
+                cmd.set(idx + " #AcceptBtn.Visible", false);
+                cmd.set(idx + " #DeclineBtn.Visible", false);
+
+                events.addEventBinding(
+                        CustomUIEventBindingType.Activating,
+                        idx + " #CancelBtn",
+                        EventData.of("Button", "CancelInvite")
+                                .append("PlayerUuid", item.id),
+                        false
+                );
+            } else {
+                // Join request - show message
+                cmd.set(idx + " #InfoRow.Visible", false);
+                cmd.set(idx + " #MessageRow.Visible", true);
+                cmd.set(idx + " #MessageValue.Text", "\"" + item.message + "\"");
+
+                // Show accept/decline buttons, hide cancel
+                cmd.set(idx + " #CancelBtn.Visible", false);
+                cmd.set(idx + " #AcceptBtn.Visible", true);
+                cmd.set(idx + " #DeclineBtn.Visible", true);
+
+                events.addEventBinding(
+                        CustomUIEventBindingType.Activating,
+                        idx + " #AcceptBtn",
+                        EventData.of("Button", "AcceptRequest")
+                                .append("PlayerUuid", item.id),
+                        false
+                );
+                events.addEventBinding(
+                        CustomUIEventBindingType.Activating,
+                        idx + " #DeclineBtn",
+                        EventData.of("Button", "DeclineRequest")
+                                .append("PlayerUuid", item.id),
+                        false
+                );
+            }
         }
     }
 
-    /**
-     * Gets player name from faction member data.
-     * Note: For outgoing invites, the invited player won't be in any faction yet,
-     * so we may not find them. The name is cached in PendingInvite for invitedBy.
-     */
+    private String getEmptyMessage() {
+        if (currentTab == Tab.OUTGOING) {
+            return "No outgoing invites. Use /f invite <player> to invite someone.";
+        } else {
+            return "No join requests. Players can request to join with /f request.";
+        }
+    }
+
     private String getPlayerName(UUID playerUuid) {
         // Check faction members across all factions
         for (Faction f : factionManager.getAllFactions()) {
@@ -219,7 +325,8 @@ public class FactionInvitesPage extends InteractiveCustomUIPage<FactionPageData>
         }
     }
 
-    private record InviteEntry(UUID playerUuid, String playerName, String inviterName, int remainingSeconds) {}
+    private record InviteItem(String id, String playerName, boolean isOutgoing,
+                              String inviterInfo, String message, int remainingSeconds) {}
 
     @Override
     public void handleDataEvent(Ref<EntityStore> ref, Store<EntityStore> store,
@@ -234,111 +341,144 @@ public class FactionInvitesPage extends InteractiveCustomUIPage<FactionPageData>
             return;
         }
 
+        Faction freshFaction = factionManager.getFaction(faction.id());
+
         // Handle navigation
-        if ("Nav".equals(data.button) && data.navBar != null) {
-            FactionPageRegistry.Entry entry = FactionPageRegistry.getInstance().getEntry(data.navBar);
-            if (entry != null) {
-                Faction freshFaction = factionManager.getFaction(faction.id());
-                var page = entry.guiSupplier().create(player, ref, store, playerRef, freshFaction, guiManager);
-                if (page != null) {
-                    player.getPageManager().openCustomPage(ref, store, page);
-                    return;
-                }
-            }
-            sendUpdate();
+        if (NavBarHelper.handleNavEvent(data, player, ref, store, playerRef, freshFaction, guiManager)) {
             return;
         }
 
         switch (data.button) {
-            case "CancelInvite" -> {
-                if (data.playerUuid != null) {
-                    try {
-                        UUID targetUuid = UUID.fromString(data.playerUuid);
-                        inviteManager.removeInvite(faction.id(), targetUuid);
-
-                        String playerName = getPlayerName(targetUuid);
-                        player.sendMessage(Message.raw("Cancelled invite to " + playerName + ".").color("#AAAAAA"));
-
-                        refresh(player, ref, store, playerRef);
-                    } catch (IllegalArgumentException e) {
-                        player.sendMessage(Message.raw("Invalid player.").color("#FF5555"));
-                        sendUpdate();
-                    }
-                } else {
-                    sendUpdate();
+            case "Tab" -> {
+                if (data.tab != null) {
+                    currentTab = "REQUESTS".equals(data.tab) ? Tab.REQUESTS : Tab.OUTGOING;
+                    currentPage = 0;
+                    expandedItems.clear();
+                    rebuildList();
                 }
             }
 
-            case "AcceptRequest" -> {
+            case "ToggleExpanded" -> {
                 if (data.playerUuid != null) {
-                    try {
-                        UUID targetUuid = UUID.fromString(data.playerUuid);
-                        JoinRequest request = joinRequestManager.acceptRequest(faction.id(), targetUuid);
-
-                        if (request != null) {
-                            // Add player to faction
-                            FactionManager.FactionResult result = factionManager.addMember(
-                                faction.id(), targetUuid, request.playerName()
-                            );
-
-                            if (result == FactionManager.FactionResult.SUCCESS) {
-                                // Clear player's other requests since they joined a faction
-                                joinRequestManager.clearPlayerRequests(targetUuid);
-
-                                player.sendMessage(Message.raw(request.playerName() + " has joined the faction!").color("#55FF55"));
-
-                                // Note: The joining player will see a welcome message next time they join/interact
-                                // Real-time notification requires access to tracked players which isn't available here
-                            } else if (result == FactionManager.FactionResult.FACTION_FULL) {
-                                player.sendMessage(Message.raw("Faction is full. Cannot accept request.").color("#FF5555"));
-                            } else {
-                                player.sendMessage(Message.raw("Failed to add player to faction.").color("#FF5555"));
-                            }
-                        } else {
-                            player.sendMessage(Message.raw("Request not found or expired.").color("#FF5555"));
-                        }
-
-                        refresh(player, ref, store, playerRef);
-                    } catch (IllegalArgumentException e) {
-                        player.sendMessage(Message.raw("Invalid player.").color("#FF5555"));
-                        sendUpdate();
+                    if (expandedItems.contains(data.playerUuid)) {
+                        expandedItems.remove(data.playerUuid);
+                    } else {
+                        expandedItems.add(data.playerUuid);
                     }
-                } else {
-                    sendUpdate();
+                    rebuildList();
                 }
             }
 
-            case "DeclineRequest" -> {
-                if (data.playerUuid != null) {
-                    try {
-                        UUID targetUuid = UUID.fromString(data.playerUuid);
-                        JoinRequest request = joinRequestManager.getRequest(faction.id(), targetUuid);
-                        String playerName = request != null ? request.playerName() : "Unknown";
-
-                        joinRequestManager.declineRequest(faction.id(), targetUuid);
-
-                        player.sendMessage(Message.raw("Declined join request from " + playerName + ".").color("#AAAAAA"));
-
-                        refresh(player, ref, store, playerRef);
-                    } catch (IllegalArgumentException e) {
-                        player.sendMessage(Message.raw("Invalid player.").color("#FF5555"));
-                        sendUpdate();
-                    }
-                } else {
-                    sendUpdate();
-                }
+            case "PrevPage" -> {
+                currentPage = Math.max(0, data.page);
+                expandedItems.clear();
+                rebuildList();
             }
+
+            case "NextPage" -> {
+                currentPage = data.page;
+                expandedItems.clear();
+                rebuildList();
+            }
+
+            case "CancelInvite" -> handleCancelInvite(player, data);
+
+            case "AcceptRequest" -> handleAcceptRequest(player, ref, store, playerRef, data);
+
+            case "DeclineRequest" -> handleDeclineRequest(player, data);
 
             default -> sendUpdate();
         }
     }
 
-    private void refresh(Player player, Ref<EntityStore> ref, Store<EntityStore> store, PlayerRef playerRef) {
-        Faction freshFaction = factionManager.getFaction(faction.id());
-        if (freshFaction != null) {
-            guiManager.openFactionInvites(player, ref, store, playerRef, freshFaction);
-        } else {
-            guiManager.openFactionMain(player, ref, store, playerRef);
+    private void handleCancelInvite(Player player, FactionPageData data) {
+        if (data.playerUuid == null) {
+            sendUpdate();
+            return;
         }
+
+        try {
+            UUID targetUuid = UUID.fromString(data.playerUuid);
+            inviteManager.removeInvite(faction.id(), targetUuid);
+
+            String playerName = getPlayerName(targetUuid);
+            player.sendMessage(Message.raw("Cancelled invite to " + playerName + ".").color("#AAAAAA"));
+
+            expandedItems.remove(data.playerUuid);
+            rebuildList();
+        } catch (IllegalArgumentException e) {
+            player.sendMessage(Message.raw("Invalid player.").color("#FF5555"));
+            sendUpdate();
+        }
+    }
+
+    private void handleAcceptRequest(Player player, Ref<EntityStore> ref, Store<EntityStore> store,
+                                     PlayerRef playerRef, FactionPageData data) {
+        if (data.playerUuid == null) {
+            sendUpdate();
+            return;
+        }
+
+        try {
+            UUID targetUuid = UUID.fromString(data.playerUuid);
+            JoinRequest request = joinRequestManager.acceptRequest(faction.id(), targetUuid);
+
+            if (request != null) {
+                // Add player to faction
+                FactionManager.FactionResult result = factionManager.addMember(
+                        faction.id(), targetUuid, request.playerName()
+                );
+
+                if (result == FactionManager.FactionResult.SUCCESS) {
+                    // Clear player's other requests since they joined a faction
+                    joinRequestManager.clearPlayerRequests(targetUuid);
+                    player.sendMessage(Message.raw(request.playerName() + " has joined the faction!").color("#55FF55"));
+                } else if (result == FactionManager.FactionResult.FACTION_FULL) {
+                    player.sendMessage(Message.raw("Faction is full. Cannot accept request.").color("#FF5555"));
+                } else {
+                    player.sendMessage(Message.raw("Failed to add player to faction.").color("#FF5555"));
+                }
+            } else {
+                player.sendMessage(Message.raw("Request not found or expired.").color("#FF5555"));
+            }
+
+            expandedItems.remove(data.playerUuid);
+            rebuildList();
+        } catch (IllegalArgumentException e) {
+            player.sendMessage(Message.raw("Invalid player.").color("#FF5555"));
+            sendUpdate();
+        }
+    }
+
+    private void handleDeclineRequest(Player player, FactionPageData data) {
+        if (data.playerUuid == null) {
+            sendUpdate();
+            return;
+        }
+
+        try {
+            UUID targetUuid = UUID.fromString(data.playerUuid);
+            JoinRequest request = joinRequestManager.getRequest(faction.id(), targetUuid);
+            String playerName = request != null ? request.playerName() : "Unknown";
+
+            joinRequestManager.declineRequest(faction.id(), targetUuid);
+
+            player.sendMessage(Message.raw("Declined join request from " + playerName + ".").color("#AAAAAA"));
+
+            expandedItems.remove(data.playerUuid);
+            rebuildList();
+        } catch (IllegalArgumentException e) {
+            player.sendMessage(Message.raw("Invalid player.").color("#FF5555"));
+            sendUpdate();
+        }
+    }
+
+    private void rebuildList() {
+        UICommandBuilder cmd = new UICommandBuilder();
+        UIEventBuilder events = new UIEventBuilder();
+
+        buildList(cmd, events);
+
+        sendUpdate(cmd, events, false);
     }
 }

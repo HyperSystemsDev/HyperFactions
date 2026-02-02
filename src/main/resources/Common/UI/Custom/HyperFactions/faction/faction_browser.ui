@@ -1,5 +1,6 @@
 // Faction Browser Page
-// Lists all factions with sorting and pagination
+// Lists all factions with sorting, search, and pagination
+// Uses expandable IndexCards pattern like admin_factions.ui
 
 $C = "../../Common.ui";
 $S = "../shared/styles.ui";
@@ -8,14 +9,12 @@ $Nav = "../nav/nav_bar.ui";
 $C.@PageOverlay {
   $Nav.@HyperFactionsNavBar #HyperFactionsNavBar {}
 
-  $C.@DecoratedContainer {
-    Anchor: (Width: 550, Height: 520);
+  $C.@Container {
+    Anchor: (Width: 700, Height: 500);
 
     #Title {
-      Group {
-        $C.@Title {
-          @Text = "All Factions";
-        }
+      $C.@Title {
+        @Text = "Browse Factions";
       }
     }
 
@@ -23,26 +22,50 @@ $C.@PageOverlay {
       LayoutMode: Top;
       Padding: (Left: 15, Right: 15, Top: 10, Bottom: 10);
 
-      // Header row with count and sort buttons
+      // Search row
       Group {
-        Anchor: (Height: 35, Bottom: 10);
+        Anchor: (Height: 38, Bottom: 8);
+        LayoutMode: Left;
+
+        TextField #SearchInput {
+          FlexWeight: 1;
+          Anchor: (Height: 32);
+          Style: $C.@DefaultInputFieldStyle;
+          Background: $C.@InputBoxBackground;
+        }
+
+        Label { Anchor: (Width: 8); }
+
+        TextButton #SearchBtn {
+          Text: "SEARCH";
+          Anchor: (Height: 30, Width: 80);
+          Style: $S.@SmallCyanButtonStyle;
+        }
+
+        Label { Anchor: (Width: 5); }
+
+        TextButton #ClearSearchBtn {
+          Text: "X";
+          Anchor: (Height: 30, Width: 30);
+          Style: $S.@SmallRedButtonStyle;
+          Visible: false;
+        }
+      }
+
+      // Header row with count and sort
+      Group {
+        Anchor: (Height: 35, Bottom: 8);
         LayoutMode: Left;
 
         Label #FactionCount {
           Text: "0 factions";
-          Style: (FontSize: 14, TextColor: #888888, VerticalAlignment: Center);
+          Style: (FontSize: 13, TextColor: #888888, VerticalAlignment: Center);
           Anchor: (Width: 120);
         }
 
-        Label { FlexWeight: 1; }
+        Group { FlexWeight: 1; }
 
-        Label {
-          Text: "Sort:";
-          Style: (FontSize: 12, TextColor: #666666, VerticalAlignment: Center);
-          Anchor: (Width: 40);
-        }
-
-        TextButton #SortPower {
+        TextButton #SortByPower {
           Text: "POWER";
           Anchor: (Height: 26, Width: 70);
           Style: $S.@SmallCyanButtonStyle;
@@ -50,17 +73,17 @@ $C.@PageOverlay {
 
         Label { Anchor: (Width: 5); }
 
-        TextButton #SortMembers {
-          Text: "MEMBERS";
-          Anchor: (Height: 26, Width: 80);
+        TextButton #SortByName {
+          Text: "NAME";
+          Anchor: (Height: 26, Width: 65);
           Style: $S.@SmallButtonStyle;
         }
 
         Label { Anchor: (Width: 5); }
 
-        TextButton #SortName {
-          Text: "NAME";
-          Anchor: (Height: 26, Width: 60);
+        TextButton #SortByMembers {
+          Text: "MEMBERS";
+          Anchor: (Height: 26, Width: 80);
           Style: $S.@SmallButtonStyle;
         }
       }
@@ -79,15 +102,6 @@ $C.@PageOverlay {
 
         Group #FactionList {
           LayoutMode: Top;
-
-          Group #FactionCard0 { Anchor: (Height: 65); }
-          Group #FactionCard1 { Anchor: (Height: 65); }
-          Group #FactionCard2 { Anchor: (Height: 65); }
-          Group #FactionCard3 { Anchor: (Height: 65); }
-          Group #FactionCard4 { Anchor: (Height: 65); }
-          Group #FactionCard5 { Anchor: (Height: 65); }
-          Group #FactionCard6 { Anchor: (Height: 65); }
-          Group #FactionCard7 { Anchor: (Height: 65); }
         }
       }
 
@@ -128,5 +142,4 @@ $C.@PageOverlay {
   }
 }
 
-// Native Hytale back button (bottom-left ESC)
 $C.@BackButton {}

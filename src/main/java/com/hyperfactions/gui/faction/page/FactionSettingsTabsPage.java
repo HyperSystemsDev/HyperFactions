@@ -118,7 +118,7 @@ public class FactionSettingsTabsPage extends InteractiveCustomUIPage<FactionSett
         cmd.append("HyperFactions/faction/settings_tabs.ui");
 
         // Setup navigation bar
-        NavBarHelper.setupBar(playerRef, true, PAGE_ID, cmd, events);
+        NavBarHelper.setupBar(playerRef, faction, PAGE_ID, cmd, events);
 
         // Tab button states - Disabled = active styling
         cmd.set("#TabGeneral.Disabled", activeTab.equals("general"));
