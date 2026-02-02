@@ -356,8 +356,12 @@ public class AdminZonePage extends InteractiveCustomUIPage<AdminZoneData> {
 
             case "RenameZone" -> {
                 if (data.zoneId != null) {
-                    guiManager.closePage(player, ref, store);
-                    player.sendMessage(Message.raw("Use /f admin zone rename " + data.zoneName + " <newname> to rename this zone.").color("#FFAA00"));
+                    try {
+                        UUID zoneId = UUID.fromString(data.zoneId);
+                        guiManager.openZoneRenameModal(player, ref, store, playerRef, zoneId, currentTab, currentPage);
+                    } catch (IllegalArgumentException e) {
+                        player.sendMessage(Message.raw("Invalid zone ID.").color("#FF5555"));
+                    }
                 }
             }
 

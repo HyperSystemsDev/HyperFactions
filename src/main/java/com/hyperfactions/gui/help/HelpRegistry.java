@@ -769,6 +769,8 @@ public final class HelpRegistry {
                 "  Create a new zone (empty)",
                 "/f admin zone delete <name>",
                 "  Delete a zone and release chunks",
+                "/f admin zone rename <old> <new>",
+                "  Rename a zone",
                 "/f admin zone claim <name>",
                 "  Add current chunk to zone",
                 "/f admin zone unclaim",

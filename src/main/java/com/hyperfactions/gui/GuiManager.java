@@ -1678,6 +1678,39 @@ public class GuiManager {
     }
 
     /**
+     * Opens the Zone Rename modal.
+     *
+     * @param player      The Player entity
+     * @param ref         The entity reference
+     * @param store       The entity store
+     * @param playerRef   The PlayerRef component
+     * @param zoneId      The UUID of the zone to rename
+     * @param currentTab  The current tab filter in AdminZonePage
+     * @param currentPage The current page number in AdminZonePage
+     */
+    public void openZoneRenameModal(Player player, Ref<EntityStore> ref,
+                                    Store<EntityStore> store, PlayerRef playerRef,
+                                    UUID zoneId, String currentTab, int currentPage) {
+        Logger.debug("[GUI] Opening ZoneRenameModalPage for %s (zone: %s)", playerRef.getUsername(), zoneId);
+        try {
+            PageManager pageManager = player.getPageManager();
+            ZoneRenameModalPage page = new ZoneRenameModalPage(
+                playerRef,
+                zoneManager.get(),
+                this,
+                zoneId,
+                currentTab,
+                currentPage
+            );
+            pageManager.openCustomPage(ref, store, page);
+            Logger.debug("[GUI] ZoneRenameModalPage opened successfully");
+        } catch (Exception e) {
+            Logger.severe("[GUI] Failed to open ZoneRenameModalPage: %s", e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
      * Opens the Logs Viewer page.
      *
      * @param player    The Player entity

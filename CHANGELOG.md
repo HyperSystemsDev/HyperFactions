@@ -7,7 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-*No changes yet*
+### Changed
+
+**Command Architecture Refactor**
+- Split monolithic FactionCommand.java (3500+ lines) into 40+ individual subcommand files
+- New `FactionSubCommand` base class with shared functionality and permission checks
+- Commands organized by category:
+  - `command/admin/` - Admin subcommands (AdminSubCommand handles all /f admin *)
+  - `command/faction/` - Create, Disband, Rename, Desc, Color, Open, Close
+  - `command/info/` - Help, Info, List, Map, Members, Power, Who
+  - `command/member/` - Accept, Demote, Invite, Kick, Leave, Promote, Transfer
+  - `command/relation/` - Ally, Enemy, Neutral, Relations
+  - `command/social/` - Chat, Invites, Request
+  - `command/teleport/` - Home, SetHome
+  - `command/territory/` - Claim, Overclaim, Stuck, Unclaim
+  - `command/ui/` - Gui, Settings
+  - `command/util/` - CommandUtil shared utilities
+- Added `/hyperfactions` as additional command alias
+
+### Added
+
+**Zone Rename Modal**
+- Admin zone rename UI accessible from AdminZonePage
+- New ZoneRenameModalPage and ZoneRenameModalData classes
+- Zone name input with validation and immediate save
 
 ## [0.4.3] - 2026-02-02
 
