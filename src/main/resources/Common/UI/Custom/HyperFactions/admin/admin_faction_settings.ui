@@ -1,0 +1,517 @@
+// Admin Faction Settings Page
+// Allows admins to edit any faction's settings and territory permissions
+// Two-column layout: General Settings | Permissions
+
+$C = "../../Common.ui";
+$S = "../shared/styles.ui";
+$Nav = "admin_nav_bar.ui";
+
+$C.@PageOverlay {
+  $Nav.@HyperFactionsAdminNavBar #HyperFactionsAdminNavBar {}
+
+  $C.@DecoratedContainer {
+    Anchor: (Width: 720, Height: 560);
+
+    #Title {
+      Group {
+        $C.@Title {
+          @Text = "Admin: Faction Settings";
+        }
+      }
+    }
+
+    #Content {
+      LayoutMode: Top;
+      Padding: (Left: 15, Right: 15, Top: 10, Bottom: 10);
+
+      // === Header Section ===
+      Group #HeaderSection {
+        Anchor: (Height: 32, Bottom: 8);
+        LayoutMode: Left;
+
+        Label {
+          Text: "Editing:";
+          Style: (FontSize: 13, TextColor: #AAAAAA, VerticalAlignment: Center);
+        }
+
+        Label { Anchor: (Width: 8); }
+
+        Label #FactionName {
+          Text: "Faction Name";
+          Style: (FontSize: 15, TextColor: #00FFFF, RenderBold: true, VerticalAlignment: Center);
+        }
+
+        Label { FlexWeight: 1; }
+
+        Label {
+          Text: "[Admin Override]";
+          Style: (FontSize: 10, TextColor: #FFAA00, VerticalAlignment: Center);
+        }
+      }
+
+      // Divider
+      Group {
+        Anchor: (Height: 1, Bottom: 10);
+        Background: (Color: #00AAAA);
+      }
+
+      // === Two Column Layout ===
+      Group #TwoColumnContainer {
+        LayoutMode: Left;
+        FlexWeight: 1;
+
+        // === LEFT COLUMN: General Settings ===
+        Group #LeftColumn {
+          Anchor: (Width: 330);
+          LayoutMode: TopScrolling;
+          ScrollbarStyle: $C.@DefaultScrollbarStyle;
+          Padding: (Right: 10);
+
+          // GENERAL SECTION
+          Label {
+            Text: "GENERAL";
+            Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
+            Anchor: (Height: 18, Bottom: 4);
+          }
+
+          Group {
+            Anchor: (Height: 1, Bottom: 8);
+            Background: (Color: #334455);
+          }
+
+          // Name row
+          Group {
+            Anchor: (Height: 32, Bottom: 4);
+            LayoutMode: Left;
+
+            Label {
+              Text: "Name:";
+              Style: (FontSize: 12, TextColor: #888888, VerticalAlignment: Center);
+              Anchor: (Width: 70);
+            }
+            Label #NameValue {
+              Text: "Faction Name";
+              Style: (FontSize: 12, TextColor: #00FFFF, RenderBold: true, VerticalAlignment: Center);
+              FlexWeight: 1;
+            }
+            TextButton #NameEditBtn {
+              Text: "EDIT";
+              Anchor: (Height: 26, Width: 55);
+              Style: $S.@SmallCyanButtonStyle;
+            }
+          }
+
+          // Tag row
+          Group {
+            Anchor: (Height: 32, Bottom: 4);
+            LayoutMode: Left;
+
+            Label {
+              Text: "Tag:";
+              Style: (FontSize: 12, TextColor: #888888, VerticalAlignment: Center);
+              Anchor: (Width: 70);
+            }
+            Label #TagValue {
+              Text: "[TAG]";
+              Style: (FontSize: 12, TextColor: #FFAA00, RenderBold: true, VerticalAlignment: Center);
+              FlexWeight: 1;
+            }
+            TextButton #TagEditBtn {
+              Text: "EDIT";
+              Anchor: (Height: 26, Width: 55);
+              Style: $S.@SmallCyanButtonStyle;
+            }
+          }
+
+          // Description row
+          Group {
+            Anchor: (Height: 32, Bottom: 10);
+            LayoutMode: Left;
+
+            Label {
+              Text: "Description:";
+              Style: (FontSize: 12, TextColor: #888888, VerticalAlignment: Center);
+              Anchor: (Width: 70);
+            }
+            Label #DescValue {
+              Text: "(None)";
+              Style: (FontSize: 11, TextColor: #AAAAAA, VerticalAlignment: Center);
+              FlexWeight: 1;
+            }
+            TextButton #DescEditBtn {
+              Text: "EDIT";
+              Anchor: (Height: 26, Width: 55);
+              Style: $S.@SmallCyanButtonStyle;
+            }
+          }
+
+          // APPEARANCE SECTION
+          Label {
+            Text: "APPEARANCE";
+            Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
+            Anchor: (Height: 18, Bottom: 4);
+          }
+
+          Group {
+            Anchor: (Height: 1, Bottom: 8);
+            Background: (Color: #334455);
+          }
+
+          // Color row
+          Group {
+            Anchor: (Height: 32, Bottom: 10);
+            LayoutMode: Left;
+
+            Label {
+              Text: "Color:";
+              Style: (FontSize: 12, TextColor: #888888, VerticalAlignment: Center);
+              Anchor: (Width: 70);
+            }
+
+            Group #ColorPreview {
+              Anchor: (Width: 22, Height: 22);
+              Background: (Color: #00FFFF);
+            }
+
+            Label { Anchor: (Width: 8); }
+
+            Label #ColorValue {
+              Text: "#00FFFF";
+              Style: (FontSize: 12, TextColor: #AAAAAA, VerticalAlignment: Center);
+              FlexWeight: 1;
+            }
+
+            TextButton #ColorBtn {
+              Text: "CHANGE";
+              Anchor: (Height: 26, Width: 70);
+              Style: $S.@SmallCyanButtonStyle;
+            }
+          }
+
+          // RECRUITMENT SECTION
+          Label {
+            Text: "RECRUITMENT";
+            Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
+            Anchor: (Height: 18, Bottom: 4);
+          }
+
+          Group {
+            Anchor: (Height: 1, Bottom: 8);
+            Background: (Color: #334455);
+          }
+
+          Group {
+            Anchor: (Height: 32, Bottom: 10);
+            LayoutMode: Left;
+
+            Label {
+              Text: "Status:";
+              Style: (FontSize: 12, TextColor: #888888, VerticalAlignment: Center);
+              Anchor: (Width: 70);
+            }
+
+            Label #RecruitmentStatus {
+              Text: "Open";
+              Style: (FontSize: 12, TextColor: #55FF55, RenderBold: true, VerticalAlignment: Center);
+              FlexWeight: 1;
+            }
+
+            TextButton #RecruitmentBtn {
+              Text: "CHANGE";
+              Anchor: (Height: 26, Width: 70);
+              Style: $S.@SmallCyanButtonStyle;
+            }
+          }
+
+          // HOME LOCATION SECTION
+          Label {
+            Text: "HOME LOCATION";
+            Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
+            Anchor: (Height: 18, Bottom: 4);
+          }
+
+          Group {
+            Anchor: (Height: 1, Bottom: 8);
+            Background: (Color: #334455);
+          }
+
+          Group {
+            Anchor: (Height: 28, Bottom: 4);
+            LayoutMode: Left;
+
+            Label {
+              Text: "Location:";
+              Style: (FontSize: 12, TextColor: #888888, VerticalAlignment: Center);
+              Anchor: (Width: 70);
+            }
+            Label #HomeLocation {
+              Text: "Not set";
+              Style: (FontSize: 11, TextColor: #AAAAAA, VerticalAlignment: Center);
+              FlexWeight: 1;
+            }
+          }
+
+          Group {
+            Anchor: (Height: 32, Bottom: 10);
+            LayoutMode: Left;
+
+            Label { Anchor: (Width: 70); }
+
+            TextButton #ClearHomeBtn {
+              Text: "CLEAR HOME";
+              Anchor: (Height: 26, Width: 100);
+              Style: $S.@SmallRedButtonStyle;
+            }
+          }
+
+          // DANGER ZONE
+          Label {
+            Text: "DANGER ZONE";
+            Style: (FontSize: 11, TextColor: #FF5555, RenderBold: true);
+            Anchor: (Height: 18, Bottom: 4);
+          }
+
+          Group {
+            Anchor: (Height: 1, Bottom: 8);
+            Background: (Color: #553344);
+          }
+
+          Group {
+            Anchor: (Height: 32);
+            LayoutMode: Left;
+
+            TextButton #DisbandBtn {
+              Text: "DISBAND FACTION";
+              Anchor: (Height: 28, Width: 140);
+              Style: $S.@SmallRedButtonStyle;
+            }
+          }
+        }
+
+        // Vertical divider
+        Group {
+          Anchor: (Width: 1);
+          Background: (Color: #334455);
+        }
+
+        // === RIGHT COLUMN: Permissions ===
+        Group #RightColumn {
+          FlexWeight: 1;
+          LayoutMode: TopScrolling;
+          ScrollbarStyle: $C.@DefaultScrollbarStyle;
+          Padding: (Left: 10);
+
+          // === TERRITORY PERMISSIONS SECTION ===
+          Label {
+            Text: "TERRITORY PERMISSIONS";
+            Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
+            Anchor: (Height: 18, Bottom: 4);
+          }
+
+          Group {
+            Anchor: (Height: 1, Bottom: 8);
+            Background: (Color: #334455);
+          }
+
+          // Header row
+          Group #HeaderRow {
+            LayoutMode: Left;
+            Anchor: (Height: 26, Bottom: 4);
+
+            Label { Anchor: (Width: 90); }
+            Label {
+              Text: "BREAK";
+              Style: (FontSize: 10, TextColor: #888888, RenderBold: true, HorizontalAlignment: Center);
+              Anchor: (Width: 55);
+            }
+            Label {
+              Text: "PLACE";
+              Style: (FontSize: 10, TextColor: #888888, RenderBold: true, HorizontalAlignment: Center);
+              Anchor: (Width: 55);
+            }
+            Label {
+              Text: "INTERACT";
+              Style: (FontSize: 10, TextColor: #888888, RenderBold: true, HorizontalAlignment: Center);
+              Anchor: (Width: 70);
+            }
+          }
+
+          // Outsiders row
+          Group #OutsidersRow {
+            LayoutMode: Left;
+            Anchor: (Height: 36, Bottom: 3);
+            Background: (Color: #0d1520);
+            Padding: (Left: 6, Right: 6);
+
+            Label {
+              Text: "Outsiders";
+              Style: (FontSize: 11, TextColor: #AAAAAA, VerticalAlignment: Center);
+              Anchor: (Width: 84);
+            }
+            TextButton #OutsiderBreakToggle {
+              Text: "OFF";
+              Anchor: (Width: 45, Height: 24);
+              Style: $S.@SmallButtonStyle;
+            }
+            Group { Anchor: (Width: 10); }
+            TextButton #OutsiderPlaceToggle {
+              Text: "OFF";
+              Anchor: (Width: 45, Height: 24);
+              Style: $S.@SmallButtonStyle;
+            }
+            Group { Anchor: (Width: 10); }
+            TextButton #OutsiderInteractToggle {
+              Text: "OFF";
+              Anchor: (Width: 60, Height: 24);
+              Style: $S.@SmallButtonStyle;
+            }
+          }
+
+          // Allies row
+          Group #AlliesRow {
+            LayoutMode: Left;
+            Anchor: (Height: 36, Bottom: 3);
+            Background: (Color: #111a28);
+            Padding: (Left: 6, Right: 6);
+
+            Label {
+              Text: "Allies";
+              Style: (FontSize: 11, TextColor: #55FF55, VerticalAlignment: Center);
+              Anchor: (Width: 84);
+            }
+            TextButton #AllyBreakToggle {
+              Text: "OFF";
+              Anchor: (Width: 45, Height: 24);
+              Style: $S.@SmallButtonStyle;
+            }
+            Group { Anchor: (Width: 10); }
+            TextButton #AllyPlaceToggle {
+              Text: "OFF";
+              Anchor: (Width: 45, Height: 24);
+              Style: $S.@SmallButtonStyle;
+            }
+            Group { Anchor: (Width: 10); }
+            TextButton #AllyInteractToggle {
+              Text: "OFF";
+              Anchor: (Width: 60, Height: 24);
+              Style: $S.@SmallButtonStyle;
+            }
+          }
+
+          // Members row
+          Group #MembersRow {
+            LayoutMode: Left;
+            Anchor: (Height: 36, Bottom: 10);
+            Background: (Color: #0d1520);
+            Padding: (Left: 6, Right: 6);
+
+            Label {
+              Text: "Members";
+              Style: (FontSize: 11, TextColor: #00FFFF, VerticalAlignment: Center);
+              Anchor: (Width: 84);
+            }
+            TextButton #MemberBreakToggle {
+              Text: "ON";
+              Anchor: (Width: 45, Height: 24);
+              Style: $S.@SmallButtonStyle;
+            }
+            Group { Anchor: (Width: 10); }
+            TextButton #MemberPlaceToggle {
+              Text: "ON";
+              Anchor: (Width: 45, Height: 24);
+              Style: $S.@SmallButtonStyle;
+            }
+            Group { Anchor: (Width: 10); }
+            TextButton #MemberInteractToggle {
+              Text: "ON";
+              Anchor: (Width: 60, Height: 24);
+              Style: $S.@SmallButtonStyle;
+            }
+          }
+
+          // === COMBAT SECTION ===
+          Label {
+            Text: "COMBAT";
+            Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
+            Anchor: (Height: 18, Bottom: 4);
+          }
+
+          Group {
+            Anchor: (Height: 1, Bottom: 8);
+            Background: (Color: #334455);
+          }
+
+          Group #PvPRow {
+            LayoutMode: Left;
+            Anchor: (Height: 36, Bottom: 10);
+            Background: (Color: #0d1520);
+            Padding: (Left: 6, Right: 6);
+
+            Label {
+              Text: "PvP in Territory";
+              Style: (FontSize: 11, TextColor: #AAAAAA, VerticalAlignment: Center);
+              Anchor: (Width: 140);
+            }
+            TextButton #PvPToggle {
+              Text: "ON";
+              Anchor: (Width: 60, Height: 24);
+              Style: $S.@SmallButtonStyle;
+            }
+            Label #PvPStatus {
+              Text: "Enabled";
+              Style: (FontSize: 10, TextColor: #55FF55, VerticalAlignment: Center);
+              FlexWeight: 1;
+              Anchor: (Left: 8);
+            }
+          }
+
+          // === ACCESS CONTROL SECTION ===
+          Label {
+            Text: "ACCESS CONTROL";
+            Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
+            Anchor: (Height: 18, Bottom: 4);
+          }
+
+          Group {
+            Anchor: (Height: 1, Bottom: 8);
+            Background: (Color: #334455);
+          }
+
+          Group #OfficersEditRow {
+            LayoutMode: Left;
+            Anchor: (Height: 36);
+            Background: (Color: #0d1520);
+            Padding: (Left: 6, Right: 6);
+
+            Label {
+              Text: "Officers can edit";
+              Style: (FontSize: 11, TextColor: #AAAAAA, VerticalAlignment: Center);
+              Anchor: (Width: 140);
+            }
+            TextButton #OfficersCanEditToggle {
+              Text: "OFF";
+              Anchor: (Width: 60, Height: 24);
+              Style: $S.@SmallButtonStyle;
+            }
+          }
+        }
+      }
+
+      // === Footer ===
+      Group #Footer {
+        Anchor: (Height: 45);
+        LayoutMode: Left;
+
+        Label { FlexWeight: 1; }
+
+        TextButton #BackBtn {
+          Text: "BACK TO INFO";
+          Anchor: (Height: 32, Width: 130);
+          Style: $S.@SmallButtonStyle;
+        }
+      }
+    }
+  }
+}
+
+$C.@BackButton {}

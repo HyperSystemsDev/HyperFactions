@@ -1,0 +1,6 @@
+// HyperFactions Admin Navigation Button
+// Following AdminUI pattern exactly
+
+$NavBar = "admin_nav_bar.ui";
+
+Group { $NavBar.@AdminNavButton #AdminNavActionButton { Text: "Button"; }}

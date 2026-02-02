@@ -6,7 +6,14 @@ import com.hyperfactions.chat.PublicChatListener;
 import com.hyperfactions.command.FactionCommand;
 import com.hyperfactions.config.HyperFactionsConfig;
 import com.hyperfactions.listener.PlayerListener;
-import com.hyperfactions.listener.ProtectionListener;
+import com.hyperfactions.protection.ProtectionListener;
+import com.hyperfactions.protection.damage.DamageProtectionHandler;
+import com.hyperfactions.protection.ecs.BlockPlaceProtectionSystem;
+import com.hyperfactions.protection.ecs.BlockBreakProtectionSystem;
+import com.hyperfactions.protection.ecs.BlockUseProtectionSystem;
+import com.hyperfactions.protection.ecs.ItemPickupProtectionSystem;
+import com.hyperfactions.protection.ecs.ItemDropProtectionSystem;
+import com.hyperfactions.protection.ecs.PvPProtectionSystem;
 import com.hyperfactions.territory.TerritoryTickingSystem;
 import com.hyperfactions.util.Logger;
 import com.hyperfactions.worldmap.HyperFactionsWorldMapProvider;
@@ -17,11 +24,6 @@ import com.hypixel.hytale.server.core.event.events.player.PlayerConnectEvent;
 import com.hypixel.hytale.server.core.event.events.player.PlayerDisconnectEvent;
 import com.hypixel.hytale.server.core.universe.world.events.AddWorldEvent;
 import com.hypixel.hytale.server.core.universe.world.events.RemoveWorldEvent;
-import com.hypixel.hytale.server.core.entity.entities.Player;
-import com.hypixel.hytale.server.core.event.events.ecs.PlaceBlockEvent;
-import com.hypixel.hytale.server.core.event.events.ecs.BreakBlockEvent;
-import com.hypixel.hytale.server.core.event.events.ecs.UseBlockEvent;
-import com.hypixel.hytale.server.core.event.events.ecs.InteractivelyPickupItemEvent;
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
 import com.hypixel.hytale.server.core.modules.entity.damage.Damage;
 import com.hypixel.hytale.component.Archetype;
@@ -30,7 +32,6 @@ import com.hypixel.hytale.component.CommandBuffer;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.component.query.Query;
 import com.hypixel.hytale.component.system.EntityEventSystem;
-import com.hypixel.hytale.math.vector.Vector3i;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.plugin.JavaPlugin;
 import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
@@ -258,26 +259,26 @@ public class HyperFactionsPlugin extends JavaPlugin {
      */
     private void applyWorldMapProviderToExistingWorlds() {
         if (!HyperFactionsConfig.get().isWorldMapMarkersEnabled()) {
-            Logger.info("World map markers disabled, skipping provider setup for existing worlds");
+            Logger.debug("World map markers disabled, skipping provider setup for existing worlds");
             return;
         }
 
         try {
             Map<String, World> worlds = Universe.get().getWorlds();
-            Logger.info("Checking %d existing worlds for world map provider setup", worlds.size());
+            Logger.debug("Checking %d existing worlds for world map provider setup", worlds.size());
 
             for (World world : worlds.values()) {
                 try {
                     // Skip temporary worlds
                     if (world.getWorldConfig().isDeleteOnRemove()) {
-                        Logger.info("Skipping temporary world: %s", world.getName());
+                        Logger.debug("Skipping temporary world: %s", world.getName());
                         continue;
                     }
 
                     // Set our world map provider
                     HyperFactionsWorldMapProvider provider = new HyperFactionsWorldMapProvider();
                     world.getWorldConfig().setWorldMapProvider(provider);
-                    Logger.info("Applied world map provider to existing world: %s", world.getName());
+                    Logger.debug("Applied world map provider to existing world: %s", world.getName());
 
                     // Also register with WorldMapService
                     hyperFactions.getWorldMapService().registerProviderIfNeeded(world);
@@ -331,6 +332,14 @@ public class HyperFactionsPlugin extends JavaPlugin {
         playerListener = new PlayerListener(hyperFactions);
         protectionListener = new ProtectionListener(hyperFactions);
 
+        // Create and set damage protection handler (coordinates all damage protection systems)
+        DamageProtectionHandler damageHandler = new DamageProtectionHandler(
+            hyperFactions.getZoneDamageProtection(),
+            hyperFactions.getProtectionChecker(),
+            protectionListener::getDenialMessage
+        );
+        hyperFactions.setDamageProtectionHandler(damageHandler);
+
         // Register ECS event systems for block protection
         registerBlockProtectionSystems();
 
@@ -360,10 +369,13 @@ public class HyperFactionsPlugin extends JavaPlugin {
             // Item pickup protection
             getEntityStoreRegistry().registerSystem(new ItemPickupProtectionSystem(hyperFactions, protectionListener));
 
+            // Item drop protection
+            getEntityStoreRegistry().registerSystem(new ItemDropProtectionSystem(hyperFactions));
+
             // PvP protection
             getEntityStoreRegistry().registerSystem(new PvPProtectionSystem(hyperFactions, protectionListener));
 
-            getLogger().at(Level.INFO).log("Registered block protection systems");
+            getLogger().at(Level.INFO).log("Registered block and item protection systems");
         } catch (Exception e) {
             getLogger().at(Level.WARNING).withCause(e).log("Failed to register block protection systems");
         }
@@ -406,23 +418,22 @@ public class HyperFactionsPlugin extends JavaPlugin {
      */
     private void onWorldAdd(AddWorldEvent event) {
         World world = event.getWorld();
-        Logger.info("AddWorldEvent received for world: %s", world.getName());
+        Logger.debug("AddWorldEvent received for world: %s", world.getName());
         try {
             // Skip temporary worlds
             if (world.getWorldConfig().isDeleteOnRemove()) {
-                Logger.info("Skipping world %s (temporary/delete-on-remove)", world.getName());
+                Logger.debug("Skipping world %s (temporary/delete-on-remove)", world.getName());
                 return;
             }
 
             // Register our world map provider for this world
             boolean worldMapEnabled = HyperFactionsConfig.get().isWorldMapMarkersEnabled();
-            Logger.info("World map markers enabled: %s for world: %s", worldMapEnabled, world.getName());
+            Logger.debug("World map markers enabled: %s for world: %s", worldMapEnabled, world.getName());
 
             if (worldMapEnabled) {
                 HyperFactionsWorldMapProvider provider = new HyperFactionsWorldMapProvider();
                 world.getWorldConfig().setWorldMapProvider((IWorldMapProvider) provider);
-                getLogger().at(Level.INFO).log("Set world map provider for world: %s", world.getName());
-                Logger.info("World map provider set successfully for: %s (provider class: %s)",
+                Logger.debug("World map provider set successfully for: %s (provider class: %s)",
                         world.getName(), provider.getClass().getName());
             }
 
@@ -657,385 +668,7 @@ public class HyperFactionsPlugin extends JavaPlugin {
         return protectionListener;
     }
 
-    // === ECS Event Systems for Block Protection ===
-
-    /**
-     * ECS system for handling block place protection.
-     */
-    private static class BlockPlaceProtectionSystem extends EntityEventSystem<EntityStore, PlaceBlockEvent> {
-        private final HyperFactions hyperFactions;
-        private final ProtectionListener protectionListener;
-
-        public BlockPlaceProtectionSystem(HyperFactions hyperFactions, ProtectionListener protectionListener) {
-            super(PlaceBlockEvent.class);
-            this.hyperFactions = hyperFactions;
-            this.protectionListener = protectionListener;
-        }
-
-        @Override
-        public Query<EntityStore> getQuery() {
-            return Archetype.empty();
-        }
-
-        @Override
-        public void handle(int entityIndex, ArchetypeChunk<EntityStore> chunk,
-                           Store<EntityStore> store, CommandBuffer<EntityStore> commandBuffer,
-                           PlaceBlockEvent event) {
-            try {
-                PlayerRef player = chunk.getComponent(entityIndex, PlayerRef.getComponentType());
-                if (player == null) return;
-
-                Vector3i pos = event.getTargetBlock();
-                // Get world name from store's external data (EntityStore)
-                String worldName = getWorldName(store);
-                if (worldName == null) return;
-
-                boolean blocked = protectionListener.onBlockPlace(
-                    player.getUuid(),
-                    worldName,
-                    pos.getX(), pos.getY(), pos.getZ()
-                );
-
-                if (blocked) {
-                    event.setCancelled(true);
-                    player.sendMessage(Message.raw(protectionListener.getDenialMessage(
-                        hyperFactions.getProtectionChecker().canInteract(
-                            player.getUuid(), worldName, pos.getX(), pos.getZ(),
-                            com.hyperfactions.protection.ProtectionChecker.InteractionType.BUILD
-                        )
-                    )).color("#FF5555"));
-                }
-            } catch (Exception e) {
-                Logger.severe("Error processing block place event", e);
-            }
-        }
-
-        private String getWorldName(Store<EntityStore> store) {
-            try {
-                return store.getExternalData().getWorld().getName();
-            } catch (Exception e) {
-                return null;
-            }
-        }
-    }
-
-    /**
-     * ECS system for handling block break protection.
-     */
-    private static class BlockBreakProtectionSystem extends EntityEventSystem<EntityStore, BreakBlockEvent> {
-        private final HyperFactions hyperFactions;
-        private final ProtectionListener protectionListener;
-
-        public BlockBreakProtectionSystem(HyperFactions hyperFactions, ProtectionListener protectionListener) {
-            super(BreakBlockEvent.class);
-            this.hyperFactions = hyperFactions;
-            this.protectionListener = protectionListener;
-        }
-
-        @Override
-        public Query<EntityStore> getQuery() {
-            return Archetype.empty();
-        }
-
-        @Override
-        public void handle(int entityIndex, ArchetypeChunk<EntityStore> chunk,
-                           Store<EntityStore> store, CommandBuffer<EntityStore> commandBuffer,
-                           BreakBlockEvent event) {
-            try {
-                PlayerRef player = chunk.getComponent(entityIndex, PlayerRef.getComponentType());
-                if (player == null) return;
-
-                Vector3i pos = event.getTargetBlock();
-                String worldName = getWorldName(store);
-                if (worldName == null) return;
-
-                boolean blocked = protectionListener.onBlockBreak(
-                    player.getUuid(),
-                    worldName,
-                    pos.getX(), pos.getY(), pos.getZ()
-                );
-
-                if (blocked) {
-                    event.setCancelled(true);
-                    player.sendMessage(Message.raw(protectionListener.getDenialMessage(
-                        hyperFactions.getProtectionChecker().canInteract(
-                            player.getUuid(), worldName, pos.getX(), pos.getZ(),
-                            com.hyperfactions.protection.ProtectionChecker.InteractionType.BUILD
-                        )
-                    )).color("#FF5555"));
-                }
-            } catch (Exception e) {
-                Logger.severe("Error processing block break event", e);
-            }
-        }
-
-        private String getWorldName(Store<EntityStore> store) {
-            try {
-                return store.getExternalData().getWorld().getName();
-            } catch (Exception e) {
-                return null;
-            }
-        }
-    }
-
-    /**
-     * ECS system for handling block use/interact protection.
-     */
-    private static class BlockUseProtectionSystem extends EntityEventSystem<EntityStore, UseBlockEvent.Pre> {
-        private final HyperFactions hyperFactions;
-        private final ProtectionListener protectionListener;
-
-        public BlockUseProtectionSystem(HyperFactions hyperFactions, ProtectionListener protectionListener) {
-            super(UseBlockEvent.Pre.class);
-            this.hyperFactions = hyperFactions;
-            this.protectionListener = protectionListener;
-        }
-
-        @Override
-        public Query<EntityStore> getQuery() {
-            return Archetype.empty();
-        }
-
-        @Override
-        public void handle(int entityIndex, ArchetypeChunk<EntityStore> chunk,
-                           Store<EntityStore> store, CommandBuffer<EntityStore> commandBuffer,
-                           UseBlockEvent.Pre event) {
-            try {
-                PlayerRef player = chunk.getComponent(entityIndex, PlayerRef.getComponentType());
-                if (player == null) return;
-
-                Vector3i pos = event.getTargetBlock();
-                String worldName = getWorldName(store);
-                if (worldName == null) return;
-
-                // Check if this is a door (only doors use INTERACT, everything else uses CONTAINER)
-                boolean isDoor = isDoorBlock(event.getBlockType());
-
-                boolean blocked;
-                com.hyperfactions.protection.ProtectionChecker.InteractionType interactionType;
-
-                if (isDoor) {
-                    // Use INTERACT for doors only - these are allowed in WarZones
-                    interactionType = com.hyperfactions.protection.ProtectionChecker.InteractionType.INTERACT;
-                    blocked = protectionListener.onBlockInteract(
-                        player.getUuid(),
-                        worldName,
-                        pos.getX(), pos.getY(), pos.getZ()
-                    );
-                } else {
-                    // Use CONTAINER for everything else (chests, furnaces, workbenches, etc.)
-                    // This blocks access in WarZones since CONTAINER_ACCESS defaults to false
-                    interactionType = com.hyperfactions.protection.ProtectionChecker.InteractionType.CONTAINER;
-                    blocked = protectionListener.onContainerAccess(
-                        player.getUuid(),
-                        worldName,
-                        pos.getX(), pos.getY(), pos.getZ()
-                    );
-                }
-
-                if (blocked) {
-                    event.setCancelled(true);
-                    player.sendMessage(Message.raw(protectionListener.getDenialMessage(
-                        hyperFactions.getProtectionChecker().canInteract(
-                            player.getUuid(), worldName, pos.getX(), pos.getZ(),
-                            interactionType
-                        )
-                    )).color("#FF5555"));
-                }
-            } catch (Exception e) {
-                Logger.severe("Error processing block use event", e);
-            }
-        }
-
-        /**
-         * Checks if a block type is a door.
-         * Only doors should use INTERACT permission - everything else requires CONTAINER permission.
-         */
-        private boolean isDoorBlock(com.hypixel.hytale.server.core.asset.type.blocktype.config.BlockType blockType) {
-            if (blockType == null) return false;
-            try {
-                // Check state ID for "Door"
-                var state = blockType.getState();
-                if (state != null) {
-                    String stateId = state.getId();
-                    if ("door".equalsIgnoreCase(stateId)) {
-                        return true;
-                    }
-                }
-                // Also check block ID for door-like blocks
-                String blockId = blockType.getId();
-                if (blockId != null) {
-                    String lowerBlockId = blockId.toLowerCase();
-                    // Match various door types: door, gate, trapdoor, etc.
-                    if (lowerBlockId.contains("door") || lowerBlockId.contains("gate")) {
-                        return true;
-                    }
-                }
-            } catch (Exception e) {
-                // Ignore errors, assume not a door (safer to block)
-            }
-            return false;
-        }
-
-        private String getWorldName(Store<EntityStore> store) {
-            try {
-                return store.getExternalData().getWorld().getName();
-            } catch (Exception e) {
-                return null;
-            }
-        }
-    }
-
-    /**
-     * ECS system for handling item pickup protection.
-     */
-    private static class ItemPickupProtectionSystem extends EntityEventSystem<EntityStore, InteractivelyPickupItemEvent> {
-        private final HyperFactions hyperFactions;
-        private final ProtectionListener protectionListener;
-
-        public ItemPickupProtectionSystem(HyperFactions hyperFactions, ProtectionListener protectionListener) {
-            super(InteractivelyPickupItemEvent.class);
-            this.hyperFactions = hyperFactions;
-            this.protectionListener = protectionListener;
-        }
-
-        @Override
-        public Query<EntityStore> getQuery() {
-            return Archetype.empty();
-        }
-
-        @Override
-        public void handle(int entityIndex, ArchetypeChunk<EntityStore> chunk,
-                           Store<EntityStore> store, CommandBuffer<EntityStore> commandBuffer,
-                           InteractivelyPickupItemEvent event) {
-            try {
-                PlayerRef player = chunk.getComponent(entityIndex, PlayerRef.getComponentType());
-                if (player == null) return;
-
-                // Get player's position from TransformComponent
-                TransformComponent transform = chunk.getComponent(entityIndex, TransformComponent.getComponentType());
-                if (transform == null) return;
-
-                String worldName = getWorldName(store);
-                if (worldName == null) return;
-
-                // Use player's position for protection check (item is at player's feet)
-                com.hypixel.hytale.math.vector.Vector3d position = transform.getPosition();
-                int x = (int) Math.floor(position.getX());
-                int y = (int) Math.floor(position.getY());
-                int z = (int) Math.floor(position.getZ());
-
-                boolean blocked = protectionListener.onItemPickup(
-                    player.getUuid(),
-                    worldName,
-                    x, y, z
-                );
-
-                if (blocked) {
-                    event.setCancelled(true);
-                    player.sendMessage(Message.raw(protectionListener.getDenialMessage(
-                        hyperFactions.getProtectionChecker().canInteract(
-                            player.getUuid(), worldName, x, z,
-                            com.hyperfactions.protection.ProtectionChecker.InteractionType.INTERACT
-                        )
-                    )).color("#FF5555"));
-                }
-            } catch (Exception e) {
-                Logger.severe("Error processing item pickup event", e);
-            }
-        }
-
-        private String getWorldName(Store<EntityStore> store) {
-            try {
-                return store.getExternalData().getWorld().getName();
-            } catch (Exception e) {
-                return null;
-            }
-        }
-    }
-
-    /**
-     * ECS system for handling PvP protection (ally/faction damage prevention).
-     */
-    private static class PvPProtectionSystem extends EntityEventSystem<EntityStore, Damage> {
-        private final HyperFactions hyperFactions;
-        private final ProtectionListener protectionListener;
-
-        public PvPProtectionSystem(HyperFactions hyperFactions, ProtectionListener protectionListener) {
-            super(Damage.class);
-            this.hyperFactions = hyperFactions;
-            this.protectionListener = protectionListener;
-        }
-
-        @Override
-        public Query<EntityStore> getQuery() {
-            return Archetype.empty();
-        }
-
-        @Override
-        public void handle(int entityIndex, ArchetypeChunk<EntityStore> chunk,
-                           Store<EntityStore> store, CommandBuffer<EntityStore> commandBuffer,
-                           Damage event) {
-            try {
-                // Skip if already cancelled
-                if (event.isCancelled()) return;
-
-                // Get the defender (entity being damaged)
-                PlayerRef defender = chunk.getComponent(entityIndex, PlayerRef.getComponentType());
-                if (defender == null) return; // Not a player, skip
-
-                // Check if the attacker is a player
-                Damage.Source source = event.getSource();
-                if (!(source instanceof Damage.EntitySource entitySource)) return; // Not entity damage
-
-                // Get the attacker's entity reference and check if it's a player
-                com.hypixel.hytale.component.Ref<EntityStore> attackerRef = entitySource.getRef();
-                PlayerRef attacker = commandBuffer.getComponent(attackerRef, PlayerRef.getComponentType());
-                if (attacker == null) return; // Attacker is not a player
-
-                // Both are players - check PvP protection
-                UUID attackerUuid = attacker.getUuid();
-                UUID defenderUuid = defender.getUuid();
-
-                // Skip self-damage
-                if (attackerUuid.equals(defenderUuid)) return;
-
-                // Get defender's position for location-based checks
-                TransformComponent transform = chunk.getComponent(entityIndex, TransformComponent.getComponentType());
-                if (transform == null) return;
-
-                String worldName = getWorldName(store);
-                if (worldName == null) return;
-
-                double x = transform.getPosition().getX();
-                double z = transform.getPosition().getZ();
-
-                // Check if PvP is allowed
-                com.hyperfactions.protection.ProtectionChecker.PvPResult result =
-                    hyperFactions.getProtectionChecker().canDamagePlayer(
-                        attackerUuid, defenderUuid, worldName, x, z
-                    );
-
-                if (!hyperFactions.getProtectionChecker().isAllowed(result)) {
-                    event.setCancelled(true);
-                    // Send denial message to attacker
-                    attacker.sendMessage(Message.raw(protectionListener.getDenialMessage(result)).color("#FF5555"));
-                    Logger.debugProtection("PvP blocked: attacker=%s, defender=%s, result=%s",
-                        attackerUuid, defenderUuid, result);
-                }
-            } catch (Exception e) {
-                Logger.severe("Error processing PvP protection event", e);
-            }
-        }
-
-        private String getWorldName(Store<EntityStore> store) {
-            try {
-                return store.getExternalData().getWorld().getName();
-            } catch (Exception e) {
-                return null;
-            }
-        }
-    }
+    // === ECS Event Systems ===
 
     /**
      * ECS system for canceling teleports when players take damage.

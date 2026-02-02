@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+**Admin GUI System**
+- Complete admin interface accessible via `/f admin` command
+- Dashboard page with server statistics overview
+- Factions management: browse all factions, view details, edit settings
+- Zone management: create, configure, and delete zones with visual map
+- Configuration page for runtime settings adjustment
+- Backups management page (placeholder for future functionality)
+- Help page with command reference
+- Updates page for version information
+- Navigation bar for consistent page switching
+- Admin faction settings now include both general settings and permissions
+
+**Admin Mode for Modals**
+- Admins can now edit faction settings (name, tag, description, color, recruitment) without being a member
+- All admin actions are prefixed with `[Admin]` in chat messages
+
+### Changed
+
+**Protection System Reorganization**
+- Reorganized protection code into logical subdirectories:
+  - `protection/zone/` - Zone-specific protection checks
+  - `protection/damage/` - Damage type handlers
+  - `protection/ecs/` - ECS event systems
+  - `protection/debug/` - Debug utilities
+- Moved SpawnProtection and ProtectionListener into protection package
+
+**Logging Improvements**
+- Converted verbose zone lookup logs to debug level
+- Converted GUI build/event logs to debug level
+- Converted world map provider logs to debug level
+
 ## [0.3.1] - 2026-02-01
 
 ### Fixed

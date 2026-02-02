@@ -219,6 +219,38 @@ $C = "../../Common.ui";
   Sounds: $C.@ButtonSounds,
 );
 
+@SmallTealLabelStyle = LabelStyle(
+  FontSize: 12,
+  TextColor: #2dd4bf,
+  RenderBold: true,
+  HorizontalAlignment: Center,
+  VerticalAlignment: Center
+);
+
+@SmallPurpleLabelStyle = LabelStyle(
+  FontSize: 12,
+  TextColor: #c084fc,
+  RenderBold: true,
+  HorizontalAlignment: Center,
+  VerticalAlignment: Center
+);
+
+@SmallTealButtonStyle = TextButtonStyle(
+  Default: (Background: $C.@DefaultSquareButtonDefaultBackground, LabelStyle: @SmallTealLabelStyle),
+  Hovered: (Background: $C.@DefaultSquareButtonHoveredBackground, LabelStyle: @SmallTealLabelStyle),
+  Pressed: (Background: $C.@DefaultSquareButtonPressedBackground, LabelStyle: @SmallTealLabelStyle),
+  Disabled: (Background: $C.@DefaultSquareButtonDisabledBackground, LabelStyle: @SmallTealLabelStyle),
+  Sounds: $C.@ButtonSounds,
+);
+
+@SmallPurpleButtonStyle = TextButtonStyle(
+  Default: (Background: $C.@DefaultSquareButtonDefaultBackground, LabelStyle: @SmallPurpleLabelStyle),
+  Hovered: (Background: $C.@DefaultSquareButtonHoveredBackground, LabelStyle: @SmallPurpleLabelStyle),
+  Pressed: (Background: $C.@DefaultSquareButtonPressedBackground, LabelStyle: @SmallPurpleLabelStyle),
+  Disabled: (Background: $C.@DefaultSquareButtonDisabledBackground, LabelStyle: @SmallPurpleLabelStyle),
+  Sounds: $C.@ButtonSounds,
+);
+
 // TOC link style - small text link for table of contents
 @TocLinkLabelStyle = LabelStyle(
   FontSize: 10,

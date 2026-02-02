@@ -36,9 +36,48 @@ public class ZoneManager {
     @Nullable
     private Runnable onZoneChangeCallback;
 
+    // Batch mode for bulk operations - defers notifyZoneChange until endBatch
+    private boolean batchMode = false;
+    private boolean pendingNotification = false;
+
     public ZoneManager(@NotNull ZoneStorage storage, @NotNull ClaimManager claimManager) {
         this.storage = storage;
         this.claimManager = claimManager;
+    }
+
+    /**
+     * Starts batch mode for bulk operations.
+     * While in batch mode, zone change notifications are deferred until endBatch is called.
+     * This prevents excessive map refreshes during imports.
+     */
+    public void startBatch() {
+        batchMode = true;
+        pendingNotification = false;
+        Logger.debug("Zone batch mode started");
+    }
+
+    /**
+     * Ends batch mode and fires any pending notifications.
+     * Should be called in a finally block after startBatch.
+     */
+    public void endBatch() {
+        batchMode = false;
+        if (pendingNotification) {
+            Logger.debug("Zone batch mode ended - firing deferred notification");
+            notifyZoneChange();
+            pendingNotification = false;
+        } else {
+            Logger.debug("Zone batch mode ended - no pending notifications");
+        }
+    }
+
+    /**
+     * Checks if batch mode is active.
+     *
+     * @return true if in batch mode
+     */
+    public boolean isInBatchMode() {
+        return batchMode;
     }
 
     /**
@@ -53,8 +92,15 @@ public class ZoneManager {
 
     /**
      * Notifies that zones have changed (triggers world map refresh).
+     * In batch mode, notifications are deferred until endBatch is called.
      */
     private void notifyZoneChange() {
+        if (batchMode) {
+            pendingNotification = true;
+            Logger.debugTerritory("Zone change notification deferred (batch mode)");
+            return;
+        }
+
         Logger.debugTerritory("Zone change notification triggered");
         if (onZoneChangeCallback != null) {
             try {
@@ -139,7 +185,33 @@ public class ZoneManager {
      */
     @Nullable
     public Zone getZone(@NotNull String world, int chunkX, int chunkZ) {
-        return zoneIndex.get(new ChunkKey(world, chunkX, chunkZ));
+        ChunkKey key = new ChunkKey(world, chunkX, chunkZ);
+        Zone zone = zoneIndex.get(key);
+
+        // If not found, try case-insensitive lookup
+        if (zone == null) {
+            // Try lowercase
+            ChunkKey lowercaseKey = new ChunkKey(world.toLowerCase(), chunkX, chunkZ);
+            zone = zoneIndex.get(lowercaseKey);
+
+            // Try "default" if world looks like the main world
+            if (zone == null && (world.equalsIgnoreCase("World") || world.equalsIgnoreCase("default"))) {
+                zone = zoneIndex.get(new ChunkKey("default", chunkX, chunkZ));
+                if (zone == null) {
+                    zone = zoneIndex.get(new ChunkKey("World", chunkX, chunkZ));
+                }
+            }
+
+            // DEBUG: Log lookup attempts (only when debug enabled)
+            if (zone == null && !zoneIndex.isEmpty()) {
+                Logger.debug("[ZoneManager] Zone lookup failed for world='%s' chunk=(%d,%d)", world, chunkX, chunkZ);
+                zoneIndex.keySet().stream()
+                    .filter(k -> k.chunkX() == chunkX && k.chunkZ() == chunkZ)
+                    .forEach(k -> Logger.debug("[ZoneManager] Same coords exists with world='%s'", k.world()));
+            }
+        }
+
+        return zone;
     }
 
     /**
@@ -319,6 +391,69 @@ public class ZoneManager {
         Logger.info("Created empty %s '%s' in %s", type.getDisplayName(), name, world);
         notifyZoneChange();
         return ZoneResult.SUCCESS;
+    }
+
+    /**
+     * Creates a new zone with all its chunks atomically.
+     * This is the preferred method for bulk imports as it avoids race conditions
+     * and only saves/notifies once at the end.
+     *
+     * @param name      the zone name
+     * @param type      the zone type
+     * @param world     the world name
+     * @param createdBy the creator's UUID
+     * @param chunks    the set of chunks to include in the zone
+     * @return a future that completes with the result
+     */
+    public CompletableFuture<ZoneResult> createZoneWithChunks(@NotNull String name, @NotNull ZoneType type,
+                                                              @NotNull String world, @NotNull UUID createdBy,
+                                                              @NotNull Set<ChunkKey> chunks) {
+        // Validate name
+        if (name.isBlank() || name.length() > 32) {
+            return CompletableFuture.completedFuture(ZoneResult.INVALID_NAME);
+        }
+
+        // Check if name is taken
+        if (zonesByName.containsKey(name.toLowerCase())) {
+            return CompletableFuture.completedFuture(ZoneResult.NAME_TAKEN);
+        }
+
+        // Check all chunks for conflicts
+        for (ChunkKey chunk : chunks) {
+            if (zoneIndex.containsKey(chunk)) {
+                return CompletableFuture.completedFuture(ZoneResult.CHUNK_HAS_ZONE);
+            }
+            if (claimManager.getClaimOwner(chunk.world(), chunk.chunkX(), chunk.chunkZ()) != null) {
+                return CompletableFuture.completedFuture(ZoneResult.CHUNK_HAS_FACTION);
+            }
+        }
+
+        // Create zone with all chunks
+        Zone zone = new Zone(
+                UUID.randomUUID(),
+                name,
+                type,
+                world,
+                new java.util.HashSet<>(chunks),
+                System.currentTimeMillis(),
+                createdBy,
+                null
+        );
+
+        // Update all indexes atomically
+        zonesById.put(zone.id(), zone);
+        zonesByName.put(name.toLowerCase(), zone);
+        for (ChunkKey chunk : chunks) {
+            zoneIndex.put(chunk, zone);
+        }
+
+        Logger.info("Created %s '%s' with %d chunks in %s", type.getDisplayName(), name, chunks.size(), world);
+
+        // Save and notify
+        return saveAll().thenApply(v -> {
+            notifyZoneChange();
+            return ZoneResult.SUCCESS;
+        });
     }
 
     /**

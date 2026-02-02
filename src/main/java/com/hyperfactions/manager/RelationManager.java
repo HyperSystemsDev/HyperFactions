@@ -491,6 +491,47 @@ public class RelationManager {
         factionManager.updateFaction(updated);
     }
 
+    // === Admin Methods ===
+
+    /**
+     * Admin: Force sets a mutual relation between two factions.
+     * This bypasses the request/accept flow for allies.
+     *
+     * @param factionAId the first faction ID
+     * @param factionBId the second faction ID
+     * @param type       the relation type (ALLY, ENEMY, or NEUTRAL)
+     * @return SUCCESS if the relation was set, FACTION_NOT_FOUND if either faction doesn't exist
+     */
+    @NotNull
+    public RelationResult adminSetRelation(@NotNull UUID factionAId, @NotNull UUID factionBId,
+                                           @NotNull RelationType type) {
+        Faction factionA = factionManager.getFaction(factionAId);
+        Faction factionB = factionManager.getFaction(factionBId);
+
+        if (factionA == null || factionB == null) {
+            return RelationResult.FACTION_NOT_FOUND;
+        }
+
+        // Clear any pending requests between these factions
+        Map<UUID, UUID> requestsToA = pendingAllyRequests.get(factionAId);
+        if (requestsToA != null) {
+            requestsToA.remove(factionBId);
+        }
+        Map<UUID, UUID> requestsToB = pendingAllyRequests.get(factionBId);
+        if (requestsToB != null) {
+            requestsToB.remove(factionAId);
+        }
+
+        // Set mutual relations (null actorUuid for admin action)
+        setRelation(factionAId, factionBId, type, null);
+        setRelation(factionBId, factionAId, type, null);
+
+        Logger.info("[Admin] Set mutual relation %s between '%s' and '%s'",
+                type.name(), factionA.name(), factionB.name());
+
+        return RelationResult.SUCCESS;
+    }
+
     /**
      * Clears all relations for a faction (used when disbanding).
      *

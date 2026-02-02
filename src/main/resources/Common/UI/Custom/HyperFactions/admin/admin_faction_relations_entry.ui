@@ -1,0 +1,58 @@
+// Admin Relation Entry - shows faction with action buttons
+$S = "../shared/styles.ui";
+
+Group {
+  LayoutMode: Left;
+  Anchor: (Height: 38, Bottom: 4);
+  Background: (Color: #1a2a3a);
+  Padding: (Left: 12, Right: 12, Top: 6, Bottom: 6);
+
+  // Faction info
+  Group {
+    Anchor: (Width: 160);
+    LayoutMode: Top;
+
+    Label #FactionName {
+      Text: "Faction Name";
+      Style: (FontSize: 12, TextColor: #CCCCCC, RenderBold: true, VerticalAlignment: Center);
+      Anchor: (Height: 15);
+    }
+    Label #LeaderName {
+      Text: "Leader: Unknown";
+      Style: (FontSize: 9, TextColor: #888888, VerticalAlignment: Center);
+      Anchor: (Height: 13);
+    }
+  }
+
+  // Date established
+  Label #DateEstablished {
+    Text: "";
+    Style: (FontSize: 9, TextColor: #666666, VerticalAlignment: Center);
+    Anchor: (Width: 100);
+  }
+
+  Group { FlexWeight: 1; }
+
+  // Action buttons
+  TextButton #SetAllyBtn {
+    Text: "ALLY";
+    Anchor: (Height: 22, Width: 50);
+    Style: $S.@SmallCyanButtonStyle;
+  }
+
+  Group { Anchor: (Width: 4); }
+
+  TextButton #SetNeutralBtn {
+    Text: "NEUTRAL";
+    Anchor: (Height: 22, Width: 65);
+    Style: $S.@SmallButtonStyle;
+  }
+
+  Group { Anchor: (Width: 4); }
+
+  TextButton #SetEnemyBtn {
+    Text: "ENEMY";
+    Anchor: (Height: 22, Width: 55);
+    Style: $S.@SmallRedButtonStyle;
+  }
+}

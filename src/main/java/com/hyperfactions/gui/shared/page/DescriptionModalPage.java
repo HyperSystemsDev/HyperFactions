@@ -33,16 +33,26 @@ public class DescriptionModalPage extends InteractiveCustomUIPage<DescriptionMod
     private final FactionManager factionManager;
     private final GuiManager guiManager;
     private final Faction faction;
+    private final boolean adminMode;
 
     public DescriptionModalPage(PlayerRef playerRef,
                                 FactionManager factionManager,
                                 GuiManager guiManager,
                                 Faction faction) {
+        this(playerRef, factionManager, guiManager, faction, false);
+    }
+
+    public DescriptionModalPage(PlayerRef playerRef,
+                                FactionManager factionManager,
+                                GuiManager guiManager,
+                                Faction faction,
+                                boolean adminMode) {
         super(playerRef, CustomPageLifetime.CanDismiss, DescriptionModalData.CODEC);
         this.playerRef = playerRef;
         this.factionManager = factionManager;
         this.guiManager = guiManager;
         this.faction = faction;
+        this.adminMode = adminMode;
     }
 
     @Override
@@ -104,8 +114,8 @@ public class DescriptionModalPage extends InteractiveCustomUIPage<DescriptionMod
         UUID uuid = playerRef.getUuid();
         FactionMember member = faction.getMember(uuid);
 
-        // Verify officer permission
-        if (member == null || member.role().getLevel() < FactionRole.OFFICER.getLevel()) {
+        // Verify officer permission (skip in admin mode)
+        if (!adminMode && (member == null || member.role().getLevel() < FactionRole.OFFICER.getLevel())) {
             player.sendMessage(Message.raw("You don't have permission to edit the description.").color("#FF5555"));
             guiManager.openFactionSettings(player, ref, store, playerRef,
                     factionManager.getFaction(faction.id()));
@@ -114,8 +124,12 @@ public class DescriptionModalPage extends InteractiveCustomUIPage<DescriptionMod
 
         switch (data.button) {
             case "Cancel" -> {
-                guiManager.openFactionSettings(player, ref, store, playerRef,
-                        factionManager.getFaction(faction.id()));
+                if (adminMode) {
+                    guiManager.openAdminFactionSettings(player, ref, store, playerRef, faction.id());
+                } else {
+                    guiManager.openFactionSettings(player, ref, store, playerRef,
+                            factionManager.getFaction(faction.id()));
+                }
             }
 
             case "Clear" -> {
@@ -123,20 +137,26 @@ public class DescriptionModalPage extends InteractiveCustomUIPage<DescriptionMod
                 Faction updatedFaction = faction.withDescription(null);
                 factionManager.updateFaction(updatedFaction);
 
-                player.sendMessage(Message.raw("Faction description cleared.").color("#AAAAAA"));
+                String prefix = adminMode ? "[Admin] " : "";
+                player.sendMessage(Message.raw(prefix + "Faction description cleared.").color("#AAAAAA"));
 
-                guiManager.openFactionSettings(player, ref, store, playerRef,
-                        factionManager.getFaction(faction.id()));
+                if (adminMode) {
+                    guiManager.openAdminFactionSettings(player, ref, store, playerRef, faction.id());
+                } else {
+                    guiManager.openFactionSettings(player, ref, store, playerRef,
+                            factionManager.getFaction(faction.id()));
+                }
             }
 
             case "Save" -> {
                 String newDesc = data.description;
+                String prefix = adminMode ? "[Admin] " : "";
 
                 // Empty is allowed (clears description)
                 if (newDesc == null || newDesc.trim().isEmpty()) {
                     Faction updatedFaction = faction.withDescription(null);
                     factionManager.updateFaction(updatedFaction);
-                    player.sendMessage(Message.raw("Faction description cleared.").color("#AAAAAA"));
+                    player.sendMessage(Message.raw(prefix + "Faction description cleared.").color("#AAAAAA"));
                 } else {
                     newDesc = newDesc.trim();
 
@@ -147,11 +167,15 @@ public class DescriptionModalPage extends InteractiveCustomUIPage<DescriptionMod
                     Faction updatedFaction = faction.withDescription(newDesc);
                     factionManager.updateFaction(updatedFaction);
 
-                    player.sendMessage(Message.raw("Faction description updated!").color("#55FF55"));
+                    player.sendMessage(Message.raw(prefix + "Faction description updated!").color("#55FF55"));
                 }
 
-                guiManager.openFactionSettings(player, ref, store, playerRef,
-                        factionManager.getFaction(faction.id()));
+                if (adminMode) {
+                    guiManager.openAdminFactionSettings(player, ref, store, playerRef, faction.id());
+                } else {
+                    guiManager.openFactionSettings(player, ref, store, playerRef,
+                            factionManager.getFaction(faction.id()));
+                }
             }
         }
     }

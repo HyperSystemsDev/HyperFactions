@@ -9,6 +9,9 @@ import com.hyperfactions.integration.HyperPermsIntegration;
 import com.hyperfactions.integration.PermissionManager;
 import com.hyperfactions.manager.*;
 import com.hyperfactions.protection.ProtectionChecker;
+import com.hyperfactions.protection.damage.DamageProtectionHandler;
+import com.hyperfactions.protection.zone.ZoneDamageProtection;
+import com.hyperfactions.protection.zone.ZoneInteractionProtection;
 import com.hyperfactions.storage.FactionStorage;
 import com.hyperfactions.storage.PlayerStorage;
 import com.hyperfactions.storage.ZoneStorage;
@@ -63,6 +66,9 @@ public class HyperFactions {
 
     // Protection
     private ProtectionChecker protectionChecker;
+    private ZoneDamageProtection zoneDamageProtection;
+    private ZoneInteractionProtection zoneInteractionProtection;
+    private DamageProtectionHandler damageProtectionHandler;
 
     // GUI
     private GuiManager guiManager;
@@ -84,6 +90,9 @@ public class HyperFactions {
     private final Map<Integer, ScheduledTask> scheduledTasks = new ConcurrentHashMap<>();
     private int autoSaveTaskId = -1;
     private int inviteCleanupTaskId = -1;
+
+    // Admin bypass state (per-player toggle for protection bypass)
+    private final Map<UUID, Boolean> adminBypassEnabled = new ConcurrentHashMap<>();
 
     // Platform callbacks (set by plugin)
     private Consumer<Runnable> asyncExecutor;
@@ -193,10 +202,20 @@ public class HyperFactions {
         // Build claim index after loading factions
         claimManager.buildIndex();
 
-        // Initialize protection checker
+        // Initialize protection checker (with plugin reference for admin bypass toggle)
         protectionChecker = new ProtectionChecker(
-            factionManager, claimManager, zoneManager, relationManager, combatTagManager
+            () -> this, factionManager, claimManager, zoneManager, relationManager, combatTagManager
         );
+
+        // Initialize zone damage protection
+        zoneDamageProtection = new ZoneDamageProtection(this);
+
+        // Initialize zone interaction protection
+        zoneInteractionProtection = new ZoneInteractionProtection(this);
+
+        // Initialize damage protection handler (coordinates all protection systems)
+        // Note: denialMessageProvider will be set by plugin after ProtectionListener is created
+        damageProtectionHandler = null; // Initialized later by plugin
 
         // Initialize GUI manager
         guiManager = new GuiManager(
@@ -595,6 +614,35 @@ public class HyperFactions {
     }
 
     @NotNull
+    public ZoneDamageProtection getZoneDamageProtection() {
+        return zoneDamageProtection;
+    }
+
+    @NotNull
+    public ZoneInteractionProtection getZoneInteractionProtection() {
+        return zoneInteractionProtection;
+    }
+
+    /**
+     * Gets the damage protection handler that coordinates all protection systems.
+     *
+     * @return the damage protection handler, or null if not yet initialized
+     */
+    @Nullable
+    public DamageProtectionHandler getDamageProtectionHandler() {
+        return damageProtectionHandler;
+    }
+
+    /**
+     * Sets the damage protection handler. Called by the plugin after creating ProtectionListener.
+     *
+     * @param handler the damage protection handler
+     */
+    public void setDamageProtectionHandler(@NotNull DamageProtectionHandler handler) {
+        this.damageProtectionHandler = handler;
+    }
+
+    @NotNull
     public GuiManager getGuiManager() {
         return guiManager;
     }
@@ -667,6 +715,30 @@ public class HyperFactions {
     @NotNull
     public WorldMapService getWorldMapService() {
         return worldMapService;
+    }
+
+    // === Admin Bypass Toggle ===
+
+    /**
+     * Checks if admin bypass is enabled for a player.
+     * When enabled, the player can bypass protection checks in claimed territory.
+     *
+     * @param playerUuid the player's UUID
+     * @return true if admin bypass is enabled for this player
+     */
+    public boolean isAdminBypassEnabled(@NotNull UUID playerUuid) {
+        return adminBypassEnabled.getOrDefault(playerUuid, false);
+    }
+
+    /**
+     * Toggles admin bypass state for a player.
+     * When toggled on, the player can bypass protection checks in claimed territory.
+     *
+     * @param playerUuid the player's UUID
+     * @return true if bypass is now enabled, false if now disabled
+     */
+    public boolean toggleAdminBypass(@NotNull UUID playerUuid) {
+        return adminBypassEnabled.compute(playerUuid, (k, v) -> v == null || !v);
     }
 
     /**

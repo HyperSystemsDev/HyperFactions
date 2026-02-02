@@ -3,17 +3,21 @@ package com.hyperfactions.gui.admin.data;
 import com.hypixel.hytale.codec.Codec;
 import com.hypixel.hytale.codec.KeyedCodec;
 import com.hypixel.hytale.codec.builder.BuilderCodec;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Event data for the Admin Zone management page.
  */
-public class AdminZoneData {
+public class AdminZoneData implements AdminNavAwareData {
 
     /** The button/action that triggered the event */
     public String button;
 
     /** Zone ID (if any) */
     public String zoneId;
+
+    /** Zone UUID for expansion toggle */
+    public String zoneUuid;
 
     /** Zone name (if any) */
     public String zoneName;
@@ -33,6 +37,9 @@ public class AdminZoneData {
     /** Zone name input from wizard */
     public String inputName;
 
+    /** Admin nav bar target (for navigation) */
+    public String adminNavBar;
+
     /** Codec for serialization/deserialization */
     public static final BuilderCodec<AdminZoneData> CODEC = BuilderCodec
             .builder(AdminZoneData.class, AdminZoneData::new)
@@ -45,6 +52,11 @@ public class AdminZoneData {
                     new KeyedCodec<>("ZoneId", Codec.STRING),
                     (data, value) -> data.zoneId = value,
                     data -> data.zoneId
+            )
+            .addField(
+                    new KeyedCodec<>("ZoneUuid", Codec.STRING),
+                    (data, value) -> data.zoneUuid = value,
+                    data -> data.zoneUuid
             )
             .addField(
                     new KeyedCodec<>("ZoneName", Codec.STRING),
@@ -94,8 +106,19 @@ public class AdminZoneData {
                     (data, value) -> data.inputName = value,
                     data -> data.inputName
             )
+            .addField(
+                    new KeyedCodec<>("AdminNavBar", Codec.STRING),
+                    (data, value) -> data.adminNavBar = value,
+                    data -> data.adminNavBar
+            )
             .build();
 
     public AdminZoneData() {
+    }
+
+    @Override
+    @Nullable
+    public String getAdminNavBar() {
+        return adminNavBar;
     }
 }

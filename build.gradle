@@ -27,13 +27,45 @@ repositories {
     mavenCentral()
 }
 
+// Helper to find the latest HyperPerms JAR dynamically
+def findLatestHyperPermsJar() {
+    def libsDir = file('../HyperPerms/build/libs')
+    if (!libsDir.exists()) {
+        return null
+    }
+    def jars = libsDir.listFiles({ dir, name ->
+        name.startsWith('HyperPerms-') && name.endsWith('.jar') && !name.contains('-sources') && !name.contains('-javadoc')
+    } as FilenameFilter)
+    if (jars == null || jars.length == 0) {
+        return null
+    }
+    // Sort by version (assumes format HyperPerms-X.Y.Z.jar)
+    return jars.sort { a, b ->
+        def versionA = a.name.replace('HyperPerms-', '').replace('.jar', '')
+        def versionB = b.name.replace('HyperPerms-', '').replace('.jar', '')
+        def partsA = versionA.split('\\.').collect { it.toInteger() }
+        def partsB = versionB.split('\\.').collect { it.toInteger() }
+        for (int i = 0; i < Math.max(partsA.size(), partsB.size()); i++) {
+            def a_val = i < partsA.size() ? partsA[i] : 0
+            def b_val = i < partsB.size() ? partsB[i] : 0
+            if (a_val != b_val) return a_val <=> b_val
+        }
+        return 0
+    }.last()
+}
+
+def hyperPermsJar = findLatestHyperPermsJar()
+
 dependencies {
     // Hytale Server API (provided at runtime)
     compileOnly files(rootProject.hytaleServerJar)
 
     // HyperPerms soft dependency (for compile-time reference only)
     // Actual integration uses reflection to avoid hard dependency
-    compileOnly files('../HyperPerms/build/libs/HyperPerms-2.5.1.jar')
+    // Dynamically finds the latest version from HyperPerms build output
+    if (hyperPermsJar != null) {
+        compileOnly files(hyperPermsJar)
+    }
 
     // JSON handling
     implementation 'com.google.code.gson:gson:2.11.0'

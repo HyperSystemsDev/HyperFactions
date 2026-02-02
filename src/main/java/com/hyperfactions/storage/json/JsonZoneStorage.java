@@ -268,8 +268,13 @@ public class JsonZoneStorage implements ZoneStorage {
                 flags.remove(ZoneFlags.BUILD_ALLOWED);
                 migrated = true;
             }
-            if (flags.containsKey(ZoneFlags.CONTAINER_ACCESS)) {
-                flags.remove(ZoneFlags.CONTAINER_ACCESS);
+            // Migrate old container_access and interact_allowed to new block_interact
+            if (flags.containsKey("container_access")) {
+                flags.remove("container_access");
+                migrated = true;
+            }
+            if (flags.containsKey("interact_allowed")) {
+                flags.remove("interact_allowed");
                 migrated = true;
             }
             if (migrated) {

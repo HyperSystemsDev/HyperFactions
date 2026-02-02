@@ -80,7 +80,7 @@ public class CreateZoneWizardPage extends InteractiveCustomUIPage<AdminZoneData>
     @Override
     public void build(Ref<EntityStore> ref, UICommandBuilder cmd,
                       UIEventBuilder events, Store<EntityStore> store) {
-        Logger.info("[CreateZoneWizardPage] build() for type '%s', preservedName='%s'",
+        Logger.debug("[CreateZoneWizardPage] build() for type '%s', preservedName='%s'",
                 selectedType.name(), preservedName);
 
         // Load the template

@@ -3,11 +3,12 @@ package com.hyperfactions.gui.admin.data;
 import com.hypixel.hytale.codec.Codec;
 import com.hypixel.hytale.codec.KeyedCodec;
 import com.hypixel.hytale.codec.builder.BuilderCodec;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Event data for the Admin Main page.
  */
-public class AdminMainData {
+public class AdminMainData implements AdminNavAwareData {
 
     /** The button/action that triggered the event */
     public String button;
@@ -23,6 +24,9 @@ public class AdminMainData {
 
     /** Current page number (for pagination) */
     public int page;
+
+    /** Admin nav bar target (for navigation) */
+    public String adminNavBar;
 
     /** Codec for serialization/deserialization */
     public static final BuilderCodec<AdminMainData> CODEC = BuilderCodec
@@ -58,8 +62,19 @@ public class AdminMainData {
                     },
                     data -> String.valueOf(data.page)
             )
+            .addField(
+                    new KeyedCodec<>("AdminNavBar", Codec.STRING),
+                    (data, value) -> data.adminNavBar = value,
+                    data -> data.adminNavBar
+            )
             .build();
 
     public AdminMainData() {
+    }
+
+    @Override
+    @Nullable
+    public String getAdminNavBar() {
+        return adminNavBar;
     }
 }

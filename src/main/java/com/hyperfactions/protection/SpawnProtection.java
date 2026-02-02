@@ -1,4 +1,4 @@
-package com.hyperfactions.data;
+package com.hyperfactions.protection;
 
 import org.jetbrains.annotations.NotNull;
 

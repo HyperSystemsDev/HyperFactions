@@ -1,111 +1,114 @@
 $C = "../../Common.ui";
 $S = "../shared/styles.ui";
+$Nav = "admin_nav_bar.ui";
 
-$C.@PageOverlay {}
+$C.@PageOverlay {
+  $Nav.@HyperFactionsAdminNavBar #HyperFactionsAdminNavBar {}
 
-$C.@Container {
-  Anchor: (Width: 600, Height: 520);
+  $C.@Container {
+    Anchor: (Width: 600, Height: 470);
 
-  #Title {
-    $C.@Title {
-      @Text = "Factions Admin";
-    }
-  }
-
-  #Content {
-    LayoutMode: Top;
-    Padding: (Left: 15, Right: 15, Top: 10, Bottom: 10);
-
-    Group #Stats {
-      Anchor: (Height: 30, Bottom: 10);
-      LayoutMode: Left;
-
-      Label #TotalFactions {
-        Text: "Factions: 0";
-        Style: (FontSize: 12, TextColor: #00FFFF, VerticalAlignment: Center);
-        Anchor: (Width: 120);
-      }
-
-      Label #TotalMembers {
-        Text: "Total Members: 0";
-        Style: (FontSize: 12, TextColor: #888888, VerticalAlignment: Center);
-        Anchor: (Width: 140);
-      }
-
-      Label #TotalClaims {
-        Text: "Total Claims: 0";
-        Style: (FontSize: 12, TextColor: #FFAA00, VerticalAlignment: Center);
-        Anchor: (Width: 120);
-      }
-
-      Label { FlexWeight: 1; }
-
-      TextButton #ZonesBtn {
-        Text: "ZONES";
-        Anchor: (Height: 26, Width: 70);
-        Style: $S.@CyanButtonStyle;
-      }
-
-      Label { Anchor: (Width: 5); }
-
-      TextButton #ReloadBtn {
-        Text: "RELOAD";
-        Anchor: (Height: 26, Width: 70);
-        Style: $S.@ButtonStyle;
+    #Title {
+      $C.@Title {
+        @Text = "Factions Admin";
       }
     }
 
-    Group {
-      Anchor: (Height: 1, Bottom: 8);
-      Background: (Color: #00AAAA);
-    }
+    #Content {
+      LayoutMode: Top;
+      Padding: (Left: 15, Right: 15, Top: 10, Bottom: 10);
 
-    Group #FactionListContainer {
-      LayoutMode: TopScrolling;
-      ScrollbarStyle: $C.@DefaultScrollbarStyle;
-      FlexWeight: 1;
+      Group #Stats {
+        Anchor: (Height: 30, Bottom: 10);
+        LayoutMode: Left;
 
-      Group #FactionList {
-        LayoutMode: Top;
+        Label #TotalFactions {
+          Text: "Factions: 0";
+          Style: (FontSize: 12, TextColor: #00FFFF, VerticalAlignment: Center);
+          Anchor: (Width: 120);
+        }
 
-        Group #FactionEntry0 { Anchor: (Height: 65); }
-        Group #FactionEntry1 { Anchor: (Height: 65); }
-        Group #FactionEntry2 { Anchor: (Height: 65); }
-        Group #FactionEntry3 { Anchor: (Height: 65); }
-        Group #FactionEntry4 { Anchor: (Height: 65); }
-        Group #FactionEntry5 { Anchor: (Height: 65); }
-      }
-    }
+        Label #TotalMembers {
+          Text: "Total Members: 0";
+          Style: (FontSize: 12, TextColor: #888888, VerticalAlignment: Center);
+          Anchor: (Width: 140);
+        }
 
-    Group {
-      Anchor: (Height: 1, Top: 8, Bottom: 8);
-      Background: (Color: #00AAAA);
-    }
+        Label #TotalClaims {
+          Text: "Total Claims: 0";
+          Style: (FontSize: 12, TextColor: #FFAA00, VerticalAlignment: Center);
+          Anchor: (Width: 120);
+        }
 
-    Group #Pagination {
-      Anchor: (Height: 35);
-      LayoutMode: Left;
+        Label { FlexWeight: 1; }
 
-      TextButton #PrevBtn {
-        Text: "< PREV";
-        Anchor: (Height: 26, Width: 80);
-        Style: $S.@ButtonStyle;
-      }
+        TextButton #ZonesBtn {
+          Text: "ZONES";
+          Anchor: (Height: 26, Width: 70);
+          Style: $S.@CyanButtonStyle;
+        }
 
-      Label { FlexWeight: 1; }
+        Label { Anchor: (Width: 5); }
 
-      Label #PageInfo {
-        Text: "1/1";
-        Style: (FontSize: 14, TextColor: #888888, HorizontalAlignment: Center, VerticalAlignment: Center);
-        Anchor: (Width: 60);
+        TextButton #ReloadBtn {
+          Text: "RELOAD";
+          Anchor: (Height: 26, Width: 70);
+          Style: $S.@ButtonStyle;
+        }
       }
 
-      Label { FlexWeight: 1; }
+      Group {
+        Anchor: (Height: 1, Bottom: 8);
+        Background: (Color: #00AAAA);
+      }
 
-      TextButton #NextBtn {
-        Text: "NEXT >";
-        Anchor: (Height: 26, Width: 80);
-        Style: $S.@ButtonStyle;
+      Group #FactionListContainer {
+        LayoutMode: TopScrolling;
+        ScrollbarStyle: $C.@DefaultScrollbarStyle;
+        FlexWeight: 1;
+
+        Group #FactionList {
+          LayoutMode: Top;
+
+          Group #FactionEntry0 { Anchor: (Height: 65); }
+          Group #FactionEntry1 { Anchor: (Height: 65); }
+          Group #FactionEntry2 { Anchor: (Height: 65); }
+          Group #FactionEntry3 { Anchor: (Height: 65); }
+          Group #FactionEntry4 { Anchor: (Height: 65); }
+          Group #FactionEntry5 { Anchor: (Height: 65); }
+        }
+      }
+
+      Group {
+        Anchor: (Height: 1, Top: 8, Bottom: 8);
+        Background: (Color: #00AAAA);
+      }
+
+      Group #Pagination {
+        Anchor: (Height: 35);
+        LayoutMode: Left;
+
+        TextButton #PrevBtn {
+          Text: "< PREV";
+          Anchor: (Height: 26, Width: 80);
+          Style: $S.@ButtonStyle;
+        }
+
+        Label { FlexWeight: 1; }
+
+        Label #PageInfo {
+          Text: "1/1";
+          Style: (FontSize: 14, TextColor: #888888, HorizontalAlignment: Center, VerticalAlignment: Center);
+          Anchor: (Width: 60);
+        }
+
+        Label { FlexWeight: 1; }
+
+        TextButton #NextBtn {
+          Text: "NEXT >";
+          Anchor: (Height: 26, Width: 80);
+          Style: $S.@ButtonStyle;
+        }
       }
     }
   }

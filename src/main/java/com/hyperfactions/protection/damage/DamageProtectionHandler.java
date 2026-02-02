@@ -1,0 +1,114 @@
+package com.hyperfactions.protection.damage;
+
+import com.hyperfactions.protection.ProtectionChecker;
+import com.hyperfactions.protection.zone.ZoneDamageProtection;
+import com.hypixel.hytale.component.CommandBuffer;
+import com.hypixel.hytale.server.core.modules.entity.damage.Damage;
+import com.hypixel.hytale.server.core.universe.PlayerRef;
+import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import org.jetbrains.annotations.NotNull;
+
+import java.util.function.Function;
+
+/**
+ * Coordinates all damage protection systems.
+ * Delegates to specific protection handlers based on damage type.
+ *
+ * <p>Processing order:
+ * <ol>
+ *   <li>Fall damage - checked first (uses NULL_SOURCE in Hytale)</li>
+ *   <li>Environmental damage - drowning, suffocation, etc. (uses NULL_SOURCE)</li>
+ *   <li>Projectile damage - from bows, thrown items, etc.</li>
+ *   <li>Mob damage - from non-player entities</li>
+ *   <li>PvP damage - player vs player</li>
+ * </ol>
+ */
+public class DamageProtectionHandler {
+
+    private final FallDamageProtection fallDamage;
+    private final EnvironmentalDamageProtection environmentalDamage;
+    private final ProjectileDamageProtection projectileDamage;
+    private final MobDamageProtection mobDamage;
+    private final PvPDamageProtection pvpDamage;
+
+    public DamageProtectionHandler(@NotNull ZoneDamageProtection zoneDamage,
+                                    @NotNull ProtectionChecker protectionChecker,
+                                    @NotNull Function<ProtectionChecker.PvPResult, String> pvpDenialMessageProvider) {
+        this.fallDamage = new FallDamageProtection(zoneDamage);
+        this.environmentalDamage = new EnvironmentalDamageProtection(zoneDamage);
+        this.projectileDamage = new ProjectileDamageProtection(zoneDamage);
+        this.mobDamage = new MobDamageProtection(zoneDamage);
+        this.pvpDamage = new PvPDamageProtection(protectionChecker, pvpDenialMessageProvider);
+    }
+
+    /**
+     * Handles damage protection for a player.
+     * Delegates to the appropriate protection handler based on damage type.
+     *
+     * @param event         the damage event
+     * @param defender      the player being damaged
+     * @param worldName     the world name
+     * @param x             the X coordinate
+     * @param z             the Z coordinate
+     * @param commandBuffer the command buffer for component access
+     */
+    public void handleDamage(@NotNull Damage event,
+                             @NotNull PlayerRef defender,
+                             @NotNull String worldName,
+                             double x, double z,
+                             @NotNull CommandBuffer<EntityStore> commandBuffer) {
+
+        // 1. Check fall damage (uses cause, not source)
+        if (fallDamage.handle(event, worldName, x, z)) {
+            return; // Handled
+        }
+
+        // 2. Check environmental damage (uses cause, not source)
+        if (environmentalDamage.handle(event, worldName, x, z)) {
+            return; // Handled
+        }
+
+        // 3. For entity-based damage, check source type
+        Damage.Source source = event.getSource();
+        if (!(source instanceof Damage.EntitySource entitySource)) {
+            // Unknown source type - allow by default
+            return;
+        }
+
+        // 4. Check projectile damage (may continue to PvP check if from player)
+        boolean projectileBlocked = projectileDamage.handle(event, worldName, x, z);
+        if (projectileBlocked) {
+            return; // Projectile damage blocked
+        }
+
+        // 5. Check mob damage (non-player entities)
+        if (mobDamage.handle(event, entitySource, worldName, x, z, commandBuffer)) {
+            return; // Handled (either blocked or allowed mob damage)
+        }
+
+        // 6. Check PvP damage (player vs player)
+        pvpDamage.handle(event, entitySource, defender, worldName, x, z, commandBuffer);
+    }
+
+    // Accessors for individual protection systems (for testing or direct access)
+
+    public FallDamageProtection getFallDamage() {
+        return fallDamage;
+    }
+
+    public EnvironmentalDamageProtection getEnvironmentalDamage() {
+        return environmentalDamage;
+    }
+
+    public ProjectileDamageProtection getProjectileDamage() {
+        return projectileDamage;
+    }
+
+    public MobDamageProtection getMobDamage() {
+        return mobDamage;
+    }
+
+    public PvPDamageProtection getPvpDamage() {
+        return pvpDamage;
+    }
+}

@@ -615,6 +615,18 @@ public class FactionManager {
     }
 
     /**
+     * Force disbands a faction without permission checks.
+     * Used for admin operations and data imports.
+     *
+     * @param factionId the faction ID
+     * @param reason    the reason for disbanding (logged)
+     * @return the result
+     */
+    public FactionResult forceDisband(@NotNull UUID factionId, @NotNull String reason) {
+        return disbandFactionInternal(factionId, reason);
+    }
+
+    /**
      * Promotes a member to the next rank.
      *
      * @param factionId  the faction ID
@@ -756,6 +768,87 @@ public class FactionManager {
     }
 
     /**
+     * Admin: Sets a member's role without permission checks.
+     * Handles leader transfers automatically.
+     *
+     * @param factionId  the faction ID
+     * @param playerUuid the player's UUID
+     * @param newRole    the new role
+     * @return the result
+     */
+    public FactionResult adminSetMemberRole(@NotNull UUID factionId, @NotNull UUID playerUuid, @NotNull FactionRole newRole) {
+        Faction faction = factions.get(factionId);
+        if (faction == null) {
+            return FactionResult.FACTION_NOT_FOUND;
+        }
+
+        FactionMember target = faction.getMember(playerUuid);
+        if (target == null) {
+            return FactionResult.TARGET_NOT_IN_FACTION;
+        }
+
+        // If promoting to leader, demote current leader
+        Faction updated = faction;
+        if (newRole == FactionRole.LEADER && target.role() != FactionRole.LEADER) {
+            FactionMember currentLeader = faction.getLeader();
+            if (currentLeader != null && !currentLeader.uuid().equals(playerUuid)) {
+                FactionMember demotedLeader = currentLeader.withRole(FactionRole.OFFICER);
+                updated = updated.withMember(demotedLeader);
+            }
+        }
+
+        // Update target's role
+        FactionMember updatedMember = target.withRole(newRole);
+        updated = updated.withMember(updatedMember)
+            .withLog(FactionLog.create(FactionLog.LogType.MEMBER_PROMOTE,
+                "[Admin] " + target.username() + " role set to " + newRole.getDisplayName(), null));
+
+        factions.put(factionId, updated);
+        storage.saveFaction(updated);
+
+        Logger.info("[Admin] Set %s role to %s in faction '%s'",
+                target.username(), newRole.getDisplayName(), faction.name());
+        return FactionResult.SUCCESS;
+    }
+
+    /**
+     * Admin: Removes a member without permission checks.
+     * Cannot remove leaders (must demote first or disband).
+     *
+     * @param factionId  the faction ID
+     * @param playerUuid the player's UUID
+     * @return the result
+     */
+    public FactionResult adminRemoveMember(@NotNull UUID factionId, @NotNull UUID playerUuid) {
+        Faction faction = factions.get(factionId);
+        if (faction == null) {
+            return FactionResult.FACTION_NOT_FOUND;
+        }
+
+        FactionMember target = faction.getMember(playerUuid);
+        if (target == null) {
+            return FactionResult.TARGET_NOT_IN_FACTION;
+        }
+
+        // Can't kick the leader - must demote or disband
+        if (target.role() == FactionRole.LEADER) {
+            return FactionResult.CANNOT_KICK_LEADER;
+        }
+
+        // Remove member
+        Faction updated = faction.withoutMember(playerUuid)
+            .withLog(FactionLog.create(FactionLog.LogType.MEMBER_KICK,
+                "[Admin] " + target.username() + " was kicked", null));
+
+        factions.put(factionId, updated);
+        playerToFaction.remove(playerUuid);
+        storage.saveFaction(updated);
+
+        Logger.info("[Admin] Kicked %s from faction '%s'", target.username(), faction.name());
+        return FactionResult.SUCCESS;
+    }
+
+    /**
      * Updates a faction's home.
      *
      * @param factionId the faction ID
@@ -798,6 +891,53 @@ public class FactionManager {
     public void updateFaction(@NotNull Faction faction) {
         factions.put(faction.id(), faction);
         storage.saveFaction(faction);
+    }
+
+    /**
+     * Imports or replaces a faction, properly updating all indices.
+     * Used for data import operations where faction data comes from external sources.
+     * This method handles:
+     * - Removing old members from playerToFaction index if overwriting
+     * - Adding new members to playerToFaction index
+     * - Updating nameToFaction index
+     *
+     * @param faction the faction to import
+     * @param overwrite if true, replaces existing faction with same ID
+     * @return true if imported successfully, false if faction exists and overwrite is false
+     */
+    public boolean importFaction(@NotNull Faction faction, boolean overwrite) {
+        Faction existing = factions.get(faction.id());
+
+        if (existing != null && !overwrite) {
+            return false;
+        }
+
+        // If overwriting, clean up old member indices
+        if (existing != null) {
+            // Remove old name mapping if name changed
+            if (!existing.name().equalsIgnoreCase(faction.name())) {
+                nameToFaction.remove(existing.name().toLowerCase());
+            }
+            // Remove old members from index
+            for (UUID memberUuid : existing.members().keySet()) {
+                playerToFaction.remove(memberUuid);
+            }
+        }
+
+        // Add new faction to caches
+        factions.put(faction.id(), faction);
+        nameToFaction.put(faction.name().toLowerCase(), faction.id());
+
+        // Add new members to index
+        for (UUID memberUuid : faction.members().keySet()) {
+            playerToFaction.put(memberUuid, faction.id());
+        }
+
+        // Save to storage
+        storage.saveFaction(faction);
+
+        Logger.info("Imported faction '%s' with %d members", faction.name(), faction.getMemberCount());
+        return true;
     }
 
     /**

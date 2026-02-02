@@ -38,18 +38,29 @@ public class RenameModalPage extends InteractiveCustomUIPage<RenameModalData> {
     private final Faction faction;
     @Nullable
     private final WorldMapService worldMapService;
+    private final boolean adminMode;
 
     public RenameModalPage(PlayerRef playerRef,
                            FactionManager factionManager,
                            GuiManager guiManager,
                            Faction faction,
                            @Nullable WorldMapService worldMapService) {
+        this(playerRef, factionManager, guiManager, faction, worldMapService, false);
+    }
+
+    public RenameModalPage(PlayerRef playerRef,
+                           FactionManager factionManager,
+                           GuiManager guiManager,
+                           Faction faction,
+                           @Nullable WorldMapService worldMapService,
+                           boolean adminMode) {
         super(playerRef, CustomPageLifetime.CanDismiss, RenameModalData.CODEC);
         this.playerRef = playerRef;
         this.factionManager = factionManager;
         this.guiManager = guiManager;
         this.faction = faction;
         this.worldMapService = worldMapService;
+        this.adminMode = adminMode;
     }
 
     @Override
@@ -94,8 +105,8 @@ public class RenameModalPage extends InteractiveCustomUIPage<RenameModalData> {
         UUID uuid = playerRef.getUuid();
         FactionMember member = faction.getMember(uuid);
 
-        // Verify officer permission
-        if (member == null || member.role().getLevel() < FactionRole.OFFICER.getLevel()) {
+        // Verify officer permission (skip in admin mode)
+        if (!adminMode && (member == null || member.role().getLevel() < FactionRole.OFFICER.getLevel())) {
             player.sendMessage(Message.raw("You don't have permission to rename the faction.").color("#FF5555"));
             guiManager.openFactionSettings(player, ref, store, playerRef,
                     factionManager.getFaction(faction.id()));
@@ -104,8 +115,12 @@ public class RenameModalPage extends InteractiveCustomUIPage<RenameModalData> {
 
         switch (data.button) {
             case "Cancel" -> {
-                guiManager.openFactionSettings(player, ref, store, playerRef,
-                        factionManager.getFaction(faction.id()));
+                if (adminMode) {
+                    guiManager.openAdminFactionSettings(player, ref, store, playerRef, faction.id());
+                } else {
+                    guiManager.openFactionSettings(player, ref, store, playerRef,
+                            factionManager.getFaction(faction.id()));
+                }
             }
 
             case "Save" -> {
@@ -157,16 +172,21 @@ public class RenameModalPage extends InteractiveCustomUIPage<RenameModalData> {
                     worldMapService.refreshAllWorldMaps();
                 }
 
+                String prefix = adminMode ? "[Admin] " : "";
                 player.sendMessage(
-                        Message.raw("Faction renamed from ").color("#AAAAAA")
+                        Message.raw(prefix + "Faction renamed from ").color("#AAAAAA")
                                 .insert(Message.raw(oldName).color("#888888"))
                                 .insert(Message.raw(" to ").color("#AAAAAA"))
                                 .insert(Message.raw(newName).color("#00FFFF"))
                                 .insert(Message.raw("!").color("#AAAAAA"))
                 );
 
-                guiManager.openFactionSettings(player, ref, store, playerRef,
-                        factionManager.getFaction(faction.id()));
+                if (adminMode) {
+                    guiManager.openAdminFactionSettings(player, ref, store, playerRef, faction.id());
+                } else {
+                    guiManager.openFactionSettings(player, ref, store, playerRef,
+                            factionManager.getFaction(faction.id()));
+                }
             }
         }
     }

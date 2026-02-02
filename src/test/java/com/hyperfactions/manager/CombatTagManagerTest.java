@@ -1,7 +1,7 @@
 package com.hyperfactions.manager;
 
 import com.hyperfactions.data.CombatTag;
-import com.hyperfactions.data.SpawnProtection;
+import com.hyperfactions.protection.SpawnProtection;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;

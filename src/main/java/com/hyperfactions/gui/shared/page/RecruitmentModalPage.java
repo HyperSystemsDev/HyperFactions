@@ -31,16 +31,26 @@ public class RecruitmentModalPage extends InteractiveCustomUIPage<RecruitmentMod
     private final FactionManager factionManager;
     private final GuiManager guiManager;
     private final Faction faction;
+    private final boolean adminMode;
 
     public RecruitmentModalPage(PlayerRef playerRef,
                                 FactionManager factionManager,
                                 GuiManager guiManager,
                                 Faction faction) {
+        this(playerRef, factionManager, guiManager, faction, false);
+    }
+
+    public RecruitmentModalPage(PlayerRef playerRef,
+                                FactionManager factionManager,
+                                GuiManager guiManager,
+                                Faction faction,
+                                boolean adminMode) {
         super(playerRef, CustomPageLifetime.CanDismiss, RecruitmentModalData.CODEC);
         this.playerRef = playerRef;
         this.factionManager = factionManager;
         this.guiManager = guiManager;
         this.faction = faction;
+        this.adminMode = adminMode;
     }
 
     @Override
@@ -93,8 +103,8 @@ public class RecruitmentModalPage extends InteractiveCustomUIPage<RecruitmentMod
         UUID uuid = playerRef.getUuid();
         FactionMember member = faction.getMember(uuid);
 
-        // Verify officer permission
-        if (member == null || member.role().getLevel() < FactionRole.OFFICER.getLevel()) {
+        // Verify officer permission (skip in admin mode)
+        if (!adminMode && (member == null || member.role().getLevel() < FactionRole.OFFICER.getLevel())) {
             player.sendMessage(Message.raw("You don't have permission to change recruitment status.").color("#FF5555"));
             guiManager.openFactionSettings(player, ref, store, playerRef,
                     factionManager.getFaction(faction.id()));
@@ -103,8 +113,12 @@ public class RecruitmentModalPage extends InteractiveCustomUIPage<RecruitmentMod
 
         switch (data.button) {
             case "Cancel" -> {
-                guiManager.openFactionSettings(player, ref, store, playerRef,
-                        factionManager.getFaction(faction.id()));
+                if (adminMode) {
+                    guiManager.openAdminFactionSettings(player, ref, store, playerRef, faction.id());
+                } else {
+                    guiManager.openFactionSettings(player, ref, store, playerRef,
+                            factionManager.getFaction(faction.id()));
+                }
             }
 
             case "SetStatus" -> {
@@ -115,16 +129,21 @@ public class RecruitmentModalPage extends InteractiveCustomUIPage<RecruitmentMod
                     Faction updatedFaction = faction.withOpen(newOpenState);
                     factionManager.updateFaction(updatedFaction);
 
+                    String prefix = adminMode ? "[Admin] " : "";
                     String status = newOpenState ? "open" : "invite-only";
                     player.sendMessage(
-                            Message.raw("Faction is now ").color("#AAAAAA")
+                            Message.raw(prefix + "Faction is now ").color("#AAAAAA")
                                     .insert(Message.raw(status).color("#55FF55"))
                                     .insert(Message.raw("!").color("#AAAAAA"))
                     );
                 }
 
-                guiManager.openFactionSettings(player, ref, store, playerRef,
-                        factionManager.getFaction(faction.id()));
+                if (adminMode) {
+                    guiManager.openAdminFactionSettings(player, ref, store, playerRef, faction.id());
+                } else {
+                    guiManager.openFactionSettings(player, ref, store, playerRef,
+                            factionManager.getFaction(faction.id()));
+                }
             }
         }
     }

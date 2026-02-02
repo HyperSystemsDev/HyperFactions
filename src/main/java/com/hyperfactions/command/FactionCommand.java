@@ -8,6 +8,8 @@ import com.hyperfactions.backup.BackupType;
 import com.hyperfactions.config.HyperFactionsConfig;
 import com.hyperfactions.data.*;
 import com.hyperfactions.data.ZoneFlags;
+import com.hyperfactions.importer.HyFactionsImporter;
+import com.hyperfactions.importer.ImportResult;
 import com.hyperfactions.gui.help.HelpCategory;
 import com.hyperfactions.gui.help.HelpRegistry;
 import com.hyperfactions.integration.HyperPermsIntegration;
@@ -37,6 +39,8 @@ import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import org.jetbrains.annotations.NotNull;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 
 /**
@@ -1932,6 +1936,7 @@ public class FactionCommand extends AbstractPlayerCommand {
             adminCommands.add(new CommandHelp("/f admin backup list", "List all backups"));
             adminCommands.add(new CommandHelp("/f admin backup restore <name>", "Restore from backup"));
             adminCommands.add(new CommandHelp("/f admin backup delete <name>", "Delete a backup"));
+            adminCommands.add(new CommandHelp("/f admin import hyfactions <path>", "Import from HyFactions mod"));
             ctx.sendMessage(HelpFormatter.buildHelp("HyperFactions Admin", null, adminCommands, null));
             return;
         }
@@ -1992,6 +1997,7 @@ public class FactionCommand extends AbstractPlayerCommand {
             case "zoneflag" -> handleZoneFlag(ctx, world.getName(), chunkX, chunkZ, Arrays.copyOfRange(args, 1, args.length));
             case "update" -> handleAdminUpdate(ctx, player);
             case "backup" -> handleAdminBackup(ctx, player, Arrays.copyOfRange(args, 1, args.length));
+            case "import" -> handleAdminImport(ctx, player, Arrays.copyOfRange(args, 1, args.length));
             default -> ctx.sendMessage(prefix().insert(msg("Unknown admin command. Use /f admin help", COLOR_RED)));
         }
     }
@@ -2450,6 +2456,146 @@ public class FactionCommand extends AbstractPlayerCommand {
                 ctx.sendMessage(prefix().insert(msg("Backup not found: " + backupName, COLOR_RED)));
             }
         });
+    }
+
+    // === Admin Import Commands ===
+    private void handleAdminImport(CommandContext ctx, PlayerRef player, String[] args) {
+        if (!hasPermission(player, Permissions.ADMIN)) {
+            ctx.sendMessage(prefix().insert(msg("You don't have permission.", COLOR_RED)));
+            return;
+        }
+
+        if (args.length == 0) {
+            showImportHelp(ctx);
+            return;
+        }
+
+        String subCmd = args[0].toLowerCase();
+        String[] subArgs = args.length > 1 ? Arrays.copyOfRange(args, 1, args.length) : new String[0];
+
+        switch (subCmd) {
+            case "hyfactions" -> handleImportHyFactions(ctx, player, subArgs);
+            case "help", "?" -> showImportHelp(ctx);
+            default -> {
+                ctx.sendMessage(prefix().insert(msg("Unknown import source: " + subCmd, COLOR_RED)));
+                showImportHelp(ctx);
+            }
+        }
+    }
+
+    private void showImportHelp(CommandContext ctx) {
+        List<CommandHelp> commands = new ArrayList<>();
+        commands.add(new CommandHelp("/f admin import hyfactions <path>", "Import from HyFactions mod data"));
+        commands.add(new CommandHelp("  Flags:", ""));
+        commands.add(new CommandHelp("  dryrun", "Preview import without making changes (default)"));
+        commands.add(new CommandHelp("  overwrite", "Replace existing factions with same ID"));
+        commands.add(new CommandHelp("  skipzones", "Don't import SafeZones/WarZones"));
+        commands.add(new CommandHelp("  skippower", "Don't import player power data"));
+        ctx.sendMessage(HelpFormatter.buildHelp("Import Data", "Import factions from other mods", commands,
+            "Example: /f admin import hyfactions mods/Kaws_Hyfaction overwrite"));
+    }
+
+    private void handleImportHyFactions(CommandContext ctx, PlayerRef player, String[] args) {
+        // Parse arguments and flags
+        // Flags use simple words (no -- prefix) to avoid Hytale command parser interception
+        String path = null;
+        boolean dryRun = true;
+        boolean overwrite = false;
+        boolean skipZones = false;
+        boolean skipPower = false;
+
+        for (String arg : args) {
+            switch (arg.toLowerCase()) {
+                case "dryrun", "dry-run", "dry" -> dryRun = true;
+                case "overwrite", "force" -> {
+                    overwrite = true;
+                    dryRun = false;
+                }
+                case "skipzones", "skip-zones", "nozones" -> skipZones = true;
+                case "skippower", "skip-power", "nopower" -> skipPower = true;
+                default -> {
+                    // If it doesn't match a flag, treat as path
+                    if (path == null) {
+                        path = arg;
+                    } else {
+                        ctx.sendMessage(prefix().insert(msg("Unknown flag: " + arg, COLOR_RED)));
+                        return;
+                    }
+                }
+            }
+        }
+
+        if (path == null) {
+            ctx.sendMessage(prefix().insert(msg("Usage: /f admin import hyfactions <path> [flags]", COLOR_RED)));
+            ctx.sendMessage(msg("Example: /f admin import hyfactions mods/Kaws_Hyfaction", COLOR_GRAY));
+            return;
+        }
+
+        // Resolve path relative to server directory
+        Path sourcePath = Paths.get(path);
+        if (!sourcePath.isAbsolute()) {
+            // Relative to server working directory
+            sourcePath = Paths.get(System.getProperty("user.dir"), path);
+        }
+
+        final Path finalPath = sourcePath;
+        final boolean finalDryRun = dryRun;
+        final boolean finalOverwrite = overwrite;
+        final boolean finalSkipZones = skipZones;
+        final boolean finalSkipPower = skipPower;
+
+        // Show mode
+        if (finalDryRun) {
+            ctx.sendMessage(prefix().insert(msg("Running in DRY RUN mode - no changes will be made", COLOR_YELLOW)));
+        } else if (finalOverwrite) {
+            ctx.sendMessage(prefix().insert(msg("Running with OVERWRITE - existing factions will be replaced", COLOR_YELLOW)));
+        }
+
+        ctx.sendMessage(prefix().insert(msg("Starting HyFactions import from: " + finalPath, COLOR_CYAN)));
+
+        // Run import
+        HyFactionsImporter importer = new HyFactionsImporter(
+            hyperFactions.getFactionManager(),
+            hyperFactions.getZoneManager(),
+            hyperFactions.getPowerManager()
+        );
+
+        importer.setDryRun(finalDryRun)
+            .setOverwrite(finalOverwrite)
+            .setSkipZones(finalSkipZones)
+            .setSkipPower(finalSkipPower)
+            .setProgressCallback(msg -> player.sendMessage(prefix().insert(msg(msg, COLOR_GRAY))));
+
+        ImportResult result = importer.importFrom(finalPath);
+
+        // Display results
+        ctx.sendMessage(msg("", COLOR_WHITE));
+        ctx.sendMessage(msg("=== Import " + (result.dryRun() ? "Preview" : "Complete") + " ===", COLOR_CYAN).bold(true));
+
+        if (result.hasErrors()) {
+            ctx.sendMessage(msg("Errors:", COLOR_RED));
+            for (String error : result.errors()) {
+                ctx.sendMessage(msg("  - " + error, COLOR_RED));
+            }
+        }
+
+        if (result.hasWarnings()) {
+            ctx.sendMessage(msg("Warnings:", COLOR_YELLOW));
+            for (String warning : result.warnings()) {
+                ctx.sendMessage(msg("  - " + warning, COLOR_YELLOW));
+            }
+        }
+
+        ctx.sendMessage(msg("Factions: " + result.factionsImported() + " imported, " +
+            result.factionsSkipped() + " skipped", COLOR_WHITE));
+        ctx.sendMessage(msg("Claims: " + result.claimsImported() + " imported", COLOR_WHITE));
+        ctx.sendMessage(msg("Zones: " + result.zonesCreated() + " created", COLOR_WHITE));
+        ctx.sendMessage(msg("Players with power: " + result.playersWithPower(), COLOR_WHITE));
+
+        if (result.dryRun() && !result.hasErrors()) {
+            ctx.sendMessage(msg("", COLOR_WHITE));
+            ctx.sendMessage(msg("To apply changes, run with --overwrite flag", COLOR_YELLOW));
+        }
     }
 
     // === Debug ===

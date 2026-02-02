@@ -40,18 +40,29 @@ public class TagModalPage extends InteractiveCustomUIPage<TagModalData> {
     private final Faction faction;
     @Nullable
     private final WorldMapService worldMapService;
+    private final boolean adminMode;
 
     public TagModalPage(PlayerRef playerRef,
                         FactionManager factionManager,
                         GuiManager guiManager,
                         Faction faction,
                         @Nullable WorldMapService worldMapService) {
+        this(playerRef, factionManager, guiManager, faction, worldMapService, false);
+    }
+
+    public TagModalPage(PlayerRef playerRef,
+                        FactionManager factionManager,
+                        GuiManager guiManager,
+                        Faction faction,
+                        @Nullable WorldMapService worldMapService,
+                        boolean adminMode) {
         super(playerRef, CustomPageLifetime.CanDismiss, TagModalData.CODEC);
         this.playerRef = playerRef;
         this.factionManager = factionManager;
         this.guiManager = guiManager;
         this.faction = faction;
         this.worldMapService = worldMapService;
+        this.adminMode = adminMode;
     }
 
     @Override
@@ -101,8 +112,8 @@ public class TagModalPage extends InteractiveCustomUIPage<TagModalData> {
         UUID uuid = playerRef.getUuid();
         FactionMember member = faction.getMember(uuid);
 
-        // Verify officer permission
-        if (member == null || member.role().getLevel() < FactionRole.OFFICER.getLevel()) {
+        // Verify officer permission (skip in admin mode)
+        if (!adminMode && (member == null || member.role().getLevel() < FactionRole.OFFICER.getLevel())) {
             player.sendMessage(Message.raw("You don't have permission to edit the tag.").color("#FF5555"));
             guiManager.openFactionSettings(player, ref, store, playerRef,
                     factionManager.getFaction(faction.id()));
@@ -111,8 +122,12 @@ public class TagModalPage extends InteractiveCustomUIPage<TagModalData> {
 
         switch (data.button) {
             case "Cancel" -> {
-                guiManager.openFactionSettings(player, ref, store, playerRef,
-                        factionManager.getFaction(faction.id()));
+                if (adminMode) {
+                    guiManager.openAdminFactionSettings(player, ref, store, playerRef, faction.id());
+                } else {
+                    guiManager.openFactionSettings(player, ref, store, playerRef,
+                            factionManager.getFaction(faction.id()));
+                }
             }
 
             case "Save" -> {
@@ -128,9 +143,14 @@ public class TagModalPage extends InteractiveCustomUIPage<TagModalData> {
                         worldMapService.refreshAllWorldMaps();
                     }
 
-                    player.sendMessage(Message.raw("Faction tag cleared.").color("#AAAAAA"));
-                    guiManager.openFactionSettings(player, ref, store, playerRef,
-                            factionManager.getFaction(faction.id()));
+                    String prefix = adminMode ? "[Admin] " : "";
+                    player.sendMessage(Message.raw(prefix + "Faction tag cleared.").color("#AAAAAA"));
+                    if (adminMode) {
+                        guiManager.openAdminFactionSettings(player, ref, store, playerRef, faction.id());
+                    } else {
+                        guiManager.openFactionSettings(player, ref, store, playerRef,
+                                factionManager.getFaction(faction.id()));
+                    }
                     return;
                 }
 
@@ -180,14 +200,19 @@ public class TagModalPage extends InteractiveCustomUIPage<TagModalData> {
                     worldMapService.refreshAllWorldMaps();
                 }
 
+                String prefix = adminMode ? "[Admin] " : "";
                 player.sendMessage(
-                        Message.raw("Faction tag set to ").color("#AAAAAA")
+                        Message.raw(prefix + "Faction tag set to ").color("#AAAAAA")
                                 .insert(Message.raw("[" + newTag + "]").color("#FFAA00"))
                                 .insert(Message.raw("!").color("#AAAAAA"))
                 );
 
-                guiManager.openFactionSettings(player, ref, store, playerRef,
-                        factionManager.getFaction(faction.id()));
+                if (adminMode) {
+                    guiManager.openAdminFactionSettings(player, ref, store, playerRef, faction.id());
+                } else {
+                    guiManager.openFactionSettings(player, ref, store, playerRef,
+                            factionManager.getFaction(faction.id()));
+                }
             }
         }
     }

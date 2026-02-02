@@ -65,7 +65,7 @@ public final class HyperPermsIntegration {
             }
 
             Class<?> instanceClass = hyperPermsInstance.getClass();
-            Logger.info("HyperPerms instance class: %s", instanceClass.getName());
+            Logger.debug("HyperPerms instance class: %s", instanceClass.getName());
 
             // Get the hasPermission method on HyperPerms itself (not User)
             // Method signature: hasPermission(UUID uuid, String permission)

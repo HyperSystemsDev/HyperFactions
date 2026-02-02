@@ -2,7 +2,7 @@ package com.hyperfactions.manager;
 
 import com.hyperfactions.config.HyperFactionsConfig;
 import com.hyperfactions.data.CombatTag;
-import com.hyperfactions.data.SpawnProtection;
+import com.hyperfactions.protection.SpawnProtection;
 import com.hyperfactions.util.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

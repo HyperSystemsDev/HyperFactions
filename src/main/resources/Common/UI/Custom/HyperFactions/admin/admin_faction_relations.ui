@@ -1,0 +1,132 @@
+// Admin Faction Relations Page
+// View and manage relations for any faction (admin bypass)
+
+$C = "../../Common.ui";
+$S = "../shared/styles.ui";
+$Nav = "admin_nav_bar.ui";
+
+$C.@PageOverlay {
+  $Nav.@HyperFactionsAdminNavBar #HyperFactionsAdminNavBar {}
+
+  $C.@DecoratedContainer {
+    Anchor: (Width: 550, Height: 550);
+
+    #Title {
+      Group {
+        LayoutMode: Left;
+
+        Group {
+          $C.@Title {
+            @Text = "Admin: Relations";
+          }
+        }
+
+        Label { FlexWeight: 1; }
+
+        Label #FactionName {
+          Text: "";
+          Style: (FontSize: 14, TextColor: #00FFFF, RenderBold: true, VerticalAlignment: Center);
+          Anchor: (Right: 10);
+        }
+      }
+    }
+
+    #Content {
+      LayoutMode: Top;
+      Padding: (Left: 15, Right: 15, Top: 10, Bottom: 10);
+
+      // Header with back button
+      Group {
+        Anchor: (Height: 30, Bottom: 8);
+        LayoutMode: Left;
+
+        Label {
+          Text: "Manage faction relations (bypasses approval)";
+          Style: (FontSize: 11, TextColor: #888888, VerticalAlignment: Center);
+        }
+
+        Group { FlexWeight: 1; }
+
+        TextButton #BackBtn {
+          Text: "BACK";
+          Anchor: (Height: 24, Width: 60);
+          Style: $S.@SmallButtonStyle;
+        }
+      }
+
+      // Scrollable content
+      Group #ScrollContainer {
+        LayoutMode: TopScrolling;
+        ScrollbarStyle: $C.@DefaultScrollbarStyle;
+        FlexWeight: 1;
+
+        Group #ScrollContent {
+          LayoutMode: Top;
+
+          // === ALLIES SECTION ===
+          Group {
+            Anchor: (Height: 1, Bottom: 8);
+            Background: (Color: #00AAAA);
+          }
+
+          Label #AlliesHeader {
+            Text: "ALLIES (0)";
+            Style: (FontSize: 12, TextColor: #00AAFF, RenderBold: true);
+            Anchor: (Height: 22, Bottom: 6);
+          }
+
+          Group #AlliesList {
+            LayoutMode: Top;
+            Anchor: (Bottom: 15);
+          }
+
+          // === ENEMIES SECTION ===
+          Group {
+            Anchor: (Height: 1, Bottom: 8);
+            Background: (Color: #FF5555);
+          }
+
+          Label #EnemiesHeader {
+            Text: "ENEMIES (0)";
+            Style: (FontSize: 12, TextColor: #FF5555, RenderBold: true);
+            Anchor: (Height: 22, Bottom: 6);
+          }
+
+          Group #EnemiesList {
+            LayoutMode: Top;
+            Anchor: (Bottom: 15);
+          }
+
+          // === NEUTRAL FACTIONS (for setting new relations) ===
+          Group {
+            Anchor: (Height: 1, Bottom: 8);
+            Background: (Color: #888888);
+          }
+
+          Group {
+            Anchor: (Height: 22, Bottom: 6);
+            LayoutMode: Left;
+
+            Label {
+              Text: "SET NEW RELATION";
+              Style: (FontSize: 12, TextColor: #888888, RenderBold: true, VerticalAlignment: Center);
+            }
+
+            Label { Anchor: (Width: 10); }
+
+            Label #NeutralCount {
+              Text: "0 neutral factions";
+              Style: (FontSize: 10, TextColor: #666666, VerticalAlignment: Center);
+            }
+          }
+
+          Group #NeutralList {
+            LayoutMode: Top;
+          }
+        }
+      }
+    }
+  }
+}
+
+$C.@BackButton {}

@@ -55,18 +55,29 @@ public class ColorPickerPage extends InteractiveCustomUIPage<ColorPickerData> {
     private final Faction faction;
     @Nullable
     private final WorldMapService worldMapService;
+    private final boolean adminMode;
 
     public ColorPickerPage(PlayerRef playerRef,
                            FactionManager factionManager,
                            GuiManager guiManager,
                            Faction faction,
                            @Nullable WorldMapService worldMapService) {
+        this(playerRef, factionManager, guiManager, faction, worldMapService, false);
+    }
+
+    public ColorPickerPage(PlayerRef playerRef,
+                           FactionManager factionManager,
+                           GuiManager guiManager,
+                           Faction faction,
+                           @Nullable WorldMapService worldMapService,
+                           boolean adminMode) {
         super(playerRef, CustomPageLifetime.CanDismiss, ColorPickerData.CODEC);
         this.playerRef = playerRef;
         this.factionManager = factionManager;
         this.guiManager = guiManager;
         this.faction = faction;
         this.worldMapService = worldMapService;
+        this.adminMode = adminMode;
     }
 
     @Override
@@ -130,8 +141,8 @@ public class ColorPickerPage extends InteractiveCustomUIPage<ColorPickerData> {
         UUID uuid = playerRef.getUuid();
         FactionMember member = faction.getMember(uuid);
 
-        // Verify permissions
-        if (member == null || member.role().getLevel() < FactionRole.OFFICER.getLevel()) {
+        // Verify officer permission (skip in admin mode)
+        if (!adminMode && (member == null || member.role().getLevel() < FactionRole.OFFICER.getLevel())) {
             player.sendMessage(Message.raw("You don't have permission to change settings.").color("#FF5555"));
             guiManager.openFactionSettings(player, ref, store, playerRef,
                     factionManager.getFaction(faction.id()));
@@ -156,20 +167,29 @@ public class ColorPickerPage extends InteractiveCustomUIPage<ColorPickerData> {
                             .map(c -> c.name)
                             .orElse("Custom");
 
+                    String prefix = adminMode ? "[Admin] " : "";
                     player.sendMessage(
-                            Message.raw("Faction color changed to ").color("#AAAAAA")
+                            Message.raw(prefix + "Faction color changed to ").color("#AAAAAA")
                                     .insert(Message.raw(colorName).color(data.colorHex))
                                     .insert(Message.raw("!").color("#55FF55"))
                     );
 
-                    guiManager.openFactionSettings(player, ref, store, playerRef,
-                            factionManager.getFaction(faction.id()));
+                    if (adminMode) {
+                        guiManager.openAdminFactionSettings(player, ref, store, playerRef, faction.id());
+                    } else {
+                        guiManager.openFactionSettings(player, ref, store, playerRef,
+                                factionManager.getFaction(faction.id()));
+                    }
                 }
             }
 
             case "Cancel" -> {
-                guiManager.openFactionSettings(player, ref, store, playerRef,
-                        factionManager.getFaction(faction.id()));
+                if (adminMode) {
+                    guiManager.openAdminFactionSettings(player, ref, store, playerRef, faction.id());
+                } else {
+                    guiManager.openFactionSettings(player, ref, store, playerRef,
+                            factionManager.getFaction(faction.id()));
+                }
             }
         }
     }

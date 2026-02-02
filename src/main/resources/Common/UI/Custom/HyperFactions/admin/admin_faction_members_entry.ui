@@ -1,0 +1,175 @@
+// Admin Member Entry - Read-only expandable
+// No action buttons, shows UUID for admin reference
+$S = "../shared/styles.ui";
+
+Group {
+  LayoutMode: Top;
+  Anchor: (Bottom: 4);
+
+  // Header wrapper - contains content and clickable overlay
+  Group #HeaderWrapper {
+    Anchor: (Height: 44);
+
+    // Header content (visual layout)
+    Group #HeaderContent {
+      Anchor: (Left: 0, Right: 0, Top: 0, Bottom: 0);
+      Background: (Color: #1a2a3a);
+      Padding: (Left: 12, Right: 12, Top: 6, Bottom: 6);
+      LayoutMode: Left;
+
+      // Role indicator bar
+      Group #RoleIndicator {
+        Anchor: (Width: 3, Top: 4, Bottom: 4);
+        Background: (Color: #888888);
+      }
+
+      Group { Anchor: (Width: 10); }
+
+      // Member info
+      Group {
+        Anchor: (Width: 160);
+        LayoutMode: Top;
+
+        Label #MemberName {
+          Text: "PlayerName";
+          Style: (FontSize: 13, TextColor: #CCCCCC, RenderBold: true, VerticalAlignment: Center);
+          Anchor: (Height: 18);
+        }
+        Label #MemberRole {
+          Text: "Member";
+          Style: (FontSize: 10, TextColor: #888888, VerticalAlignment: Center);
+          Anchor: (Height: 14);
+        }
+      }
+
+      // Online status
+      Group {
+        LayoutMode: Top;
+        Anchor: (Width: 100);
+
+        Label #OnlineStatus {
+          Text: "Online";
+          Style: (FontSize: 11, TextColor: #55FF55, VerticalAlignment: Center, HorizontalAlignment: Center);
+          Anchor: (Height: 16, Top: 7);
+        }
+        Label #LastOnline {
+          Text: "";
+          Style: (FontSize: 9, TextColor: #666666, VerticalAlignment: Center, HorizontalAlignment: Center);
+          Anchor: (Height: 14);
+        }
+      }
+
+      Group { FlexWeight: 1; }
+
+      // Expand indicators
+      Label #ExpandIcon {
+        Text: ">";
+        Style: (FontSize: 14, TextColor: #666666, VerticalAlignment: Center, HorizontalAlignment: Center);
+        Anchor: (Width: 20);
+      }
+      Label #CollapseIcon {
+        Text: "v";
+        Style: (FontSize: 14, TextColor: #00AAAA, VerticalAlignment: Center, HorizontalAlignment: Center);
+        Anchor: (Width: 20);
+      }
+    }
+
+    // Clickable overlay button
+    TextButton #Header {
+      Text: "";
+      Anchor: (Left: 0, Right: 0, Top: 0, Bottom: 0);
+      Style: $S.@InvisibleButtonStyle;
+    }
+  }
+
+  // Expanded content (read-only)
+  Group #ExtendedInfo {
+    LayoutMode: Top;
+    Background: (Color: #0d1520);
+    Padding: (Left: 25, Right: 12, Top: 8, Bottom: 10);
+
+    // Stats row
+    Group #StatsRow {
+      LayoutMode: Left;
+      Anchor: (Height: 20, Bottom: 4);
+
+      Label {
+        Text: "Power:";
+        Style: (FontSize: 10, TextColor: #666666, VerticalAlignment: Center);
+        Anchor: (Width: 45);
+      }
+      Label #PowerValue {
+        Text: "10/10";
+        Style: (FontSize: 10, TextColor: #55FF55, VerticalAlignment: Center);
+        Anchor: (Width: 60);
+      }
+
+      Label {
+        Text: "Joined:";
+        Style: (FontSize: 10, TextColor: #666666, VerticalAlignment: Center);
+        Anchor: (Width: 45);
+      }
+      Label #JoinedDate {
+        Text: "Unknown";
+        Style: (FontSize: 10, TextColor: #888888, VerticalAlignment: Center);
+        Anchor: (Width: 80);
+      }
+
+      Label {
+        Text: "Last Death:";
+        Style: (FontSize: 10, TextColor: #666666, VerticalAlignment: Center);
+        Anchor: (Width: 65);
+      }
+      Label #LastDeath {
+        Text: "Never";
+        Style: (FontSize: 10, TextColor: #888888, VerticalAlignment: Center);
+        FlexWeight: 1;
+      }
+    }
+
+    // UUID row (admin info)
+    Group #UuidRow {
+      LayoutMode: Left;
+      Anchor: (Height: 18, Bottom: 8);
+
+      Label {
+        Text: "UUID:";
+        Style: (FontSize: 9, TextColor: #555555, VerticalAlignment: Center);
+        Anchor: (Width: 40);
+      }
+      Label #UuidValue {
+        Text: "00000000-0000-0000-0000-000000000000";
+        Style: (FontSize: 9, TextColor: #555555, VerticalAlignment: Center);
+        FlexWeight: 1;
+      }
+    }
+
+    // Action buttons row
+    Group #ActionsRow {
+      LayoutMode: Left;
+      Anchor: (Height: 28);
+
+      TextButton #TeleportBtn {
+        Text: "TELEPORT";
+        Anchor: (Height: 24, Width: 80, Right: 6);
+        Style: $S.@SmallButtonStyle;
+      }
+      TextButton #PromoteBtn {
+        Text: "PROMOTE";
+        Anchor: (Height: 24, Width: 80, Right: 6);
+        Style: $S.@SmallButtonStyle;
+      }
+      TextButton #DemoteBtn {
+        Text: "DEMOTE";
+        Anchor: (Height: 24, Width: 80, Right: 6);
+        Style: $S.@SmallButtonStyle;
+      }
+      TextButton #KickBtn {
+        Text: "KICK";
+        Anchor: (Height: 24, Width: 60);
+        Style: $S.@SmallRedButtonStyle;
+      }
+      Group { FlexWeight: 1; }
+    }
+  }
+}

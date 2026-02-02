@@ -1,0 +1,213 @@
+$C = "../../Common.ui";
+$S = "../shared/styles.ui";
+$Nav = "admin_nav_bar.ui";
+
+$C.@PageOverlay {
+  $Nav.@HyperFactionsAdminNavBar #HyperFactionsAdminNavBar {}
+
+  $C.@Container {
+    Anchor: (Width: 520, Height: 380);
+
+    #Title {
+      $C.@Title {
+        @Text = "Admin Dashboard";
+      }
+    }
+
+    #Content {
+      LayoutMode: Top;
+      Padding: (Left: 20, Right: 20, Top: 15, Bottom: 15);
+
+      // Server Stats Header
+      Group {
+        Anchor: (Height: 25, Bottom: 15);
+        LayoutMode: Left;
+
+        Label {
+          Text: "Server Statistics";
+          Style: (FontSize: 14, TextColor: #00FFFF, RenderBold: true, VerticalAlignment: Center);
+        }
+      }
+
+      // Stats Grid - Row 1
+      Group #StatsRow1 {
+        Anchor: (Height: 80, Bottom: 10);
+        LayoutMode: Left;
+
+        // Total Factions
+        Group #FactionsStat {
+          FlexWeight: 1;
+          Background: (Color: #1a2a3a);
+          Padding: (Left: 15, Right: 15, Top: 12, Bottom: 12);
+          LayoutMode: Top;
+          Anchor: (Right: 5);
+
+          Label {
+            Text: "FACTIONS";
+            Style: (FontSize: 10, TextColor: #666666, HorizontalAlignment: Center, VerticalAlignment: Center);
+            Anchor: (Height: 16);
+          }
+          Label #TotalFactions {
+            Text: "0";
+            Style: (FontSize: 28, TextColor: #00FFFF, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center);
+            FlexWeight: 1;
+          }
+        }
+
+        // Total Members
+        Group #MembersStat {
+          FlexWeight: 1;
+          Background: (Color: #1a2a3a);
+          Padding: (Left: 15, Right: 15, Top: 12, Bottom: 12);
+          LayoutMode: Top;
+          Anchor: (Left: 5, Right: 5);
+
+          Label {
+            Text: "TOTAL MEMBERS";
+            Style: (FontSize: 10, TextColor: #666666, HorizontalAlignment: Center, VerticalAlignment: Center);
+            Anchor: (Height: 16);
+          }
+          Label #TotalMembers {
+            Text: "0";
+            Style: (FontSize: 28, TextColor: #888888, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center);
+            FlexWeight: 1;
+          }
+        }
+
+        // Total Claims
+        Group #ClaimsStat {
+          FlexWeight: 1;
+          Background: (Color: #1a2a3a);
+          Padding: (Left: 15, Right: 15, Top: 12, Bottom: 12);
+          LayoutMode: Top;
+          Anchor: (Left: 5);
+
+          Label {
+            Text: "TOTAL CLAIMS";
+            Style: (FontSize: 10, TextColor: #666666, HorizontalAlignment: Center, VerticalAlignment: Center);
+            Anchor: (Height: 16);
+          }
+          Label #TotalClaims {
+            Text: "0";
+            Style: (FontSize: 28, TextColor: #FFAA00, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center);
+            FlexWeight: 1;
+          }
+        }
+      }
+
+      // Stats Grid - Row 2
+      Group #StatsRow2 {
+        Anchor: (Height: 80, Bottom: 15);
+        LayoutMode: Left;
+
+        // Total Zones
+        Group #ZonesStat {
+          FlexWeight: 1;
+          Background: (Color: #1a2a3a);
+          Padding: (Left: 15, Right: 15, Top: 12, Bottom: 12);
+          LayoutMode: Top;
+          Anchor: (Right: 5);
+
+          Label {
+            Text: "ZONES";
+            Style: (FontSize: 10, TextColor: #666666, HorizontalAlignment: Center, VerticalAlignment: Center);
+            Anchor: (Height: 16);
+          }
+          Group {
+            FlexWeight: 1;
+            LayoutMode: Left;
+
+            Label #SafeZones {
+              Text: "0";
+              Style: (FontSize: 20, TextColor: #55FF55, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center);
+              FlexWeight: 1;
+            }
+            Label {
+              Text: "/";
+              Style: (FontSize: 16, TextColor: #444444, HorizontalAlignment: Center, VerticalAlignment: Center);
+              Anchor: (Width: 15);
+            }
+            Label #WarZones {
+              Text: "0";
+              Style: (FontSize: 20, TextColor: #FF5555, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center);
+              FlexWeight: 1;
+            }
+          }
+          Label {
+            Text: "safe / war";
+            Style: (FontSize: 9, TextColor: #444444, HorizontalAlignment: Center, VerticalAlignment: Center);
+            Anchor: (Height: 14);
+          }
+        }
+
+        // Total Power
+        Group #PowerStat {
+          FlexWeight: 1;
+          Background: (Color: #1a2a3a);
+          Padding: (Left: 15, Right: 15, Top: 12, Bottom: 12);
+          LayoutMode: Top;
+          Anchor: (Left: 5, Right: 5);
+
+          Label {
+            Text: "TOTAL POWER";
+            Style: (FontSize: 10, TextColor: #666666, HorizontalAlignment: Center, VerticalAlignment: Center);
+            Anchor: (Height: 16);
+          }
+          Label #TotalPower {
+            Text: "0";
+            Style: (FontSize: 28, TextColor: #44CC44, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center);
+            FlexWeight: 1;
+          }
+        }
+
+        // Average Power
+        Group #AvgPowerStat {
+          FlexWeight: 1;
+          Background: (Color: #1a2a3a);
+          Padding: (Left: 15, Right: 15, Top: 12, Bottom: 12);
+          LayoutMode: Top;
+          Anchor: (Left: 5);
+
+          Label {
+            Text: "AVG POWER/FACTION";
+            Style: (FontSize: 10, TextColor: #666666, HorizontalAlignment: Center, VerticalAlignment: Center);
+            Anchor: (Height: 16);
+          }
+          Label #AvgPower {
+            Text: "0.0";
+            Style: (FontSize: 28, TextColor: #888888, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center);
+            FlexWeight: 1;
+          }
+        }
+      }
+
+      // Bypass Toggle Section
+      Group #BypassSection {
+        Anchor: (Height: 50, Bottom: 0);
+        Background: (Color: #1a2a3a);
+        Padding: (Left: 20, Right: 20, Top: 10, Bottom: 10);
+        LayoutMode: Left;
+
+        Label {
+          Text: "Protection Bypass:";
+          Style: (FontSize: 13, TextColor: #AAAAAA, VerticalAlignment: Center);
+          Anchor: (Width: 130);
+        }
+        Label #BypassState {
+          Text: "OFF";
+          Style: (FontSize: 14, TextColor: #FF5555, RenderBold: true, VerticalAlignment: Center);
+          Anchor: (Width: 50);
+        }
+        Label { FlexWeight: 1; }
+        TextButton #ToggleBypassBtn {
+          Text: "ENABLE";
+          Anchor: (Height: 30, Width: 100);
+          Style: $S.@ButtonStyle;
+        }
+      }
+
+    }
+  }
+}
+
+$C.@BackButton {}

@@ -1,0 +1,95 @@
+// Admin Faction Members Page
+// Read-only member list for admin viewing
+// Uses admin nav bar, Back returns to AdminFactionInfoPage
+
+$C = "../../Common.ui";
+$S = "../shared/styles.ui";
+$Nav = "admin_nav_bar.ui";
+
+$C.@PageOverlay {
+  $Nav.@HyperFactionsAdminNavBar #HyperFactionsAdminNavBar {}
+
+  $C.@DecoratedContainer {
+    Anchor: (Width: 520, Height: 550);
+
+    #Title {
+      Group {
+        LayoutMode: Left;
+
+        Group {
+          $C.@Title {
+            @Text = "Admin: Members";
+          }
+        }
+
+        Label { FlexWeight: 1; }
+
+        Label #FactionName {
+          Text: "";
+          Style: (FontSize: 14, TextColor: #00FFFF, RenderBold: true, VerticalAlignment: Center);
+          Anchor: (Right: 10);
+        }
+      }
+    }
+
+    #Content {
+      LayoutMode: Top;
+      Padding: (Left: 15, Right: 15, Top: 10, Bottom: 10);
+
+      // Header row with member count
+      Group {
+        Anchor: (Height: 36, Bottom: 8);
+        LayoutMode: Left;
+
+        Label #MemberCount {
+          Text: "0 members";
+          Style: (FontSize: 14, TextColor: #888888, VerticalAlignment: Center);
+          Anchor: (Width: 120);
+        }
+
+        Group { FlexWeight: 1; }
+
+        TextButton #SortByRole {
+          Text: "ROLE";
+          Anchor: (Height: 24, Width: 60);
+          Style: $S.@SmallCyanButtonStyle;
+        }
+
+        Group { Anchor: (Width: 4); }
+
+        TextButton #SortByOnline {
+          Text: "ONLINE";
+          Anchor: (Height: 24, Width: 70);
+          Style: $S.@SmallButtonStyle;
+        }
+
+        Group { Anchor: (Width: 10); }
+
+        TextButton #BackBtn {
+          Text: "BACK";
+          Anchor: (Height: 24, Width: 60);
+          Style: $S.@SmallButtonStyle;
+        }
+      }
+
+      // Divider
+      Group {
+        Anchor: (Height: 1, Bottom: 8);
+        Background: (Color: #00AAAA);
+      }
+
+      // Scrollable member list
+      Group #MembersListContainer {
+        LayoutMode: TopScrolling;
+        ScrollbarStyle: $C.@DefaultScrollbarStyle;
+        FlexWeight: 1;
+
+        Group #MembersList {
+          LayoutMode: Top;
+        }
+      }
+    }
+  }
+}
+
+$C.@BackButton {}

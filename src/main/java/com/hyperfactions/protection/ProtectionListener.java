@@ -1,7 +1,6 @@
-package com.hyperfactions.listener;
+package com.hyperfactions.protection;
 
 import com.hyperfactions.HyperFactions;
-import com.hyperfactions.protection.ProtectionChecker;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.UUID;

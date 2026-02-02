@@ -71,7 +71,7 @@ public class AdminZoneMapPage extends InteractiveCustomUIPage<AdminZoneMapData> 
             Logger.warn("[AdminZoneMapPage] Zone %s no longer exists", zoneId);
             return;
         }
-        Logger.info("[AdminZoneMapPage] build() for zone '%s' with %d chunks", zone.name(), zone.getChunkCount());
+        Logger.debug("[AdminZoneMapPage] build() for zone '%s' with %d chunks", zone.name(), zone.getChunkCount());
 
         // Get player's current position
         Player player = store.getComponent(ref, Player.getComponentType());

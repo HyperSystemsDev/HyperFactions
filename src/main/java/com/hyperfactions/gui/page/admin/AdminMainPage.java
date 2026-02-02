@@ -2,6 +2,7 @@ package com.hyperfactions.gui.page.admin;
 
 import com.hyperfactions.data.*;
 import com.hyperfactions.gui.GuiManager;
+import com.hyperfactions.gui.admin.AdminNavBarHelper;
 import com.hyperfactions.gui.admin.data.AdminMainData;
 import com.hyperfactions.manager.FactionManager;
 import com.hyperfactions.manager.PowerManager;
@@ -49,8 +50,11 @@ public class AdminMainPage extends InteractiveCustomUIPage<AdminMainData> {
     public void build(Ref<EntityStore> ref, UICommandBuilder cmd,
                       UIEventBuilder events, Store<EntityStore> store) {
 
-        // Load the main template
+        // Load the main template first (nav bar elements must exist before setupBar)
         cmd.append("HyperFactions/admin/admin_main.ui");
+
+        // Setup admin nav bar (must be after template load)
+        AdminNavBarHelper.setupBar(playerRef, "dashboard", cmd, events);
 
 
         // Stats overview
@@ -173,7 +177,16 @@ public class AdminMainPage extends InteractiveCustomUIPage<AdminMainData> {
         Player player = store.getComponent(ref, Player.getComponentType());
         PlayerRef playerRef = store.getComponent(ref, PlayerRef.getComponentType());
 
-        if (player == null || playerRef == null || data.button == null) {
+        if (player == null || playerRef == null) {
+            return;
+        }
+
+        // Handle admin nav bar navigation
+        if (AdminNavBarHelper.handleNavEvent(data, player, ref, store, playerRef, guiManager)) {
+            return;
+        }
+
+        if (data.button == null) {
             return;
         }
 

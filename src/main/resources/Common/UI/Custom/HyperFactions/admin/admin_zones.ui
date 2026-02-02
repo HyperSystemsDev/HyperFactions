@@ -1,127 +1,122 @@
 $C = "../../Common.ui";
 $S = "../shared/styles.ui";
+$Nav = "admin_nav_bar.ui";
 
-$C.@PageOverlay {}
+$C.@PageOverlay {
+  $Nav.@HyperFactionsAdminNavBar #HyperFactionsAdminNavBar {}
 
-$C.@Container {
-  Anchor: (Width: 550, Height: 500);
+  $C.@Container {
+    Anchor: (Width: 550, Height: 450);
 
-  #Title {
-    $C.@Title {
-      @Text = "Zone Management";
-    }
-  }
-
-  #Content {
-    LayoutMode: Top;
-    Padding: (Left: 15, Right: 15, Top: 10, Bottom: 10);
-
-    Group #Tabs {
-      Anchor: (Height: 35, Bottom: 10);
-      LayoutMode: Left;
-
-      TextButton #BackBtn {
-        Text: "< BACK";
-        Anchor: (Height: 28, Width: 70);
-        Style: $S.@ButtonStyle;
-      }
-
-      Label { Anchor: (Width: 8); }
-
-      TextButton #TabAll {
-        Text: "ALL";
-        Anchor: (Height: 28, Width: 50);
-        Style: $S.@CyanButtonStyle;
-      }
-
-      Label { Anchor: (Width: 5); }
-
-      TextButton #TabSafe {
-        Text: "SAFE";
-        Anchor: (Height: 28, Width: 60);
-        Style: $S.@ButtonStyle;
-      }
-
-      Label { Anchor: (Width: 5); }
-
-      TextButton #TabWar {
-        Text: "WAR";
-        Anchor: (Height: 28, Width: 55);
-        Style: $S.@ButtonStyle;
-      }
-
-      Label { FlexWeight: 1; }
-
-      TextButton #CreateZoneBtn {
-        Text: "+ CREATE";
-        Anchor: (Height: 28, Width: 90);
-        Style: $S.@GreenButtonStyle;
+    #Title {
+      $C.@Title {
+        @Text = "Zone Management";
       }
     }
 
-    Group {
-      Anchor: (Height: 1, Bottom: 8);
-      Background: (Color: #00AAAA);
-    }
+    #Content {
+      LayoutMode: Top;
+      Padding: (Left: 15, Right: 15, Top: 10, Bottom: 10);
 
-    Group {
-      Anchor: (Height: 25, Bottom: 5);
-      LayoutMode: Left;
+      Group #Tabs {
+        Anchor: (Height: 35, Bottom: 10);
+        LayoutMode: Left;
 
-      Label #ZoneCount {
-        Text: "0 zones";
-        Style: (FontSize: 12, TextColor: #888888, VerticalAlignment: Center);
-      }
-    }
+        TextButton #TabAll {
+          Text: "ALL";
+          Anchor: (Height: 26, Width: 50);
+          Style: $S.@SmallCyanButtonStyle;
+        }
 
-    Group #ZoneListContainer {
-      LayoutMode: TopScrolling;
-      ScrollbarStyle: $C.@DefaultScrollbarStyle;
-      FlexWeight: 1;
+        Label { Anchor: (Width: 5); }
 
-      Group #ZoneList {
-        LayoutMode: Top;
+        TextButton #TabSafe {
+          Text: "SAFE";
+          Anchor: (Height: 26, Width: 60);
+          Style: $S.@SmallTealButtonStyle;
+        }
 
-        Group #ZoneEntry0 { Anchor: (Height: 45); }
-        Group #ZoneEntry1 { Anchor: (Height: 45); }
-        Group #ZoneEntry2 { Anchor: (Height: 45); }
-        Group #ZoneEntry3 { Anchor: (Height: 45); }
-        Group #ZoneEntry4 { Anchor: (Height: 45); }
-        Group #ZoneEntry5 { Anchor: (Height: 45); }
-        Group #ZoneEntry6 { Anchor: (Height: 45); }
-        Group #ZoneEntry7 { Anchor: (Height: 45); }
-      }
-    }
+        Label { Anchor: (Width: 5); }
 
-    Group {
-      Anchor: (Height: 1, Top: 8, Bottom: 8);
-      Background: (Color: #00AAAA);
-    }
+        TextButton #TabWar {
+          Text: "WAR";
+          Anchor: (Height: 26, Width: 55);
+          Style: $S.@SmallPurpleButtonStyle;
+        }
 
-    Group #Pagination {
-      Anchor: (Height: 35);
-      LayoutMode: Left;
+        Label { FlexWeight: 1; }
 
-      TextButton #PrevBtn {
-        Text: "< PREV";
-        Anchor: (Height: 26, Width: 80);
-        Style: $S.@ButtonStyle;
+        TextButton #CreateZoneBtn {
+          Text: "+ CREATE";
+          Anchor: (Height: 26, Width: 90);
+          Style: $S.@SmallGreenButtonStyle;
+        }
       }
 
-      Label { FlexWeight: 1; }
-
-      Label #PageInfo {
-        Text: "1/1";
-        Style: (FontSize: 14, TextColor: #888888, HorizontalAlignment: Center, VerticalAlignment: Center);
-        Anchor: (Width: 60);
+      Group {
+        Anchor: (Height: 1, Bottom: 8);
+        Background: (Color: #00AAAA);
       }
 
-      Label { FlexWeight: 1; }
+      Group {
+        Anchor: (Height: 25, Bottom: 5);
+        LayoutMode: Left;
 
-      TextButton #NextBtn {
-        Text: "NEXT >";
-        Anchor: (Height: 26, Width: 80);
-        Style: $S.@ButtonStyle;
+        Label #ZoneCount {
+          Text: "0 zones";
+          Style: (FontSize: 12, TextColor: #888888, VerticalAlignment: Center);
+        }
+      }
+
+      Group #ZoneListContainer {
+        LayoutMode: TopScrolling;
+        ScrollbarStyle: $C.@DefaultScrollbarStyle;
+        FlexWeight: 1;
+
+        Group #ZoneList {
+          LayoutMode: Top;
+
+          Group #ZoneEntry0 { Anchor: (Height: 45); }
+          Group #ZoneEntry1 { Anchor: (Height: 45); }
+          Group #ZoneEntry2 { Anchor: (Height: 45); }
+          Group #ZoneEntry3 { Anchor: (Height: 45); }
+          Group #ZoneEntry4 { Anchor: (Height: 45); }
+          Group #ZoneEntry5 { Anchor: (Height: 45); }
+          Group #ZoneEntry6 { Anchor: (Height: 45); }
+          Group #ZoneEntry7 { Anchor: (Height: 45); }
+        }
+      }
+
+      Group {
+        Anchor: (Height: 1, Top: 8, Bottom: 8);
+        Background: (Color: #00AAAA);
+      }
+
+      Group #Pagination {
+        Anchor: (Height: 35);
+        LayoutMode: Left;
+
+        TextButton #PrevBtn {
+          Text: "< PREV";
+          Anchor: (Height: 26, Width: 80);
+          Style: $S.@ButtonStyle;
+        }
+
+        Label { FlexWeight: 1; }
+
+        Label #PageInfo {
+          Text: "1/1";
+          Style: (FontSize: 14, TextColor: #888888, HorizontalAlignment: Center, VerticalAlignment: Center);
+          Anchor: (Width: 60);
+        }
+
+        Label { FlexWeight: 1; }
+
+        TextButton #NextBtn {
+          Text: "NEXT >";
+          Anchor: (Height: 26, Width: 80);
+          Style: $S.@ButtonStyle;
+        }
       }
     }
   }

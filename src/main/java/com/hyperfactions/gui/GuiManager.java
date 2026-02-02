@@ -6,6 +6,7 @@ import com.hyperfactions.data.Faction;
 import com.hyperfactions.data.FactionMember;
 import com.hyperfactions.data.FactionRole;
 import com.hyperfactions.data.Zone;
+import com.hyperfactions.gui.admin.AdminPageRegistry;
 import com.hyperfactions.gui.faction.*;
 import com.hyperfactions.gui.faction.page.*;
 import com.hyperfactions.gui.help.HelpCategory;
@@ -69,6 +70,7 @@ public class GuiManager {
         // Register all pages with the central registry
         registerPages();
         registerNewPlayerPages();
+        registerAdminPages();
     }
 
     /**
@@ -280,6 +282,96 @@ public class GuiManager {
         ));
 
         Logger.debug("[GUI] Registered %d pages with NewPlayerPageRegistry", registry.getEntries().size());
+    }
+
+    /**
+     * Registers all Admin GUI pages with the AdminPageRegistry.
+     * These pages are shown in the admin navigation bar.
+     *
+     * Nav bar order: DASHBOARD | FACTIONS | ZONES | CONFIG | BACKUPS | UPDATES | HELP
+     */
+    private void registerAdminPages() {
+        AdminPageRegistry registry = AdminPageRegistry.getInstance();
+
+        // Dashboard (server-wide stats overview)
+        registry.registerEntry(new AdminPageRegistry.Entry(
+                "dashboard",
+                "Dashboard",
+                null,
+                (player, ref, store, playerRef, guiManager) ->
+                        new AdminDashboardPage(playerRef, plugin.get(), factionManager.get(), powerManager.get(),
+                                zoneManager.get(), guiManager),
+                true,
+                0
+        ));
+
+        // Factions page (faction management with expanding rows)
+        registry.registerEntry(new AdminPageRegistry.Entry(
+                "factions",
+                "Factions",
+                null,
+                (player, ref, store, playerRef, guiManager) ->
+                        new AdminFactionsPage(playerRef, factionManager.get(), powerManager.get(), guiManager),
+                true,
+                1
+        ));
+
+        // Zones page
+        registry.registerEntry(new AdminPageRegistry.Entry(
+                "zones",
+                "Zones",
+                null,
+                (player, ref, store, playerRef, guiManager) ->
+                        new AdminZonePage(playerRef, zoneManager.get(), guiManager, "all", 0),
+                true,
+                2
+        ));
+
+        // Config page (placeholder)
+        registry.registerEntry(new AdminPageRegistry.Entry(
+                "config",
+                "Config",
+                null,
+                (player, ref, store, playerRef, guiManager) ->
+                        new AdminConfigPage(playerRef, guiManager),
+                true,
+                3
+        ));
+
+        // Backups page (placeholder)
+        registry.registerEntry(new AdminPageRegistry.Entry(
+                "backups",
+                "Backups",
+                null,
+                (player, ref, store, playerRef, guiManager) ->
+                        new AdminBackupsPage(playerRef, guiManager),
+                true,
+                4
+        ));
+
+        // Updates page (placeholder)
+        registry.registerEntry(new AdminPageRegistry.Entry(
+                "updates",
+                "Updates",
+                null,
+                (player, ref, store, playerRef, guiManager) ->
+                        new AdminUpdatesPage(playerRef, guiManager),
+                true,
+                5
+        ));
+
+        // Help page (placeholder)
+        registry.registerEntry(new AdminPageRegistry.Entry(
+                "help",
+                "Help",
+                null,
+                (player, ref, store, playerRef, guiManager) ->
+                        new AdminHelpPage(playerRef, guiManager),
+                true,
+                6
+        ));
+
+        Logger.debug("[GUI] Registered %d pages with AdminPageRegistry", registry.getEntries().size());
     }
 
     /**
@@ -766,6 +858,133 @@ public class GuiManager {
         }
     }
 
+    // ============================================================
+    // Admin Modal Methods (bypass permission checks)
+    // ============================================================
+
+    /**
+     * Opens the Tag modal in admin mode (bypasses permission checks).
+     */
+    public void openAdminTagModal(Player player, Ref<EntityStore> ref,
+                                  Store<EntityStore> store, PlayerRef playerRef,
+                                  Faction faction) {
+        Logger.debug("[GUI] Opening admin TagModalPage for %s", playerRef.getUsername());
+        try {
+            PageManager pageManager = player.getPageManager();
+            TagModalPage page = new TagModalPage(
+                playerRef,
+                factionManager.get(),
+                this,
+                faction,
+                plugin.get().getWorldMapService(),
+                true  // adminMode
+            );
+            pageManager.openCustomPage(ref, store, page);
+            Logger.debug("[GUI] Admin TagModalPage opened successfully");
+        } catch (Exception e) {
+            Logger.severe("[GUI] Failed to open admin TagModalPage: %s", e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Opens the Description modal in admin mode (bypasses permission checks).
+     */
+    public void openAdminDescriptionModal(Player player, Ref<EntityStore> ref,
+                                          Store<EntityStore> store, PlayerRef playerRef,
+                                          Faction faction) {
+        Logger.debug("[GUI] Opening admin DescriptionModalPage for %s", playerRef.getUsername());
+        try {
+            PageManager pageManager = player.getPageManager();
+            DescriptionModalPage page = new DescriptionModalPage(
+                playerRef,
+                factionManager.get(),
+                this,
+                faction,
+                true  // adminMode
+            );
+            pageManager.openCustomPage(ref, store, page);
+            Logger.debug("[GUI] Admin DescriptionModalPage opened successfully");
+        } catch (Exception e) {
+            Logger.severe("[GUI] Failed to open admin DescriptionModalPage: %s", e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Opens the Rename Faction modal in admin mode (bypasses permission checks).
+     */
+    public void openAdminRenameModal(Player player, Ref<EntityStore> ref,
+                                     Store<EntityStore> store, PlayerRef playerRef,
+                                     Faction faction) {
+        Logger.debug("[GUI] Opening admin RenameModalPage for %s", playerRef.getUsername());
+        try {
+            PageManager pageManager = player.getPageManager();
+            RenameModalPage page = new RenameModalPage(
+                playerRef,
+                factionManager.get(),
+                this,
+                faction,
+                plugin.get().getWorldMapService(),
+                true  // adminMode
+            );
+            pageManager.openCustomPage(ref, store, page);
+            Logger.debug("[GUI] Admin RenameModalPage opened successfully");
+        } catch (Exception e) {
+            Logger.severe("[GUI] Failed to open admin RenameModalPage: %s", e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Opens the Recruitment Status modal in admin mode (bypasses permission checks).
+     */
+    public void openAdminRecruitmentModal(Player player, Ref<EntityStore> ref,
+                                          Store<EntityStore> store, PlayerRef playerRef,
+                                          Faction faction) {
+        Logger.debug("[GUI] Opening admin RecruitmentModalPage for %s", playerRef.getUsername());
+        try {
+            PageManager pageManager = player.getPageManager();
+            RecruitmentModalPage page = new RecruitmentModalPage(
+                playerRef,
+                factionManager.get(),
+                this,
+                faction,
+                true  // adminMode
+            );
+            pageManager.openCustomPage(ref, store, page);
+            Logger.debug("[GUI] Admin RecruitmentModalPage opened successfully");
+        } catch (Exception e) {
+            Logger.severe("[GUI] Failed to open admin RecruitmentModalPage: %s", e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Opens the Color Picker page in admin mode (bypasses permission checks).
+     */
+    public void openAdminColorPicker(Player player, Ref<EntityStore> ref,
+                                     Store<EntityStore> store, PlayerRef playerRef,
+                                     Faction faction) {
+        Logger.debug("[GUI] Opening admin ColorPickerPage for %s", playerRef.getUsername());
+        try {
+            PageManager pageManager = player.getPageManager();
+            ColorPickerPage page = new ColorPickerPage(
+                playerRef,
+                factionManager.get(),
+                this,
+                faction,
+                plugin.get().getWorldMapService(),
+                true  // adminMode
+            );
+            pageManager.openCustomPage(ref, store, page);
+            Logger.debug("[GUI] Admin ColorPickerPage opened successfully");
+        } catch (Exception e) {
+            Logger.severe("[GUI] Failed to open admin ColorPickerPage: %s", e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
     /**
      * Opens the Disband Confirmation modal.
      *
@@ -922,7 +1141,7 @@ public class GuiManager {
     }
 
     /**
-     * Opens the Admin Main page.
+     * Opens the Admin Dashboard page.
      * Requires hyperfactions.admin permission.
      *
      * @param player    The Player entity
@@ -932,19 +1151,63 @@ public class GuiManager {
      */
     public void openAdminMain(Player player, Ref<EntityStore> ref,
                               Store<EntityStore> store, PlayerRef playerRef) {
-        Logger.debug("[GUI] Opening AdminMainPage for %s", playerRef.getUsername());
+        openAdminDashboard(player, ref, store, playerRef);
+    }
+
+    /**
+     * Opens the Admin Dashboard page (server-wide stats overview).
+     * Requires hyperfactions.admin permission.
+     *
+     * @param player    The Player entity
+     * @param ref       The entity reference
+     * @param store     The entity store
+     * @param playerRef The PlayerRef component
+     */
+    public void openAdminDashboard(Player player, Ref<EntityStore> ref,
+                                   Store<EntityStore> store, PlayerRef playerRef) {
+        Logger.debug("[GUI] Opening AdminDashboardPage for %s", playerRef.getUsername());
         try {
             PageManager pageManager = player.getPageManager();
-            AdminMainPage page = new AdminMainPage(
+            AdminDashboardPage page = new AdminDashboardPage(
+                playerRef,
+                plugin.get(),
+                factionManager.get(),
+                powerManager.get(),
+                zoneManager.get(),
+                this
+            );
+            pageManager.openCustomPage(ref, store, page);
+            Logger.debug("[GUI] AdminDashboardPage opened successfully");
+        } catch (Exception e) {
+            Logger.severe("[GUI] Failed to open AdminDashboardPage: %s", e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Opens the Admin Factions page (faction management with expanding rows).
+     * Requires hyperfactions.admin permission.
+     *
+     * @param player    The Player entity
+     * @param ref       The entity reference
+     * @param store     The entity store
+     * @param playerRef The PlayerRef component
+     */
+    public void openAdminFactions(Player player, Ref<EntityStore> ref,
+                                  Store<EntityStore> store, PlayerRef playerRef) {
+        Logger.debug("[GUI] Opening AdminFactionsPage for %s", playerRef.getUsername());
+        try {
+            PageManager pageManager = player.getPageManager();
+            AdminFactionsPage page = new AdminFactionsPage(
                 playerRef,
                 factionManager.get(),
                 powerManager.get(),
                 this
             );
             pageManager.openCustomPage(ref, store, page);
-            Logger.debug("[GUI] AdminMainPage opened successfully");
+            Logger.debug("[GUI] AdminFactionsPage opened successfully");
         } catch (Exception e) {
-            Logger.severe("[GUI] Failed to open AdminMainPage: %s", e.getMessage());
+            Logger.severe("[GUI] Failed to open AdminFactionsPage: %s", e.getMessage());
             e.printStackTrace();
         }
     }
@@ -982,6 +1245,165 @@ public class GuiManager {
     }
 
     /**
+     * Opens the Admin Faction Info page.
+     * Displays detailed info about a faction with admin navigation context.
+     *
+     * @param player    The Player entity
+     * @param ref       The entity reference
+     * @param store     The entity store
+     * @param playerRef The PlayerRef component
+     * @param factionId The UUID of the faction to view
+     */
+    public void openAdminFactionInfo(Player player, Ref<EntityStore> ref,
+                                     Store<EntityStore> store, PlayerRef playerRef,
+                                     UUID factionId) {
+        Logger.debug("[GUI] Opening AdminFactionInfoPage for %s (faction: %s)", playerRef.getUsername(), factionId);
+        try {
+            PageManager pageManager = player.getPageManager();
+            AdminFactionInfoPage page = new AdminFactionInfoPage(
+                playerRef,
+                factionId,
+                factionManager.get(),
+                powerManager.get(),
+                relationManager.get(),
+                this
+            );
+            pageManager.openCustomPage(ref, store, page);
+            Logger.debug("[GUI] AdminFactionInfoPage opened successfully");
+        } catch (Exception e) {
+            Logger.severe("[GUI] Failed to open AdminFactionInfoPage: %s", e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Opens the Admin Faction Members page.
+     * Read-only member list with admin navigation context.
+     *
+     * @param player    The Player entity
+     * @param ref       The entity reference
+     * @param store     The entity store
+     * @param playerRef The PlayerRef component
+     * @param factionId The UUID of the faction to view members for
+     */
+    public void openAdminFactionMembers(Player player, Ref<EntityStore> ref,
+                                        Store<EntityStore> store, PlayerRef playerRef,
+                                        UUID factionId) {
+        Logger.debug("[GUI] Opening AdminFactionMembersPage for %s (faction: %s)", playerRef.getUsername(), factionId);
+        try {
+            PageManager pageManager = player.getPageManager();
+            AdminFactionMembersPage page = new AdminFactionMembersPage(
+                playerRef,
+                factionId,
+                factionManager.get(),
+                powerManager.get(),
+                this
+            );
+            pageManager.openCustomPage(ref, store, page);
+            Logger.debug("[GUI] AdminFactionMembersPage opened successfully");
+        } catch (Exception e) {
+            Logger.severe("[GUI] Failed to open AdminFactionMembersPage: %s", e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Opens the Admin Faction Relations page.
+     * View and force-set relations with admin navigation context.
+     *
+     * @param player    The Player entity
+     * @param ref       The entity reference
+     * @param store     The entity store
+     * @param playerRef The PlayerRef component
+     * @param factionId The UUID of the faction to view relations for
+     */
+    public void openAdminFactionRelations(Player player, Ref<EntityStore> ref,
+                                          Store<EntityStore> store, PlayerRef playerRef,
+                                          UUID factionId) {
+        Logger.debug("[GUI] Opening AdminFactionRelationsPage for %s (faction: %s)", playerRef.getUsername(), factionId);
+        try {
+            PageManager pageManager = player.getPageManager();
+            AdminFactionRelationsPage page = new AdminFactionRelationsPage(
+                playerRef,
+                factionId,
+                factionManager.get(),
+                relationManager.get(),
+                this
+            );
+            pageManager.openCustomPage(ref, store, page);
+            Logger.debug("[GUI] AdminFactionRelationsPage opened successfully");
+        } catch (Exception e) {
+            Logger.severe("[GUI] Failed to open AdminFactionRelationsPage: %s", e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Opens the Admin Faction Settings page.
+     * Allows admins to edit any faction's territory permissions.
+     *
+     * @param player    The Player entity
+     * @param ref       The entity reference
+     * @param store     The entity store
+     * @param playerRef The PlayerRef component
+     * @param factionId The UUID of the faction to edit settings for
+     */
+    public void openAdminFactionSettings(Player player, Ref<EntityStore> ref,
+                                         Store<EntityStore> store, PlayerRef playerRef,
+                                         UUID factionId) {
+        Logger.debug("[GUI] Opening AdminFactionSettingsPage for %s (faction: %s)", playerRef.getUsername(), factionId);
+        try {
+            PageManager pageManager = player.getPageManager();
+            AdminFactionSettingsPage page = new AdminFactionSettingsPage(
+                playerRef,
+                factionId,
+                factionManager.get(),
+                this
+            );
+            pageManager.openCustomPage(ref, store, page);
+            Logger.debug("[GUI] AdminFactionSettingsPage opened successfully");
+        } catch (Exception e) {
+            Logger.severe("[GUI] Failed to open AdminFactionSettingsPage: %s", e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Opens the Admin Unclaim All Confirmation modal.
+     * Shows warning and requires confirmation to remove all claims from a faction.
+     *
+     * @param player      The Player entity
+     * @param ref         The entity reference
+     * @param store       The entity store
+     * @param playerRef   The PlayerRef component
+     * @param factionId   The UUID of the faction to unclaim from
+     * @param factionName The name of the faction
+     * @param claimCount  The number of claims to remove
+     */
+    public void openAdminUnclaimAllConfirm(Player player, Ref<EntityStore> ref,
+                                           Store<EntityStore> store, PlayerRef playerRef,
+                                           UUID factionId, String factionName, int claimCount) {
+        Logger.debug("[GUI] Opening AdminUnclaimAllConfirmPage for faction %s (%d claims)",
+                factionName, claimCount);
+        try {
+            PageManager pageManager = player.getPageManager();
+            AdminUnclaimAllConfirmPage page = new AdminUnclaimAllConfirmPage(
+                playerRef,
+                claimManager.get(),
+                this,
+                factionId,
+                factionName,
+                claimCount
+            );
+            pageManager.openCustomPage(ref, store, page);
+            Logger.debug("[GUI] AdminUnclaimAllConfirmPage opened successfully");
+        } catch (Exception e) {
+            Logger.severe("[GUI] Failed to open AdminUnclaimAllConfirmPage: %s", e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
      * Opens the Admin Zone page.
      * Requires hyperfactions.admin.zones permission.
      *
@@ -1012,6 +1434,98 @@ public class GuiManager {
             Logger.debug("[GUI] AdminZonePage opened successfully");
         } catch (Exception e) {
             Logger.severe("[GUI] Failed to open AdminZonePage: %s", e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Opens the Admin Config page (placeholder).
+     * Requires hyperfactions.admin permission.
+     *
+     * @param player    The Player entity
+     * @param ref       The entity reference
+     * @param store     The entity store
+     * @param playerRef The PlayerRef component
+     */
+    public void openAdminConfig(Player player, Ref<EntityStore> ref,
+                                Store<EntityStore> store, PlayerRef playerRef) {
+        Logger.debug("[GUI] Opening AdminConfigPage for %s", playerRef.getUsername());
+        try {
+            PageManager pageManager = player.getPageManager();
+            AdminConfigPage page = new AdminConfigPage(playerRef, this);
+            pageManager.openCustomPage(ref, store, page);
+            Logger.debug("[GUI] AdminConfigPage opened successfully");
+        } catch (Exception e) {
+            Logger.severe("[GUI] Failed to open AdminConfigPage: %s", e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Opens the Admin Backups page (placeholder).
+     * Requires hyperfactions.admin permission.
+     *
+     * @param player    The Player entity
+     * @param ref       The entity reference
+     * @param store     The entity store
+     * @param playerRef The PlayerRef component
+     */
+    public void openAdminBackups(Player player, Ref<EntityStore> ref,
+                                 Store<EntityStore> store, PlayerRef playerRef) {
+        Logger.debug("[GUI] Opening AdminBackupsPage for %s", playerRef.getUsername());
+        try {
+            PageManager pageManager = player.getPageManager();
+            AdminBackupsPage page = new AdminBackupsPage(playerRef, this);
+            pageManager.openCustomPage(ref, store, page);
+            Logger.debug("[GUI] AdminBackupsPage opened successfully");
+        } catch (Exception e) {
+            Logger.severe("[GUI] Failed to open AdminBackupsPage: %s", e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Opens the Admin Updates page (placeholder).
+     * Requires hyperfactions.admin permission.
+     *
+     * @param player    The Player entity
+     * @param ref       The entity reference
+     * @param store     The entity store
+     * @param playerRef The PlayerRef component
+     */
+    public void openAdminUpdates(Player player, Ref<EntityStore> ref,
+                                 Store<EntityStore> store, PlayerRef playerRef) {
+        Logger.debug("[GUI] Opening AdminUpdatesPage for %s", playerRef.getUsername());
+        try {
+            PageManager pageManager = player.getPageManager();
+            AdminUpdatesPage page = new AdminUpdatesPage(playerRef, this);
+            pageManager.openCustomPage(ref, store, page);
+            Logger.debug("[GUI] AdminUpdatesPage opened successfully");
+        } catch (Exception e) {
+            Logger.severe("[GUI] Failed to open AdminUpdatesPage: %s", e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Opens the Admin Help page (placeholder).
+     * Requires hyperfactions.admin permission.
+     *
+     * @param player    The Player entity
+     * @param ref       The entity reference
+     * @param store     The entity store
+     * @param playerRef The PlayerRef component
+     */
+    public void openAdminHelp(Player player, Ref<EntityStore> ref,
+                              Store<EntityStore> store, PlayerRef playerRef) {
+        Logger.debug("[GUI] Opening AdminHelpPage for %s", playerRef.getUsername());
+        try {
+            PageManager pageManager = player.getPageManager();
+            AdminHelpPage page = new AdminHelpPage(playerRef, this);
+            pageManager.openCustomPage(ref, store, page);
+            Logger.debug("[GUI] AdminHelpPage opened successfully");
+        } catch (Exception e) {
+            Logger.severe("[GUI] Failed to open AdminHelpPage: %s", e.getMessage());
             e.printStackTrace();
         }
     }
@@ -1104,6 +1618,35 @@ public class GuiManager {
             Logger.debug("[GUI] AdminZoneMapPage opened successfully");
         } catch (Exception e) {
             Logger.severe("[GUI] Failed to open AdminZoneMapPage: %s", e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Opens the Admin Zone Settings page for configuring zone flags.
+     *
+     * @param player    The Player entity
+     * @param ref       The entity reference
+     * @param store     The entity store
+     * @param playerRef The PlayerRef component
+     * @param zoneId    The UUID of the zone to configure
+     */
+    public void openAdminZoneSettings(Player player, Ref<EntityStore> ref,
+                                      Store<EntityStore> store, PlayerRef playerRef,
+                                      UUID zoneId) {
+        Logger.debug("[GUI] Opening AdminZoneSettingsPage for %s (zone: %s)", playerRef.getUsername(), zoneId);
+        try {
+            PageManager pageManager = player.getPageManager();
+            AdminZoneSettingsPage page = new AdminZoneSettingsPage(
+                playerRef,
+                zoneId,
+                zoneManager.get(),
+                this
+            );
+            pageManager.openCustomPage(ref, store, page);
+            Logger.debug("[GUI] AdminZoneSettingsPage opened successfully");
+        } catch (Exception e) {
+            Logger.severe("[GUI] Failed to open AdminZoneSettingsPage: %s", e.getMessage());
             e.printStackTrace();
         }
     }

@@ -1,5 +1,6 @@
 package com.hyperfactions.protection;
 
+import com.hyperfactions.HyperFactions;
 import com.hyperfactions.config.HyperFactionsConfig;
 import com.hyperfactions.data.Faction;
 import com.hyperfactions.data.FactionPermissions;
@@ -14,12 +15,14 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
+import java.util.function.Supplier;
 
 /**
  * Central class for all protection checks.
  */
 public class ProtectionChecker {
 
+    private final Supplier<HyperFactions> plugin;
     private final FactionManager factionManager;
     private final ClaimManager claimManager;
     private final ZoneManager zoneManager;
@@ -33,6 +36,18 @@ public class ProtectionChecker {
         @NotNull RelationManager relationManager,
         @NotNull CombatTagManager combatTagManager
     ) {
+        this(null, factionManager, claimManager, zoneManager, relationManager, combatTagManager);
+    }
+
+    public ProtectionChecker(
+        @Nullable Supplier<HyperFactions> plugin,
+        @NotNull FactionManager factionManager,
+        @NotNull ClaimManager claimManager,
+        @NotNull ZoneManager zoneManager,
+        @NotNull RelationManager relationManager,
+        @NotNull CombatTagManager combatTagManager
+    ) {
+        this.plugin = plugin;
         this.factionManager = factionManager;
         this.claimManager = claimManager;
         this.zoneManager = zoneManager;
@@ -115,30 +130,45 @@ public class ProtectionChecker {
     @NotNull
     public ProtectionResult canInteractChunk(@NotNull UUID playerUuid, @NotNull String world,
                                              int chunkX, int chunkZ, @NotNull InteractionType type) {
-        // 1. Check bypass permission
-        String bypassPerm = switch (type) {
-            case BUILD -> "hyperfactions.bypass.build";
-            case INTERACT -> "hyperfactions.bypass.interact";
-            case CONTAINER -> "hyperfactions.bypass.container";
-            case DAMAGE -> "hyperfactions.bypass.damage";
-            case USE -> "hyperfactions.bypass.use";
-        };
+        // 1. Check if player is an admin (has admin.use permission)
+        boolean isAdmin = PermissionManager.get().hasPermission(playerUuid, "hyperfactions.admin.use");
 
-        if (PermissionManager.get().hasPermission(playerUuid, bypassPerm) ||
-            PermissionManager.get().hasPermission(playerUuid, "hyperfactions.bypass.*")) {
-            return ProtectionResult.ALLOWED_BYPASS;
+        // 2. Admin bypass check - admins ONLY bypass via toggle (not standard bypass perms)
+        if (isAdmin) {
+            if (plugin != null) {
+                HyperFactions hyperFactions = plugin.get();
+                if (hyperFactions != null && hyperFactions.isAdminBypassEnabled(playerUuid)) {
+                    return ProtectionResult.ALLOWED_BYPASS;
+                }
+            }
+            // Admin with bypass OFF - continue to normal protection checks (no standard bypass)
+        } else {
+            // 3. Non-admin: Check standard bypass permissions
+            String bypassPerm = switch (type) {
+                case BUILD -> "hyperfactions.bypass.build";
+                case INTERACT -> "hyperfactions.bypass.interact";
+                case CONTAINER -> "hyperfactions.bypass.container";
+                case DAMAGE -> "hyperfactions.bypass.damage";
+                case USE -> "hyperfactions.bypass.use";
+            };
+
+            if (PermissionManager.get().hasPermission(playerUuid, bypassPerm) ||
+                PermissionManager.get().hasPermission(playerUuid, "hyperfactions.bypass.*")) {
+                return ProtectionResult.ALLOWED_BYPASS;
+            }
         }
 
         // 2. Check zone
         Zone zone = zoneManager.getZone(world, chunkX, chunkZ);
         if (zone != null) {
             // Get the appropriate flag for the interaction type
+            // Note: INTERACT, CONTAINER, and USE all map to BLOCK_INTERACT now
             String flagName = switch (type) {
                 case BUILD -> ZoneFlags.BUILD_ALLOWED;
-                case INTERACT -> ZoneFlags.INTERACT_ALLOWED;
-                case CONTAINER -> ZoneFlags.CONTAINER_ACCESS;
+                case INTERACT -> ZoneFlags.BLOCK_INTERACT;
+                case CONTAINER -> ZoneFlags.BLOCK_INTERACT;
                 case DAMAGE -> ZoneFlags.PVP_ENABLED; // For entity damage
-                case USE -> ZoneFlags.INTERACT_ALLOWED;
+                case USE -> ZoneFlags.BLOCK_INTERACT;
             };
 
             boolean allowed = zone.getEffectiveFlag(flagName);
@@ -468,6 +498,93 @@ public class ProtectionChecker {
             case DENIED_TERRITORY_NO_PVP -> "PvP is disabled in this territory.";
             default -> "You cannot attack this player.";
         };
+    }
+
+    // === Zone Damage Flags ===
+
+    /**
+     * Checks if a specific damage type is allowed at a location based on zone flags.
+     *
+     * @param world  the world name
+     * @param x      the X coordinate
+     * @param z      the Z coordinate
+     * @param flagName the zone flag to check
+     * @return true if allowed, false if blocked by zone flag
+     */
+    public boolean isDamageAllowed(@NotNull String world, double x, double z, @NotNull String flagName) {
+        int chunkX = ChunkUtil.toChunkCoord(x);
+        int chunkZ = ChunkUtil.toChunkCoord(z);
+        return isDamageAllowedChunk(world, chunkX, chunkZ, flagName);
+    }
+
+    /**
+     * Checks if a specific damage type is allowed in a chunk based on zone flags.
+     *
+     * @param world    the world name
+     * @param chunkX   the chunk X
+     * @param chunkZ   the chunk Z
+     * @param flagName the zone flag to check
+     * @return true if allowed, false if blocked by zone flag
+     */
+    public boolean isDamageAllowedChunk(@NotNull String world, int chunkX, int chunkZ, @NotNull String flagName) {
+        Zone zone = zoneManager.getZone(world, chunkX, chunkZ);
+        if (zone == null) {
+            // Not in a zone - all damage allowed
+            return true;
+        }
+
+        boolean allowed = zone.getEffectiveFlag(flagName);
+        Logger.debug("[Protection] Zone '%s' (%s) flag '%s' = %s at %s/%d/%d",
+            zone.name(), zone.type().name(), flagName, allowed, world, chunkX, chunkZ);
+        return allowed;
+    }
+
+    /**
+     * Checks if mob damage is allowed at a location.
+     *
+     * @param world the world name
+     * @param x     the X coordinate
+     * @param z     the Z coordinate
+     * @return true if mobs can damage players
+     */
+    public boolean isMobDamageAllowed(@NotNull String world, double x, double z) {
+        return isDamageAllowed(world, x, z, ZoneFlags.MOB_DAMAGE);
+    }
+
+    /**
+     * Checks if projectile damage is allowed at a location.
+     *
+     * @param world the world name
+     * @param x     the X coordinate
+     * @param z     the Z coordinate
+     * @return true if projectiles can damage
+     */
+    public boolean isProjectileDamageAllowed(@NotNull String world, double x, double z) {
+        return isDamageAllowed(world, x, z, ZoneFlags.PROJECTILE_DAMAGE);
+    }
+
+    /**
+     * Checks if fall damage is allowed at a location.
+     *
+     * @param world the world name
+     * @param x     the X coordinate
+     * @param z     the Z coordinate
+     * @return true if fall damage applies
+     */
+    public boolean isFallDamageAllowed(@NotNull String world, double x, double z) {
+        return isDamageAllowed(world, x, z, ZoneFlags.FALL_DAMAGE);
+    }
+
+    /**
+     * Checks if environmental damage is allowed at a location.
+     *
+     * @param world the world name
+     * @param x     the X coordinate
+     * @param z     the Z coordinate
+     * @return true if environmental damage applies
+     */
+    public boolean isEnvironmentalDamageAllowed(@NotNull String world, double x, double z) {
+        return isDamageAllowed(world, x, z, ZoneFlags.ENVIRONMENTAL_DAMAGE);
     }
 
     /**

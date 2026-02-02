@@ -1,0 +1,46 @@
+// HyperFactions Admin Navigation Bar
+// Following AdminUI pattern exactly
+
+@AdminNavButton = MenuItem {
+  Padding: (Horizontal: 20);
+  Style: (
+    Default: (
+      LabelStyle: (FontSize: 14, TextColor: #7c8b99, VerticalAlignment: Center, RenderUppercase: true, RenderBold: true)
+    ),
+    Hovered: (
+      Background: #121a26,
+      LabelStyle: (FontSize: 14, TextColor: #FF5555, VerticalAlignment: Center, RenderUppercase: true, RenderBold: true)
+    )
+  );
+  SelectedStyle: (
+    Default: (
+      LabelStyle: (FontSize: 14, TextColor: #FF5555, VerticalAlignment: Center, RenderUppercase: true, RenderBold: true)
+    ),
+    Hovered: (
+      Background: #121a26,
+      LabelStyle: (FontSize: 14, TextColor: #FF5555, VerticalAlignment: Center, RenderUppercase: true, RenderBold: true)
+    )
+  );
+};
+
+@HyperFactionsAdminNavBar = Group {
+  Anchor: (Height: 45, Top: 0);
+  Background: #0d1520;
+  LayoutMode: Left;
+
+  // Title with admin indicator
+  Group #AdminNavBarTitle {
+    Anchor: (Width: 180, Height: 45);
+    LayoutMode: Left;
+    Padding: (Left: 15);
+
+    Label #AdminNavBarTitleLabel {
+      Text: "Admin Panel";
+      Style: (FontSize: 18, TextColor: #FF5555, RenderBold: true, VerticalAlignment: Center);
+    }
+  }
+
+  Group #AdminNavBarButtons {
+    LayoutMode: Left;
+  }
+};
