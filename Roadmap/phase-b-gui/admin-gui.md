@@ -1,22 +1,58 @@
 # B.3 Admin GUI
 
+> **STATUS: PARTIAL (v0.4.0 - Unreleased)**
+>
+> The Admin GUI is actively being developed. Core pages (Dashboard, Factions, Zones) are fully implemented. Additional pages (Config, Backups, Help, Updates, Logs) are placeholders that will be completed before v0.4.0 release.
+
 **Target Audience**: Server admins with `hyperfactions.admin` permission.
 
 **Access**: `/f admin`, floating action button from Faction Player GUI
 
-**Nav Bar**: `DASHBOARD` | `FACTIONS` | `ZONES` | `PLAYERS` | `CONFIG` | `LOGS` | `HELP`
+**Actual Nav Bar**: `DASHBOARD` | `FACTIONS` | `ZONES` | `CONFIG` | `BACKUPS` | `HELP` | `UPDATES`
 
-> **Note**: Player GUI switch is a floating button.
+> **Note**: Player GUI switch is a floating button. The PLAYERS and LOGS pages from original spec were consolidated - player management is accessible through Factions pages.
+
+**Implementation Summary**:
+
+| Component | Count |
+|-----------|-------|
+| Page classes (`gui/page/admin/`) | 19 |
+| Data classes (`gui/admin/data/`) | 17 |
+| UI templates (`resources/.../admin/`) | 20+ |
+
+**Implemented Pages**:
+- **AdminDashboardPage** - Stats, quick actions, alerts, recent actions
+- **AdminFactionsPage** - Faction list with expandable details
+- **AdminFactionInfoPage** - Detailed faction view with tabs
+- **AdminFactionSettingsPage** - Edit faction properties (admin mode)
+- **AdminFactionMembersPage** - Manage members, roles, leadership
+- **AdminFactionRelationsPage** - View/manage diplomatic relations
+- **AdminZonePage** - Zone list with tab filtering (All/Safe/War)
+- **AdminZoneMapPage** - Visual chunk claiming interface
+- **AdminZoneSettingsPage** - Edit zone properties and flags
+- **CreateZoneWizardPage** - Multi-step zone creation
+- **AdminDisbandConfirmPage** - Faction disband confirmation
+- **AdminUnclaimAllConfirmPage** - Mass unclaim confirmation
+
+**Coming Soon Pages** (placeholders exist):
+- **AdminConfigPage** - Runtime config editing
+- **AdminBackupsPage** - Backup management UI
+- **AdminHelpPage** - Command reference
+- **AdminUpdatesPage** - Version info display
+
+**Navigation System**:
+- `AdminNavBarHelper` - Handles nav bar setup and navigation events
+- `AdminPageRegistry` - Page registration and lookup
 
 **Design Decisions**:
-- **Logs Page**: Separate nav item (7th tab) for direct access
 - **Config Editing**: Selected common values editable in GUI, advanced settings require file editing
 - **Disband Confirmation**: Simple confirm dialog (not type-to-confirm)
+- **Zone Map**: Visual interface with click-to-claim/unclaim chunks
 
 **Design Principles**:
 - Professional, information-dense layout
 - Confirmation dialogs for destructive actions
-- Audit logging for all admin actions
+- Admin mode prefixes all actions with `[Admin]`
 - All documentation accessible from Help page
 
 ---
@@ -128,10 +164,12 @@
 
 ## B.3.3 Admin Zones Page
 
-> **STATUS: PARTIALLY IMPLEMENTED**
-> - List and manage SafeZones and WarZones
-> - Create new zones, edit properties, delete zones
-> - Manage chunk assignments
+> **STATUS: COMPLETE**
+> - List and manage SafeZones and WarZones with tab filtering
+> - Create new zones via wizard with radius claiming support
+> - Visual zone map for chunk claiming/unclaiming
+> - Edit zone properties (name, flags) via settings page
+> - Delete zones with confirmation
 
 **Wireframe**:
 ```

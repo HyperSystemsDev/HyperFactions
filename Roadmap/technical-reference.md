@@ -1,5 +1,45 @@
 # Technical Reference
 
+> **Last Updated**: February 1, 2026
+
+---
+
+## UI Resources
+
+HyperFactions uses centralized style definitions and follows established CustomUI patterns.
+
+### Centralized Styles
+
+**Location**: `src/main/resources/HyperFactions/shared/styles.ui`
+
+Contains:
+- Color palette definitions (primary, secondary, success, warning, error, etc.)
+- Typography styles (heading, body, caption sizes)
+- Common component styles (buttons, cards, modals, nav bars)
+- Scrollbar and input field styles
+
+### Reference Documentation
+
+| Resource | Description |
+|----------|-------------|
+| `HYTALE-CUSTOMUI-REFERENCE.md` | Complete CustomUI syntax reference (31,760 lines) |
+| `resources/AdminUI.md` | Page registry patterns from AdminUI mod |
+| `resources/MultipleHUD.md` | HUD management patterns |
+
+### Color Palette (from styles.ui)
+
+| Color | Hex | Usage |
+|-------|-----|-------|
+| Primary | `#3B82F6` | Buttons, links, active states |
+| Success | `#22C55E` | Positive actions, ally indicators |
+| Error | `#EF4444` | Destructive actions, enemy indicators |
+| Warning | `#F59E0B` | Warnings, raidable indicators |
+| Neutral | `#6B7280` | Neutral relations, disabled states |
+| Background | `#1F2937` | Container backgrounds |
+| Surface | `#374151` | Card/panel backgrounds |
+
+---
+
 ## CustomUI Constraints
 
 **What Works with cmd.set()**:

@@ -1,6 +1,6 @@
 # Known Issues
 
-> **Last Updated**: January 27, 2026
+> **Last Updated**: February 1, 2026
 
 ## Open Issues
 
@@ -16,12 +16,31 @@
 
 ---
 
-### Admin Zones Page Back Button (TABLED)
+## Resolved Issues (2026-02-01 - v0.3.0/v0.3.1)
 
-- **Symptom**: Back button positioned incorrectly
-- **Fix**: Update AdminZonePage template positioning
-- **Status**: Tabled with Admin GUI (B.3) deferred to v1.3+
-- **Priority**: P2
+### Storage Race Condition (FIXED - v0.3.1)
+
+- **Symptom**: Checksum verification failures when saving factions rapidly
+- **Root Cause**: Concurrent writes overwrote each other's temp files
+- **Fix**: Each atomic write now uses a unique temp file name
+- **Files Modified**: `JsonFactionStorage.java`, `JsonPlayerStorage.java`, `JsonZoneStorage.java`
+
+### TextField Input (FIXED - v0.3.1)
+
+- **Symptom**: Text input fields not accepting keyboard input in GUI modals
+- **Affected**: Faction name input, description input, rename modal, tag modal, zone creation wizard, relation search
+- **Fix**: Corrected event binding for TextField components
+- **Files Modified**: Multiple GUI page classes
+
+### Data Loss Prevention (FIXED - v0.3.0)
+
+- **Symptom**: Faction data lost on update/reload when deserialization fails
+- **Root Cause**: FactionManager cleared caches before validating loaded data
+- **Fix**:
+  - FactionManager validates loaded data before clearing caches
+  - Storage classes report failed files with SEVERE level logging
+  - RuntimeException on critical I/O failures instead of returning empty
+- **Files Modified**: `FactionManager.java`, `JsonFactionStorage.java`, `JsonPlayerStorage.java`, `JsonZoneStorage.java`
 
 ---
 

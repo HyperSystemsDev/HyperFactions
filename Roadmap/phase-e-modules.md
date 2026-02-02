@@ -1,8 +1,45 @@
 # Phase E: Optional Modules
 
-> **Last Updated**: January 27, 2026
+> **Last Updated**: February 1, 2026
 
 These are larger features planned for future versions. GUI placeholders added in FactionModulesPage.
+
+---
+
+## E.0 Core Infrastructure (Added v0.4.0)
+
+### Backup System - BACKEND COMPLETE
+
+GFS (Grandfather-Father-Son) rotation backup system with hourly/daily/weekly/manual backups.
+
+| Component | File | Description |
+|-----------|------|-------------|
+| BackupManager | `backup/BackupManager.java` | GFS rotation, backup creation/restoration |
+| BackupMetadata | `backup/BackupMetadata.java` | Backup info with timestamps |
+| BackupType | `backup/BackupType.java` | Enum: HOURLY, DAILY, WEEKLY, MANUAL |
+| AdminBackupsPage | `gui/page/admin/AdminBackupsPage.java` | GUI placeholder (coming soon) |
+
+**Commands**:
+- `/f admin backup create [name]` - Create manual backup
+- `/f admin backup list` - List available backups
+- `/f admin backup restore <id>` - Restore from backup
+
+**GUI**: Admin Backups page coming in v0.4.0 release.
+
+### Importer System - COMPLETE
+
+Full HyFactions migration support for servers switching from HyFactions to HyperFactions.
+
+| Component | File | Description |
+|-----------|------|-------------|
+| HyFactionsImporter | `importer/HyFactionsImporter.java` | Complete migration with data mapping |
+| ImportResult | `importer/ImportResult.java` | Import result tracking |
+
+**Features**:
+- Pre-import backup creation for safety
+- Thread-safe import process
+- Default generation for missing data fields
+- Detailed import logging with success/failure counts
 
 ---
 
