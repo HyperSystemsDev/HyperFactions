@@ -7,6 +7,7 @@ import com.hyperfactions.manager.RelationManager;
 import com.hyperfactions.manager.ZoneManager;
 import com.hyperfactions.util.Logger;
 import com.hypixel.hytale.server.core.universe.world.World;
+import com.hypixel.hytale.server.core.universe.world.worldmap.IWorldMap;
 import com.hypixel.hytale.server.core.universe.world.worldmap.WorldMapManager;
 import com.hypixel.hytale.server.core.universe.world.worldmap.provider.IWorldMapProvider;
 import org.jetbrains.annotations.NotNull;
@@ -43,11 +44,13 @@ public class WorldMapService {
     }
 
     /**
-     * Registers the HyperFactions world map provider with a world if not already registered.
+     * Registers the HyperFactions world map generator with a world if not already registered.
      * Should be called when a player enters a world.
      *
-     * This sets our custom world map provider on the WorldConfig, which returns
-     * our HyperFactionsWorldMap generator that renders claim overlays.
+     * IMPORTANT: We must call WorldMapManager.setGenerator() directly, not just
+     * WorldConfig.setWorldMapProvider(). The WorldConfig provider is only used
+     * during world initialization - if the world is already loaded, we need to
+     * update the live WorldMapManager directly.
      *
      * @param world the world to register with
      */
@@ -64,15 +67,25 @@ public class WorldMapService {
         }
 
         try {
-            // Set our world map provider on the WorldConfig (like Hyfaction does)
-            // This is the correct way to override the world map generator
+            // Log current generator before replacing
+            WorldMapManager worldMapManager = world.getWorldMapManager();
+            IWorldMap currentGenerator = worldMapManager.getGenerator();
+            String currentGeneratorName = currentGenerator != null ? currentGenerator.getClass().getSimpleName() : "null";
+            Logger.debugTerritory("World map generator BEFORE: world=%s, generator=%s", worldName, currentGeneratorName);
+
+            // Set our generator directly on the WorldMapManager
+            // This is the key fix - setGenerator() updates the live generator,
+            // whereas setWorldMapProvider() only affects future world loads
+            worldMapManager.setGenerator(HyperFactionsWorldMap.INSTANCE);
+
+            // Also set the provider on WorldConfig for consistency (future loads)
             world.getWorldConfig().setWorldMapProvider(new HyperFactionsWorldMapProvider());
 
             registeredWorlds.add(worldName);
-            Logger.debugTerritory("Registered world map provider for world: %s", worldName);
+            Logger.info("Registered HyperFactions world map for world: %s (replaced %s)", worldName, currentGeneratorName);
 
         } catch (Exception e) {
-            Logger.warn("Failed to register world map provider for world %s: %s", worldName, e.getMessage());
+            Logger.warn("Failed to register world map for world %s: %s", worldName, e.getMessage());
         }
     }
 
@@ -89,6 +102,16 @@ public class WorldMapService {
 
         try {
             WorldMapManager worldMapManager = world.getWorldMapManager();
+
+            // Check if our generator is still active (another mod may have overwritten it)
+            IWorldMap currentGenerator = worldMapManager.getGenerator();
+            boolean isOurGenerator = currentGenerator instanceof HyperFactionsWorldMap;
+            if (!isOurGenerator) {
+                String generatorName = currentGenerator != null ? currentGenerator.getClass().getName() : "null";
+                Logger.warn("[WorldMap] Generator overwritten! Expected HyperFactionsWorldMap but found: %s", generatorName);
+                Logger.warn("[WorldMap] Another mod replaced our world map generator. Re-registering...");
+                worldMapManager.setGenerator(HyperFactionsWorldMap.INSTANCE);
+            }
             // Clear cached images on server to force regeneration with new claim data
             worldMapManager.clearImages();
 

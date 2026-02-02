@@ -275,12 +275,14 @@ public class HyperFactionsPlugin extends JavaPlugin {
                         continue;
                     }
 
-                    // Set our world map provider
-                    HyperFactionsWorldMapProvider provider = new HyperFactionsWorldMapProvider();
-                    world.getWorldConfig().setWorldMapProvider(provider);
-                    Logger.debug("Applied world map provider to existing world: %s", world.getName());
+                    // Set our world map generator directly on the WorldMapManager
+                    // This is critical - setWorldMapProvider() only affects future loads,
+                    // but setGenerator() updates the live WorldMapManager
+                    world.getWorldMapManager().setGenerator(
+                            com.hyperfactions.worldmap.HyperFactionsWorldMap.INSTANCE);
+                    Logger.debug("Applied HyperFactions world map generator to existing world: %s", world.getName());
 
-                    // Also register with WorldMapService
+                    // Also register with WorldMapService to track it
                     hyperFactions.getWorldMapService().registerProviderIfNeeded(world);
 
                 } catch (Exception e) {
