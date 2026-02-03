@@ -3,10 +3,10 @@ package com.hyperfactions.manager;
 import com.hyperfactions.Permissions;
 import com.hyperfactions.config.ConfigManager;
 import com.hyperfactions.data.Faction;
-import com.hyperfactions.data.TeleportContext;
 import com.hyperfactions.integration.PermissionManager;
 import com.hyperfactions.util.Logger;
 import com.hyperfactions.util.TimeUtil;
+import com.hypixel.hytale.server.core.Message;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -14,11 +14,24 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * Manages faction home teleportation with warmup and cooldown.
+ *
+ * Threading note: Teleport execution must happen on the world thread.
+ * This manager stores pending teleports and their destinations, but the
+ * actual teleport is executed by TerritoryTickingSystem which runs on
+ * the correct thread.
  */
 public class TeleportManager {
+
+    // Color constants for consistent messaging
+    private static final String COLOR_CYAN = "#55FFFF";
+    private static final String COLOR_GREEN = "#55FF55";
+    private static final String COLOR_RED = "#FF5555";
+    private static final String COLOR_YELLOW = "#FFFF55";
+    private static final String COLOR_GRAY = "#AAAAAA";
 
     private final FactionManager factionManager;
 
@@ -29,22 +42,100 @@ public class TeleportManager {
     private final Map<UUID, Long> cooldowns = new ConcurrentHashMap<>();
 
     /**
-     * Represents a pending teleport.
+     * Represents a pending teleport with destination information.
+     * The teleport will be executed by the ticking system when warmup completes.
      */
-    public record PendingTeleport(
-        UUID playerUuid,
-        UUID factionId,
-        StartLocation startLocation,
-        long startTime,
-        int warmupSeconds,
-        int taskId,
-        Consumer<TeleportResult> callback
-    ) {}
+    public static class PendingTeleport {
+        private final UUID playerUuid;
+        private final UUID factionId;
+        private final StartLocation startLocation;
+        private final TeleportDestination destination;
+        private final long executeAt;  // System time when teleport should execute
+        private final Supplier<Boolean> isTagged;  // Combat tag checker
+        private int lastAnnouncedSecond = -1;  // Track countdown announcements
+
+        public PendingTeleport(UUID playerUuid, UUID factionId, StartLocation startLocation,
+                               TeleportDestination destination, long executeAt, Supplier<Boolean> isTagged) {
+            this.playerUuid = playerUuid;
+            this.factionId = factionId;
+            this.startLocation = startLocation;
+            this.destination = destination;
+            this.executeAt = executeAt;
+            this.isTagged = isTagged;
+        }
+
+        public UUID playerUuid() { return playerUuid; }
+        public UUID factionId() { return factionId; }
+        public StartLocation startLocation() { return startLocation; }
+        public TeleportDestination destination() { return destination; }
+        public long executeAt() { return executeAt; }
+        public Supplier<Boolean> isTagged() { return isTagged; }
+
+        /**
+         * Checks if the warmup has completed and teleport is ready.
+         */
+        public boolean isReady() {
+            return System.currentTimeMillis() >= executeAt;
+        }
+
+        /**
+         * Gets remaining seconds until teleport.
+         */
+        public int getRemainingSeconds() {
+            long remaining = executeAt - System.currentTimeMillis();
+            return remaining > 0 ? (int) Math.ceil(remaining / 1000.0) : 0;
+        }
+
+        /**
+         * Checks if countdown should be announced and updates tracking.
+         * Returns the second to announce, or -1 if no announcement needed.
+         *
+         * Countdown intervals:
+         * - Above 30s: announce at 30
+         * - 15-30s: announce at 15
+         * - 10-15s: announce at 10
+         * - Below 10s: announce every second (9, 8, 7, ... 1)
+         */
+        public int checkCountdown() {
+            int remaining = getRemainingSeconds();
+
+            // Already announced this second or teleport ready
+            if (remaining <= 0 || remaining == lastAnnouncedSecond) {
+                return -1;
+            }
+
+            // Determine if we should announce
+            boolean shouldAnnounce = false;
+            if (remaining <= 10) {
+                // Announce every second at 10 and below
+                shouldAnnounce = true;
+            } else if (remaining == 15 || remaining == 30) {
+                // Announce at 15 and 30
+                shouldAnnounce = true;
+            }
+
+            if (shouldAnnounce) {
+                lastAnnouncedSecond = remaining;
+                return remaining;
+            }
+
+            return -1;
+        }
+    }
 
     /**
      * Represents a starting location for movement checking.
      */
     public record StartLocation(String world, double x, double y, double z) {}
+
+    /**
+     * Represents a teleport destination.
+     */
+    public record TeleportDestination(
+        String world,
+        double x, double y, double z,
+        float pitch, float yaw
+    ) {}
 
     /**
      * Result of a teleport attempt.
@@ -131,31 +222,28 @@ public class TeleportManager {
 
     /**
      * Initiates a teleport to faction home.
+     * For instant teleport (warmup=0), executes immediately via doTeleport.
+     * For warmup teleport, stores destination and returns SUCCESS_WARMUP.
+     * The actual warmup teleport will be executed by TerritoryTickingSystem.
      *
      * @param playerUuid    the player's UUID
      * @param startLocation the player's starting location
-     * @param scheduleTask  function to schedule a delayed task, returns task ID
-     * @param cancelTask    function to cancel a task by ID
-     * @param doTeleport    function to actually perform the teleport
-     * @param sendMessage   function to send a message to the player
+     * @param doTeleport    function to perform instant teleport (warmup=0 only)
+     * @param sendMessage   function to send a Message to the player
      * @param isTagged      supplier to check if player is combat tagged
      * @return the initial result
      */
     public TeleportResult teleportToHome(
         @NotNull UUID playerUuid,
         @NotNull StartLocation startLocation,
-        @NotNull TaskScheduler scheduleTask,
-        @NotNull Consumer<Integer> cancelTask,
         @NotNull TeleportExecutor doTeleport,
-        @NotNull Consumer<String> sendMessage,
-        @NotNull java.util.function.Supplier<Boolean> isTagged
+        @NotNull Consumer<Message> sendMessage,
+        @NotNull Supplier<Boolean> isTagged
     ) {
         // Check permission first
         if (!PermissionManager.get().hasPermission(playerUuid, Permissions.HOME)) {
             return TeleportResult.NO_PERMISSION;
         }
-
-        ConfigManager config = ConfigManager.get();
 
         // Get player's faction
         Faction faction = factionManager.getPlayerFaction(playerUuid);
@@ -168,6 +256,8 @@ public class TeleportManager {
             return TeleportResult.NO_HOME;
         }
 
+        Faction.FactionHome home = faction.home();
+
         // Check combat tag
         if (isTagged.get()) {
             return TeleportResult.COMBAT_TAGGED;
@@ -177,19 +267,19 @@ public class TeleportManager {
         if (!PermissionManager.get().hasPermission(playerUuid, Permissions.BYPASS_COOLDOWN)) {
             if (isOnCooldown(playerUuid)) {
                 int remaining = getCooldownRemaining(playerUuid);
-                sendMessage.accept(config.getPrefix() + "\u00A7cYou must wait " +
-                    TimeUtil.formatDurationSeconds(remaining) + " before teleporting again.");
+                sendMessage.accept(prefix().insert(msg("You must wait " +
+                    TimeUtil.formatDurationSeconds(remaining) + " before teleporting again.", COLOR_RED)));
                 return TeleportResult.ON_COOLDOWN;
             }
         }
 
         // Cancel any existing pending teleport
-        cancelPending(playerUuid, cancelTask);
+        removePending(playerUuid);
 
         // Check if warmup is needed
         int warmup = getWarmupSeconds(playerUuid);
         if (warmup <= 0) {
-            // Instant teleport
+            // Instant teleport - execute immediately (we're on the right thread)
             TeleportResult result = doTeleport.execute(faction);
             if (result == TeleportResult.SUCCESS_INSTANT) {
                 applyCooldown(playerUuid);
@@ -197,54 +287,119 @@ public class TeleportManager {
             return result;
         }
 
-        // Send warmup message
-        sendMessage.accept(config.getPrefix() + "\u00A7eTeleporting to faction home in " + warmup + " seconds...");
+        // Create destination from faction home
+        TeleportDestination destination = new TeleportDestination(
+            home.world(), home.x(), home.y(), home.z(), home.pitch(), home.yaw()
+        );
 
-        // Schedule the teleport
-        int taskId = scheduleTask.schedule(warmup * 20, () -> {
-            PendingTeleport pending = pendingTeleports.remove(playerUuid);
-            if (pending != null) {
-                // Recheck combat tag
-                if (isTagged.get()) {
-                    sendMessage.accept(config.getPrefix() + "\u00A7cTeleportation cancelled - you are in combat!");
-                    return;
-                }
-
-                TeleportResult result = doTeleport.execute(faction);
-                handleResult(result, sendMessage);
-                if (result == TeleportResult.SUCCESS_INSTANT) {
-                    applyCooldown(playerUuid);
-                }
-            }
-        });
-
-        // Store pending teleport
+        // Store pending teleport - will be executed by TerritoryTickingSystem
+        long executeAt = System.currentTimeMillis() + (warmup * 1000L);
         PendingTeleport pending = new PendingTeleport(
-            playerUuid, faction.id(), startLocation,
-            System.currentTimeMillis(), warmup, taskId, null
+            playerUuid, faction.id(), startLocation, destination, executeAt, isTagged
         );
         pendingTeleports.put(playerUuid, pending);
 
+        // Send warmup message
+        sendMessage.accept(prefix().insert(msg("Teleporting to faction home in " + warmup + " seconds...", COLOR_YELLOW)));
+
+        Logger.debug("Scheduled teleport for %s, will execute at %d", playerUuid, executeAt);
         return TeleportResult.SUCCESS_WARMUP;
     }
 
     /**
-     * Initiates a teleport to faction home using a TeleportContext.
-     * This is the recommended method signature for cleaner code.
+     * Schedules a generic teleport with warmup (for /f stuck, etc.).
+     * The teleport will be executed by TerritoryTickingSystem when warmup completes.
      *
-     * @param context the teleport context containing all required parameters
-     * @return the initial result
+     * @param playerUuid    the player's UUID
+     * @param startLocation the player's starting location (for movement cancellation)
+     * @param destination   the teleport destination
+     * @param warmupSeconds the warmup time in seconds
+     * @param isTagged      supplier to check if player is combat tagged
      */
-    public TeleportResult teleportToHome(@NotNull TeleportContext context) {
-        return teleportToHome(
-            context.playerUuid(),
-            context.startLocation(),
-            context.scheduleTask(),
-            context.cancelTask(),
-            context.doTeleport(),
-            context.sendMessage(),
-            context.isTagged()
+    public void scheduleTeleport(
+        @NotNull UUID playerUuid,
+        @NotNull StartLocation startLocation,
+        @NotNull TeleportDestination destination,
+        int warmupSeconds,
+        @NotNull Supplier<Boolean> isTagged
+    ) {
+        // Cancel any existing pending teleport
+        removePending(playerUuid);
+
+        // Store pending teleport - will be executed by TerritoryTickingSystem
+        long executeAt = System.currentTimeMillis() + (warmupSeconds * 1000L);
+        PendingTeleport pending = new PendingTeleport(
+            playerUuid, null, startLocation, destination, executeAt, isTagged
         );
+        pendingTeleports.put(playerUuid, pending);
+
+        Logger.debug("Scheduled generic teleport for %s, will execute at %d", playerUuid, executeAt);
+    }
+
+    /**
+     * Checks if a pending teleport is ready and returns it for execution.
+     * Called by TerritoryTickingSystem on the world thread.
+     *
+     * @param playerUuid the player's UUID
+     * @param sendMessage function to send messages
+     * @return the pending teleport if ready, null otherwise
+     */
+    @Nullable
+    public PendingTeleport checkReady(@NotNull UUID playerUuid, @NotNull Consumer<Message> sendMessage) {
+        PendingTeleport pending = pendingTeleports.get(playerUuid);
+        if (pending == null || !pending.isReady()) {
+            return null;
+        }
+
+        // Remove from pending
+        pendingTeleports.remove(playerUuid);
+
+        // Check combat tag
+        if (pending.isTagged().get()) {
+            sendMessage.accept(prefix().insert(msg("Teleportation cancelled - you are in combat!", COLOR_RED)));
+            return null;
+        }
+
+        return pending;
+    }
+
+    /**
+     * Called after successful teleport execution to apply cooldown and send message.
+     *
+     * @param playerUuid the player's UUID
+     * @param sendMessage function to send messages
+     */
+    public void onTeleportSuccess(@NotNull UUID playerUuid, @NotNull Consumer<Message> sendMessage) {
+        applyCooldown(playerUuid);
+        sendMessage.accept(prefix().insert(msg("Teleported to faction home!", COLOR_GREEN)));
+    }
+
+    /**
+     * Called after failed teleport execution.
+     *
+     * @param result the failure result
+     * @param sendMessage function to send messages
+     */
+    public void onTeleportFailed(@NotNull TeleportResult result, @NotNull Consumer<Message> sendMessage) {
+        switch (result) {
+            case NO_HOME -> sendMessage.accept(prefix().insert(msg("Your faction has no home set.", COLOR_RED)));
+            case WORLD_NOT_FOUND -> sendMessage.accept(prefix().insert(msg("World not found.", COLOR_RED)));
+            default -> sendMessage.accept(prefix().insert(msg("Teleportation failed.", COLOR_RED)));
+        }
+    }
+
+    /**
+     * Sends a countdown message for the pending teleport.
+     *
+     * @param pending the pending teleport
+     * @param sendMessage function to send messages
+     */
+    public void sendCountdownMessage(@NotNull PendingTeleport pending, @NotNull Consumer<Message> sendMessage) {
+        int secondsToAnnounce = pending.checkCountdown();
+        if (secondsToAnnounce > 0) {
+            String timeText = secondsToAnnounce == 1 ? "1 second" : secondsToAnnounce + " seconds";
+            sendMessage.accept(prefix().insert(msg("Teleporting in " + timeText + "...", COLOR_YELLOW)));
+        }
     }
 
     /**
@@ -254,15 +409,13 @@ public class TeleportManager {
      * @param currentX   current X position
      * @param currentY   current Y position
      * @param currentZ   current Z position
-     * @param cancelTask function to cancel a task
-     * @param sendMessage function to send a message
+     * @param sendMessage function to send a Message
      * @return true if teleport was cancelled
      */
     public boolean checkMovement(
         @NotNull UUID playerUuid,
         double currentX, double currentY, double currentZ,
-        @NotNull Consumer<Integer> cancelTask,
-        @NotNull Consumer<String> sendMessage
+        @NotNull Consumer<Message> sendMessage
     ) {
         if (!ConfigManager.get().isCancelOnMove()) {
             return false;
@@ -280,8 +433,8 @@ public class TeleportManager {
         double distSq = dx * dx + dy * dy + dz * dz;
 
         if (distSq > 0.25) { // 0.5 blocks
-            cancelPending(playerUuid, cancelTask);
-            sendMessage.accept(ConfigManager.get().getPrefix() + "\u00A7cTeleportation cancelled - you moved!");
+            removePending(playerUuid);
+            sendMessage.accept(prefix().insert(msg("Teleportation cancelled - you moved!", COLOR_RED)));
             return true;
         }
 
@@ -292,22 +445,20 @@ public class TeleportManager {
      * Cancels teleport due to damage.
      *
      * @param playerUuid  the player's UUID
-     * @param cancelTask  function to cancel a task
-     * @param sendMessage function to send a message
+     * @param sendMessage function to send a Message
      * @return true if teleport was cancelled
      */
     public boolean cancelOnDamage(
         @NotNull UUID playerUuid,
-        @NotNull Consumer<Integer> cancelTask,
-        @NotNull Consumer<String> sendMessage
+        @NotNull Consumer<Message> sendMessage
     ) {
         if (!ConfigManager.get().isCancelOnDamage()) {
             return false;
         }
 
         if (pendingTeleports.containsKey(playerUuid)) {
-            cancelPending(playerUuid, cancelTask);
-            sendMessage.accept(ConfigManager.get().getPrefix() + "\u00A7cTeleportation cancelled - you took damage!");
+            removePending(playerUuid);
+            sendMessage.accept(prefix().insert(msg("Teleportation cancelled - you took damage!", COLOR_RED)));
             return true;
         }
 
@@ -315,17 +466,25 @@ public class TeleportManager {
     }
 
     /**
-     * Cancels a pending teleport.
+     * Removes a pending teleport without notification.
      *
      * @param playerUuid the player's UUID
-     * @param cancelTask function to cancel a task
      */
-    public void cancelPending(@NotNull UUID playerUuid, @NotNull Consumer<Integer> cancelTask) {
+    public void removePending(@NotNull UUID playerUuid) {
         PendingTeleport pending = pendingTeleports.remove(playerUuid);
         if (pending != null) {
-            cancelTask.accept(pending.taskId());
-            Logger.debug("Cancelled pending teleport for %s", playerUuid);
+            Logger.debug("Removed pending teleport for %s", playerUuid);
         }
+    }
+
+    /**
+     * Cancels a pending teleport (legacy method for compatibility).
+     *
+     * @param playerUuid the player's UUID
+     * @param cancelTask ignored (no longer using timers for execution)
+     */
+    public void cancelPending(@NotNull UUID playerUuid, @NotNull Consumer<Integer> cancelTask) {
+        removePending(playerUuid);
     }
 
     /**
@@ -357,26 +516,25 @@ public class TeleportManager {
     }
 
     /**
-     * Handles the teleport result.
+     * Creates the standard HyperFactions message prefix.
+     *
+     * @return the prefix message
      */
-    private void handleResult(@NotNull TeleportResult result, @NotNull Consumer<String> sendMessage) {
-        ConfigManager config = ConfigManager.get();
-        switch (result) {
-            case SUCCESS_INSTANT -> sendMessage.accept(config.getPrefix() + "\u00A7aTeleported to faction home!");
-            case NO_PERMISSION -> sendMessage.accept(config.getPrefix() + "\u00A7cYou don't have permission to teleport home.");
-            case NO_HOME -> sendMessage.accept(config.getPrefix() + "\u00A7cYour faction has no home set.");
-            case WORLD_NOT_FOUND -> sendMessage.accept(config.getPrefix() + "\u00A7cWorld not found.");
-            case COMBAT_TAGGED -> sendMessage.accept(config.getPrefix() + "\u00A7cYou cannot teleport while in combat!");
-            default -> {}
-        }
+    private static Message prefix() {
+        return Message.raw("[").color(COLOR_GRAY)
+            .insert(Message.raw("HyperFactions").color(COLOR_CYAN))
+            .insert(Message.raw("] ").color(COLOR_GRAY));
     }
 
     /**
-     * Functional interface for scheduling tasks.
+     * Creates a colored message.
+     *
+     * @param text the text content
+     * @param color the hex color code
+     * @return the colored message
      */
-    @FunctionalInterface
-    public interface TaskScheduler {
-        int schedule(int delayTicks, Runnable task);
+    private static Message msg(@NotNull String text, @NotNull String color) {
+        return Message.raw(text).color(color);
     }
 
     /**

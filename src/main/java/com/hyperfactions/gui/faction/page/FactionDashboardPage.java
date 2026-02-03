@@ -413,13 +413,13 @@ public class FactionDashboardPage extends InteractiveCustomUIPage<FactionDashboa
         );
 
         // Initiate teleport with warmup/combat checking
+        // For instant teleport: executeTeleport runs immediately
+        // For warmup teleport: TerritoryTickingSystem executes later
         TeleportManager.TeleportResult result = teleportManager.teleportToHome(
                 uuid,
                 startLoc,
-                (delayTicks, task) -> plugin.scheduleDelayedTask(delayTicks, task),
-                plugin::cancelTask,
                 f -> executeTeleport(store, ref, world, f),
-                message -> player.sendMessage(Message.raw(message)),
+                player::sendMessage,
                 () -> plugin.getCombatTagManager().isTagged(uuid)
         );
 
@@ -445,11 +445,13 @@ public class FactionDashboardPage extends InteractiveCustomUIPage<FactionDashboa
             }
         }
 
-        // Create and apply teleport using the proper Teleport component
-        Vector3d position = new Vector3d(home.x(), home.y(), home.z());
-        Vector3f rotation = new Vector3f(home.pitch(), home.yaw(), 0);
-        Teleport teleport = new Teleport(targetWorld, position, rotation);
-        store.addComponent(ref, Teleport.getComponentType(), teleport);
+        // Execute teleport on the target world's thread using createForPlayer for proper player teleportation
+        targetWorld.execute(() -> {
+            Vector3d position = new Vector3d(home.x(), home.y(), home.z());
+            Vector3f rotation = new Vector3f(home.pitch(), home.yaw(), 0);
+            Teleport teleport = Teleport.createForPlayer(targetWorld, position, rotation);
+            store.addComponent(ref, Teleport.getComponentType(), teleport);
+        });
 
         return TeleportManager.TeleportResult.SUCCESS_INSTANT;
     }

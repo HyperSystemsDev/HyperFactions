@@ -11,10 +11,8 @@ import com.hyperfactions.util.ChunkUtil;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.math.vector.Vector3d;
-import com.hypixel.hytale.math.vector.Vector3f;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
-import com.hypixel.hytale.server.core.modules.entity.teleport.Teleport;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
@@ -26,6 +24,7 @@ import java.util.UUID;
 /**
  * Subcommand: /f stuck
  * Teleports the player to the nearest safe chunk when stuck in enemy territory.
+ * Uses extended warmup and is executed by TerritoryTickingSystem on the world thread.
  */
 public class StuckSubCommand extends FactionSubCommand {
 
@@ -94,47 +93,26 @@ public class StuckSubCommand extends FactionSubCommand {
         // Use extended warmup for stuck (30 seconds by default)
         int warmupSeconds = ConfigManager.get().getStuckWarmupSeconds();
 
+        // Create start location for movement checking
         TeleportManager.StartLocation startLoc = new TeleportManager.StartLocation(
             currentWorld.getName(), pos.getX(), pos.getY(), pos.getZ()
         );
 
-        ctx.sendMessage(prefix().insert(msg("Teleporting to safety in " + warmupSeconds + " seconds. Don't move!", COLOR_YELLOW)));
-
-        // Schedule teleport with extended warmup
-        final double finalTargetX = targetX;
-        final double finalTargetZ = targetZ;
-        final double finalTargetY = targetY;
-        final World world = currentWorld;
-
-        int taskId = hyperFactions.scheduleDelayedTask(warmupSeconds * 20, () -> {
-            // Recheck combat tag
-            if (hyperFactions.getCombatTagManager().isTagged(playerUuid)) {
-                player.sendMessage(prefix().insert(msg("Teleportation cancelled - you are in combat!", COLOR_RED)));
-                return;
-            }
-
-            // Recheck if still pending
-            TeleportManager.PendingTeleport pending = hyperFactions.getTeleportManager().getPending(playerUuid);
-            if (pending == null) {
-                return;
-            }
-            hyperFactions.getTeleportManager().cancelPending(playerUuid, hyperFactions::cancelTask);
-
-            // Execute teleport using proper Teleport component
-            Vector3d position = new Vector3d(finalTargetX, finalTargetY, finalTargetZ);
-            Vector3f rotation = new Vector3f(0, 0, 0);
-            Teleport teleport = new Teleport(world, position, rotation);
-            store.addComponent(ref, Teleport.getComponentType(), teleport);
-
-            player.sendMessage(prefix().insert(msg("Teleported to safety!", COLOR_GREEN)));
-        });
-
-        // Store as pending teleport
-        TeleportManager.PendingTeleport pending = new TeleportManager.PendingTeleport(
-            playerUuid, null, startLoc,
-            System.currentTimeMillis(), warmupSeconds, taskId, null
+        // Create destination
+        TeleportManager.TeleportDestination destination = new TeleportManager.TeleportDestination(
+            currentWorld.getName(), targetX, targetY, targetZ, 0, 0
         );
-        // Note: We're directly tracking this since TeleportManager.teleportToHome doesn't fit this use case
+
+        // Schedule teleport - will be executed by TerritoryTickingSystem on the world thread
+        hyperFactions.getTeleportManager().scheduleTeleport(
+            playerUuid,
+            startLoc,
+            destination,
+            warmupSeconds,
+            () -> hyperFactions.getCombatTagManager().isTagged(playerUuid)
+        );
+
+        ctx.sendMessage(prefix().insert(msg("Teleporting to safety in " + warmupSeconds + " seconds. Don't move!", COLOR_YELLOW)));
     }
 
     /**

@@ -325,11 +325,13 @@ public class FactionMainPage extends InteractiveCustomUIPage<FactionPageData> {
             }
         }
 
-        // Execute teleport directly (instant from GUI, use /f home for warmup)
-        Vector3d position = new Vector3d(home.x(), home.y(), home.z());
-        Vector3f rotation = new Vector3f(home.pitch(), home.yaw(), 0);
-        Teleport teleport = new Teleport(targetWorld, position, rotation);
-        store.addComponent(ref, Teleport.getComponentType(), teleport);
+        // Execute teleport on the target world's thread using createForPlayer for proper player teleportation
+        targetWorld.execute(() -> {
+            Vector3d position = new Vector3d(home.x(), home.y(), home.z());
+            Vector3f rotation = new Vector3f(home.pitch(), home.yaw(), 0);
+            Teleport teleport = Teleport.createForPlayer(targetWorld, position, rotation);
+            store.addComponent(ref, Teleport.getComponentType(), teleport);
+        });
 
         player.sendMessage(Message.raw("Teleported to faction home!").color("#44CC44"));
     }

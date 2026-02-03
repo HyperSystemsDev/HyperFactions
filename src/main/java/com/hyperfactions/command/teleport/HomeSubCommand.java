@@ -10,7 +10,6 @@ import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.math.vector.Vector3d;
 import com.hypixel.hytale.math.vector.Vector3f;
-import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
 import com.hypixel.hytale.server.core.modules.entity.teleport.Teleport;
@@ -62,36 +61,35 @@ public class HomeSubCommand extends FactionSubCommand {
             currentWorld.getName(), pos.getX(), pos.getY(), pos.getZ()
         );
 
-        // Call TeleportManager with all required callbacks
+        // Call TeleportManager
+        // - For instant teleport (warmup=0): doTeleport is called immediately
+        // - For warmup teleport: destination is stored, TerritoryTickingSystem executes later
         TeleportManager.TeleportResult result = hyperFactions.getTeleportManager().teleportToHome(
             playerUuid,
             startLoc,
-            // Task scheduler
-            (delayTicks, task) -> hyperFactions.scheduleDelayedTask(delayTicks, task),
-            // Task canceller
-            hyperFactions::cancelTask,
-            // Teleport executor
+            // Teleport executor (only used for instant teleport when warmup=0)
             targetFaction -> executeTeleport(store, ref, currentWorld, targetFaction),
-            // Message sender - TeleportManager formats its own messages
-            message -> ctx.sendMessage(Message.raw(message)),
+            // Message sender
+            ctx::sendMessage,
             // Combat tag checker
             () -> hyperFactions.getCombatTagManager().isTagged(playerUuid)
         );
 
-        // Handle immediate results (warmup will handle async results)
+        // Handle immediate results (warmup teleports are handled by TerritoryTickingSystem)
         switch (result) {
             case NOT_IN_FACTION -> ctx.sendMessage(prefix().insert(msg("You are not in a faction.", COLOR_RED)));
             case NO_HOME -> ctx.sendMessage(prefix().insert(msg("Your faction has no home set.", COLOR_RED)));
             case COMBAT_TAGGED -> ctx.sendMessage(prefix().insert(msg("You cannot teleport while in combat!", COLOR_RED)));
             case ON_COOLDOWN -> {} // Message sent by TeleportManager
             case SUCCESS_INSTANT -> ctx.sendMessage(prefix().insert(msg("Teleported to faction home!", COLOR_GREEN)));
-            case SUCCESS_WARMUP -> {} // Message sent by TeleportManager
+            case SUCCESS_WARMUP -> {} // Message sent by TeleportManager, teleport executed by TerritoryTickingSystem
             default -> {}
         }
     }
 
     /**
      * Executes the actual teleport to faction home using the proper Teleport component.
+     * Only called for instant teleport (warmup=0).
      */
     private TeleportManager.TeleportResult executeTeleport(Store<EntityStore> store, Ref<EntityStore> ref,
                                                            World currentWorld, Faction faction) {
@@ -111,11 +109,13 @@ public class HomeSubCommand extends FactionSubCommand {
             }
         }
 
-        // Create and apply teleport using the proper Teleport component
-        Vector3d position = new Vector3d(home.x(), home.y(), home.z());
-        Vector3f rotation = new Vector3f(home.pitch(), home.yaw(), 0);
-        Teleport teleport = new Teleport(targetWorld, position, rotation);
-        store.addComponent(ref, Teleport.getComponentType(), teleport);
+        // Execute teleport on the target world's thread using createForPlayer for proper player teleportation
+        targetWorld.execute(() -> {
+            Vector3d position = new Vector3d(home.x(), home.y(), home.z());
+            Vector3f rotation = new Vector3f(home.pitch(), home.yaw(), 0);
+            Teleport teleport = Teleport.createForPlayer(targetWorld, position, rotation);
+            store.addComponent(ref, Teleport.getComponentType(), teleport);
+        });
 
         return TeleportManager.TeleportResult.SUCCESS_INSTANT;
     }

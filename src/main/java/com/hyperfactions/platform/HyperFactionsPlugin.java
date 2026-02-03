@@ -731,8 +731,7 @@ public class HyperFactionsPlugin extends JavaPlugin {
                 // Check if player has a pending teleport and cancel it if configured
                 hyperFactions.getTeleportManager().cancelOnDamage(
                     playerUuid,
-                    taskId -> plugin.hyperFactions.cancelTask(taskId),
-                    message -> player.sendMessage(Message.raw(message))
+                    player::sendMessage
                 );
             } catch (Exception e) {
                 Logger.severe("Error processing damage event for teleport cancellation", e);

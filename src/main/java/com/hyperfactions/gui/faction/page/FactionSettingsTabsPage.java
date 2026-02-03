@@ -558,13 +558,13 @@ public class FactionSettingsTabsPage extends InteractiveCustomUIPage<FactionSett
                 world.getName(), pos.getX(), pos.getY(), pos.getZ()
         );
 
+        // For instant teleport: executeTeleport runs immediately
+        // For warmup teleport: TerritoryTickingSystem executes later
         TeleportManager.TeleportResult result = hyperFactions.getTeleportManager().teleportToHome(
                 uuid,
                 startLoc,
-                (delayTicks, task) -> hyperFactions.scheduleDelayedTask(delayTicks, task),
-                hyperFactions::cancelTask,
                 f -> executeTeleport(store, ref, world, f),
-                message -> player.sendMessage(Message.raw(message)),
+                player::sendMessage,
                 () -> hyperFactions.getCombatTagManager().isTagged(uuid)
         );
 
@@ -588,10 +588,13 @@ public class FactionSettingsTabsPage extends InteractiveCustomUIPage<FactionSett
             }
         }
 
-        Vector3d position = new Vector3d(home.x(), home.y(), home.z());
-        Vector3f rotation = new Vector3f(home.pitch(), home.yaw(), 0);
-        Teleport teleport = new Teleport(targetWorld, position, rotation);
-        store.addComponent(ref, Teleport.getComponentType(), teleport);
+        // Execute teleport on the target world's thread using createForPlayer for proper player teleportation
+        targetWorld.execute(() -> {
+            Vector3d position = new Vector3d(home.x(), home.y(), home.z());
+            Vector3f rotation = new Vector3f(home.pitch(), home.yaw(), 0);
+            Teleport teleport = Teleport.createForPlayer(targetWorld, position, rotation);
+            store.addComponent(ref, Teleport.getComponentType(), teleport);
+        });
 
         return TeleportManager.TeleportResult.SUCCESS_INSTANT;
     }

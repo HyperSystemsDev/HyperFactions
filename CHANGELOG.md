@@ -7,7 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-*No changes yet*
+### Fixed
+
+**Teleport System Overhaul**
+- Fixed warmup teleports not executing (countdown messages worked but teleport never happened)
+  - Root cause: Teleport component must be added via `targetWorld.execute()` on the destination world's thread
+  - Changed from `new Teleport()` to `Teleport.createForPlayer()` for proper player head/body rotation setup
+  - Fixed in all 7 teleport locations: TerritoryTickingSystem, HomeSubCommand, FactionSettingsPage, FactionSettingsTabsPage, FactionDashboardPage, FactionMainPage, AdminFactionsPage
+
+**Message Formatting**
+- Fixed garbled chat messages showing `Ã?Â§b[HyperFactions]Ã?Â§r` instead of proper colors
+  - TeleportManager was using legacy `\u00A7` color codes which `Message.raw()` doesn't parse
+  - Changed to proper `Message.raw(text).color(hexColor)` pattern
+
+**Client Crash on /f power**
+- Fixed `/f power` and `/f who` commands crashing the client
+  - Commands referenced non-existent UI templates (`player_info.ui`)
+  - Disabled GUI mode, now falls back to text mode until templates are created
+
+### Added
+
+**Teleport Countdown Messages**
+- Warmup teleports now show incremental countdown messages
+  - High warmup (30+ seconds): announces at 30, 15, then every second from 10 down
+  - Low warmup (under 10 seconds): announces every second
+  - Example: "Teleporting in 30 seconds...", "Teleporting in 10 seconds...", etc.
+
+### Changed
+
+- Removed unused `TeleportContext.java` class (replaced by `TeleportManager.TeleportDestination`)
+- Refactored `TeleportManager.PendingTeleport` from record to class to support countdown state tracking
+- `/f stuck` now uses generic `scheduleTeleport()` method instead of faction-specific teleport logic
 
 ## [0.5.1] - 2026-02-02
 
