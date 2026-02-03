@@ -71,7 +71,7 @@ public class WorldMapService {
             WorldMapManager worldMapManager = world.getWorldMapManager();
             IWorldMap currentGenerator = worldMapManager.getGenerator();
             String currentGeneratorName = currentGenerator != null ? currentGenerator.getClass().getSimpleName() : "null";
-            Logger.debugTerritory("World map generator BEFORE: world=%s, generator=%s", worldName, currentGeneratorName);
+            Logger.debugWorldMap("World map generator BEFORE: world=%s, generator=%s", worldName, currentGeneratorName);
 
             // Set our generator directly on the WorldMapManager
             // This is the key fix - setGenerator() updates the live generator,
@@ -125,7 +125,7 @@ public class WorldMapService {
                 }
             }
 
-            Logger.debugTerritory("Cleared world map images for world: %s (%d players)",
+            Logger.debugWorldMap("Cleared world map images for world: %s (%d players)",
                     world.getName(), world.getPlayers().size());
         } catch (Exception e) {
             Logger.warn("Failed to refresh world map for world %s: %s", world.getName(), e.getMessage());
@@ -149,7 +149,7 @@ public class WorldMapService {
                     refreshed++;
                 }
             }
-            Logger.debugTerritory("Refreshed world maps for %d/%d worlds", refreshed, registeredWorlds.size());
+            Logger.debugWorldMap("Refreshed world maps for %d/%d worlds", refreshed, registeredWorlds.size());
         } catch (Exception e) {
             Logger.warn("Failed to refresh all world maps: %s", e.getMessage());
         }

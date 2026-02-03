@@ -9,6 +9,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 *No changes yet*
 
+## [0.5.1] - 2026-02-02
+
+### Fixed
+
+**Debug Toggle Persistence**
+- Fixed debug categories not staying disabled after server restart
+- Root cause: `applyToLogger()` was using `enabledByDefault || category` logic which re-enabled categories on load
+- Individual category settings now take direct precedence over enabledByDefault
+- `enableAll()` and `disableAll()` now properly clear the enabledByDefault flag
+
+**Debug Config Defaults**
+- All debug categories now correctly default to `false` on first load
+- Fixed `loadModuleSettings()` using field values as defaults instead of explicit `false`
+
+### Added
+
+**World Map Debug Category**
+- New `worldmap` debug category separates verbose map generation logs from territory notifications
+- Use `/f admin debug toggle worldmap on` to enable map tile generation logging
+- Use `/f admin debug toggle territory on` for territory entry/exit notifications only
+- Significantly reduces console spam when debugging territory features
+
+### Changed
+
+- Territory debug now only logs chunk entry/exit notifications
+- World map debug logs all map generation, tile updates, and claim rendering
+
 ## [0.5.0] - 2026-02-02
 
 ### Added

@@ -863,6 +863,7 @@ public class AdminSubCommand extends FactionSubCommand {
             ctx.sendMessage(msg("  protection: ", COLOR_WHITE).insert(msg(debugConfig.isProtection() ? "ON" : "OFF", debugConfig.isProtection() ? COLOR_GREEN : COLOR_RED)));
             ctx.sendMessage(msg("  relation: ", COLOR_WHITE).insert(msg(debugConfig.isRelation() ? "ON" : "OFF", debugConfig.isRelation() ? COLOR_GREEN : COLOR_RED)));
             ctx.sendMessage(msg("  territory: ", COLOR_WHITE).insert(msg(debugConfig.isTerritory() ? "ON" : "OFF", debugConfig.isTerritory() ? COLOR_GREEN : COLOR_RED)));
+            ctx.sendMessage(msg("  worldmap: ", COLOR_WHITE).insert(msg(debugConfig.isWorldmap() ? "ON" : "OFF", debugConfig.isWorldmap() ? COLOR_GREEN : COLOR_RED)));
             ctx.sendMessage(msg("Usage: /f admin debug toggle <category|all> [on|off]", COLOR_GRAY));
             return;
         }
@@ -892,9 +893,10 @@ public class AdminSubCommand extends FactionSubCommand {
             case "protection" -> currentValue = debugConfig.isProtection();
             case "relation" -> currentValue = debugConfig.isRelation();
             case "territory" -> currentValue = debugConfig.isTerritory();
+            case "worldmap", "map" -> currentValue = debugConfig.isWorldmap();
             default -> {
                 ctx.sendMessage(prefix().insert(msg("Unknown category: " + category, COLOR_RED)));
-                ctx.sendMessage(msg("Valid categories: power, claim, combat, protection, relation, territory, all", COLOR_GRAY));
+                ctx.sendMessage(msg("Valid categories: power, claim, combat, protection, relation, territory, worldmap, all", COLOR_GRAY));
                 return;
             }
         }
@@ -912,6 +914,7 @@ public class AdminSubCommand extends FactionSubCommand {
             case "protection" -> debugConfig.setProtection(newValue);
             case "relation" -> debugConfig.setRelation(newValue);
             case "territory" -> debugConfig.setTerritory(newValue);
+            case "worldmap", "map" -> debugConfig.setWorldmap(newValue);
         }
 
         // Save to persist the change
@@ -945,6 +948,7 @@ public class AdminSubCommand extends FactionSubCommand {
         ctx.sendMessage(msg("  protection: ", COLOR_WHITE).insert(msg(debugConfig.isProtection() ? "ON" : "OFF", debugConfig.isProtection() ? COLOR_GREEN : COLOR_RED)));
         ctx.sendMessage(msg("  relation: ", COLOR_WHITE).insert(msg(debugConfig.isRelation() ? "ON" : "OFF", debugConfig.isRelation() ? COLOR_GREEN : COLOR_RED)));
         ctx.sendMessage(msg("  territory: ", COLOR_WHITE).insert(msg(debugConfig.isTerritory() ? "ON" : "OFF", debugConfig.isTerritory() ? COLOR_GREEN : COLOR_RED)));
+        ctx.sendMessage(msg("  worldmap: ", COLOR_WHITE).insert(msg(debugConfig.isWorldmap() ? "ON" : "OFF", debugConfig.isWorldmap() ? COLOR_GREEN : COLOR_RED)));
     }
 
     private void handleDebugPower(CommandContext ctx, String[] args) {

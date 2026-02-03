@@ -66,7 +66,7 @@ public class HyperFactionsWorldMap implements IWorldMap {
     @Override
     public CompletableFuture<WorldMap> generate(World world, int imageWidth, int imageHeight, LongSet chunksToGenerate) {
         // Log that our generator is being called (helps diagnose mod conflicts)
-        Logger.debugTerritory("[HyperFactionsWorldMap] generate() called - world=%s, chunks=%d, imageSize=%dx%d",
+        Logger.debugWorldMap("[HyperFactionsWorldMap] generate() called - world=%s, chunks=%d, imageSize=%dx%d",
                 world.getName(), chunksToGenerate.size(), imageWidth, imageHeight);
 
         // Get managers at generation time

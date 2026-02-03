@@ -167,7 +167,7 @@ public class ClaimImageBuilder {
 
         return this.world.getChunkStore().getChunkReferenceAsync(this.index).thenApplyAsync(ref -> {
             boolean valid = ref != null && ref.isValid();
-            Logger.debugTerritory("ClaimImageBuilder.fetchChunk() - index: %d (chunk %d,%d), ref found: %s",
+            Logger.debugWorldMap("ClaimImageBuilder.fetchChunk() - index: %d (chunk %d,%d), ref found: %s",
                     this.index, chunkX, chunkZ, valid);
 
             if (valid) {
@@ -391,13 +391,13 @@ public class ClaimImageBuilder {
                 totalFactions++;
                 totalClaims += f.getClaimCount();
             }
-            Logger.debugTerritory("ClaimImageBuilder: world='%s', totalFactions=%d, totalClaims=%d, showClaims=%s",
+            Logger.debugWorldMap("ClaimImageBuilder: world='%s', totalFactions=%d, totalClaims=%d, showClaims=%s",
                     worldName, totalFactions, totalClaims, showClaimsOnMap);
         }
 
         // Debug logging for claimed chunks only
         if (isSafeZone || isWarZone || factionInfo != null) {
-            Logger.debugTerritory("ClaimImageBuilder: chunk %d,%d world='%s' - zone=%s, faction=%s",
+            Logger.debugWorldMap("ClaimImageBuilder: chunk %d,%d world='%s' - zone=%s, faction=%s",
                     chunkX, chunkZ, worldName,
                     isSafeZone ? "safe" : (isWarZone ? "war" : "none"),
                     factionInfo != null ? factionInfo.name() : "none");

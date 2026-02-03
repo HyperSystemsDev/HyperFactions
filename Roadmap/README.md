@@ -1,7 +1,7 @@
 # HyperFactions Development Roadmap
 
-> Last Updated: February 1, 2026
-> Current Version: 0.3.2 (released)
+> Last Updated: February 2, 2026
+> Current Version: 0.5.1 (released)
 
 ---
 
@@ -54,19 +54,32 @@ This roadmap is split into multiple files for easier collaboration and reduced m
 
 ## Released Versions
 
-### v0.3.2 (Current Release)
+### v0.5.1 (Current Release)
 
-- [x] Core faction system (create, disband, invite, join, leave, kick)
-- [x] Territory claiming with power mechanics
-- [x] Diplomatic relations (ally, enemy, neutral)
-- [x] Combat tagging system
-- [x] SafeZone/WarZone system
-- [x] Faction home teleportation
-- [x] GUI system with FactionPageRegistry, NavBarHelper
-- [x] 42+ subcommands implemented
-- [x] HyperPerms integration
+- [x] Debug persistence fix (categories stay disabled after restart)
+- [x] New `worldmap` debug category (separates map generation from territory notifications)
+- [x] All debug options default to disabled
 
-### v0.3.0 - v0.3.1 Releases
+### v0.5.0 (Released 2026-02-02)
+
+- [x] Death power loss system via ECS-based PlayerDeathSystem
+- [x] Respawn handling with combat tag clear and spawn protection
+- [x] Claim decay system for inactive factions (30+ days all members offline)
+- [x] Debug toggle persistence to `config/debug.json`
+- [x] Config system restructure (ConfigManager with modular configs)
+- [x] Command architecture refactor (40+ individual subcommand files)
+- [x] Zone rename modal in admin UI
+
+### v0.4.x (Released 2026-02-01/02)
+
+- [x] Admin GUI system (Dashboard, Factions, Zones, Config, Backups, Help, Updates)
+- [x] In-game world map claim overlays (HyperFactionsWorldMap generator)
+- [x] Backup system with GFS rotation
+- [x] HyFactions importer for migration
+- [x] Protection system reorganization (zone/, damage/, ecs/, debug/)
+- [x] Combat tagging restored after ECS refactor
+
+### v0.3.x Releases
 
 - [x] **Data Loss Prevention** (v0.3.0)
   - FactionManager validates loaded data before clearing caches
@@ -210,27 +223,25 @@ Reorganized protection code into logical subdirectories (21 protection-related f
 
 ## Version Planning
 
-### v0.3.2 (Current Release)
-- Core faction system complete
-- GUI system complete (New Player + Faction Player)
-- Economy backend complete (Phase E.1 done early)
-- Data safety improvements (v0.3.0-v0.3.1)
-- 12 unit tests passing
+### v0.5.1 (Current Release)
+- Debug persistence fixes (categories now stay disabled after restart)
+- New `worldmap` debug category separates verbose map logs from territory notifications
+- All debug categories default to disabled
 
-### v0.4.0 (In Development)
-- Phase B.3: Admin GUI (PARTIAL - see above)
-  - Dashboard, Factions, Zones pages implemented
-  - Config, Backups, Help, Updates, Logs coming soon
-- Backup system (backend complete, GUI coming)
-- Importer system (HyFactions migration complete)
-- Protection system reorganization (complete)
+### v0.5.0 (Released 2026-02-02)
+- Death power loss system (ECS-based PlayerDeathSystem)
+- Respawn handling with spawn protection
+- Claim decay system for inactive factions
+- Debug toggle persistence to config
+- Config system restructure (ConfigManager)
+- Command architecture refactor (40+ subcommand files)
 
-### v0.5.0 - Command Refactoring
-- Phase A: Command system refactor (modular commands, improved validation)
-  - Current: Monolithic FactionCommand.java (2,678 lines, 42+ subcommands)
-  - Target: Modular handler architecture with CommandRegistry
-- Gameplay mechanic refinement
-- Phase C.1: Chat help improvements (HelpFormatter exists, needs expansion)
+### v0.4.x (Released 2026-02-01/02)
+- Phase B.3: Admin GUI complete (Dashboard, Factions, Zones, Config, Backups)
+- Backup system (GFS rotation)
+- Importer system (HyFactions migration)
+- Protection system reorganization
+- In-game world map claim overlays
 
 ### v0.6.0 - Testing & Help System
 - Phase D: Testing infrastructure expansion

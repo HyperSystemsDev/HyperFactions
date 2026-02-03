@@ -22,7 +22,8 @@ public final class Logger {
         COMBAT("combat"),
         PROTECTION("protection"),
         RELATION("relation"),
-        TERRITORY("territory");
+        TERRITORY("territory"),
+        WORLDMAP("worldmap");
 
         private final String configKey;
 
@@ -303,7 +304,7 @@ public final class Logger {
     }
 
     /**
-     * Logs a territory-related debug message (notifications, world map markers).
+     * Logs a territory-related debug message (notifications, chunk entry/exit).
      *
      * @param message the message format
      * @param args    format arguments
@@ -311,6 +312,19 @@ public final class Logger {
     public static void debugTerritory(@NotNull String message, Object... args) {
         if (isDebugEnabled(DebugCategory.TERRITORY)) {
             logDebug("TERRITORY", message, args);
+        }
+    }
+
+    /**
+     * Logs a world map-related debug message (map generation, tile updates).
+     * Separated from territory to reduce noise from frequent map updates.
+     *
+     * @param message the message format
+     * @param args    format arguments
+     */
+    public static void debugWorldMap(@NotNull String message, Object... args) {
+        if (isDebugEnabled(DebugCategory.WORLDMAP)) {
+            logDebug("WORLDMAP", message, args);
         }
     }
 

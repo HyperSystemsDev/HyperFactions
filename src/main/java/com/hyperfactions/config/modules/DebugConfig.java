@@ -25,6 +25,7 @@ public class DebugConfig extends ModuleConfig {
     private boolean protection = false;
     private boolean relation = false;
     private boolean territory = false;
+    private boolean worldmap = false;
 
     /**
      * Creates a new debug config.
@@ -57,6 +58,7 @@ public class DebugConfig extends ModuleConfig {
         protection = false;
         relation = false;
         territory = false;
+        worldmap = false;
     }
 
     @Override
@@ -67,12 +69,13 @@ public class DebugConfig extends ModuleConfig {
         // Load categories
         if (hasSection(root, "categories")) {
             JsonObject categories = root.getAsJsonObject("categories");
-            power = getBool(categories, "power", power);
-            claim = getBool(categories, "claim", claim);
-            combat = getBool(categories, "combat", combat);
-            protection = getBool(categories, "protection", protection);
-            relation = getBool(categories, "relation", relation);
-            territory = getBool(categories, "territory", territory);
+            power = getBool(categories, "power", false);
+            claim = getBool(categories, "claim", false);
+            combat = getBool(categories, "combat", false);
+            protection = getBool(categories, "protection", false);
+            relation = getBool(categories, "relation", false);
+            territory = getBool(categories, "territory", false);
+            worldmap = getBool(categories, "worldmap", false);
         }
 
         // Apply settings to Logger
@@ -91,20 +94,24 @@ public class DebugConfig extends ModuleConfig {
         categories.addProperty("protection", protection);
         categories.addProperty("relation", relation);
         categories.addProperty("territory", territory);
+        categories.addProperty("worldmap", worldmap);
         root.add("categories", categories);
     }
 
     /**
      * Applies the debug settings to the Logger utility.
+     * Individual category settings take precedence over enabledByDefault.
      */
     public void applyToLogger() {
         Logger.setLogToConsole(logToConsole);
-        Logger.setDebugEnabled(Logger.DebugCategory.POWER, enabledByDefault || power);
-        Logger.setDebugEnabled(Logger.DebugCategory.CLAIM, enabledByDefault || claim);
-        Logger.setDebugEnabled(Logger.DebugCategory.COMBAT, enabledByDefault || combat);
-        Logger.setDebugEnabled(Logger.DebugCategory.PROTECTION, enabledByDefault || protection);
-        Logger.setDebugEnabled(Logger.DebugCategory.RELATION, enabledByDefault || relation);
-        Logger.setDebugEnabled(Logger.DebugCategory.TERRITORY, enabledByDefault || territory);
+        // Individual settings override enabledByDefault - if explicitly set to false, stay false
+        Logger.setDebugEnabled(Logger.DebugCategory.POWER, power);
+        Logger.setDebugEnabled(Logger.DebugCategory.CLAIM, claim);
+        Logger.setDebugEnabled(Logger.DebugCategory.COMBAT, combat);
+        Logger.setDebugEnabled(Logger.DebugCategory.PROTECTION, protection);
+        Logger.setDebugEnabled(Logger.DebugCategory.RELATION, relation);
+        Logger.setDebugEnabled(Logger.DebugCategory.TERRITORY, territory);
+        Logger.setDebugEnabled(Logger.DebugCategory.WORLDMAP, worldmap);
     }
 
     // === Getters ===
@@ -181,6 +188,15 @@ public class DebugConfig extends ModuleConfig {
         return territory;
     }
 
+    /**
+     * Checks if world map debug is enabled.
+     *
+     * @return true if enabled
+     */
+    public boolean isWorldmap() {
+        return worldmap;
+    }
+
     // === Setters (for runtime toggle) ===
 
     /**
@@ -244,28 +260,42 @@ public class DebugConfig extends ModuleConfig {
     }
 
     /**
+     * Sets world map debug state and applies to Logger.
+     *
+     * @param enabled true to enable
+     */
+    public void setWorldmap(boolean enabled) {
+        this.worldmap = enabled;
+        applyToLogger();
+    }
+
+    /**
      * Enables all debug categories.
      */
     public void enableAll() {
+        enabledByDefault = false; // Clear this so individual settings work correctly
         power = true;
         claim = true;
         combat = true;
         protection = true;
         relation = true;
         territory = true;
-        Logger.enableAll();
+        worldmap = true;
+        applyToLogger();
     }
 
     /**
      * Disables all debug categories.
      */
     public void disableAll() {
+        enabledByDefault = false; // Clear this so individual settings work correctly
         power = false;
         claim = false;
         combat = false;
         protection = false;
         relation = false;
         territory = false;
-        Logger.disableAll();
+        worldmap = false;
+        applyToLogger();
     }
 }
