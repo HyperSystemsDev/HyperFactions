@@ -1,6 +1,7 @@
 package com.hyperfactions.data;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -88,6 +89,35 @@ public final class ZoneFlags {
     /** Whether players take environmental damage (drowning, suffocation). Uses Damage with EnvironmentSource. */
     public static final String ENVIRONMENTAL_DAMAGE = "environmental_damage";
 
+    // ==========================================================================
+    // MOB SPAWNING FLAGS (4) - Uses SpawnSuppressionController
+    // ==========================================================================
+
+    /**
+     * Master toggle for mob spawning. When false, blocks ALL mob spawning.
+     * When true, spawning is controlled by the specific group flags below.
+     * Uses Hytale's SpawnSuppressionController for chunk-based suppression.
+     */
+    public static final String MOB_SPAWNING = "mob_spawning";
+
+    /**
+     * Whether hostile mobs can spawn. Only applies when MOB_SPAWNING is true.
+     * Uses NPCGroup "hostile" to determine which mobs are hostile.
+     */
+    public static final String HOSTILE_MOB_SPAWNING = "hostile_mob_spawning";
+
+    /**
+     * Whether passive mobs can spawn. Only applies when MOB_SPAWNING is true.
+     * Uses NPCGroup "passive" to determine which mobs are passive.
+     */
+    public static final String PASSIVE_MOB_SPAWNING = "passive_mob_spawning";
+
+    /**
+     * Whether neutral mobs can spawn. Only applies when MOB_SPAWNING is true.
+     * Uses NPCGroup "neutral" to determine which mobs are neutral (conditionally aggressive).
+     */
+    public static final String NEUTRAL_MOB_SPAWNING = "neutral_mob_spawning";
+
     /**
      * All available flag names for validation.
      */
@@ -111,17 +141,24 @@ public final class ZoneFlags {
         ITEM_PICKUP,
         // Damage (2)
         FALL_DAMAGE,
-        ENVIRONMENTAL_DAMAGE
+        ENVIRONMENTAL_DAMAGE,
+        // Mob Spawning (4)
+        MOB_SPAWNING,
+        HOSTILE_MOB_SPAWNING,
+        PASSIVE_MOB_SPAWNING,
+        NEUTRAL_MOB_SPAWNING
     };
 
     /**
      * Flag categories for UI organization.
+     * Note: BLOCK_INTERACT is the parent of INTERACTION_FLAGS, MOB_SPAWNING is the parent of its children.
      */
     public static final String[] COMBAT_FLAGS = { PVP_ENABLED, FRIENDLY_FIRE, PROJECTILE_DAMAGE, MOB_DAMAGE };
-    public static final String[] BUILDING_FLAGS = { BUILD_ALLOWED, BLOCK_INTERACT };
-    public static final String[] INTERACTION_FLAGS = { DOOR_USE, CONTAINER_USE, BENCH_USE, PROCESSING_USE, SEAT_USE };
-    public static final String[] ITEM_FLAGS = { ITEM_DROP, ITEM_PICKUP };
+    public static final String[] BUILDING_FLAGS = { BUILD_ALLOWED };
     public static final String[] DAMAGE_FLAGS = { FALL_DAMAGE, ENVIRONMENTAL_DAMAGE };
+    public static final String[] SPAWNING_FLAGS = { MOB_SPAWNING, HOSTILE_MOB_SPAWNING, PASSIVE_MOB_SPAWNING, NEUTRAL_MOB_SPAWNING };
+    public static final String[] INTERACTION_FLAGS = { BLOCK_INTERACT, DOOR_USE, CONTAINER_USE, BENCH_USE, PROCESSING_USE, SEAT_USE };
+    public static final String[] ITEM_FLAGS = { ITEM_DROP, ITEM_PICKUP };
 
     /**
      * Checks if a flag name is valid.
@@ -168,6 +205,11 @@ public final class ZoneFlags {
             // Damage: No environmental damage in safe zones
             case FALL_DAMAGE -> false;
             case ENVIRONMENTAL_DAMAGE -> false;
+            // Mob Spawning: Entirely disabled in safe zones
+            case MOB_SPAWNING -> false;
+            case HOSTILE_MOB_SPAWNING -> false;
+            case PASSIVE_MOB_SPAWNING -> false;
+            case NEUTRAL_MOB_SPAWNING -> false;
             default -> false;
         };
     }
@@ -201,6 +243,11 @@ public final class ZoneFlags {
             // Damage: All environmental damage enabled
             case FALL_DAMAGE -> true;
             case ENVIRONMENTAL_DAMAGE -> true;
+            // Mob Spawning: All mob spawning enabled in war zones
+            case MOB_SPAWNING -> true;
+            case HOSTILE_MOB_SPAWNING -> true;
+            case PASSIVE_MOB_SPAWNING -> true;
+            case NEUTRAL_MOB_SPAWNING -> true;
             default -> false;
         };
     }
@@ -256,6 +303,10 @@ public final class ZoneFlags {
             case ITEM_PICKUP -> "Item Pickup";
             case FALL_DAMAGE -> "Fall Damage";
             case ENVIRONMENTAL_DAMAGE -> "Environmental Damage";
+            case MOB_SPAWNING -> "Mob Spawning";
+            case HOSTILE_MOB_SPAWNING -> "Hostile Mobs";
+            case PASSIVE_MOB_SPAWNING -> "Passive Mobs";
+            case NEUTRAL_MOB_SPAWNING -> "Neutral Mobs";
             default -> flagName;
         };
     }
@@ -284,7 +335,54 @@ public final class ZoneFlags {
             case ITEM_PICKUP -> "Players can pick up items";
             case FALL_DAMAGE -> "Fall damage applies";
             case ENVIRONMENTAL_DAMAGE -> "Drowning, suffocation, etc.";
+            case MOB_SPAWNING -> "Master toggle for mob spawning (parent)";
+            case HOSTILE_MOB_SPAWNING -> "Aggressive mobs can spawn";
+            case PASSIVE_MOB_SPAWNING -> "Non-aggressive mobs can spawn";
+            case NEUTRAL_MOB_SPAWNING -> "Conditionally aggressive mobs can spawn";
             default -> "Unknown flag";
+        };
+    }
+
+    /**
+     * Gets the parent flag for a flag, if it has one.
+     * Child flags only take effect when their parent is enabled.
+     *
+     * @param flagName the flag name
+     * @return the parent flag name, or null if no parent
+     */
+    @Nullable
+    public static String getParentFlag(String flagName) {
+        return switch (flagName) {
+            // Interaction flags have BLOCK_INTERACT as parent
+            case DOOR_USE, CONTAINER_USE, BENCH_USE, PROCESSING_USE, SEAT_USE -> BLOCK_INTERACT;
+            // Mob group flags have MOB_SPAWNING as parent
+            case HOSTILE_MOB_SPAWNING, PASSIVE_MOB_SPAWNING, NEUTRAL_MOB_SPAWNING -> MOB_SPAWNING;
+            default -> null;
+        };
+    }
+
+    /**
+     * Checks if a flag is a parent flag (has children).
+     *
+     * @param flagName the flag name
+     * @return true if this is a parent flag
+     */
+    public static boolean isParentFlag(String flagName) {
+        return BLOCK_INTERACT.equals(flagName) || MOB_SPAWNING.equals(flagName);
+    }
+
+    /**
+     * Gets the child flags for a parent flag.
+     *
+     * @param parentFlagName the parent flag name
+     * @return array of child flag names, or empty array if not a parent
+     */
+    @NotNull
+    public static String[] getChildFlags(String parentFlagName) {
+        return switch (parentFlagName) {
+            case BLOCK_INTERACT -> new String[] { DOOR_USE, CONTAINER_USE, BENCH_USE, PROCESSING_USE, SEAT_USE };
+            case MOB_SPAWNING -> new String[] { HOSTILE_MOB_SPAWNING, PASSIVE_MOB_SPAWNING, NEUTRAL_MOB_SPAWNING };
+            default -> new String[0];
         };
     }
 }

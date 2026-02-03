@@ -2,7 +2,7 @@
 // Following AdminUI pattern exactly
 
 @NavButton = MenuItem {
-  Padding: (Horizontal: 20);
+  Padding: (Left: 20, Right: 20, Top: 0, Bottom: 0);
   Style: (
     Default: (
       LabelStyle: (FontSize: 14, TextColor: #7c8b99, VerticalAlignment: Center, RenderUppercase: true, RenderBold: true)
@@ -32,7 +32,7 @@
   Group #NavBarTitle {
     Anchor: (Width: 160, Height: 45);
     LayoutMode: Left;
-    Padding: (Left: 15);
+    Padding: (Left: 15, Right: 0, Top: 0, Bottom: 0);
 
     Label #NavBarTitleLabel {
       Text: "HyperFactions";

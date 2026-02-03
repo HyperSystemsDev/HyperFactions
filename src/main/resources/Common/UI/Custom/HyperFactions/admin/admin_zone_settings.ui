@@ -1,6 +1,6 @@
 // Admin Zone Settings Page
 // Configure zone flags visually
-// Shows all 15 flags with toggle buttons in 2-column layout
+// Shows all 19 flags with toggle buttons in 2-column layout with boxes
 
 $C = "../../Common.ui";
 $S = "../shared/styles.ui";
@@ -10,7 +10,7 @@ $C.@PageOverlay {
   $Nav.@HyperFactionsAdminNavBar #HyperFactionsAdminNavBar {}
 
   $C.@DecoratedContainer {
-    Anchor: (Width: 680, Height: 600);
+    Anchor: (Width: 720, Height: 620);
 
     #Title {
       Group {
@@ -60,391 +60,552 @@ $C.@PageOverlay {
         LayoutMode: Left;
         FlexWeight: 1;
 
-        // ===== LEFT COLUMN (Combat + Building + Damage) =====
+        // ===== LEFT COLUMN (Combat, Damage, Building, Items) =====
         Group #LeftColumn {
-          Anchor: (Width: 310);
+          Anchor: (Width: 330);
           LayoutMode: Top;
-          Padding: (Right: 10);
+          Padding: (Left: 0, Right: 10, Top: 0, Bottom: 0);
 
-          // --- Combat Section Header ---
-          Group {
-            Anchor: (Height: 16, Bottom: 2);
-            Label {
-              Text: "COMBAT";
-              Style: (FontSize: 10, TextColor: #666666, RenderBold: true);
+          // --- Combat Box ---
+          Group #CombatBox {
+            Background: (Color: #1a2a3a);
+            Padding: (Left: 12, Right: 12, Top: 8, Bottom: 8);
+            LayoutMode: Top;
+            Anchor: (Bottom: 8);
+
+            Group {
+              Anchor: (Height: 18, Bottom: 4);
+              Label {
+                Text: "COMBAT";
+                Style: (FontSize: 11, TextColor: #00AAAA, RenderBold: true);
+              }
+            }
+
+            // Flag 0: pvp_enabled
+            Group {
+              Anchor: (Height: 24);
+              LayoutMode: Left;
+              Label #Flag0Name {
+                Text: "PvP Enabled";
+                Style: (FontSize: 11, TextColor: #CCCCCC, VerticalAlignment: Center);
+                Anchor: (Width: 110);
+              }
+              Label { FlexWeight: 1; }
+              Label #Flag0Default {
+                Text: "(default)";
+                Style: (FontSize: 9, TextColor: #555555, VerticalAlignment: Center);
+                Anchor: (Width: 55);
+              }
+              TextButton #Flag0Toggle {
+                Text: "OFF";
+                Anchor: (Height: 20, Width: 44);
+                Style: $S.@SmallButtonStyle;
+              }
+            }
+
+            // Flag 1: friendly_fire
+            Group {
+              Anchor: (Height: 24);
+              LayoutMode: Left;
+              Label #Flag1Name {
+                Text: "Friendly Fire";
+                Style: (FontSize: 11, TextColor: #CCCCCC, VerticalAlignment: Center);
+                Anchor: (Width: 110);
+              }
+              Label { FlexWeight: 1; }
+              Label #Flag1Default {
+                Text: "(default)";
+                Style: (FontSize: 9, TextColor: #555555, VerticalAlignment: Center);
+                Anchor: (Width: 55);
+              }
+              TextButton #Flag1Toggle {
+                Text: "OFF";
+                Anchor: (Height: 20, Width: 44);
+                Style: $S.@SmallButtonStyle;
+              }
+            }
+
+            // Flag 2: projectile_damage
+            Group {
+              Anchor: (Height: 24);
+              LayoutMode: Left;
+              Label #Flag2Name {
+                Text: "Projectile Dmg";
+                Style: (FontSize: 11, TextColor: #CCCCCC, VerticalAlignment: Center);
+                Anchor: (Width: 110);
+              }
+              Label { FlexWeight: 1; }
+              Label #Flag2Default {
+                Text: "(default)";
+                Style: (FontSize: 9, TextColor: #555555, VerticalAlignment: Center);
+                Anchor: (Width: 55);
+              }
+              TextButton #Flag2Toggle {
+                Text: "OFF";
+                Anchor: (Height: 20, Width: 44);
+                Style: $S.@SmallButtonStyle;
+              }
+            }
+
+            // Flag 3: mob_damage
+            Group {
+              Anchor: (Height: 24);
+              LayoutMode: Left;
+              Label #Flag3Name {
+                Text: "Mob Damage";
+                Style: (FontSize: 11, TextColor: #CCCCCC, VerticalAlignment: Center);
+                Anchor: (Width: 110);
+              }
+              Label { FlexWeight: 1; }
+              Label #Flag3Default {
+                Text: "(default)";
+                Style: (FontSize: 9, TextColor: #555555, VerticalAlignment: Center);
+                Anchor: (Width: 55);
+              }
+              TextButton #Flag3Toggle {
+                Text: "OFF";
+                Anchor: (Height: 20, Width: 44);
+                Style: $S.@SmallButtonStyle;
+              }
             }
           }
 
-          // Flag 0: pvp_enabled
-          Group {
-            Anchor: (Height: 22);
-            LayoutMode: Left;
-            Label #Flag0Name {
-              Text: "PvP Enabled";
-              Style: (FontSize: 10, TextColor: #CCCCCC, VerticalAlignment: Center);
-              Anchor: (Width: 90);
+          // --- Damage Box ---
+          Group #DamageBox {
+            Background: (Color: #1a2a3a);
+            Padding: (Left: 12, Right: 12, Top: 8, Bottom: 8);
+            LayoutMode: Top;
+            Anchor: (Bottom: 8);
+
+            Group {
+              Anchor: (Height: 18, Bottom: 4);
+              Label {
+                Text: "DAMAGE";
+                Style: (FontSize: 11, TextColor: #00AAAA, RenderBold: true);
+              }
             }
-            Label #Flag0Default {
-              Text: "(default)";
-              Style: (FontSize: 8, TextColor: #555555, VerticalAlignment: Center);
-              Anchor: (Width: 50);
+
+            // Flag 4: fall_damage
+            Group {
+              Anchor: (Height: 24);
+              LayoutMode: Left;
+              Label #Flag4Name {
+                Text: "Fall Damage";
+                Style: (FontSize: 11, TextColor: #CCCCCC, VerticalAlignment: Center);
+                Anchor: (Width: 110);
+              }
+              Label { FlexWeight: 1; }
+              Label #Flag4Default {
+                Text: "(default)";
+                Style: (FontSize: 9, TextColor: #555555, VerticalAlignment: Center);
+                Anchor: (Width: 55);
+              }
+              TextButton #Flag4Toggle {
+                Text: "OFF";
+                Anchor: (Height: 20, Width: 44);
+                Style: $S.@SmallButtonStyle;
+              }
             }
-            Label { FlexWeight: 1; }
-            TextButton #Flag0Toggle {
-              Text: "OFF";
-              Anchor: (Height: 18, Width: 42);
-              Style: $S.@SmallButtonStyle;
+
+            // Flag 5: environmental_damage
+            Group {
+              Anchor: (Height: 24);
+              LayoutMode: Left;
+              Label #Flag5Name {
+                Text: "Environment";
+                Style: (FontSize: 11, TextColor: #CCCCCC, VerticalAlignment: Center);
+                Anchor: (Width: 110);
+              }
+              Label { FlexWeight: 1; }
+              Label #Flag5Default {
+                Text: "(default)";
+                Style: (FontSize: 9, TextColor: #555555, VerticalAlignment: Center);
+                Anchor: (Width: 55);
+              }
+              TextButton #Flag5Toggle {
+                Text: "OFF";
+                Anchor: (Height: 20, Width: 44);
+                Style: $S.@SmallButtonStyle;
+              }
             }
           }
 
-          // Flag 1: friendly_fire
-          Group {
-            Anchor: (Height: 22);
-            LayoutMode: Left;
-            Label #Flag1Name {
-              Text: "Friendly Fire";
-              Style: (FontSize: 10, TextColor: #CCCCCC, VerticalAlignment: Center);
-              Anchor: (Width: 90);
+          // --- Building Box ---
+          Group #BuildingBox {
+            Background: (Color: #1a2a3a);
+            Padding: (Left: 12, Right: 12, Top: 8, Bottom: 8);
+            LayoutMode: Top;
+            Anchor: (Bottom: 8);
+
+            Group {
+              Anchor: (Height: 18, Bottom: 4);
+              Label {
+                Text: "BUILDING";
+                Style: (FontSize: 11, TextColor: #00AAAA, RenderBold: true);
+              }
             }
-            Label #Flag1Default {
-              Text: "(default)";
-              Style: (FontSize: 8, TextColor: #555555, VerticalAlignment: Center);
-              Anchor: (Width: 50);
-            }
-            Label { FlexWeight: 1; }
-            TextButton #Flag1Toggle {
-              Text: "OFF";
-              Anchor: (Height: 18, Width: 42);
-              Style: $S.@SmallButtonStyle;
+
+            // Flag 6: build_allowed
+            Group {
+              Anchor: (Height: 24);
+              LayoutMode: Left;
+              Label #Flag6Name {
+                Text: "Build Allowed";
+                Style: (FontSize: 11, TextColor: #CCCCCC, VerticalAlignment: Center);
+                Anchor: (Width: 110);
+              }
+              Label { FlexWeight: 1; }
+              Label #Flag6Default {
+                Text: "(default)";
+                Style: (FontSize: 9, TextColor: #555555, VerticalAlignment: Center);
+                Anchor: (Width: 55);
+              }
+              TextButton #Flag6Toggle {
+                Text: "OFF";
+                Anchor: (Height: 20, Width: 44);
+                Style: $S.@SmallButtonStyle;
+              }
             }
           }
 
-          // Flag 2: projectile_damage
-          Group {
-            Anchor: (Height: 22);
-            LayoutMode: Left;
-            Label #Flag2Name {
-              Text: "Projectile Dmg";
-              Style: (FontSize: 10, TextColor: #CCCCCC, VerticalAlignment: Center);
-              Anchor: (Width: 90);
-            }
-            Label #Flag2Default {
-              Text: "(default)";
-              Style: (FontSize: 8, TextColor: #555555, VerticalAlignment: Center);
-              Anchor: (Width: 50);
-            }
-            Label { FlexWeight: 1; }
-            TextButton #Flag2Toggle {
-              Text: "OFF";
-              Anchor: (Height: 18, Width: 42);
-              Style: $S.@SmallButtonStyle;
-            }
-          }
+          // --- Items Box ---
+          Group #ItemsBox {
+            Background: (Color: #1a2a3a);
+            Padding: (Left: 12, Right: 12, Top: 8, Bottom: 8);
+            LayoutMode: Top;
+            Anchor: (Bottom: 0);
 
-          // Flag 3: mob_damage
-          Group {
-            Anchor: (Height: 22, Bottom: 8);
-            LayoutMode: Left;
-            Label #Flag3Name {
-              Text: "Mob Damage";
-              Style: (FontSize: 10, TextColor: #CCCCCC, VerticalAlignment: Center);
-              Anchor: (Width: 90);
+            Group {
+              Anchor: (Height: 18, Bottom: 4);
+              Label {
+                Text: "ITEMS";
+                Style: (FontSize: 11, TextColor: #00AAAA, RenderBold: true);
+              }
             }
-            Label #Flag3Default {
-              Text: "(default)";
-              Style: (FontSize: 8, TextColor: #555555, VerticalAlignment: Center);
-              Anchor: (Width: 50);
-            }
-            Label { FlexWeight: 1; }
-            TextButton #Flag3Toggle {
-              Text: "OFF";
-              Anchor: (Height: 18, Width: 42);
-              Style: $S.@SmallButtonStyle;
-            }
-          }
 
-          // --- Building Section Header ---
-          Group {
-            Anchor: (Height: 16, Bottom: 2);
-            Label {
-              Text: "BUILDING";
-              Style: (FontSize: 10, TextColor: #666666, RenderBold: true);
+            // Flag 7: item_drop
+            Group {
+              Anchor: (Height: 24);
+              LayoutMode: Left;
+              Label #Flag7Name {
+                Text: "Item Drop";
+                Style: (FontSize: 11, TextColor: #CCCCCC, VerticalAlignment: Center);
+                Anchor: (Width: 110);
+              }
+              Label { FlexWeight: 1; }
+              Label #Flag7Default {
+                Text: "(default)";
+                Style: (FontSize: 9, TextColor: #555555, VerticalAlignment: Center);
+                Anchor: (Width: 55);
+              }
+              TextButton #Flag7Toggle {
+                Text: "ON";
+                Anchor: (Height: 20, Width: 44);
+                Style: $S.@SmallButtonStyle;
+              }
             }
-          }
 
-          // Flag 4: build_allowed
-          Group {
-            Anchor: (Height: 22);
-            LayoutMode: Left;
-            Label #Flag4Name {
-              Text: "Build Allowed";
-              Style: (FontSize: 10, TextColor: #CCCCCC, VerticalAlignment: Center);
-              Anchor: (Width: 90);
-            }
-            Label #Flag4Default {
-              Text: "(default)";
-              Style: (FontSize: 8, TextColor: #555555, VerticalAlignment: Center);
-              Anchor: (Width: 50);
-            }
-            Label { FlexWeight: 1; }
-            TextButton #Flag4Toggle {
-              Text: "OFF";
-              Anchor: (Height: 18, Width: 42);
-              Style: $S.@SmallButtonStyle;
-            }
-          }
-
-          // Flag 5: block_interact
-          Group {
-            Anchor: (Height: 22, Bottom: 8);
-            LayoutMode: Left;
-            Label #Flag5Name {
-              Text: "Block Interact";
-              Style: (FontSize: 10, TextColor: #CCCCCC, VerticalAlignment: Center);
-              Anchor: (Width: 90);
-            }
-            Label #Flag5Default {
-              Text: "(default)";
-              Style: (FontSize: 8, TextColor: #555555, VerticalAlignment: Center);
-              Anchor: (Width: 50);
-            }
-            Label { FlexWeight: 1; }
-            TextButton #Flag5Toggle {
-              Text: "ON";
-              Anchor: (Height: 18, Width: 42);
-              Style: $S.@SmallButtonStyle;
-            }
-          }
-
-          // --- Damage Section Header ---
-          Group {
-            Anchor: (Height: 16, Bottom: 2);
-            Label {
-              Text: "DAMAGE";
-              Style: (FontSize: 10, TextColor: #666666, RenderBold: true);
-            }
-          }
-
-          // Flag 13: fall_damage
-          Group {
-            Anchor: (Height: 22);
-            LayoutMode: Left;
-            Label #Flag13Name {
-              Text: "Fall Damage";
-              Style: (FontSize: 10, TextColor: #CCCCCC, VerticalAlignment: Center);
-              Anchor: (Width: 90);
-            }
-            Label #Flag13Default {
-              Text: "(default)";
-              Style: (FontSize: 8, TextColor: #555555, VerticalAlignment: Center);
-              Anchor: (Width: 50);
-            }
-            Label { FlexWeight: 1; }
-            TextButton #Flag13Toggle {
-              Text: "OFF";
-              Anchor: (Height: 18, Width: 42);
-              Style: $S.@SmallButtonStyle;
-            }
-          }
-
-          // Flag 14: environmental_damage
-          Group {
-            Anchor: (Height: 22);
-            LayoutMode: Left;
-            Label #Flag14Name {
-              Text: "Environment";
-              Style: (FontSize: 10, TextColor: #CCCCCC, VerticalAlignment: Center);
-              Anchor: (Width: 90);
-            }
-            Label #Flag14Default {
-              Text: "(default)";
-              Style: (FontSize: 8, TextColor: #555555, VerticalAlignment: Center);
-              Anchor: (Width: 50);
-            }
-            Label { FlexWeight: 1; }
-            TextButton #Flag14Toggle {
-              Text: "OFF";
-              Anchor: (Height: 18, Width: 42);
-              Style: $S.@SmallButtonStyle;
+            // Flag 8: item_pickup
+            Group {
+              Anchor: (Height: 24);
+              LayoutMode: Left;
+              Label #Flag8Name {
+                Text: "Item Pickup";
+                Style: (FontSize: 11, TextColor: #CCCCCC, VerticalAlignment: Center);
+                Anchor: (Width: 110);
+              }
+              Label { FlexWeight: 1; }
+              Label #Flag8Default {
+                Text: "(default)";
+                Style: (FontSize: 9, TextColor: #555555, VerticalAlignment: Center);
+                Anchor: (Width: 55);
+              }
+              TextButton #Flag8Toggle {
+                Text: "ON";
+                Anchor: (Height: 20, Width: 44);
+                Style: $S.@SmallButtonStyle;
+              }
             }
           }
         }
 
-        // ===== RIGHT COLUMN (Interaction + Items) =====
+        // ===== RIGHT COLUMN (Interaction, Mob Spawning) =====
         Group #RightColumn {
-          Anchor: (Width: 310);
+          Anchor: (Width: 330);
           LayoutMode: Top;
-          Padding: (Left: 10);
+          Padding: (Left: 10, Right: 0, Top: 0, Bottom: 0);
 
-          // --- Interaction Section Header ---
-          Group {
-            Anchor: (Height: 16, Bottom: 2);
-            Label {
-              Text: "INTERACTION";
-              Style: (FontSize: 10, TextColor: #666666, RenderBold: true);
+          // --- Interaction Box ---
+          Group #InteractionBox {
+            Background: (Color: #1a2a3a);
+            Padding: (Left: 12, Right: 12, Top: 8, Bottom: 8);
+            LayoutMode: Top;
+            Anchor: (Bottom: 8);
+
+            Group {
+              Anchor: (Height: 18, Bottom: 0);
+              Label {
+                Text: "INTERACTION";
+                Style: (FontSize: 11, TextColor: #00AAAA, RenderBold: true);
+              }
+            }
+            Group {
+              Anchor: (Height: 12, Bottom: 4);
+              Label {
+                Text: "(children only apply when parent ON)";
+                Style: (FontSize: 8, TextColor: #666666);
+              }
+            }
+
+            // Flag 9: block_interact (parent)
+            Group {
+              Anchor: (Height: 24);
+              LayoutMode: Left;
+              Label #Flag9Name {
+                Text: "Block Interact";
+                Style: (FontSize: 11, TextColor: #CCCCCC, VerticalAlignment: Center);
+                Anchor: (Width: 110);
+              }
+              Label { FlexWeight: 1; }
+              Label #Flag9Default {
+                Text: "(default)";
+                Style: (FontSize: 9, TextColor: #555555, VerticalAlignment: Center);
+                Anchor: (Width: 55);
+              }
+              TextButton #Flag9Toggle {
+                Text: "ON";
+                Anchor: (Height: 20, Width: 44);
+                Style: $S.@SmallButtonStyle;
+              }
+            }
+
+            // Flag 10: door_use (child)
+            Group {
+              Anchor: (Height: 24);
+              LayoutMode: Left;
+              Padding: (Left: 12, Right: 0, Top: 0, Bottom: 0);
+              Label #Flag10Name {
+                Text: "Door Use";
+                Style: (FontSize: 11, TextColor: #CCCCCC, VerticalAlignment: Center);
+                Anchor: (Width: 98);
+              }
+              Label { FlexWeight: 1; }
+              Label #Flag10Default {
+                Text: "(default)";
+                Style: (FontSize: 9, TextColor: #555555, VerticalAlignment: Center);
+                Anchor: (Width: 55);
+              }
+              TextButton #Flag10Toggle {
+                Text: "ON";
+                Anchor: (Height: 20, Width: 44);
+                Style: $S.@SmallButtonStyle;
+              }
+            }
+
+            // Flag 11: container_use (child)
+            Group {
+              Anchor: (Height: 24);
+              LayoutMode: Left;
+              Padding: (Left: 12, Right: 0, Top: 0, Bottom: 0);
+              Label #Flag11Name {
+                Text: "Container Use";
+                Style: (FontSize: 11, TextColor: #CCCCCC, VerticalAlignment: Center);
+                Anchor: (Width: 98);
+              }
+              Label { FlexWeight: 1; }
+              Label #Flag11Default {
+                Text: "(default)";
+                Style: (FontSize: 9, TextColor: #555555, VerticalAlignment: Center);
+                Anchor: (Width: 55);
+              }
+              TextButton #Flag11Toggle {
+                Text: "ON";
+                Anchor: (Height: 20, Width: 44);
+                Style: $S.@SmallButtonStyle;
+              }
+            }
+
+            // Flag 12: bench_use (child)
+            Group {
+              Anchor: (Height: 24);
+              LayoutMode: Left;
+              Padding: (Left: 12, Right: 0, Top: 0, Bottom: 0);
+              Label #Flag12Name {
+                Text: "Bench Use";
+                Style: (FontSize: 11, TextColor: #CCCCCC, VerticalAlignment: Center);
+                Anchor: (Width: 98);
+              }
+              Label { FlexWeight: 1; }
+              Label #Flag12Default {
+                Text: "(default)";
+                Style: (FontSize: 9, TextColor: #555555, VerticalAlignment: Center);
+                Anchor: (Width: 55);
+              }
+              TextButton #Flag12Toggle {
+                Text: "ON";
+                Anchor: (Height: 20, Width: 44);
+                Style: $S.@SmallButtonStyle;
+              }
+            }
+
+            // Flag 13: processing_use (child)
+            Group {
+              Anchor: (Height: 24);
+              LayoutMode: Left;
+              Padding: (Left: 12, Right: 0, Top: 0, Bottom: 0);
+              Label #Flag13Name {
+                Text: "Processing Use";
+                Style: (FontSize: 11, TextColor: #CCCCCC, VerticalAlignment: Center);
+                Anchor: (Width: 98);
+              }
+              Label { FlexWeight: 1; }
+              Label #Flag13Default {
+                Text: "(default)";
+                Style: (FontSize: 9, TextColor: #555555, VerticalAlignment: Center);
+                Anchor: (Width: 55);
+              }
+              TextButton #Flag13Toggle {
+                Text: "ON";
+                Anchor: (Height: 20, Width: 44);
+                Style: $S.@SmallButtonStyle;
+              }
+            }
+
+            // Flag 14: seat_use (child)
+            Group {
+              Anchor: (Height: 24);
+              LayoutMode: Left;
+              Padding: (Left: 12, Right: 0, Top: 0, Bottom: 0);
+              Label #Flag14Name {
+                Text: "Seat Use";
+                Style: (FontSize: 11, TextColor: #CCCCCC, VerticalAlignment: Center);
+                Anchor: (Width: 98);
+              }
+              Label { FlexWeight: 1; }
+              Label #Flag14Default {
+                Text: "(default)";
+                Style: (FontSize: 9, TextColor: #555555, VerticalAlignment: Center);
+                Anchor: (Width: 55);
+              }
+              TextButton #Flag14Toggle {
+                Text: "ON";
+                Anchor: (Height: 20, Width: 44);
+                Style: $S.@SmallButtonStyle;
+              }
             }
           }
 
-          // Flag 6: door_use
-          Group {
-            Anchor: (Height: 22);
-            LayoutMode: Left;
-            Label #Flag6Name {
-              Text: "Door Use";
-              Style: (FontSize: 10, TextColor: #CCCCCC, VerticalAlignment: Center);
-              Anchor: (Width: 90);
-            }
-            Label #Flag6Default {
-              Text: "(default)";
-              Style: (FontSize: 8, TextColor: #555555, VerticalAlignment: Center);
-              Anchor: (Width: 50);
-            }
-            Label { FlexWeight: 1; }
-            TextButton #Flag6Toggle {
-              Text: "ON";
-              Anchor: (Height: 18, Width: 42);
-              Style: $S.@SmallButtonStyle;
-            }
-          }
+          // --- Mob Spawning Box ---
+          Group #SpawningBox {
+            Background: (Color: #1a2a3a);
+            Padding: (Left: 12, Right: 12, Top: 8, Bottom: 8);
+            LayoutMode: Top;
+            Anchor: (Bottom: 0);
 
-          // Flag 7: container_use
-          Group {
-            Anchor: (Height: 22);
-            LayoutMode: Left;
-            Label #Flag7Name {
-              Text: "Container Use";
-              Style: (FontSize: 10, TextColor: #CCCCCC, VerticalAlignment: Center);
-              Anchor: (Width: 90);
+            Group {
+              Anchor: (Height: 18, Bottom: 0);
+              Label {
+                Text: "MOB SPAWNING";
+                Style: (FontSize: 11, TextColor: #00AAAA, RenderBold: true);
+              }
             }
-            Label #Flag7Default {
-              Text: "(default)";
-              Style: (FontSize: 8, TextColor: #555555, VerticalAlignment: Center);
-              Anchor: (Width: 50);
+            Group {
+              Anchor: (Height: 12, Bottom: 4);
+              Label {
+                Text: "(children only apply when parent ON)";
+                Style: (FontSize: 8, TextColor: #666666);
+              }
             }
-            Label { FlexWeight: 1; }
-            TextButton #Flag7Toggle {
-              Text: "ON";
-              Anchor: (Height: 18, Width: 42);
-              Style: $S.@SmallButtonStyle;
-            }
-          }
 
-          // Flag 8: bench_use
-          Group {
-            Anchor: (Height: 22);
-            LayoutMode: Left;
-            Label #Flag8Name {
-              Text: "Bench Use";
-              Style: (FontSize: 10, TextColor: #CCCCCC, VerticalAlignment: Center);
-              Anchor: (Width: 90);
+            // Flag 15: mob_spawning (parent)
+            Group {
+              Anchor: (Height: 24);
+              LayoutMode: Left;
+              Label #Flag15Name {
+                Text: "Mob Spawning";
+                Style: (FontSize: 11, TextColor: #CCCCCC, VerticalAlignment: Center);
+                Anchor: (Width: 110);
+              }
+              Label { FlexWeight: 1; }
+              Label #Flag15Default {
+                Text: "(default)";
+                Style: (FontSize: 9, TextColor: #555555, VerticalAlignment: Center);
+                Anchor: (Width: 55);
+              }
+              TextButton #Flag15Toggle {
+                Text: "ON";
+                Anchor: (Height: 20, Width: 44);
+                Style: $S.@SmallButtonStyle;
+              }
             }
-            Label #Flag8Default {
-              Text: "(default)";
-              Style: (FontSize: 8, TextColor: #555555, VerticalAlignment: Center);
-              Anchor: (Width: 50);
-            }
-            Label { FlexWeight: 1; }
-            TextButton #Flag8Toggle {
-              Text: "ON";
-              Anchor: (Height: 18, Width: 42);
-              Style: $S.@SmallButtonStyle;
-            }
-          }
 
-          // Flag 9: processing_use
-          Group {
-            Anchor: (Height: 22);
-            LayoutMode: Left;
-            Label #Flag9Name {
-              Text: "Processing Use";
-              Style: (FontSize: 10, TextColor: #CCCCCC, VerticalAlignment: Center);
-              Anchor: (Width: 90);
+            // Flag 16: hostile_mob_spawning (child)
+            Group {
+              Anchor: (Height: 24);
+              LayoutMode: Left;
+              Padding: (Left: 12, Right: 0, Top: 0, Bottom: 0);
+              Label #Flag16Name {
+                Text: "Hostile Mobs";
+                Style: (FontSize: 11, TextColor: #CCCCCC, VerticalAlignment: Center);
+                Anchor: (Width: 98);
+              }
+              Label { FlexWeight: 1; }
+              Label #Flag16Default {
+                Text: "(default)";
+                Style: (FontSize: 9, TextColor: #555555, VerticalAlignment: Center);
+                Anchor: (Width: 55);
+              }
+              TextButton #Flag16Toggle {
+                Text: "ON";
+                Anchor: (Height: 20, Width: 44);
+                Style: $S.@SmallButtonStyle;
+              }
             }
-            Label #Flag9Default {
-              Text: "(default)";
-              Style: (FontSize: 8, TextColor: #555555, VerticalAlignment: Center);
-              Anchor: (Width: 50);
-            }
-            Label { FlexWeight: 1; }
-            TextButton #Flag9Toggle {
-              Text: "ON";
-              Anchor: (Height: 18, Width: 42);
-              Style: $S.@SmallButtonStyle;
-            }
-          }
 
-          // Flag 10: seat_use
-          Group {
-            Anchor: (Height: 22, Bottom: 8);
-            LayoutMode: Left;
-            Label #Flag10Name {
-              Text: "Seat Use";
-              Style: (FontSize: 10, TextColor: #CCCCCC, VerticalAlignment: Center);
-              Anchor: (Width: 90);
+            // Flag 17: passive_mob_spawning (child)
+            Group {
+              Anchor: (Height: 24);
+              LayoutMode: Left;
+              Padding: (Left: 12, Right: 0, Top: 0, Bottom: 0);
+              Label #Flag17Name {
+                Text: "Passive Mobs";
+                Style: (FontSize: 11, TextColor: #CCCCCC, VerticalAlignment: Center);
+                Anchor: (Width: 98);
+              }
+              Label { FlexWeight: 1; }
+              Label #Flag17Default {
+                Text: "(default)";
+                Style: (FontSize: 9, TextColor: #555555, VerticalAlignment: Center);
+                Anchor: (Width: 55);
+              }
+              TextButton #Flag17Toggle {
+                Text: "ON";
+                Anchor: (Height: 20, Width: 44);
+                Style: $S.@SmallButtonStyle;
+              }
             }
-            Label #Flag10Default {
-              Text: "(default)";
-              Style: (FontSize: 8, TextColor: #555555, VerticalAlignment: Center);
-              Anchor: (Width: 50);
-            }
-            Label { FlexWeight: 1; }
-            TextButton #Flag10Toggle {
-              Text: "ON";
-              Anchor: (Height: 18, Width: 42);
-              Style: $S.@SmallButtonStyle;
-            }
-          }
 
-          // --- Items Section Header ---
-          Group {
-            Anchor: (Height: 16, Bottom: 2);
-            Label {
-              Text: "ITEMS";
-              Style: (FontSize: 10, TextColor: #666666, RenderBold: true);
-            }
-          }
-
-          // Flag 11: item_drop
-          Group {
-            Anchor: (Height: 22);
-            LayoutMode: Left;
-            Label #Flag11Name {
-              Text: "Item Drop";
-              Style: (FontSize: 10, TextColor: #CCCCCC, VerticalAlignment: Center);
-              Anchor: (Width: 90);
-            }
-            Label #Flag11Default {
-              Text: "(default)";
-              Style: (FontSize: 8, TextColor: #555555, VerticalAlignment: Center);
-              Anchor: (Width: 50);
-            }
-            Label { FlexWeight: 1; }
-            TextButton #Flag11Toggle {
-              Text: "ON";
-              Anchor: (Height: 18, Width: 42);
-              Style: $S.@SmallButtonStyle;
-            }
-          }
-
-          // Flag 12: item_pickup
-          Group {
-            Anchor: (Height: 22);
-            LayoutMode: Left;
-            Label #Flag12Name {
-              Text: "Item Pickup";
-              Style: (FontSize: 10, TextColor: #CCCCCC, VerticalAlignment: Center);
-              Anchor: (Width: 90);
-            }
-            Label #Flag12Default {
-              Text: "(default)";
-              Style: (FontSize: 8, TextColor: #555555, VerticalAlignment: Center);
-              Anchor: (Width: 50);
-            }
-            Label { FlexWeight: 1; }
-            TextButton #Flag12Toggle {
-              Text: "ON";
-              Anchor: (Height: 18, Width: 42);
-              Style: $S.@SmallButtonStyle;
+            // Flag 18: neutral_mob_spawning (child)
+            Group {
+              Anchor: (Height: 24);
+              LayoutMode: Left;
+              Padding: (Left: 12, Right: 0, Top: 0, Bottom: 0);
+              Label #Flag18Name {
+                Text: "Neutral Mobs";
+                Style: (FontSize: 11, TextColor: #CCCCCC, VerticalAlignment: Center);
+                Anchor: (Width: 98);
+              }
+              Label { FlexWeight: 1; }
+              Label #Flag18Default {
+                Text: "(default)";
+                Style: (FontSize: 9, TextColor: #555555, VerticalAlignment: Center);
+                Anchor: (Width: 55);
+              }
+              TextButton #Flag18Toggle {
+                Text: "ON";
+                Anchor: (Height: 20, Width: 44);
+                Style: $S.@SmallButtonStyle;
+              }
             }
           }
         }

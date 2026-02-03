@@ -82,8 +82,17 @@ public class FactionDashboardPage extends InteractiveCustomUIPage<FactionDashboa
     public void build(Ref<EntityStore> ref, UICommandBuilder cmd,
                       UIEventBuilder events, Store<EntityStore> store) {
 
+        // Fetch fresh faction data to ensure we have current state
+        Faction currentFaction = factionManager.getFaction(faction.id());
+        if (currentFaction == null) {
+            // Faction was deleted - show error
+            cmd.append("HyperFactions/shared/error_page.ui");
+            cmd.set("#ErrorMessage.Text", "Your faction no longer exists.");
+            return;
+        }
+
         UUID viewerUuid = playerRef.getUuid();
-        FactionMember member = faction.getMember(viewerUuid);
+        FactionMember member = currentFaction.getMember(viewerUuid);
         FactionRole viewerRole = member != null ? member.role() : FactionRole.MEMBER;
         boolean isOfficerPlus = viewerRole.getLevel() >= FactionRole.OFFICER.getLevel();
         boolean isLeader = viewerRole == FactionRole.LEADER;
@@ -94,17 +103,17 @@ public class FactionDashboardPage extends InteractiveCustomUIPage<FactionDashboa
         // Setup navigation bar
         setupNavBar(cmd, events);
 
-        // Faction header
-        buildFactionHeader(cmd);
+        // Faction header (use fresh data)
+        buildFactionHeader(cmd, currentFaction);
 
-        // Stat cards
-        buildStatCards(cmd);
+        // Stat cards (use fresh data)
+        buildStatCards(cmd, currentFaction);
 
         // Quick actions (conditional)
         buildQuickActions(cmd, events, isOfficerPlus, isLeader);
 
-        // Activity feed
-        buildActivityFeed(cmd, events);
+        // Activity feed (use fresh data)
+        buildActivityFeed(cmd, events, currentFaction);
     }
 
     private void setupNavBar(UICommandBuilder cmd, UIEventBuilder events) {
@@ -112,23 +121,23 @@ public class FactionDashboardPage extends InteractiveCustomUIPage<FactionDashboa
         NavBarHelper.setupBar(playerRef, faction, PAGE_ID, cmd, events);
     }
 
-    private void buildFactionHeader(UICommandBuilder cmd) {
+    private void buildFactionHeader(UICommandBuilder cmd, Faction currentFaction) {
         // Faction name with color
-        cmd.set("#FactionName.Text", faction.name());
+        cmd.set("#FactionName.Text", currentFaction.name());
 
         // Tag in gold if present
-        if (faction.tag() != null && !faction.tag().isEmpty()) {
-            cmd.set("#FactionTag.Text", "[" + faction.tag() + "]");
+        if (currentFaction.tag() != null && !currentFaction.tag().isEmpty()) {
+            cmd.set("#FactionTag.Text", "[" + currentFaction.tag() + "]");
         }
 
         // Description
-        if (faction.description() != null && !faction.description().isEmpty()) {
-            cmd.set("#FactionDescription.Text", "\"" + faction.description() + "\"");
+        if (currentFaction.description() != null && !currentFaction.description().isEmpty()) {
+            cmd.set("#FactionDescription.Text", "\"" + currentFaction.description() + "\"");
         }
     }
 
-    private void buildStatCards(UICommandBuilder cmd) {
-        PowerManager.FactionPowerStats stats = powerManager.getFactionPowerStats(faction.id());
+    private void buildStatCards(UICommandBuilder cmd, Faction currentFaction) {
+        PowerManager.FactionPowerStats stats = powerManager.getFactionPowerStats(currentFaction.id());
 
         // Row 1: Power, Claims, Members
 
@@ -138,15 +147,24 @@ public class FactionDashboardPage extends InteractiveCustomUIPage<FactionDashboa
         cmd.set("#PowerPercent.Text", powerPercent + "%");
 
         // Claims stat - used/max and available
-        int claimCount = faction.claims().size();
+        int claimCount = currentFaction.claims().size();
         int maxClaims = stats.maxClaims();
         int available = Math.max(0, maxClaims - claimCount);
         cmd.set("#ClaimsValue.Text", claimCount + " / " + maxClaims);
         cmd.set("#ClaimsAvailable.Text", available + " available");
 
+        // Check if faction is raidable (at risk of overclaiming)
+        boolean isRaidable = claimCount > maxClaims;
+        if (isRaidable) {
+            // Show warning - claims exceed power limit
+            cmd.set("#ClaimsValue.Style.TextColor", "#FF5555");
+            cmd.set("#ClaimsAvailable.Text", "AT RISK!");
+            cmd.set("#ClaimsAvailable.Style.TextColor", "#FF5555");
+        }
+
         // Members stat - total and online
-        int totalMembers = faction.members().size();
-        int onlineCount = countOnlineMembers();
+        int totalMembers = currentFaction.members().size();
+        int onlineCount = countOnlineMembers(currentFaction);
         cmd.set("#MembersValue.Text", String.valueOf(totalMembers));
         cmd.set("#MembersOnline.Text", onlineCount + " online");
 
@@ -155,7 +173,7 @@ public class FactionDashboardPage extends InteractiveCustomUIPage<FactionDashboa
         // Relations stat - ally/enemy count
         int allyCount = 0;
         int enemyCount = 0;
-        for (FactionRelation relation : faction.relations().values()) {
+        for (FactionRelation relation : currentFaction.relations().values()) {
             if (relation.type() == RelationType.ALLY) {
                 allyCount++;
             } else if (relation.type() == RelationType.ENEMY) {
@@ -166,7 +184,7 @@ public class FactionDashboardPage extends InteractiveCustomUIPage<FactionDashboa
         cmd.set("#EnemyCount.Text", String.valueOf(enemyCount));
 
         // Status stat - Open/Invite Only
-        if (faction.open()) {
+        if (currentFaction.open()) {
             cmd.set("#StatusValue.Text", "OPEN");
             cmd.set("#StatusValue.Style.TextColor", "#55FF55");
         } else {
@@ -178,16 +196,16 @@ public class FactionDashboardPage extends InteractiveCustomUIPage<FactionDashboa
         // Invites stat - sent/requests
         InviteManager inviteManager = plugin.getInviteManager();
         JoinRequestManager joinRequestManager = plugin.getJoinRequestManager();
-        int sentInvites = inviteManager.getFactionInviteCount(faction.id());
-        int requestCount = joinRequestManager.getFactionRequests(faction.id()).size();
+        int sentInvites = inviteManager.getFactionInviteCount(currentFaction.id());
+        int requestCount = joinRequestManager.getFactionRequests(currentFaction.id()).size();
         cmd.set("#InvitesSent.Text", String.valueOf(sentInvites));
         cmd.set("#InvitesReceived.Text", String.valueOf(requestCount));
     }
 
-    private int countOnlineMembers() {
+    private int countOnlineMembers(Faction currentFaction) {
         int count = 0;
         Universe universe = Universe.get();
-        for (UUID memberUuid : faction.members().keySet()) {
+        for (UUID memberUuid : currentFaction.members().keySet()) {
             if (universe.getPlayer(memberUuid) != null) {
                 count++;
             }
@@ -251,7 +269,7 @@ public class FactionDashboardPage extends InteractiveCustomUIPage<FactionDashboa
         );
     }
 
-    private void buildActivityFeed(UICommandBuilder cmd, UIEventBuilder events) {
+    private void buildActivityFeed(UICommandBuilder cmd, UIEventBuilder events, Faction currentFaction) {
         // TODO: Enable View All button when Activity Logs page (logs_viewer.ui) is implemented
         // events.addEventBinding(
         //         CustomUIEventBindingType.Activating,
@@ -261,7 +279,7 @@ public class FactionDashboardPage extends InteractiveCustomUIPage<FactionDashboa
         // );
 
         // Show recent activity entries
-        List<FactionLog> logs = faction.logs();
+        List<FactionLog> logs = currentFaction.logs();
         int displayCount = Math.min(ACTIVITY_ENTRIES, logs.size());
 
         for (int i = 0; i < displayCount; i++) {

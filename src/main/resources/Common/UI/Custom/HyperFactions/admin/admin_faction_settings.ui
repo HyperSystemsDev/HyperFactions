@@ -65,7 +65,7 @@ $C.@PageOverlay {
           Anchor: (Width: 330);
           LayoutMode: TopScrolling;
           ScrollbarStyle: $C.@DefaultScrollbarStyle;
-          Padding: (Right: 10);
+          Padding: (Left: 0, Right: 10, Top: 0, Bottom: 0);
 
           // GENERAL SECTION
           Label {
@@ -299,7 +299,7 @@ $C.@PageOverlay {
           FlexWeight: 1;
           LayoutMode: TopScrolling;
           ScrollbarStyle: $C.@DefaultScrollbarStyle;
-          Padding: (Left: 10);
+          Padding: (Left: 10, Right: 0, Top: 0, Bottom: 0);
 
           // === TERRITORY PERMISSIONS SECTION ===
           Label {

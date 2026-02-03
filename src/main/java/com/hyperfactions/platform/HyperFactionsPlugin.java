@@ -139,6 +139,9 @@ public class HyperFactionsPlugin extends JavaPlugin {
         // Start periodic tasks
         startPeriodicTasks();
 
+        // Initialize spawn suppression manager (must be after TagSetPlugin is ready)
+        initializeSpawnSuppression();
+
         getLogger().at(Level.INFO).log("HyperFactions v%s enabled!", getManifest().getVersion());
     }
 
@@ -253,6 +256,45 @@ public class HyperFactionsPlugin extends JavaPlugin {
                     HyperFactionsWorldMapProvider.ID);
         } catch (Exception e) {
             getLogger().at(Level.WARNING).withCause(e).log("Failed to register world map provider");
+        }
+    }
+
+    /**
+     * Initializes the spawn suppression manager and applies suppression to existing worlds.
+     */
+    private void initializeSpawnSuppression() {
+        try {
+            // Initialize the manager (resolves NPC groups)
+            hyperFactions.getSpawnSuppressionManager().initialize();
+
+            // Wire up zone change callback to re-apply suppression
+            hyperFactions.getZoneManager().setOnZoneChangeCallback(() -> {
+                // Refresh world maps
+                hyperFactions.getWorldMapService().refreshAllWorldMaps();
+                // Re-apply spawn suppression to all worlds
+                applySpawnSuppressionToAllWorlds();
+            });
+
+            // Apply to existing worlds
+            applySpawnSuppressionToAllWorlds();
+
+            getLogger().at(Level.INFO).log("Spawn suppression initialized");
+        } catch (Exception e) {
+            getLogger().at(Level.WARNING).withCause(e).log("Failed to initialize spawn suppression");
+        }
+    }
+
+    /**
+     * Applies spawn suppression to all loaded worlds.
+     */
+    private void applySpawnSuppressionToAllWorlds() {
+        try {
+            Map<String, World> worlds = Universe.get().getWorlds();
+            for (World world : worlds.values()) {
+                hyperFactions.getSpawnSuppressionManager().applyToWorld(world);
+            }
+        } catch (Exception e) {
+            Logger.warn("Failed to apply spawn suppression to worlds: %s", e.getMessage());
         }
     }
 
@@ -449,6 +491,9 @@ public class HyperFactionsPlugin extends JavaPlugin {
 
             // Track the world in WorldMapService
             hyperFactions.getWorldMapService().registerProviderIfNeeded(world);
+
+            // Apply spawn suppression to the new world
+            hyperFactions.getSpawnSuppressionManager().applyToWorld(world);
         } catch (Exception e) {
             getLogger().at(Level.WARNING).log("Error in AddWorldEvent handler for %s: %s",
                     world.getName(), e.getMessage());

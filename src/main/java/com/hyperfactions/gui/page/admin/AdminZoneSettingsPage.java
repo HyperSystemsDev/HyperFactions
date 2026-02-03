@@ -75,13 +75,14 @@ public class AdminZoneSettingsPage extends InteractiveCustomUIPage<AdminZoneSett
         cmd.set("#ZoneType.Style.TextColor", typeColor);
 
         // Build flag toggles by category (matching 2-column UI layout)
-        // Left column: Combat (0-3), Building (4-5), Damage (13-14)
+        // Left column: Combat (0-3), Damage (4-5), Building (6), Items (7-8)
         buildFlagCategory(cmd, events, zone, "Combat", ZoneFlags.COMBAT_FLAGS, 0);
-        buildFlagCategory(cmd, events, zone, "Building", ZoneFlags.BUILDING_FLAGS, 4);
-        buildFlagCategory(cmd, events, zone, "Damage", ZoneFlags.DAMAGE_FLAGS, 13);
-        // Right column: Interaction (6-10), Items (11-12)
-        buildFlagCategory(cmd, events, zone, "Interaction", ZoneFlags.INTERACTION_FLAGS, 6);
-        buildFlagCategory(cmd, events, zone, "Items", ZoneFlags.ITEM_FLAGS, 11);
+        buildFlagCategory(cmd, events, zone, "Damage", ZoneFlags.DAMAGE_FLAGS, 4);
+        buildFlagCategory(cmd, events, zone, "Building", ZoneFlags.BUILDING_FLAGS, 6);
+        buildFlagCategory(cmd, events, zone, "Items", ZoneFlags.ITEM_FLAGS, 7);
+        // Right column: Interaction (9-14), Spawning (15-18)
+        buildFlagCategory(cmd, events, zone, "Interaction", ZoneFlags.INTERACTION_FLAGS, 9);
+        buildFlagCategory(cmd, events, zone, "Spawning", ZoneFlags.SPAWNING_FLAGS, 15);
 
         // Reset to Defaults button
         if (!zone.getFlags().isEmpty()) {
@@ -104,6 +105,7 @@ public class AdminZoneSettingsPage extends InteractiveCustomUIPage<AdminZoneSett
                 EventData.of("Button", "Back"),
                 false
         );
+
     }
 
     private void buildFlagCategory(UICommandBuilder cmd, UIEventBuilder events,
@@ -122,16 +124,19 @@ public class AdminZoneSettingsPage extends InteractiveCustomUIPage<AdminZoneSett
         boolean currentValue = zone.getEffectiveFlag(flagName);
         boolean isDefault = !zone.hasFlagSet(flagName);
 
+        // Check if this is a child flag and if parent is OFF
+        String parentFlag = ZoneFlags.getParentFlag(flagName);
+        boolean parentDisabled = parentFlag != null && !zone.getEffectiveFlag(parentFlag);
+
         // Flag name (display name from ZoneFlags)
         cmd.set(idx + "Name.Text", ZoneFlags.getDisplayName(flagName));
 
-        // Current value toggle
+        // Current value toggle - convey state through text only
+        // Note: Cannot set TextButton styles dynamically (crashes CustomUI)
         cmd.set(idx + "Toggle.Text", currentValue ? "ON" : "OFF");
 
-        // Color based on value
-        String valueColor = currentValue ? "#55FF55" : "#FF5555";
-        cmd.set(idx + "Toggle.Style.Default.LabelStyle.TextColor", valueColor);
-        cmd.set(idx + "Toggle.Style.Hovered.LabelStyle.TextColor", valueColor);
+        // Disable child toggles when parent is OFF, enable when ON
+        cmd.set(idx + "Toggle.Disabled", parentDisabled);
 
         // Default indicator (shows "(default)" or "(custom)")
         if (isDefault) {
@@ -142,7 +147,7 @@ public class AdminZoneSettingsPage extends InteractiveCustomUIPage<AdminZoneSett
             cmd.set(idx + "Default.Style.TextColor", "#FFAA00");
         }
 
-        // Toggle event
+        // Toggle event (disabled buttons won't fire anyway)
         events.addEventBinding(
                 CustomUIEventBindingType.Activating,
                 idx + "Toggle",
@@ -199,14 +204,18 @@ public class AdminZoneSettingsPage extends InteractiveCustomUIPage<AdminZoneSett
         // Toggle the flag
         boolean currentValue = zone.getEffectiveFlag(flagName);
         boolean newValue = !currentValue;
-        ZoneManager.ZoneResult result = zoneManager.setZoneFlag(zoneId, flagName, newValue);
+        boolean defaultValue = ZoneFlags.getDefault(flagName, zone.type());
 
-        if (result == ZoneManager.ZoneResult.SUCCESS) {
-            player.sendMessage(Message.raw("[Admin] Set " + ZoneFlags.getDisplayName(flagName) +
-                    " to " + (newValue ? "ON" : "OFF")).color("#55FF55"));
+        ZoneManager.ZoneResult result;
+        if (newValue == defaultValue) {
+            // Clear the flag to use default
+            result = zoneManager.clearZoneFlag(zoneId, flagName);
         } else {
-            player.sendMessage(Message.raw("[Admin] Failed to set flag: " + result).color("#FF5555"));
+            // Set custom value
+            result = zoneManager.setZoneFlag(zoneId, flagName, newValue);
         }
+
+        // No chat message - UI feedback is sufficient
 
         rebuildPage();
     }
@@ -234,13 +243,14 @@ public class AdminZoneSettingsPage extends InteractiveCustomUIPage<AdminZoneSett
         }
 
         // Rebuild flag toggles (matching 2-column UI layout)
-        // Left column: Combat (0-3), Building (4-5), Damage (13-14)
+        // Left column: Combat (0-3), Damage (4-5), Building (6), Items (7-8)
         buildFlagCategory(cmd, events, zone, "Combat", ZoneFlags.COMBAT_FLAGS, 0);
-        buildFlagCategory(cmd, events, zone, "Building", ZoneFlags.BUILDING_FLAGS, 4);
-        buildFlagCategory(cmd, events, zone, "Damage", ZoneFlags.DAMAGE_FLAGS, 13);
-        // Right column: Interaction (6-10), Items (11-12)
-        buildFlagCategory(cmd, events, zone, "Interaction", ZoneFlags.INTERACTION_FLAGS, 6);
-        buildFlagCategory(cmd, events, zone, "Items", ZoneFlags.ITEM_FLAGS, 11);
+        buildFlagCategory(cmd, events, zone, "Damage", ZoneFlags.DAMAGE_FLAGS, 4);
+        buildFlagCategory(cmd, events, zone, "Building", ZoneFlags.BUILDING_FLAGS, 6);
+        buildFlagCategory(cmd, events, zone, "Items", ZoneFlags.ITEM_FLAGS, 7);
+        // Right column: Interaction (9-14), Spawning (15-18)
+        buildFlagCategory(cmd, events, zone, "Interaction", ZoneFlags.INTERACTION_FLAGS, 9);
+        buildFlagCategory(cmd, events, zone, "Spawning", ZoneFlags.SPAWNING_FLAGS, 15);
 
         // Update reset button state
         if (!zone.getFlags().isEmpty()) {

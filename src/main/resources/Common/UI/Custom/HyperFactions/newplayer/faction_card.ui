@@ -62,7 +62,7 @@ Group {
   Group {
     Anchor: (Width: 80);
     LayoutMode: Top;
-    Padding: (Top: 8);
+    Padding: (Left: 0, Right: 0, Top: 8, Bottom: 0);
 
     TextButton #ActionBtn {
       Text: "JOIN";

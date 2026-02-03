@@ -7,7 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-*No changes yet*
+### Added
+
+**Mob Spawn Suppression System**
+- New SpawnSuppressionManager integrates with Hytale's native SpawnSuppressionController
+- Chunk-based spawn suppression using the server's built-in suppression system
+- 4 new zone flags for granular mob spawning control:
+  - `mob_spawning` - Master toggle (false = block all mob spawning)
+  - `hostile_mob_spawning` - Control hostile mob spawning
+  - `passive_mob_spawning` - Control passive mob spawning
+  - `neutral_mob_spawning` - Control neutral mob spawning
+- SafeZones now block all mob spawning by default
+- WarZones allow all mob spawning by default
+- Uses Hytale's NPCGroup system (hostile, passive, neutral) for categorization
+- Suppression automatically applied to new worlds on load
+
+**Overclaim Defender Alerts**
+- Faction members now receive real-time alerts when their territory is overclaimed
+- Alert message includes attacker faction name and chunk coordinates
+
+### Changed
+
+- Updated admin zone settings UI with mob spawning controls
+- Reorganized zone flag categories for better UI organization:
+  - Combat flags: PvP, friendly fire, projectile damage, mob damage
+  - Building flags: Build allowed
+  - Spawning flags: Mob spawning (4 flags)
+  - Interaction flags: Block interact, door, container, bench, processing, seat use
+  - Item flags: Item drop, item pickup
+  - Damage flags: Fall damage, environmental damage
 
 ## [0.5.2] - 2026-02-03
 

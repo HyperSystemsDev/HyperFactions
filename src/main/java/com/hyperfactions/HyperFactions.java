@@ -4,6 +4,7 @@ import com.hyperfactions.api.events.EventBus;
 import com.hyperfactions.api.events.FactionDisbandEvent;
 import com.hyperfactions.backup.BackupManager;
 import com.hyperfactions.config.ConfigManager;
+import com.hyperfactions.data.Faction;
 import com.hyperfactions.gui.GuiManager;
 import com.hyperfactions.integration.HyperPermsIntegration;
 import com.hyperfactions.integration.PermissionManager;
@@ -63,6 +64,7 @@ public class HyperFactions {
     private JoinRequestManager joinRequestManager;
     private ChatManager chatManager;
     private ConfirmationManager confirmationManager;
+    private SpawnSuppressionManager spawnSuppressionManager;
 
     // Protection
     private ProtectionChecker protectionChecker;
@@ -179,6 +181,7 @@ public class HyperFactions {
         relationManager = new RelationManager(factionManager);
         combatTagManager = new CombatTagManager();
         zoneManager = new ZoneManager(zoneStorage, claimManager);
+        spawnSuppressionManager = new SpawnSuppressionManager(zoneManager);
         teleportManager = new TeleportManager(factionManager);
         inviteManager = new InviteManager(dataDir);
         joinRequestManager = new JoinRequestManager(dataDir);
@@ -259,8 +262,27 @@ public class HyperFactions {
         // Wire up claim change callback to refresh world maps
         claimManager.setOnClaimChangeCallback(worldMapService::refreshAllWorldMaps);
 
-        // Wire up zone change callback to refresh world maps
-        zoneManager.setOnZoneChangeCallback(worldMapService::refreshAllWorldMaps);
+        // Wire up notification callback for overclaim alerts (uses deferred playerLookup)
+        claimManager.setNotificationCallback((factionId, message, hexColor) -> {
+            Faction faction = factionManager.getFaction(factionId);
+            if (faction == null || playerLookup == null) return;
+
+            com.hypixel.hytale.server.core.Message formatted =
+                com.hypixel.hytale.server.core.Message.raw("[").color("#AAAAAA")
+                    .insert(com.hypixel.hytale.server.core.Message.raw("HyperFactions").color("#55FFFF"))
+                    .insert(com.hypixel.hytale.server.core.Message.raw("] ").color("#AAAAAA"))
+                    .insert(com.hypixel.hytale.server.core.Message.raw(message).color(hexColor));
+
+            for (UUID memberUuid : faction.members().keySet()) {
+                com.hypixel.hytale.server.core.universe.PlayerRef member = playerLookup.apply(memberUuid);
+                if (member != null) {
+                    member.sendMessage(formatted);
+                }
+            }
+        });
+
+        // Zone change callback is set by the platform plugin (HyperFactionsPlugin)
+        // to include both world map refresh and spawn suppression updates
 
         // Initialize update checker if enabled
         if (ConfigManager.get().isUpdateCheckEnabled()) {
@@ -720,6 +742,16 @@ public class HyperFactions {
     @NotNull
     public WorldMapService getWorldMapService() {
         return worldMapService;
+    }
+
+    /**
+     * Gets the spawn suppression manager.
+     *
+     * @return the spawn suppression manager
+     */
+    @NotNull
+    public SpawnSuppressionManager getSpawnSuppressionManager() {
+        return spawnSuppressionManager;
     }
 
     // === Admin Bypass Toggle ===

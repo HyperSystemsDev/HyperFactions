@@ -34,9 +34,48 @@ public class ClaimManager {
     @Nullable
     private Runnable onClaimChangeCallback;
 
+    // Callback for notifying faction members (used for overclaim alerts)
+    @Nullable
+    private FactionNotificationCallback notificationCallback;
+
+    /**
+     * Functional interface for sending notifications to faction members.
+     */
+    @FunctionalInterface
+    public interface FactionNotificationCallback {
+        void notifyFaction(UUID factionId, String message, String hexColor);
+    }
+
     public ClaimManager(@NotNull FactionManager factionManager, @NotNull PowerManager powerManager) {
         this.factionManager = factionManager;
         this.powerManager = powerManager;
+    }
+
+    /**
+     * Sets a callback for notifying faction members.
+     * Used to alert defenders when territory is overclaimed.
+     *
+     * @param callback the notification callback
+     */
+    public void setNotificationCallback(@Nullable FactionNotificationCallback callback) {
+        this.notificationCallback = callback;
+    }
+
+    /**
+     * Notifies all online members of a faction.
+     *
+     * @param factionId the faction ID
+     * @param message   the message text
+     * @param hexColor  the message color
+     */
+    private void notifyFactionMembers(@NotNull UUID factionId, @NotNull String message, @NotNull String hexColor) {
+        if (notificationCallback != null) {
+            try {
+                notificationCallback.notifyFaction(factionId, message, hexColor);
+            } catch (Exception e) {
+                Logger.warn("Failed to notify faction members: %s", e.getMessage());
+            }
+        }
     }
 
     /**
@@ -412,6 +451,12 @@ public class ClaimManager {
         Logger.debugClaim("Overclaim success: chunk=%s, attacker=%s, defender=%s, defenderClaims=%d/%d",
             key, attackerFaction.name(), defenderFaction.name(), defenderFaction.getClaimCount() - 1, defenderMaxClaims);
         Logger.info("Faction '%s' overclaimed chunk from '%s'", attackerFaction.name(), defenderFaction.name());
+
+        // Notify defender faction members that they lost territory
+        notifyFactionMembers(defenderId,
+            String.format("Territory lost! %s overclaimed chunk at %d, %d", attackerFaction.name(), chunkX, chunkZ),
+            "#FF5555");
+
         notifyClaimChange();
         return ClaimResult.SUCCESS;
     }
