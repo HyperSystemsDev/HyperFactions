@@ -1,10 +1,13 @@
 # HyperFactions
 
+[![Discord](https://img.shields.io/badge/Discord-Join%20Us-7289DA?logo=discord&logoColor=white)](https://discord.gg/SNPjyfkYPc)
+[![GitHub](https://img.shields.io/github/stars/HyperSystemsDev/HyperFactions?style=social)](https://github.com/HyperSystemsDev/HyperFactions)
+
 A comprehensive faction management mod for Hytale servers featuring territory claims, alliances, strategic PvP, power systems, and extensive customization. Part of the **HyperSystems** plugin suite.
 
 **Version:** 0.2.0
 **Game:** Hytale Early Access
-**License:** GLPv3
+**License:** GPLv3
 
 ---
 
@@ -224,7 +227,7 @@ HyperFactions transforms your Hytale server into a dynamic faction-based environ
 
 ## Configuration
 
-Configuration file: `plugins/HyperFactions/config.json`
+Configuration file: `mods/com.hyperfactions_HyperFactions/config.json`
 
 ```json
 {
@@ -348,6 +351,14 @@ plugins/HyperFactions/
 
 ## Building from Source
 
+### Requirements
+
+- Java 21+ (for building)
+- Java 25 (for running on Hytale server)
+- Gradle 8.12+
+- Hytale Server (Early Access)
+- Optional: HyperPerms (for enhanced permission control)
+
 ```bash
 ./gradlew build
 ```
@@ -356,28 +367,22 @@ The output JAR will be in `build/libs/`.
 
 ---
 
-## Requirements
-
-- Hytale Server (Early Access)
-- Java 21+
-- Optional: HyperPerms (for enhanced permission control)
-
----
-
 ## Support
 
 - **Discord:** https://discord.gg/SNPjyfkYPc
-- **GitHub Issues:** https://github.com/ZenithDevHQ/HyperFactions/issues
+- **GitHub Issues:** https://github.com/HyperSystemsDev/HyperFactions/issues
 
 ---
 
 ## Credits
 
-Developed by **ZenithDevHQ**
+Developed by **HyperSystemsDev**
 
-Part of the **HyperSystems** plugin suite alongside:
-- [HyperPerms](https://github.com/ZenithDevHQ/HyperPerms) - Advanced permissions
-- [HyperHomes](https://github.com/ZenithDevHQ/HyperHomes) - Home teleportation
+Part of the **HyperSystems** plugin suite:
+- [HyperPerms](https://github.com/HyperSystemsDev/HyperPerms) - Advanced permissions
+- [HyperHomes](https://github.com/HyperSystemsDev/HyperHomes) - Home teleportation
+- [HyperFactions](https://github.com/HyperSystemsDev/HyperFactions) - Faction management
+- [HyperWarp](https://github.com/HyperSystemsDev/HyperWarp) - Warps, spawns, TPA
 
 ---
 
