@@ -6,6 +6,7 @@ import com.hyperfactions.data.ChunkKey;
 import com.hyperfactions.data.Faction;
 import com.hyperfactions.data.FactionClaim;
 import com.hyperfactions.data.FactionLog;
+import com.hyperfactions.data.FactionMember;
 import com.hyperfactions.integration.PermissionManager;
 import com.hyperfactions.util.ChunkUtil;
 import com.hyperfactions.util.Logger;
@@ -472,5 +473,143 @@ public class ClaimManager {
         factionManager.updateFaction(updated);
 
         return ClaimResult.SUCCESS;
+    }
+
+    // === Claim Decay ===
+
+    /**
+     * Runs claim decay for inactive factions.
+     * Removes claims from factions where ALL members have been offline
+     * for longer than the configured threshold.
+     *
+     * <p>This method is called periodically (default: every hour) to clean up
+     * territory from abandoned factions.</p>
+     */
+    public void tickClaimDecay() {
+        ConfigManager config = ConfigManager.get();
+        if (!config.isDecayEnabled()) {
+            return;
+        }
+
+        int daysThreshold = config.getDecayDaysInactive();
+        long thresholdMs = System.currentTimeMillis() - (daysThreshold * 24L * 60 * 60 * 1000);
+
+        int factionsDecayed = 0;
+        int claimsRemoved = 0;
+
+        // Check all factions with claims
+        for (UUID factionId : new HashSet<>(factionClaimsIndex.keySet())) {
+            Faction faction = factionManager.getFaction(factionId);
+            if (faction == null) {
+                // Orphaned claims - clean them up
+                int orphanedClaims = factionClaimsIndex.getOrDefault(factionId, Collections.emptySet()).size();
+                unclaimAll(factionId);
+                claimsRemoved += orphanedClaims;
+                Logger.info("Claim decay: Removed %d orphaned claims (faction no longer exists)", orphanedClaims);
+                continue;
+            }
+
+            // Check if all members are inactive
+            boolean allInactive = true;
+            long mostRecentLogin = 0;
+            for (FactionMember member : faction.members().values()) {
+                if (member.lastOnline() > mostRecentLogin) {
+                    mostRecentLogin = member.lastOnline();
+                }
+                if (member.lastOnline() > thresholdMs) {
+                    allInactive = false;
+                    break;
+                }
+            }
+
+            if (allInactive && faction.getClaimCount() > 0) {
+                int claims = faction.getClaimCount();
+                long daysSinceActive = (System.currentTimeMillis() - mostRecentLogin) / (24L * 60 * 60 * 1000);
+
+                // Log the decay with faction details
+                Faction updated = faction.withLog(FactionLog.create(FactionLog.LogType.UNCLAIM,
+                    String.format("All %d claims removed due to inactivity (%d days)", claims, daysSinceActive), null));
+                factionManager.updateFaction(updated);
+
+                unclaimAll(factionId);
+                factionsDecayed++;
+                claimsRemoved += claims;
+
+                Logger.info("Claim decay: Faction '%s' lost %d claims (inactive for %d days, threshold: %d days)",
+                    faction.name(), claims, daysSinceActive, daysThreshold);
+            }
+        }
+
+        if (factionsDecayed > 0) {
+            Logger.info("Claim decay complete: %d factions affected, %d total claims removed",
+                factionsDecayed, claimsRemoved);
+        } else {
+            Logger.debugClaim("Claim decay tick: no inactive factions found (threshold: %d days)", daysThreshold);
+        }
+    }
+
+    /**
+     * Checks if a faction is considered inactive.
+     * A faction is inactive if ALL members have been offline for longer
+     * than the configured decay threshold.
+     *
+     * @param factionId the faction ID to check
+     * @return true if all members are inactive, false otherwise
+     */
+    public boolean isFactionInactive(@NotNull UUID factionId) {
+        ConfigManager config = ConfigManager.get();
+        if (!config.isDecayEnabled()) {
+            return false;
+        }
+
+        Faction faction = factionManager.getFaction(factionId);
+        if (faction == null) {
+            return true; // Non-existent faction is considered inactive
+        }
+
+        int daysThreshold = config.getDecayDaysInactive();
+        long thresholdMs = System.currentTimeMillis() - (daysThreshold * 24L * 60 * 60 * 1000);
+
+        for (FactionMember member : faction.members().values()) {
+            if (member.lastOnline() > thresholdMs) {
+                return false; // At least one active member
+            }
+        }
+
+        return true; // All members inactive
+    }
+
+    /**
+     * Gets the number of days until a faction's claims will decay.
+     * Returns -1 if decay is disabled or faction has active members.
+     *
+     * @param factionId the faction ID to check
+     * @return days until decay, or -1 if not applicable
+     */
+    public int getDaysUntilDecay(@NotNull UUID factionId) {
+        ConfigManager config = ConfigManager.get();
+        if (!config.isDecayEnabled()) {
+            return -1;
+        }
+
+        Faction faction = factionManager.getFaction(factionId);
+        if (faction == null || faction.getClaimCount() == 0) {
+            return -1;
+        }
+
+        int daysThreshold = config.getDecayDaysInactive();
+
+        // Find most recent member login
+        long mostRecentLogin = 0;
+        for (FactionMember member : faction.members().values()) {
+            if (member.lastOnline() > mostRecentLogin) {
+                mostRecentLogin = member.lastOnline();
+            }
+        }
+
+        long daysSinceActive = (System.currentTimeMillis() - mostRecentLogin) / (24L * 60 * 60 * 1000);
+        int daysUntilDecay = daysThreshold - (int) daysSinceActive;
+
+        return Math.max(0, daysUntilDecay);
     }
 }

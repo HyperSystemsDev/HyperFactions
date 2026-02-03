@@ -1,495 +1,326 @@
-# HyperFactions Configuration
+# HyperFactions Config System
 
-This document details the complete configuration system for HyperFactions.
+Architecture documentation for the HyperFactions configuration system.
 
 ## Overview
 
-HyperFactions uses a JSON-based configuration system. The config file is located at:
+HyperFactions uses a modular JSON-based configuration system with:
+
+- **ConfigManager** - Central coordinator for all config files
+- **CoreConfig** - Main `config.json` with core settings
+- **Module Configs** - Feature-specific configs in `config/` subdirectory
+- **Validation** - Automatic validation with warnings and auto-correction
+- **Migration** - Version-aware config migration support
+
+## Architecture
 
 ```
-<server>/mods/com.hyperfactions_HyperFactions/config.json
+ConfigManager (singleton)
+     │
+     ├─► CoreConfig (config.json)
+     │        │
+     │        └─► Faction, Power, Claims, Combat, Relations,
+     │            Invites, Teleport, Updates, AutoSave, Messages, GUI
+     │
+     └─► Module Configs (config/*.json)
+              │
+              ├─► BackupConfig (backup.json)
+              ├─► ChatConfig (chat.json)
+              ├─► DebugConfig (debug.json)
+              ├─► EconomyConfig (economy.json)
+              └─► FactionPermissionsConfig (faction-permissions.json)
 ```
 
-### Behavior
+## File Structure
 
-- **First run**: If `config.json` doesn't exist, a default config is created with all settings.
-- **Missing keys**: When the config is loaded, any missing keys are set to their default values, and the config is automatically saved with the new keys added.
-- **Reload**: Use `/f admin reload` to reload the config without restarting the server.
+```
+<server>/mods/com.hyperfactions_HyperFactions/
+├── config.json                    # Core configuration
+├── config/                        # Module configs
+│   ├── backup.json
+│   ├── chat.json
+│   ├── debug.json
+│   ├── economy.json
+│   └── faction-permissions.json
+├── factions/                      # Faction data (see storage.md)
+├── players/                       # Player data (see storage.md)
+└── zones.json                     # Zone data (see storage.md)
+```
 
-## Configuration Sections
+## Key Classes
+
+| Class | Path | Purpose |
+|-------|------|---------|
+| ConfigManager | [`config/ConfigManager.java`](../src/main/java/com/hyperfactions/config/ConfigManager.java) | Singleton coordinator |
+| ConfigFile | [`config/ConfigFile.java`](../src/main/java/com/hyperfactions/config/ConfigFile.java) | Base class for config files |
+| CoreConfig | [`config/CoreConfig.java`](../src/main/java/com/hyperfactions/config/CoreConfig.java) | Main config.json |
+| ModuleConfig | [`config/ModuleConfig.java`](../src/main/java/com/hyperfactions/config/ModuleConfig.java) | Base for module configs |
+| ValidationResult | [`config/ValidationResult.java`](../src/main/java/com/hyperfactions/config/ValidationResult.java) | Validation tracking |
+
+## ConfigManager
+
+[`config/ConfigManager.java`](../src/main/java/com/hyperfactions/config/ConfigManager.java)
+
+Singleton that orchestrates all configuration:
+
+```java
+public class ConfigManager {
+
+    private static ConfigManager instance;
+
+    private Path dataDir;
+    private CoreConfig coreConfig;
+    private BackupConfig backupConfig;
+    private ChatConfig chatConfig;
+    private DebugConfig debugConfig;
+    private EconomyConfig economyConfig;
+    private FactionPermissionsConfig factionPermissionsConfig;
+
+    public static ConfigManager get() {
+        if (instance == null) {
+            instance = new ConfigManager();
+        }
+        return instance;
+    }
+
+    public void loadAll(Path dataDir) {
+        this.dataDir = dataDir;
+
+        // 1. Run pending migrations
+        runMigrations();
+
+        // 2. Load core config
+        coreConfig = new CoreConfig(dataDir.resolve("config.json"));
+        coreConfig.load();
+
+        // 3. Load module configs
+        Path configDir = dataDir.resolve("config");
+        backupConfig = new BackupConfig(configDir.resolve("backup.json"));
+        chatConfig = new ChatConfig(configDir.resolve("chat.json"));
+        // ... etc
+
+        // 4. Validate all configs
+        validateAll();
+    }
+
+    public void reloadAll() { ... }
+    public void saveAll() { ... }
+}
+```
+
+### Usage Pattern
+
+```java
+// Access config values
+ConfigManager config = ConfigManager.get();
+int maxMembers = config.getMaxMembers();
+boolean pvpEnabled = config.isFactionDamage();
+
+// Access specific config objects
+CoreConfig core = config.core();
+BackupConfig backup = config.backup();
+```
+
+## Config Loading Process
+
+```
+1. ConfigManager.loadAll(dataDir)
+        │
+        ▼
+2. Run pending migrations (MigrationRunner)
+        │
+        ▼
+3. Load CoreConfig
+   - Read config.json
+   - Apply defaults for missing keys
+   - Save with new keys added
+        │
+        ▼
+4. Load Module Configs (same process)
+        │
+        ▼
+5. Validate all configs
+   - Check value ranges
+   - Log warnings for invalid values
+   - Auto-correct where possible
+```
+
+## ConfigFile Base Class
+
+[`config/ConfigFile.java`](../src/main/java/com/hyperfactions/config/ConfigFile.java)
+
+Base class providing common functionality:
+
+```java
+public abstract class ConfigFile {
+
+    protected final Path path;
+    protected JsonObject data;
+    protected ValidationResult lastValidationResult;
+
+    public void load() {
+        if (Files.exists(path)) {
+            // Load existing config
+            data = parseJson(path);
+        } else {
+            // Create with defaults
+            data = new JsonObject();
+        }
+
+        // Apply defaults for any missing keys
+        applyDefaults();
+
+        // Save (adds missing keys to file)
+        save();
+    }
+
+    protected abstract void applyDefaults();
+
+    public void validateAndLog() {
+        lastValidationResult = validate();
+        for (String warning : lastValidationResult.getWarnings()) {
+            Logger.warn("[Config] %s: %s", path.getFileName(), warning);
+        }
+    }
+
+    protected abstract ValidationResult validate();
+}
+```
+
+## Core Config Sections
+
+[`config/CoreConfig.java`](../src/main/java/com/hyperfactions/config/CoreConfig.java)
 
 ### faction
 
-Basic faction settings.
+Basic faction settings:
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| `maxMembers` | int | `50` | Maximum members per faction |
-| `maxNameLength` | int | `24` | Maximum faction name length |
-| `minNameLength` | int | `3` | Minimum faction name length |
-| `allowColors` | bool | `true` | Allow color codes in faction names |
-
-```json
-"faction": {
-  "maxMembers": 50,
-  "maxNameLength": 24,
-  "minNameLength": 3,
-  "allowColors": true
-}
-```
+| `maxMembers` | int | 50 | Maximum members per faction |
+| `maxNameLength` | int | 24 | Maximum faction name length |
+| `minNameLength` | int | 3 | Minimum faction name length |
+| `allowColors` | bool | true | Allow color codes in names |
 
 ### power
 
-Power mechanics control territory claiming limits.
+Power mechanics:
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| `maxPlayerPower` | double | `20.0` | Maximum power a player can have |
-| `startingPower` | double | `10.0` | Power given to new players |
-| `powerPerClaim` | double | `2.0` | Power required per claimed chunk |
-| `deathPenalty` | double | `1.0` | Power lost on death |
-| `regenPerMinute` | double | `0.1` | Power regenerated per minute |
-| `regenWhenOffline` | bool | `false` | Regenerate power while offline |
-
-```json
-"power": {
-  "maxPlayerPower": 20.0,
-  "startingPower": 10.0,
-  "powerPerClaim": 2.0,
-  "deathPenalty": 1.0,
-  "regenPerMinute": 0.1,
-  "regenWhenOffline": false
-}
-```
-
-**Claim Limit Formula**: `max_claims = min(floor(total_faction_power / powerPerClaim), maxClaims)`
+| `maxPlayerPower` | double | 20.0 | Maximum power per player |
+| `startingPower` | double | 10.0 | Initial power for new players |
+| `powerPerClaim` | double | 2.0 | Power cost per claim |
+| `deathPenalty` | double | 1.0 | Power lost on death |
+| `regenPerMinute` | double | 0.1 | Power regeneration rate |
+| `regenWhenOffline` | bool | false | Regen while offline |
 
 ### claims
 
-Territory claiming settings.
+Territory settings:
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| `maxClaims` | int | `100` | Hard limit on claims per faction |
-| `onlyAdjacent` | bool | `false` | Require claims to be adjacent |
-| `decayEnabled` | bool | `true` | Enable claim decay for inactive factions |
-| `decayDaysInactive` | int | `30` | Days before claims start decaying |
-| `worldWhitelist` | array | `[]` | Only allow claiming in these worlds |
-| `worldBlacklist` | array | `[]` | Prevent claiming in these worlds |
-
-```json
-"claims": {
-  "maxClaims": 100,
-  "onlyAdjacent": false,
-  "decayEnabled": true,
-  "decayDaysInactive": 30,
-  "worldWhitelist": [],
-  "worldBlacklist": []
-}
-```
-
-**World filtering logic**:
-- If `worldWhitelist` is set, only those worlds allow claiming
-- If `worldBlacklist` is set, those worlds are excluded
-- If neither is set, all worlds allow claiming
+| `maxClaims` | int | 100 | Hard limit per faction |
+| `onlyAdjacent` | bool | false | Require adjacent claims |
+| `decayEnabled` | bool | true | Enable claim decay |
+| `decayDaysInactive` | int | 30 | Days before decay starts |
+| `worldWhitelist` | array | [] | Only these worlds allow claiming |
+| `worldBlacklist` | array | [] | These worlds block claiming |
 
 ### combat
 
-Combat and PvP settings.
+Combat settings:
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| `tagDurationSeconds` | int | `15` | Combat tag duration |
-| `allyDamage` | bool | `false` | Allow damage between allies |
-| `factionDamage` | bool | `false` | Allow damage between faction members |
-| `taggedLogoutPenalty` | bool | `true` | Punish logout while combat tagged |
-
-#### combat.spawnProtection
-
-Spawn protection (anti-spawnkill) settings.
-
-| Key | Type | Default | Description |
-|-----|------|---------|-------------|
-| `enabled` | bool | `true` | Enable spawn protection |
-| `durationSeconds` | int | `5` | Protection duration after respawn |
-| `breakOnAttack` | bool | `true` | Remove protection if player attacks |
-| `breakOnMove` | bool | `true` | Remove protection if player moves |
-
-```json
-"combat": {
-  "tagDurationSeconds": 15,
-  "allyDamage": false,
-  "factionDamage": false,
-  "taggedLogoutPenalty": true,
-  "spawnProtection": {
-    "enabled": true,
-    "durationSeconds": 5,
-    "breakOnAttack": true,
-    "breakOnMove": true
-  }
-}
-```
-
-### relations
-
-Diplomatic relation limits.
-
-| Key | Type | Default | Description |
-|-----|------|---------|-------------|
-| `maxAllies` | int | `10` | Maximum ally factions (-1 = unlimited) |
-| `maxEnemies` | int | `-1` | Maximum enemy factions (-1 = unlimited) |
-
-```json
-"relations": {
-  "maxAllies": 10,
-  "maxEnemies": -1
-}
-```
-
-### invites
-
-Invitation and join request settings.
-
-| Key | Type | Default | Description |
-|-----|------|---------|-------------|
-| `inviteExpirationMinutes` | int | `5` | How long faction invites last |
-| `joinRequestExpirationHours` | int | `24` | How long join requests last |
-
-```json
-"invites": {
-  "inviteExpirationMinutes": 5,
-  "joinRequestExpirationHours": 24
-}
-```
-
-### stuck
-
-Settings for `/f stuck` command (teleport out of enemy territory).
-
-| Key | Type | Default | Description |
-|-----|------|---------|-------------|
-| `warmupSeconds` | int | `30` | Warmup before teleport |
-| `cooldownSeconds` | int | `300` | Cooldown between uses (5 min) |
-
-```json
-"stuck": {
-  "warmupSeconds": 30,
-  "cooldownSeconds": 300
-}
-```
+| `tagDurationSeconds` | int | 15 | Combat tag duration |
+| `allyDamage` | bool | false | Allow ally damage |
+| `factionDamage` | bool | false | Allow faction damage |
+| `taggedLogoutPenalty` | bool | true | Punish combat logout |
+| `spawnProtection.enabled` | bool | true | Enable spawn protection |
+| `spawnProtection.durationSeconds` | int | 5 | Protection duration |
 
 ### teleport
 
-Settings for `/f home` teleportation.
+Teleportation settings:
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| `warmupSeconds` | int | `5` | Warmup before teleport |
-| `cooldownSeconds` | int | `300` | Cooldown between teleports |
-| `cancelOnMove` | bool | `true` | Cancel teleport if player moves |
-| `cancelOnDamage` | bool | `true` | Cancel teleport if player takes damage |
-
-```json
-"teleport": {
-  "warmupSeconds": 5,
-  "cooldownSeconds": 300,
-  "cancelOnMove": true,
-  "cancelOnDamage": true
-}
-```
-
-### updates
-
-Automatic update checking settings.
-
-| Key | Type | Default | Description |
-|-----|------|---------|-------------|
-| `enabled` | bool | `true` | Enable update checking |
-| `url` | string | GitHub API URL | Update check endpoint |
-| `releaseChannel` | string | `"stable"` | `"stable"` or `"prerelease"` |
-
-```json
-"updates": {
-  "enabled": true,
-  "url": "https://api.github.com/repos/ZenithDevHQ/HyperFactions/releases/latest",
-  "releaseChannel": "stable"
-}
-```
-
-**Release Channels**:
-- `stable`: Only checks for stable releases (recommended for production)
-- `prerelease`: Includes pre-release versions (for testing new features)
-
-### autoSave
-
-Auto-save settings.
-
-| Key | Type | Default | Description |
-|-----|------|---------|-------------|
-| `enabled` | bool | `true` | Enable automatic saving |
-| `intervalMinutes` | int | `5` | Save interval in minutes |
-
-```json
-"autoSave": {
-  "enabled": true,
-  "intervalMinutes": 5
-}
-```
-
-### economy
-
-Economy integration settings (for future use).
-
-| Key | Type | Default | Description |
-|-----|------|---------|-------------|
-| `enabled` | bool | `true` | Enable economy features |
-| `currencyName` | string | `"dollar"` | Singular currency name |
-| `currencyNamePlural` | string | `"dollars"` | Plural currency name |
-| `currencySymbol` | string | `"$"` | Currency symbol |
-| `startingBalance` | double | `0.0` | Starting balance for new factions |
-
-```json
-"economy": {
-  "enabled": true,
-  "currencyName": "dollar",
-  "currencyNamePlural": "dollars",
-  "currencySymbol": "$",
-  "startingBalance": 0.0
-}
-```
-
-### messages
-
-Message formatting settings.
-
-| Key | Type | Default | Description |
-|-----|------|---------|-------------|
-| `prefix` | string | `"[HyperFactions] "` | Message prefix (supports color codes) |
-| `primaryColor` | string | `"#00FFFF"` | Primary accent color |
-
-```json
-"messages": {
-  "prefix": "\u00A7b[HyperFactions]\u00A7r ",
-  "primaryColor": "#00FFFF"
-}
-```
-
-### gui
-
-GUI settings.
-
-| Key | Type | Default | Description |
-|-----|------|---------|-------------|
-| `title` | string | `"HyperFactions"` | Title shown in navigation bar |
-
-```json
-"gui": {
-  "title": "HyperFactions"
-}
-```
-
-### territoryNotifications
-
-Territory entry/exit notifications.
-
-| Key | Type | Default | Description |
-|-----|------|---------|-------------|
-| `enabled` | bool | `true` | Enable territory notifications |
-
-```json
-"territoryNotifications": {
-  "enabled": true
-}
-```
-
-### worldMap
-
-World map marker settings.
-
-| Key | Type | Default | Description |
-|-----|------|---------|-------------|
-| `enabled` | bool | `true` | Enable world map claim markers |
-
-```json
-"worldMap": {
-  "enabled": true
-}
-```
-
-### debug
-
-Debug logging settings.
-
-| Key | Type | Default | Description |
-|-----|------|---------|-------------|
-| `enabledByDefault` | bool | `false` | Enable all debug categories |
-| `logToConsole` | bool | `true` | Output debug to console |
-
-#### debug.categories
-
-Per-category debug toggles.
-
-| Key | Type | Default | Description |
-|-----|------|---------|-------------|
-| `power` | bool | `false` | Power system debug |
-| `claim` | bool | `false` | Claim system debug |
-| `combat` | bool | `false` | Combat system debug |
-| `protection` | bool | `false` | Protection system debug |
-| `relation` | bool | `false` | Relation system debug |
-| `territory` | bool | `false` | Territory system debug |
-
-```json
-"debug": {
-  "enabledByDefault": false,
-  "logToConsole": true,
-  "categories": {
-    "power": false,
-    "claim": false,
-    "combat": false,
-    "protection": false,
-    "relation": false,
-    "territory": false
-  }
-}
-```
-
-### chat
-
-Chat formatting settings.
-
-| Key | Type | Default | Description |
-|-----|------|---------|-------------|
-| `enabled` | bool | `true` | Enable faction chat formatting |
-| `format` | string | `"{faction_tag}{prefix}{player}{suffix}: {message}"` | Chat format template |
-| `tagDisplay` | string | `"tag"` | `"tag"`, `"name"`, or `"none"` |
-| `tagFormat` | string | `"[{tag}] "` | Format for faction tag |
-| `noFactionTag` | string | `""` | Tag for non-faction players |
-| `priority` | string | `"LATE"` | Event priority (after LuckPerms) |
-
-#### chat.relationColors
-
-Colors for faction tags based on relation to viewer.
-
-| Key | Type | Default | Description |
-|-----|------|---------|-------------|
-| `own` | string | `"#00FF00"` | Same faction (green) |
-| `ally` | string | `"#FF69B4"` | Allied faction (pink) |
-| `neutral` | string | `"#AAAAAA"` | Neutral faction (gray) |
-| `enemy` | string | `"#FF0000"` | Enemy faction (red) |
-
-```json
-"chat": {
-  "enabled": true,
-  "format": "{faction_tag}{prefix}{player}{suffix}: {message}",
-  "tagDisplay": "tag",
-  "tagFormat": "[{tag}] ",
-  "noFactionTag": "",
-  "priority": "LATE",
-  "relationColors": {
-    "own": "#00FF00",
-    "ally": "#FF69B4",
-    "neutral": "#AAAAAA",
-    "enemy": "#FF0000"
-  }
-}
-```
+| `warmupSeconds` | int | 5 | Warmup before teleport |
+| `cooldownSeconds` | int | 300 | Cooldown between teleports |
+| `cancelOnMove` | bool | true | Cancel on movement |
+| `cancelOnDamage` | bool | true | Cancel on damage |
 
 ### permissions
 
-Server-level permission settings.
+Permission behavior:
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| `adminRequiresOp` | bool | `true` | Admin commands require OP |
-| `fallbackBehavior` | string | `"allow"` | `"allow"` or `"deny"` when no perm provider |
+| `adminRequiresOp` | bool | true | Admin commands require OP |
+| `fallbackBehavior` | string | "allow" | Default when no provider |
+
+## Module Configs
+
+### BackupConfig
+
+[`config/modules/BackupConfig.java`](../src/main/java/com/hyperfactions/config/modules/BackupConfig.java)
+
+GFS (Grandfather-Father-Son) backup system:
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `enabled` | bool | true | Enable automatic backups |
+| `hourlyRetention` | int | 24 | Hourly backups to keep |
+| `dailyRetention` | int | 7 | Daily backups to keep |
+| `weeklyRetention` | int | 4 | Weekly backups to keep |
+| `manualRetention` | int | 10 | Manual backups to keep |
+| `onShutdown` | bool | true | Backup on server shutdown |
+
+### ChatConfig
+
+[`config/modules/ChatConfig.java`](../src/main/java/com/hyperfactions/config/modules/ChatConfig.java)
+
+Chat formatting:
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `enabled` | bool | true | Enable chat formatting |
+| `format` | string | `"{faction_tag}..."` | Chat format template |
+| `tagDisplay` | string | "tag" | Tag display mode |
+| `tagFormat` | string | `"[{tag}] "` | Tag format |
+| `priority` | string | "LATE" | Event priority |
+| `relationColors.own` | string | "#00FF00" | Own faction color |
+| `relationColors.ally` | string | "#FF69B4" | Ally color |
+| `relationColors.neutral` | string | "#AAAAAA" | Neutral color |
+| `relationColors.enemy` | string | "#FF0000" | Enemy color |
+
+### DebugConfig
+
+[`config/modules/DebugConfig.java`](../src/main/java/com/hyperfactions/config/modules/DebugConfig.java)
+
+Debug logging:
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `enabledByDefault` | bool | false | Enable all categories |
+| `logToConsole` | bool | true | Output to console |
+| `categories.power` | bool | false | Power system debug |
+| `categories.claim` | bool | false | Claim system debug |
+| `categories.combat` | bool | false | Combat system debug |
+| `categories.protection` | bool | false | Protection debug |
+| `categories.relation` | bool | false | Relation debug |
+| `categories.territory` | bool | false | Territory debug |
+
+### FactionPermissionsConfig
+
+[`config/modules/FactionPermissionsConfig.java`](../src/main/java/com/hyperfactions/config/modules/FactionPermissionsConfig.java)
+
+Territory permission defaults and locks:
 
 ```json
-"permissions": {
-  "adminRequiresOp": true,
-  "fallbackBehavior": "allow"
-}
-```
-
-### backup
-
-GFS (Grandfather-Father-Son) backup system settings.
-
-| Key | Type | Default | Description |
-|-----|------|---------|-------------|
-| `enabled` | bool | `true` | Enable automatic backups |
-| `hourlyRetention` | int | `24` | Number of hourly backups to keep |
-| `dailyRetention` | int | `7` | Number of daily backups to keep |
-| `weeklyRetention` | int | `4` | Number of weekly backups to keep |
-| `onShutdown` | bool | `true` | Create backup on server shutdown |
-
-```json
-"backup": {
-  "enabled": true,
-  "hourlyRetention": 24,
-  "dailyRetention": 7,
-  "weeklyRetention": 4,
-  "onShutdown": true
-}
-```
-
-**Backup Types:**
-- **Hourly (Son)**: Created every hour, keeps last N hours
-- **Daily (Father)**: Created at midnight, keeps last N days
-- **Weekly (Grandfather)**: Created Sunday at midnight, keeps last N weeks
-- **Manual**: Created via `/f admin backup create`, never auto-deleted
-
-**Backup Contents:**
-- `data/factions/` - All faction data files
-- `data/players/` - All player power data
-- `data/zones.json` - Zone definitions
-- `config.json` - Configuration file
-
-**Commands:** See [Permissions](permissions.md) for `/f admin backup` commands.
-
-### factionPermissions
-
-Faction territory permission settings. Controls what actions outsiders, allies, and members can perform in faction territory.
-
-#### factionPermissions.defaults
-
-Default permissions for newly created factions.
-
-| Key | Type | Default | Description |
-|-----|------|---------|-------------|
-| `outsiderBreak` | bool | `false` | Non-members can break blocks |
-| `outsiderPlace` | bool | `false` | Non-members can place blocks |
-| `outsiderInteract` | bool | `false` | Non-members can interact |
-| `allyBreak` | bool | `false` | Allies can break blocks |
-| `allyPlace` | bool | `false` | Allies can place blocks |
-| `allyInteract` | bool | `true` | Allies can interact |
-| `memberBreak` | bool | `true` | Members can break blocks |
-| `memberPlace` | bool | `true` | Members can place blocks |
-| `memberInteract` | bool | `true` | Members can interact |
-| `pvpEnabled` | bool | `true` | PvP allowed in territory |
-| `officersCanEdit` | bool | `false` | Officers can edit permissions |
-
-#### factionPermissions.locks
-
-When `true`, factions cannot change this setting (server enforced).
-
-| Key | Type | Default | Description |
-|-----|------|---------|-------------|
-| `outsiderBreak` | bool | `false` | Lock outsider break setting |
-| `outsiderPlace` | bool | `false` | Lock outsider place setting |
-| ... | ... | ... | Same keys as defaults |
-
-#### factionPermissions.forced
-
-When a setting is locked, use this value instead of the faction's setting.
-
-| Key | Type | Default | Description |
-|-----|------|---------|-------------|
-| `outsiderBreak` | bool | `false` | Forced outsider break value |
-| `outsiderPlace` | bool | `false` | Forced outsider place value |
-| ... | ... | ... | Same keys as defaults |
-
-```json
-"factionPermissions": {
+{
   "defaults": {
     "outsiderBreak": false,
     "outsiderPlace": false,
@@ -504,114 +335,212 @@ When a setting is locked, use this value instead of the faction's setting.
     "officersCanEdit": false
   },
   "locks": {
-    "outsiderBreak": false,
-    "outsiderPlace": false,
-    "outsiderInteract": false,
-    "allyBreak": false,
-    "allyPlace": false,
-    "allyInteract": false,
-    "memberBreak": false,
-    "memberPlace": false,
-    "memberInteract": false,
-    "pvpEnabled": false,
-    "officersCanEdit": false
+    "pvpEnabled": false
   },
   "forced": {
-    "outsiderBreak": false,
-    "outsiderPlace": false,
-    "outsiderInteract": false,
-    "allyBreak": false,
-    "allyPlace": false,
-    "allyInteract": true,
-    "memberBreak": true,
-    "memberPlace": true,
-    "memberInteract": true,
-    "pvpEnabled": true,
-    "officersCanEdit": false
+    "pvpEnabled": true
   }
 }
 ```
 
-**Example: Force PvP off in all faction territory**:
-```json
-"factionPermissions": {
-  "locks": { "pvpEnabled": true },
-  "forced": { "pvpEnabled": false }
+- **defaults** - Applied to new factions
+- **locks** - When true, factions cannot change this setting
+- **forced** - Value used when a setting is locked
+
+## Validation System
+
+[`config/ValidationResult.java`](../src/main/java/com/hyperfactions/config/ValidationResult.java)
+
+```java
+public class ValidationResult {
+
+    private final List<String> warnings = new ArrayList<>();
+    private final List<String> errors = new ArrayList<>();
+
+    public void addWarning(String message) {
+        warnings.add(message);
+    }
+
+    public void addError(String message) {
+        errors.add(message);
+    }
+
+    public boolean hasIssues() {
+        return !warnings.isEmpty() || !errors.isEmpty();
+    }
+
+    public void merge(ValidationResult other) {
+        warnings.addAll(other.warnings);
+        errors.addAll(other.errors);
+    }
 }
 ```
 
----
+Example validation in CoreConfig:
 
-## Zone Flags
+```java
+@Override
+protected ValidationResult validate() {
+    ValidationResult result = new ValidationResult();
 
-Zones (SafeZones and WarZones) use flags to control behavior. These are hardcoded defaults that cannot be changed via config, but individual zones can override them via `/f admin zone setflag`.
+    if (getMaxMembers() < 1) {
+        result.addWarning("maxMembers must be at least 1, using 1");
+        data.addProperty("faction.maxMembers", 1);
+    }
 
-### Available Flags
+    if (getDeathPenalty() < 0) {
+        result.addWarning("deathPenalty cannot be negative, using 0");
+        data.addProperty("power.deathPenalty", 0.0);
+    }
 
-| Flag | Description |
-|------|-------------|
-| `pvp_enabled` | Whether PvP is allowed |
-| `friendly_fire` | Whether same-faction damage is allowed |
-| `build_allowed` | Whether players can place/break blocks |
-| `container_access` | Whether players can access containers (chests) |
-| `interact_allowed` | Whether players can interact (doors, buttons) |
-| `item_drop` | Whether players can drop items |
-| `item_pickup` | Whether players can pick up items |
-| `mob_spawning` | Whether mobs can spawn |
-| `mob_damage` | Whether mobs can damage players |
-| `hunger_loss` | Whether players lose hunger |
-| `fall_damage` | Whether players take fall damage |
-
-### SafeZone Defaults
-
-SafeZones are protected areas where PvP and building are disabled.
-
-| Flag | Default | Description |
-|------|---------|-------------|
-| `pvp_enabled` | `false` | No PvP |
-| `friendly_fire` | `false` | No friendly fire |
-| `build_allowed` | `false` | No building |
-| `container_access` | `false` | No container access |
-| `interact_allowed` | `true` | Can use doors/buttons |
-| `item_drop` | `true` | Can drop items |
-| `item_pickup` | `true` | Can pick up items |
-| `mob_spawning` | `false` | No mob spawning |
-| `mob_damage` | `false` | No mob damage |
-| `hunger_loss` | `false` | No hunger loss |
-| `fall_damage` | `false` | No fall damage |
-
-### WarZone Defaults
-
-WarZones are PvP-enabled areas where building is blocked to prevent griefing.
-
-| Flag | Default | Description |
-|------|---------|-------------|
-| `pvp_enabled` | `true` | PvP enabled (main purpose) |
-| `friendly_fire` | `false` | No friendly fire |
-| `build_allowed` | `false` | No building (prevents griefing) |
-| `container_access` | `false` | No container access |
-| `interact_allowed` | `true` | Can use doors/buttons |
-| `item_drop` | `true` | Can drop items |
-| `item_pickup` | `true` | Can pick up items |
-| `mob_spawning` | `false` | No mob spawning |
-| `mob_damage` | `true` | Mobs can damage |
-| `hunger_loss` | `true` | Hunger loss enabled |
-| `fall_damage` | `true` | Fall damage enabled |
-
-### Customizing Zone Flags
-
-To override a flag for a specific zone:
-```
-/f admin zone setflag <zone_name> <flag> <true|false>
+    return result;
+}
 ```
 
-**Example**: Allow building in a specific WarZone:
+## Migration System
+
+[`migration/MigrationRunner.java`](../src/main/java/com/hyperfactions/migration/MigrationRunner.java)
+
+Config migrations run automatically on load:
+
+```java
+public static List<MigrationResult> runPendingMigrations(Path dataDir, MigrationType type) {
+    List<Migration> migrations = getMigrationsForType(type);
+    List<MigrationResult> results = new ArrayList<>();
+
+    for (Migration migration : migrations) {
+        if (migration.isNeeded(dataDir)) {
+            MigrationResult result = migration.run(dataDir);
+            results.add(result);
+        }
+    }
+
+    return results;
+}
 ```
-/f admin zone setflag pvp_arena build_allowed true
+
+Migrations handle:
+- Renaming config keys
+- Moving settings between files
+- Adding new required keys
+- Converting data formats
+
+## Reload Behavior
+
+When `/f admin reload` is called:
+
+1. All config files are re-read from disk
+2. Validation runs again
+3. Managers receive updated values
+4. Debug logging levels are reapplied
+
+```java
+public void reloadAll() {
+    coreConfig.reload();
+    backupConfig.reload();
+    chatConfig.reload();
+    debugConfig.reload();
+    economyConfig.reload();
+    factionPermissionsConfig.reload();
+
+    validateAll();
+}
 ```
 
----
+## Default Config Generation
 
-## Complete Default Config
+On first run, all config files are created with defaults:
 
-See the auto-generated `config.json` in your data directory for a complete example with all current defaults.
+1. `config.json` created with all core settings
+2. `config/` directory created
+3. Module configs created with their defaults
+4. All files are pretty-printed JSON
+
+## Accessing Config Values
+
+### Direct Access
+
+```java
+ConfigManager config = ConfigManager.get();
+
+// Via convenience methods (most common)
+int maxMembers = config.getMaxMembers();
+double powerPerClaim = config.getPowerPerClaim();
+boolean pvpEnabled = config.isFactionDamage();
+
+// Via config object (for grouped access)
+CoreConfig core = config.core();
+BackupConfig backup = config.backup();
+```
+
+### In Managers
+
+```java
+public class ClaimManager {
+
+    public ClaimResult claim(UUID playerUuid, String world, int chunkX, int chunkZ) {
+        ConfigManager config = ConfigManager.get();
+
+        // Check world whitelist/blacklist
+        if (!config.isWorldAllowed(world)) {
+            return ClaimResult.WORLD_BLACKLISTED;
+        }
+
+        // Check max claims
+        int maxClaims = config.calculateMaxClaims(factionPower);
+        if (currentClaims >= maxClaims) {
+            return ClaimResult.MAX_CLAIMS_REACHED;
+        }
+
+        // ...
+    }
+}
+```
+
+## Adding New Config Options
+
+1. **Add to appropriate config class** (CoreConfig or a module):
+   ```java
+   public int getNewSetting() {
+       return data.get("newSection").getAsJsonObject()
+           .get("newSetting").getAsInt();
+   }
+   ```
+
+2. **Add default value**:
+   ```java
+   @Override
+   protected void applyDefaults() {
+       // ...
+       setDefault("newSection.newSetting", 42);
+   }
+   ```
+
+3. **Add validation** (if needed):
+   ```java
+   if (getNewSetting() < 0) {
+       result.addWarning("newSetting cannot be negative");
+   }
+   ```
+
+4. **Add convenience method to ConfigManager** (optional):
+   ```java
+   public int getNewSetting() {
+       return coreConfig.getNewSetting();
+   }
+   ```
+
+## Code Links
+
+| Class | Path |
+|-------|------|
+| ConfigManager | [`config/ConfigManager.java`](../src/main/java/com/hyperfactions/config/ConfigManager.java) |
+| ConfigFile | [`config/ConfigFile.java`](../src/main/java/com/hyperfactions/config/ConfigFile.java) |
+| CoreConfig | [`config/CoreConfig.java`](../src/main/java/com/hyperfactions/config/CoreConfig.java) |
+| ModuleConfig | [`config/ModuleConfig.java`](../src/main/java/com/hyperfactions/config/ModuleConfig.java) |
+| ValidationResult | [`config/ValidationResult.java`](../src/main/java/com/hyperfactions/config/ValidationResult.java) |
+| BackupConfig | [`config/modules/BackupConfig.java`](../src/main/java/com/hyperfactions/config/modules/BackupConfig.java) |
+| ChatConfig | [`config/modules/ChatConfig.java`](../src/main/java/com/hyperfactions/config/modules/ChatConfig.java) |
+| DebugConfig | [`config/modules/DebugConfig.java`](../src/main/java/com/hyperfactions/config/modules/DebugConfig.java) |
+| EconomyConfig | [`config/modules/EconomyConfig.java`](../src/main/java/com/hyperfactions/config/modules/EconomyConfig.java) |
+| FactionPermissionsConfig | [`config/modules/FactionPermissionsConfig.java`](../src/main/java/com/hyperfactions/config/modules/FactionPermissionsConfig.java) |

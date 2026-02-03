@@ -13,6 +13,8 @@ import com.hyperfactions.protection.ecs.BlockBreakProtectionSystem;
 import com.hyperfactions.protection.ecs.BlockUseProtectionSystem;
 import com.hyperfactions.protection.ecs.ItemPickupProtectionSystem;
 import com.hyperfactions.protection.ecs.ItemDropProtectionSystem;
+import com.hyperfactions.protection.ecs.PlayerDeathSystem;
+import com.hyperfactions.protection.ecs.PlayerRespawnSystem;
 import com.hyperfactions.protection.ecs.PvPProtectionSystem;
 import com.hyperfactions.territory.TerritoryTickingSystem;
 import com.hyperfactions.util.Logger;
@@ -83,6 +85,7 @@ public class HyperFactionsPlugin extends JavaPlugin {
     private ScheduledExecutorService tickExecutor;
     private ScheduledFuture<?> powerRegenTask;
     private ScheduledFuture<?> combatTagTask;
+    private ScheduledFuture<?> claimDecayTask;
 
     /**
      * Creates a new HyperFactionsPlugin instance.
@@ -378,7 +381,11 @@ public class HyperFactionsPlugin extends JavaPlugin {
             // PvP protection
             getEntityStoreRegistry().registerSystem(new PvPProtectionSystem(hyperFactions, protectionListener));
 
-            getLogger().at(Level.INFO).log("Registered block and item protection systems");
+            // Player death and respawn systems (power loss, spawn protection)
+            getEntityStoreRegistry().registerSystem(new PlayerDeathSystem(hyperFactions));
+            getEntityStoreRegistry().registerSystem(new PlayerRespawnSystem(hyperFactions));
+
+            getLogger().at(Level.INFO).log("Registered block, item, and player protection systems");
         } catch (Exception e) {
             getLogger().at(Level.WARNING).withCause(e).log("Failed to register block protection systems");
         }
@@ -496,13 +503,26 @@ public class HyperFactionsPlugin extends JavaPlugin {
             1, 1, TimeUnit.SECONDS
         );
 
+        // Claim decay for inactive factions - runs hourly
+        // Uses thread-safe ConcurrentHashMap operations internally
+        claimDecayTask = tickExecutor.scheduleAtFixedRate(
+            () -> {
+                try {
+                    hyperFactions.getClaimManager().tickClaimDecay();
+                } catch (Exception e) {
+                    Logger.severe("Error in claim decay tick", e);
+                }
+            },
+            1, 1, TimeUnit.HOURS  // Initial delay of 1 hour, then every hour
+        );
+
         // Territory tracking is now handled by TerritoryTickingSystem (ECS)
         // which ticks reliably every game tick for all player entities
 
         // Start core periodic tasks (auto-save, invite cleanup)
         hyperFactions.startPeriodicTasks();
 
-        getLogger().at(Level.INFO).log("Started periodic tasks");
+        getLogger().at(Level.INFO).log("Started periodic tasks (including claim decay every hour)");
     }
 
     /**
@@ -514,6 +534,9 @@ public class HyperFactionsPlugin extends JavaPlugin {
         }
         if (combatTagTask != null) {
             combatTagTask.cancel(false);
+        }
+        if (claimDecayTask != null) {
+            claimDecayTask.cancel(false);
         }
         if (tickExecutor != null) {
             tickExecutor.shutdown();

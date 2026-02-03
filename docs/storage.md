@@ -1,73 +1,217 @@
-# HyperFactions Storage System
+# HyperFactions Storage Layer
 
-This document details the data persistence system for HyperFactions.
+Architecture documentation for the HyperFactions data persistence system.
 
 ## Overview
 
-HyperFactions uses a JSON file-based storage system with the following characteristics:
+HyperFactions uses an interface-based storage layer with:
 
-- **Async Operations**: All storage operations return `CompletableFuture` for non-blocking I/O
-- **Interface-based**: Storage interfaces allow for alternative implementations (e.g., database)
-- **Pretty-printed JSON**: Human-readable files for easy debugging and manual editing
-- **Auto-migration**: Supports migration from older data formats
+- **Storage Interfaces** - Abstract contracts for data operations
+- **JSON Implementations** - File-based storage with pretty-printed JSON
+- **Async Operations** - All I/O returns `CompletableFuture` for non-blocking
+- **Data Models** - Java records for immutable data structures
+- **Auto-Save** - Periodic saves with configurable interval
+- **Migration Support** - Automatic data format upgrades
+
+## Architecture
+
+```
+Storage Interface                  Implementation
+      │                                  │
+FactionStorage ────────────────► JsonFactionStorage
+PlayerStorage  ────────────────► JsonPlayerStorage
+ZoneStorage    ────────────────► JsonZoneStorage
+      │                                  │
+      └──────── Data Models ◄────────────┘
+                    │
+           Faction, PlayerPower,
+           Zone, FactionClaim, etc.
+```
+
+## Key Classes
+
+| Class | Path | Purpose |
+|-------|------|---------|
+| FactionStorage | [`storage/FactionStorage.java`](../src/main/java/com/hyperfactions/storage/FactionStorage.java) | Faction storage interface |
+| PlayerStorage | [`storage/PlayerStorage.java`](../src/main/java/com/hyperfactions/storage/PlayerStorage.java) | Player power storage interface |
+| ZoneStorage | [`storage/ZoneStorage.java`](../src/main/java/com/hyperfactions/storage/ZoneStorage.java) | Zone storage interface |
+| JsonFactionStorage | [`storage/json/JsonFactionStorage.java`](../src/main/java/com/hyperfactions/storage/json/JsonFactionStorage.java) | JSON faction storage |
+| JsonPlayerStorage | [`storage/json/JsonPlayerStorage.java`](../src/main/java/com/hyperfactions/storage/json/JsonPlayerStorage.java) | JSON player storage |
+| JsonZoneStorage | [`storage/json/JsonZoneStorage.java`](../src/main/java/com/hyperfactions/storage/json/JsonZoneStorage.java) | JSON zone storage |
+| StorageHealth | [`storage/StorageHealth.java`](../src/main/java/com/hyperfactions/storage/StorageHealth.java) | Storage health monitoring |
 
 ## Data Directory Structure
 
 ```
 <server>/mods/com.hyperfactions_HyperFactions/
-├── config.json              # Server configuration
-├── zones.json               # Admin zones (SafeZone/WarZone)
-├── update_preferences.json  # Per-player update notification settings
-├── factions/                # One file per faction
+├── config.json                    # Configuration (see config.md)
+├── config/                        # Module configs
+├── zones.json                     # All zones in single file
+├── update_preferences.json        # Update notification preferences
+├── factions/                      # One file per faction
+│   ├── {uuid}.json
 │   ├── {uuid}.json
 │   └── ...
-└── players/                 # One file per player (power data)
-    ├── {uuid}.json
-    └── ...
+├── players/                       # One file per player
+│   ├── {uuid}.json
+│   ├── {uuid}.json
+│   └── ...
+└── backups/                       # Backup storage
+    ├── hourly/
+    ├── daily/
+    ├── weekly/
+    └── manual/
 ```
 
 ## Storage Interfaces
 
 ### FactionStorage
 
-Interface for faction data persistence.
+[`storage/FactionStorage.java`](../src/main/java/com/hyperfactions/storage/FactionStorage.java)
 
 ```java
 public interface FactionStorage {
+
+    /**
+     * Initialize storage (create directories, etc.).
+     */
     CompletableFuture<Void> init();
+
+    /**
+     * Shutdown storage (flush pending writes).
+     */
     CompletableFuture<Void> shutdown();
+
+    /**
+     * Load a single faction by ID.
+     */
     CompletableFuture<Optional<Faction>> loadFaction(UUID factionId);
+
+    /**
+     * Save a faction (create or update).
+     */
     CompletableFuture<Void> saveFaction(Faction faction);
+
+    /**
+     * Delete a faction.
+     */
     CompletableFuture<Void> deleteFaction(UUID factionId);
+
+    /**
+     * Load all factions.
+     */
     CompletableFuture<Collection<Faction>> loadAllFactions();
 }
 ```
 
 ### PlayerStorage
 
-Interface for player power data persistence.
+[`storage/PlayerStorage.java`](../src/main/java/com/hyperfactions/storage/PlayerStorage.java)
 
 ```java
 public interface PlayerStorage {
+
     CompletableFuture<Void> init();
     CompletableFuture<Void> shutdown();
-    CompletableFuture<Optional<PlayerPower>> loadPlayerPower(UUID uuid);
+
+    CompletableFuture<Optional<PlayerPower>> loadPlayerPower(UUID playerUuid);
     CompletableFuture<Void> savePlayerPower(PlayerPower power);
-    CompletableFuture<Void> deletePlayerPower(UUID uuid);
+    CompletableFuture<Void> deletePlayerPower(UUID playerUuid);
     CompletableFuture<Collection<PlayerPower>> loadAllPlayerPower();
 }
 ```
 
 ### ZoneStorage
 
-Interface for admin zone data persistence.
+[`storage/ZoneStorage.java`](../src/main/java/com/hyperfactions/storage/ZoneStorage.java)
 
 ```java
 public interface ZoneStorage {
+
     CompletableFuture<Void> init();
     CompletableFuture<Void> shutdown();
+
     CompletableFuture<Collection<Zone>> loadAllZones();
     CompletableFuture<Void> saveAllZones(Collection<Zone> zones);
+}
+```
+
+## JSON Implementations
+
+### JsonFactionStorage
+
+[`storage/json/JsonFactionStorage.java`](../src/main/java/com/hyperfactions/storage/json/JsonFactionStorage.java)
+
+Stores one JSON file per faction in `factions/` directory:
+
+```java
+public class JsonFactionStorage implements FactionStorage {
+
+    private final Path factionsDir;
+    private final Gson gson;
+
+    public JsonFactionStorage(Path dataDir) {
+        this.factionsDir = dataDir.resolve("factions");
+        this.gson = new GsonBuilder()
+            .setPrettyPrinting()
+            .serializeNulls()
+            .create();
+    }
+
+    @Override
+    public CompletableFuture<Void> saveFaction(Faction faction) {
+        return CompletableFuture.runAsync(() -> {
+            Path file = factionsDir.resolve(faction.id() + ".json");
+            try (Writer writer = Files.newBufferedWriter(file)) {
+                gson.toJson(factionToJson(faction), writer);
+            }
+        });
+    }
+
+    private Path getFactionFile(UUID factionId) {
+        return factionsDir.resolve(factionId.toString() + ".json");
+    }
+}
+```
+
+### JsonPlayerStorage
+
+[`storage/json/JsonPlayerStorage.java`](../src/main/java/com/hyperfactions/storage/json/JsonPlayerStorage.java)
+
+Stores one JSON file per player in `players/` directory:
+
+```java
+public class JsonPlayerStorage implements PlayerStorage {
+
+    private final Path playersDir;
+
+    @Override
+    public CompletableFuture<Void> savePlayerPower(PlayerPower power) {
+        return CompletableFuture.runAsync(() -> {
+            Path file = playersDir.resolve(power.uuid() + ".json");
+            // Write JSON...
+        });
+    }
+}
+```
+
+### JsonZoneStorage
+
+[`storage/json/JsonZoneStorage.java`](../src/main/java/com/hyperfactions/storage/json/JsonZoneStorage.java)
+
+Stores all zones in a single `zones.json` file (zones are typically few in number):
+
+```java
+public class JsonZoneStorage implements ZoneStorage {
+
+    private final Path zonesFile;
+
+    @Override
+    public CompletableFuture<Void> saveAllZones(Collection<Zone> zones) {
+        return CompletableFuture.runAsync(() -> {
+            // Write all zones as JSON array
+        });
+    }
 }
 ```
 
@@ -75,15 +219,43 @@ public interface ZoneStorage {
 
 ### Faction
 
-Stored in `factions/{uuid}.json`
+[`data/Faction.java`](../src/main/java/com/hyperfactions/data/Faction.java)
+
+Mutable entity with builder-style setters:
+
+```java
+public class Faction {
+    private final UUID id;
+    private String name;
+    private String description;
+    private String tag;
+    private String color;
+    private long createdAt;
+    private boolean open;
+    private FactionHome home;
+    private final List<FactionMember> members;
+    private final List<FactionClaim> claims;
+    private final List<FactionRelation> relations;
+    private final List<FactionLog> logs;
+    private FactionPermissions permissions;
+
+    // Getters and builder-style setters
+    public Faction setName(String name) {
+        this.name = name;
+        return this;
+    }
+}
+```
+
+**JSON Structure** (`factions/{uuid}.json`):
 
 ```json
 {
-  "id": "uuid-string",
-  "name": "FactionName",
-  "description": "Optional description",
-  "tag": "TAG",
-  "color": "f",
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "name": "Warriors",
+  "description": "A mighty faction",
+  "tag": "WAR",
+  "color": "c",
   "createdAt": 1706745600000,
   "open": false,
   "home": {
@@ -116,7 +288,7 @@ Stored in `factions/{uuid}.json`
   ],
   "relations": [
     {
-      "targetFactionId": "other-faction-uuid",
+      "targetFactionId": "other-uuid",
       "type": "ALLY",
       "since": 1706745600000
     }
@@ -124,58 +296,64 @@ Stored in `factions/{uuid}.json`
   "logs": [
     {
       "type": "MEMBER_JOIN",
-      "message": "PlayerName joined the faction",
+      "message": "PlayerName joined",
       "timestamp": 1706745600000,
       "actorUuid": "player-uuid"
     }
   ],
   "permissions": {
     "outsiderBreak": false,
-    "outsiderPlace": false,
-    "outsiderInteract": false,
-    "allyBreak": false,
-    "allyPlace": false,
-    "allyInteract": true,
     "memberBreak": true,
-    "memberPlace": true,
-    "memberInteract": true,
-    "pvpEnabled": true,
-    "officersCanEdit": false
+    "pvpEnabled": true
   }
 }
 ```
 
-**Field Details**:
+### FactionMember
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | UUID | Unique faction identifier |
-| `name` | string | Display name |
-| `description` | string? | Optional faction description |
-| `tag` | string? | Short tag (shown in chat) |
-| `color` | string | Minecraft color code (a-f, 0-9) |
-| `createdAt` | long | Unix timestamp (ms) |
-| `open` | bool | Public join enabled |
-| `home` | object? | Faction home location |
-| `members` | array | List of faction members |
-| `claims` | array | List of claimed chunks |
-| `relations` | array | Diplomatic relations |
-| `logs` | array | Activity log (last 50 entries) |
-| `permissions` | object? | Territory permissions (null = defaults) |
+[`data/FactionMember.java`](../src/main/java/com/hyperfactions/data/FactionMember.java)
 
-**Member Roles**: `LEADER`, `OFFICER`, `MEMBER`
+```java
+public record FactionMember(
+    UUID uuid,
+    String username,
+    FactionRole role,
+    long joinedAt,
+    long lastOnline
+) {}
+```
 
-**Relation Types**: `ALLY`, `NEUTRAL`, `ENEMY`
+### FactionRole
 
-**Log Types**: `FACTION_CREATE`, `MEMBER_JOIN`, `MEMBER_LEAVE`, `MEMBER_KICK`, `CLAIM`, `UNCLAIM`, `ALLY_REQUEST`, `ALLY_ACCEPT`, `ENEMY_DECLARE`, `RELATION_NEUTRAL`, `HOME_SET`, `LEADER_CHANGE`, `PROMOTE`, `DEMOTE`, `DESCRIPTION_CHANGE`, `NAME_CHANGE`, `COLOR_CHANGE`, `TAG_CHANGE`, `OPEN_TOGGLE`
+[`data/FactionRole.java`](../src/main/java/com/hyperfactions/data/FactionRole.java)
+
+```java
+public enum FactionRole {
+    LEADER,   // Full control
+    OFFICER,  // Can manage members, claims
+    MEMBER    // Basic permissions
+}
+```
 
 ### PlayerPower
 
-Stored in `players/{uuid}.json`
+[`data/PlayerPower.java`](../src/main/java/com/hyperfactions/data/PlayerPower.java)
+
+```java
+public record PlayerPower(
+    UUID uuid,
+    double power,
+    double maxPower,
+    long lastDeath,
+    long lastRegen
+) {}
+```
+
+**JSON Structure** (`players/{uuid}.json`):
 
 ```json
 {
-  "uuid": "player-uuid",
+  "uuid": "550e8400-e29b-41d4-a716-446655440000",
   "power": 15.5,
   "maxPower": 20.0,
   "lastDeath": 1706745600000,
@@ -183,17 +361,24 @@ Stored in `players/{uuid}.json`
 }
 ```
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `uuid` | UUID | Player's UUID |
-| `power` | double | Current power level |
-| `maxPower` | double | Maximum power capacity |
-| `lastDeath` | long | Timestamp of last death (0 = never) |
-| `lastRegen` | long | Timestamp of last power regeneration |
-
 ### Zone
 
-All zones stored in `zones.json` as an array.
+[`data/Zone.java`](../src/main/java/com/hyperfactions/data/Zone.java)
+
+```java
+public class Zone {
+    private final UUID id;
+    private String name;
+    private ZoneType type;
+    private String world;
+    private final Set<ChunkKey> chunks;
+    private long createdAt;
+    private UUID createdBy;
+    private final Map<String, Boolean> flags;
+}
+```
+
+**JSON Structure** (`zones.json`):
 
 ```json
 [
@@ -204,76 +389,127 @@ All zones stored in `zones.json` as an array.
     "world": "world",
     "chunks": [
       { "x": 0, "z": 0 },
-      { "x": 0, "z": 1 },
-      { "x": 1, "z": 0 }
+      { "x": 0, "z": 1 }
     ],
     "createdAt": 1706745600000,
     "createdBy": "admin-uuid",
     "flags": {
-      "pvp": false,
-      "monsters": false,
-      "firespread": false
+      "pvp_enabled": false,
+      "build_allowed": false
     }
   }
 ]
 ```
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | UUID | Unique zone identifier |
-| `name` | string | Display name |
-| `type` | string | `SAFE` or `WAR` |
-| `world` | string | World name |
-| `chunks` | array | List of chunk coordinates |
-| `createdAt` | long | Unix timestamp (ms) |
-| `createdBy` | UUID | Admin who created the zone |
-| `flags` | object? | Custom flag overrides |
+### ChunkKey
 
-**Zone Types**:
-- `SAFE`: No PvP, no monster spawning, no explosions by default
-- `WAR`: PvP enabled, dangerous environment
+[`data/ChunkKey.java`](../src/main/java/com/hyperfactions/data/ChunkKey.java)
 
-**Zone Flags**:
-| Flag | SafeZone Default | WarZone Default |
-|------|-----------------|-----------------|
-| `pvp` | false | true |
-| `monsters` | false | true |
-| `explosions` | false | true |
-| `firespread` | false | true |
-| `enderpearl` | true | true |
-| `build` | false | true |
-| `interact` | true | true |
-| `itempickup` | false | true |
-| `hunger` | false | true |
-| `falldamage` | false | true |
-| `combattag` | false | true |
+Immutable identifier for a chunk:
 
-### UpdateNotificationPreferences
+```java
+public record ChunkKey(String world, int x, int z) {
 
-Stored in `update_preferences.json`
+    @Override
+    public int hashCode() {
+        return Objects.hash(world, x, z);
+    }
 
-```json
-{
-  "disabledPlayers": [
-    "player-uuid-1",
-    "player-uuid-2"
-  ]
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof ChunkKey other)) return false;
+        return x == other.x && z == other.z && world.equals(other.world);
+    }
 }
 ```
 
-Players in this list won't receive update notifications on login.
+## Async Pattern
+
+All storage operations are async to prevent blocking the main thread:
+
+```java
+// In manager
+public void loadAll() {
+    factionStorage.loadAllFactions()
+        .thenAccept(factions -> {
+            for (Faction faction : factions) {
+                cache.put(faction.id(), faction);
+            }
+        })
+        .join(); // Block only during startup
+}
+
+public void saveFaction(Faction faction) {
+    // Fire and forget during normal operation
+    factionStorage.saveFaction(faction);
+}
+```
+
+### Startup Loading
+
+During startup, `.join()` is used to ensure data is loaded before the plugin is ready:
+
+```java
+// In HyperFactions.enable()
+factionStorage.init().join();
+playerStorage.init().join();
+zoneStorage.init().join();
+
+factionManager.loadAll().join();
+powerManager.loadAll().join();
+zoneManager.loadAll().join();
+```
+
+### Runtime Saves
+
+During normal operation, saves are fire-and-forget:
+
+```java
+// In FactionManager
+public void updateFaction(Faction faction) {
+    cache.put(faction.id(), faction);
+    factionStorage.saveFaction(faction); // Async, doesn't block
+}
+```
 
 ## Auto-Save System
 
-HyperFactions automatically saves data at configurable intervals:
+Configured in `config.json`:
 
-- **Interval**: Configured via `autoSave.intervalMinutes` (default: 5)
-- **Scope**: Saves all factions, player power, and zones
-- **Trigger**: Also saves on graceful shutdown
+```json
+{
+  "autoSave": {
+    "enabled": true,
+    "intervalMinutes": 5
+  }
+}
+```
+
+Implementation in `HyperFactions.java`:
+
+```java
+private void startAutoSaveTask() {
+    int intervalMinutes = ConfigManager.get().getAutoSaveIntervalMinutes();
+    int periodTicks = intervalMinutes * 60 * 20;
+
+    autoSaveTaskId = scheduleRepeatingTask(periodTicks, periodTicks, this::saveAllData);
+}
+
+public void saveAllData() {
+    Logger.info("Auto-saving data...");
+    factionManager.saveAll().join();
+    powerManager.saveAll().join();
+    zoneManager.saveAll().join();
+    Logger.info("Auto-save complete");
+}
+```
 
 ## Data Migration
 
-The storage system supports automatic migration from older formats:
+[`migration/MigrationRunner.java`](../src/main/java/com/hyperfactions/migration/MigrationRunner.java)
+
+Handles automatic data format upgrades:
 
 ### Zone Format Migration
 
@@ -287,7 +523,7 @@ Old single-chunk format:
 }
 ```
 
-Automatically migrates to multi-chunk format:
+Migrates to multi-chunk format:
 ```json
 {
   "id": "...",
@@ -296,22 +532,115 @@ Automatically migrates to multi-chunk format:
 }
 ```
 
+Migration is detected and run automatically on load.
+
+## Storage Health
+
+[`storage/StorageHealth.java`](../src/main/java/com/hyperfactions/storage/StorageHealth.java)
+
+Monitors storage system health:
+
+```java
+public class StorageHealth {
+
+    private final AtomicLong lastSaveTime = new AtomicLong();
+    private final AtomicInteger failedSaves = new AtomicInteger();
+
+    public void recordSave() {
+        lastSaveTime.set(System.currentTimeMillis());
+    }
+
+    public void recordFailure() {
+        failedSaves.incrementAndGet();
+    }
+
+    public boolean isHealthy() {
+        // Check if saves are succeeding
+        return failedSaves.get() < MAX_CONSECUTIVE_FAILURES;
+    }
+}
+```
+
+## Implementing Alternative Storage
+
+To add database support, implement the storage interfaces:
+
+```java
+public class MySqlFactionStorage implements FactionStorage {
+
+    private final DataSource dataSource;
+
+    @Override
+    public CompletableFuture<Void> saveFaction(Faction faction) {
+        return CompletableFuture.runAsync(() -> {
+            try (Connection conn = dataSource.getConnection()) {
+                // SQL INSERT/UPDATE
+            }
+        });
+    }
+
+    @Override
+    public CompletableFuture<Optional<Faction>> loadFaction(UUID factionId) {
+        return CompletableFuture.supplyAsync(() -> {
+            try (Connection conn = dataSource.getConnection()) {
+                // SQL SELECT
+            }
+        });
+    }
+}
+```
+
+Then configure in HyperFactions:
+
+```java
+// In HyperFactions.enable()
+if (ConfigManager.get().isUsingDatabase()) {
+    factionStorage = new MySqlFactionStorage(dataSource);
+} else {
+    factionStorage = new JsonFactionStorage(dataDir);
+}
+```
+
+## Backup Integration
+
+Storage integrates with the backup system:
+
+```java
+// In BackupManager
+public void createBackup(BackupType type) {
+    // Save all data first
+    hyperFactions.saveAllData();
+
+    // Copy data directories to backup
+    copyDirectory(dataDir.resolve("factions"), backupDir);
+    copyDirectory(dataDir.resolve("players"), backupDir);
+    copyFile(dataDir.resolve("zones.json"), backupDir);
+    copyFile(dataDir.resolve("config.json"), backupDir);
+}
+```
+
 ## Manual Data Editing
 
-JSON files can be manually edited while the server is stopped. To apply changes:
+JSON files can be manually edited while the server is stopped:
 
 1. Stop the server
-2. Edit the JSON files
-3. Start the server (data loads on startup)
+2. Edit JSON files
+3. Start the server (data loads fresh)
 
-Or use `/f admin reload` to reload config (note: faction/player data is cached in memory).
+**Warning:** Editing while the server is running may cause data loss due to auto-save overwriting changes.
 
-## Backup Recommendations
+## Code Links
 
-Important files to backup:
-- `config.json` - Server configuration
-- `zones.json` - Admin zones
-- `factions/` - All faction data
-- `players/` - All player power data
-
-Backup frequency should match your auto-save interval at minimum.
+| Class | Path |
+|-------|------|
+| FactionStorage | [`storage/FactionStorage.java`](../src/main/java/com/hyperfactions/storage/FactionStorage.java) |
+| PlayerStorage | [`storage/PlayerStorage.java`](../src/main/java/com/hyperfactions/storage/PlayerStorage.java) |
+| ZoneStorage | [`storage/ZoneStorage.java`](../src/main/java/com/hyperfactions/storage/ZoneStorage.java) |
+| JsonFactionStorage | [`storage/json/JsonFactionStorage.java`](../src/main/java/com/hyperfactions/storage/json/JsonFactionStorage.java) |
+| JsonPlayerStorage | [`storage/json/JsonPlayerStorage.java`](../src/main/java/com/hyperfactions/storage/json/JsonPlayerStorage.java) |
+| JsonZoneStorage | [`storage/json/JsonZoneStorage.java`](../src/main/java/com/hyperfactions/storage/json/JsonZoneStorage.java) |
+| Faction | [`data/Faction.java`](../src/main/java/com/hyperfactions/data/Faction.java) |
+| PlayerPower | [`data/PlayerPower.java`](../src/main/java/com/hyperfactions/data/PlayerPower.java) |
+| Zone | [`data/Zone.java`](../src/main/java/com/hyperfactions/data/Zone.java) |
+| ChunkKey | [`data/ChunkKey.java`](../src/main/java/com/hyperfactions/data/ChunkKey.java) |
+| BackupManager | [`backup/BackupManager.java`](../src/main/java/com/hyperfactions/backup/BackupManager.java) |

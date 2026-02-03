@@ -1,390 +1,383 @@
-# HyperFactions Command Reference
+# HyperFactions Command System
 
-Complete command reference for HyperFactions v0.3.0.
+Architecture documentation for the HyperFactions command system.
 
-## Quick Reference
+## Overview
 
-| Category | Commands |
-|----------|----------|
-| Core | create, disband, invite, accept, request, leave, kick |
-| Management | rename, desc, color, open, close, promote, demote, transfer |
-| Territory | claim, unclaim, overclaim, map |
-| Relations | ally, enemy, neutral |
-| Teleport | home, sethome, stuck |
-| Information | info, list, members, invites, who, power, gui |
-| Other | chat, admin, debug, reload |
+HyperFactions uses a subcommand-based dispatcher pattern built on Hytale's `AbstractPlayerCommand` system. The main `/faction` command routes to category-specific subcommands.
 
----
+## Architecture
 
-## Core Commands
+```
+FactionCommand (dispatcher)
+     │
+     ├─► FactionSubCommand (base class)
+     │        │
+     │        ├─► CreateSubCommand
+     │        ├─► ClaimSubCommand
+     │        ├─► InviteSubCommand
+     │        └─► ... (40+ subcommands)
+     │
+     └─► FactionCommandContext (execution state)
+```
 
-### `/f create <name>`
-Create a new faction.
-- **Permission**: `hyperfactions.create` (or `hyperfactions.use`)
-- **Example**: `/f create Warriors`
+## Key Classes
 
-### `/f disband`
-Disband your faction. Requires confirmation.
-- **Permission**: `hyperfactions.disband`
-- **Requirement**: Must be faction leader
+| Class | Path | Purpose |
+|-------|------|---------|
+| FactionCommand | [`command/FactionCommand.java`](../src/main/java/com/hyperfactions/command/FactionCommand.java) | Main dispatcher, registers all subcommands |
+| FactionSubCommand | [`command/FactionSubCommand.java`](../src/main/java/com/hyperfactions/command/FactionSubCommand.java) | Base class with shared utilities |
+| FactionCommandContext | [`command/FactionCommandContext.java`](../src/main/java/com/hyperfactions/command/FactionCommandContext.java) | Execution context, `--text` flag parsing |
+| CommandUtil | [`command/util/CommandUtil.java`](../src/main/java/com/hyperfactions/command/util/CommandUtil.java) | Shared utilities (messages, player lookup) |
 
-### `/f invite <player>`
-Invite a player to join your faction.
-- **Permission**: `hyperfactions.invite`
-- **Requirement**: Must be officer or leader
+## Main Dispatcher
 
-### `/f accept [faction]`
-Accept a pending faction invite.
-- **Permission**: `hyperfactions.accept`
-- **Example**: `/f accept` (accepts if only one invite)
-- **Example**: `/f accept Warriors` (accepts specific invite)
+[`FactionCommand.java`](../src/main/java/com/hyperfactions/command/FactionCommand.java)
 
-### `/f request <faction> [message]`
-Request to join a faction (for closed factions).
-- **Permission**: `hyperfactions.request`
-- **Example**: `/f request Warriors Looking to join!`
+The main command class:
 
-### `/f leave`
-Leave your current faction.
-- **Permission**: `hyperfactions.leave`
-- **Note**: Leaders cannot leave; use `/f transfer` or `/f disband`
+```java
+public class FactionCommand extends AbstractPlayerCommand {
 
-### `/f kick <player>`
-Kick a member from your faction.
-- **Permission**: `hyperfactions.kick`
-- **Requirement**: Must be officer (can kick members) or leader (can kick anyone)
+    public FactionCommand(HyperFactions hyperFactions, HyperFactionsPlugin plugin) {
+        super("faction", "Faction management commands");
+        addAliases("f", "hf", "hyperfactions");
+        setAllowsExtraArguments(true);
 
----
+        // Register all subcommands by category
 
-## Management Commands
+        // Faction management
+        addSubCommand(new CreateSubCommand(hyperFactions, plugin));
+        addSubCommand(new DisbandSubCommand(hyperFactions, plugin));
+        // ...
 
-### `/f rename <name>`
-Rename your faction.
-- **Permission**: `hyperfactions.rename`
-- **Requirement**: Must be faction leader
+        // Member management
+        addSubCommand(new InviteSubCommand(hyperFactions, plugin));
+        // ...
+    }
 
-### `/f desc <text>`
-Set your faction's description.
-- **Permission**: `hyperfactions.desc`
-- **Example**: `/f desc We are the best faction on the server!`
+    @Override
+    protected void execute(...) {
+        // No subcommand provided - open GUI dashboard
+        hyperFactions.getGuiManager().openFactionMain(player, ...);
+    }
+}
+```
 
-### `/f color <code>`
-Set your faction's display color.
-- **Permission**: `hyperfactions.color`
-- **Example**: `/f color c` (red), `/f color a` (green)
+**Key Points:**
+- Aliases: `/f`, `/hf`, `/hyperfactions`
+- No subcommand → opens GUI (if has `hyperfactions.use` permission)
+- Disables Hytale's auto-generated permissions via `canGeneratePermission() = false`
 
-### `/f open`
-Open your faction to allow anyone to join without invite.
-- **Permission**: `hyperfactions.open`
-- **Requirement**: Must be faction leader
+## Subcommand Base Class
 
-### `/f close`
-Close your faction to require invites to join.
-- **Permission**: `hyperfactions.close`
-- **Requirement**: Must be faction leader
+[`FactionSubCommand.java`](../src/main/java/com/hyperfactions/command/FactionSubCommand.java)
 
-### `/f promote <player>`
-Promote a member to officer rank.
-- **Permission**: `hyperfactions.promote`
-- **Requirement**: Must be faction leader
+All subcommands extend this base class which provides:
 
-### `/f demote <player>`
-Demote an officer to member rank.
-- **Permission**: `hyperfactions.demote`
-- **Requirement**: Must be faction leader
+```java
+public abstract class FactionSubCommand extends AbstractPlayerCommand {
 
-### `/f transfer <player>`
-Transfer faction leadership to another member.
-- **Permission**: `hyperfactions.transfer`
-- **Requirement**: Must be faction leader
+    protected final HyperFactions hyperFactions;
+    protected final HyperFactionsPlugin plugin;
 
----
+    // Utility methods
+    protected Message prefix() { ... }           // "[HyperFactions]" prefix
+    protected Message msg(String, String) { ... } // Colored message
+    protected boolean hasPermission(PlayerRef, String) { ... }
+    protected PlayerRef findOnlinePlayer(String) { ... }
+    protected void broadcastToFaction(UUID, Message) { ... }
+    protected FactionCommandContext parseContext(String[] args) { ... }
 
-## Territory Commands
+    // Color constants
+    protected static final String COLOR_CYAN = "#00FFFF";
+    protected static final String COLOR_GREEN = "#00FF00";
+    protected static final String COLOR_RED = "#FF0000";
+    protected static final String COLOR_YELLOW = "#FFFF00";
+    protected static final String COLOR_GRAY = "#888888";
+}
+```
 
-### `/f claim`
-Claim the current chunk for your faction.
-- **Permission**: `hyperfactions.claim`
-- **Requirement**: Faction must have enough power
-- **Cost**: 1 power per claim
+## Command Context
 
-### `/f unclaim`
-Unclaim the current chunk from your faction.
-- **Permission**: `hyperfactions.unclaim`
-- **Requirement**: Must be in your faction's territory
+[`FactionCommandContext.java`](../src/main/java/com/hyperfactions/command/FactionCommandContext.java)
 
-### `/f overclaim`
-Overclaim enemy territory when they lack power.
-- **Permission**: `hyperfactions.overclaim`
-- **Requirement**: Target faction must have less power than claims
+Handles execution context including the `--text` flag for text-mode output:
 
-### `/f map`
-View a visual map of nearby territory claims.
-- **Permission**: `hyperfactions.map`
-- **Output**: ASCII map showing claims in chat
+```java
+public record FactionCommandContext(
+    boolean textMode,      // --text flag present
+    String[] args          // Remaining args after flag extraction
+) {
+    public static FactionCommandContext parse(String[] rawArgs) {
+        // Extract --text flag and return remaining args
+    }
+}
+```
 
----
+**Text Mode:**
+- `--text` flag disables GUI and uses chat output instead
+- Useful for console/automation or players preferring text
 
-## Relations Commands
+## Subcommand Categories
 
-### `/f ally <faction>`
-Send or accept an alliance request.
-- **Permission**: `hyperfactions.ally`
-- **Requirement**: Must be officer or leader
+### Package Structure
 
-### `/f enemy <faction>`
-Declare another faction as an enemy.
-- **Permission**: `hyperfactions.enemy`
-- **Requirement**: Must be officer or leader
+```
+command/
+├── FactionCommand.java         # Main dispatcher
+├── FactionSubCommand.java      # Base class
+├── FactionCommandContext.java  # Execution context
+├── util/CommandUtil.java       # Shared utilities
+│
+├── faction/                    # Faction management
+│   ├── CreateSubCommand.java
+│   ├── DisbandSubCommand.java
+│   ├── RenameSubCommand.java
+│   ├── DescSubCommand.java
+│   ├── ColorSubCommand.java
+│   ├── OpenSubCommand.java
+│   └── CloseSubCommand.java
+│
+├── member/                     # Membership
+│   ├── InviteSubCommand.java
+│   ├── AcceptSubCommand.java
+│   ├── LeaveSubCommand.java
+│   ├── KickSubCommand.java
+│   ├── PromoteSubCommand.java
+│   ├── DemoteSubCommand.java
+│   └── TransferSubCommand.java
+│
+├── territory/                  # Territory claims
+│   ├── ClaimSubCommand.java
+│   ├── UnclaimSubCommand.java
+│   ├── OverclaimSubCommand.java
+│   └── StuckSubCommand.java
+│
+├── teleport/                   # Teleportation
+│   ├── HomeSubCommand.java
+│   └── SetHomeSubCommand.java
+│
+├── relation/                   # Diplomacy
+│   ├── AllySubCommand.java
+│   ├── EnemySubCommand.java
+│   ├── NeutralSubCommand.java
+│   └── RelationsSubCommand.java
+│
+├── info/                       # Information
+│   ├── InfoSubCommand.java
+│   ├── ListSubCommand.java
+│   ├── MapSubCommand.java
+│   ├── MembersSubCommand.java
+│   ├── WhoSubCommand.java
+│   ├── PowerSubCommand.java
+│   └── HelpSubCommand.java
+│
+├── social/                     # Social features
+│   ├── RequestSubCommand.java
+│   ├── InvitesSubCommand.java
+│   └── ChatSubCommand.java
+│
+├── ui/                         # UI commands
+│   ├── GuiSubCommand.java
+│   └── SettingsSubCommand.java
+│
+└── admin/                      # Admin commands
+    └── AdminSubCommand.java    # Nested admin subcommands
+```
 
-### `/f neutral <faction>`
-Set neutral relations with another faction.
-- **Permission**: `hyperfactions.neutral`
-- **Requirement**: Must be officer or leader
+### Category Summary
 
----
+| Category | Commands | Permission Prefix |
+|----------|----------|-------------------|
+| faction | create, disband, rename, desc, color, open, close | `hyperfactions.faction.*` |
+| member | invite, accept, leave, kick, promote, demote, transfer | `hyperfactions.member.*` |
+| territory | claim, unclaim, overclaim, stuck | `hyperfactions.territory.*` |
+| teleport | home, sethome | `hyperfactions.teleport.*` |
+| relation | ally, enemy, neutral, relations | `hyperfactions.relation.*` |
+| info | info, list, map, members, who, power, help | `hyperfactions.info.*` |
+| social | request, invites, chat | `hyperfactions.member.*`, `hyperfactions.chat.*` |
+| ui | gui, settings | `hyperfactions.use` |
+| admin | zone, backup, reload, debug, bypass | `hyperfactions.admin.*` |
 
-## Teleport Commands
+## Subcommand Implementation Pattern
 
-### `/f home`
-Teleport to your faction's home location.
-- **Permission**: `hyperfactions.home`
-- **Note**: Subject to warmup/cooldown settings
+Example: [`command/territory/ClaimSubCommand.java`](../src/main/java/com/hyperfactions/command/territory/ClaimSubCommand.java)
 
-### `/f sethome`
-Set your faction's home at your current location.
-- **Permission**: `hyperfactions.sethome`
-- **Requirement**: Must be in your faction's territory
+```java
+public class ClaimSubCommand extends FactionSubCommand {
 
-### `/f stuck`
-Teleport to safety when trapped in enemy territory.
-- **Permission**: `hyperfactions.stuck`
-- **Note**: Longer warmup than normal teleports
+    public ClaimSubCommand(HyperFactions hyperFactions, HyperFactionsPlugin plugin) {
+        super("claim", "Claim the current chunk for your faction", hyperFactions, plugin);
+    }
 
----
+    @Override
+    protected void execute(CommandContext ctx, Store<EntityStore> store,
+                          Ref<EntityStore> ref, PlayerRef player, World world) {
 
-## Information Commands
+        // 1. Parse context for --text flag
+        FactionCommandContext fctx = parseContext(ctx.getRemainingArguments());
 
-### `/f info [faction]`
-View detailed information about a faction.
-- **Permission**: `hyperfactions.info`
-- **Example**: `/f info` (your faction)
-- **Example**: `/f info Warriors` (another faction)
+        // 2. Permission check (optional - manager also checks)
+        if (!hasPermission(player, Permissions.CLAIM)) {
+            ctx.sendMessage(prefix().insert(msg("No permission.", COLOR_RED)));
+            return;
+        }
 
-### `/f list`
-List all factions on the server.
-- **Permission**: `hyperfactions.list`
-- **Output**: Paginated list sorted by power
+        // 3. Get player position
+        int chunkX = ChunkUtil.toChunkCoord(player.getPosition().getX());
+        int chunkZ = ChunkUtil.toChunkCoord(player.getPosition().getZ());
 
-### `/f members`
-View your faction's member list.
-- **Permission**: `hyperfactions.members`
+        // 4. Call manager (does permission check + business logic)
+        ClaimResult result = hyperFactions.getClaimManager()
+            .claim(player.getUuid(), world.getName(), chunkX, chunkZ);
 
-### `/f invites`
-View and manage pending invites and join requests.
-- **Permission**: `hyperfactions.invites`
+        // 5. Handle result
+        switch (result) {
+            case SUCCESS -> {
+                ctx.sendMessage(prefix().insert(msg("Chunk claimed!", COLOR_GREEN)));
+            }
+            case NO_PERMISSION -> {
+                ctx.sendMessage(prefix().insert(msg("No permission.", COLOR_RED)));
+            }
+            case INSUFFICIENT_POWER -> {
+                ctx.sendMessage(prefix().insert(msg("Not enough power.", COLOR_RED)));
+            }
+            // ... other cases
+        }
+    }
+}
+```
 
-### `/f who <player>`
-View information about a player.
-- **Permission**: `hyperfactions.who`
+## Permission Checking
 
-### `/f power [player]`
-View power level for yourself or another player.
-- **Permission**: `hyperfactions.power`
+Permissions are checked at **two levels**:
 
-### `/f gui`
-Open the faction GUI menu.
-- **Permission**: `hyperfactions.gui`
+1. **Command Level** (optional) - Early rejection with specific error message
+2. **Manager Level** (required) - Ensures GUI operations are also protected
 
----
+```java
+// Command checks permission for specific error message
+if (!hasPermission(player, Permissions.CLAIM)) {
+    ctx.sendMessage(msg("You need hyperfactions.territory.claim", COLOR_RED));
+    return;
+}
 
-## Chat Commands
-
-### `/f chat [mode]`
-Toggle or set faction chat mode.
-- **Permission**: `hyperfactions.chat`
-- **Modes**: `faction` (f), `ally` (a), `public` (p)
-- **Example**: `/f c f` (faction chat)
-- **Example**: `/f c` (toggle)
-
----
+// Manager also checks (protects GUI path)
+ClaimResult result = claimManager.claim(uuid, world, x, z);
+if (result == ClaimResult.NO_PERMISSION) {
+    // Shouldn't reach here if command checked, but GUI might call directly
+}
+```
 
 ## Admin Commands
 
-All admin commands require `hyperfactions.admin` or `hyperfactions.admin.*` permission.
+[`command/admin/AdminSubCommand.java`](../src/main/java/com/hyperfactions/command/admin/AdminSubCommand.java)
 
-### `/f admin`
-Open the admin GUI.
+Admin commands use nested subcommand structure:
 
-### Zone Management
+```
+/f admin
+├── zone          # Zone management
+│   ├── create
+│   ├── delete
+│   ├── claim
+│   ├── unclaim
+│   ├── radius
+│   └── list
+├── zoneflag      # Zone flag management
+├── safezone      # Quick SafeZone creation
+├── warzone       # Quick WarZone creation
+├── bypass        # Toggle admin bypass
+├── backup        # Backup management
+│   ├── create
+│   ├── list
+│   ├── restore
+│   └── delete
+├── reload        # Reload config
+├── update        # Check for updates
+└── debug         # Debug commands
+```
 
-#### `/f admin zone`
-Open zone management GUI.
+## Message Formatting
 
-#### `/f admin zone list`
-List all zones.
+Commands use the `Message` API with `Message.join()`:
 
-#### `/f admin zone create <type> <name>`
-Create a new zone.
-- **Types**: `safezone`, `warzone`
-- **Example**: `/f admin zone create safezone Spawn`
+```java
+// Correct: use Message.join() for composition
+Message msg = Message.join(
+    prefix(),
+    Message.text("Player "),
+    Message.text(playerName).color(Color.hex(COLOR_CYAN)),
+    Message.text(" joined your faction!")
+);
 
-#### `/f admin zone delete <name>`
-Delete a zone by name.
+// Wrong: don't use .then() (legacy API)
+// Wrong: don't use legacy color codes (§c, &c)
+```
 
-#### `/f admin zone claim <name>`
-Claim current chunk for an existing zone.
+## Tab Completion
 
-#### `/f admin zone unclaim`
-Unclaim current chunk from its zone.
+Hytale handles tab completion automatically based on command arguments. For custom completion, override in subcommand:
 
-#### `/f admin zone radius <name> <radius> [shape]`
-Claim multiple chunks in a radius.
-- **Shapes**: `square` (default), `circle`
-- **Example**: `/f admin zone radius Spawn 5 circle`
+```java
+@Override
+protected List<String> tabComplete(CommandContext ctx, PlayerRef player) {
+    String[] args = ctx.getRemainingArguments();
+    if (args.length == 1) {
+        // Complete first argument with faction names
+        return hyperFactions.getFactionManager().getAllFactions()
+            .stream()
+            .map(Faction::name)
+            .filter(n -> n.toLowerCase().startsWith(args[0].toLowerCase()))
+            .toList();
+    }
+    return List.of();
+}
+```
 
-#### `/f admin safezone [name]`
-Quick create SafeZone and claim current chunk.
-- **Example**: `/f admin safezone` (auto-names)
-- **Example**: `/f admin safezone SpawnArea`
+## Adding a New Command
 
-#### `/f admin warzone [name]`
-Quick create WarZone and claim current chunk.
+1. Create subcommand class in appropriate category package
+2. Extend `FactionSubCommand`
+3. Implement `execute()` method
+4. Register in `FactionCommand` constructor
+5. Add permission constant to `Permissions.java` if new
+6. Update help system if needed
 
-#### `/f admin removezone`
-Unclaim current chunk from its zone (alias for zone unclaim).
+Example skeleton:
 
-### Zone Flags
+```java
+package com.hyperfactions.command.faction;
 
-#### `/f admin zoneflag`
-View all flags for the zone at your location.
+public class NewSubCommand extends FactionSubCommand {
 
-#### `/f admin zoneflag <flag>`
-View specific flag value.
+    public NewSubCommand(HyperFactions hyperFactions, HyperFactionsPlugin plugin) {
+        super("newcmd", "Description of the command", hyperFactions, plugin);
+        // Optional: add aliases
+        addAliases("nc");
+    }
 
-#### `/f admin zoneflag <flag> <true|false>`
-Set a flag value.
-- **Example**: `/f admin zoneflag pvp_enabled true`
+    @Override
+    protected void execute(CommandContext ctx, Store<EntityStore> store,
+                          Ref<EntityStore> ref, PlayerRef player, World world) {
+        // Implementation
+    }
+}
+```
 
-#### `/f admin zoneflag <flag> clear`
-Reset a flag to its zone type default.
+Register in `FactionCommand`:
+```java
+addSubCommand(new NewSubCommand(hyperFactions, plugin));
+```
 
-#### `/f admin zoneflag clearall`
-Reset ALL flags to zone type defaults.
+## Code Links
 
-**Available Flags:**
-
-| Flag | Description | SafeZone Default | WarZone Default |
-|------|-------------|------------------|-----------------|
-| `pvp_enabled` | Allow PvP combat | false | true |
-| `friendly_fire` | Allow same-faction damage | false | false |
-| `build_allowed` | Allow block place/break | false | false |
-| `container_access` | Allow chest access | false | false |
-| `interact_allowed` | Allow doors, buttons | true | true |
-| `item_drop` | Allow dropping items | true | true |
-| `item_pickup` | Allow picking up items | true | true |
-| `mob_spawning` | Allow mob spawning | false | false |
-| `mob_damage` | Allow mob damage | false | true |
-| `hunger_loss` | Allow hunger drain | false | true |
-| `fall_damage` | Allow fall damage | false | true |
-
-### Other Admin Commands
-
-#### `/f admin bypass`
-Toggle admin bypass mode (ignore protection).
-- **Permission**: `hyperfactions.admin.bypass`
-
-#### `/f admin update`
-Check for and install plugin updates.
-- **Permission**: `hyperfactions.admin.update`
-
-### Backup Commands
-
-#### `/f admin backup`
-Show backup help.
-- **Permission**: `hyperfactions.admin.backup`
-
-#### `/f admin backup create [name]`
-Create a manual backup.
-- **Example**: `/f admin backup create before-reset`
-
-#### `/f admin backup list`
-List all backups grouped by type (hourly, daily, weekly, manual).
-
-#### `/f admin backup restore <name>`
-Restore from a backup. Requires confirmation.
-- **Warning**: This will overwrite current data!
-
-#### `/f admin backup delete <name>`
-Delete a backup.
-
----
-
-## Debug Commands
-
-All debug commands require `hyperfactions.admin` permission.
-
-### `/f debug toggle <category|all>`
-Toggle debug logging for a category.
-- **Categories**: `protection`, `power`, `combat`, `claims`, `all`
-
-### `/f debug status`
-Show current debug logging status.
-
-### `/f debug power <player>`
-Show detailed power information for a player.
-
-### `/f debug claim [x z]`
-Show claim information at location.
-
-### `/f debug protection <player>`
-Show protection check results at location.
-
-### `/f debug combat <player>`
-Show combat tag status for a player.
-
-### `/f debug relation <faction1> <faction2>`
-Show relation details between two factions.
-
----
-
-## Config Command
-
-### `/f reload`
-Reload plugin configuration.
-- **Permission**: `hyperfactions.admin.reload`
-
----
-
-## Permission Summary
-
-### Universal Permission
-- `hyperfactions.use` - Grants all basic user permissions (not admin/bypass/limit)
-
-### User Permissions
-All prefixed with `hyperfactions.`:
-- `create`, `disband`, `invite`, `accept`, `request`, `leave`, `kick`
-- `rename`, `desc`, `color`, `open`, `close`, `promote`, `demote`, `transfer`
-- `claim`, `unclaim`, `overclaim`, `map`
-- `ally`, `enemy`, `neutral`
-- `home`, `sethome`, `stuck`
-- `info`, `list`, `members`, `invites`, `who`, `power`, `gui`
-- `chat`
-
-### Admin Permissions
-- `hyperfactions.admin` - Access admin commands/GUI
-- `hyperfactions.admin.*` - All admin permissions
-- `hyperfactions.admin.bypass` - Admin bypass mode
-- `hyperfactions.admin.reload` - Reload config
-- `hyperfactions.admin.update` - Plugin updates
-- `hyperfactions.admin.backup` - Backup management
-
-### Bypass Permissions
-- `hyperfactions.bypass.*` - Bypass all protections
-- `hyperfactions.bypass.build` - Bypass build protection
-- `hyperfactions.bypass.container` - Bypass container protection
-- `hyperfactions.bypass.damage` - Bypass PvP protection
-
-### Limit Permissions
-- `hyperfactions.limit.<N>` - Set max claims to N
-- `hyperfactions.limit.unlimited` - Unlimited claims
+| Class | Path |
+|-------|------|
+| FactionCommand | [`command/FactionCommand.java`](../src/main/java/com/hyperfactions/command/FactionCommand.java) |
+| FactionSubCommand | [`command/FactionSubCommand.java`](../src/main/java/com/hyperfactions/command/FactionSubCommand.java) |
+| FactionCommandContext | [`command/FactionCommandContext.java`](../src/main/java/com/hyperfactions/command/FactionCommandContext.java) |
+| CommandUtil | [`command/util/CommandUtil.java`](../src/main/java/com/hyperfactions/command/util/CommandUtil.java) |
+| AdminSubCommand | [`command/admin/AdminSubCommand.java`](../src/main/java/com/hyperfactions/command/admin/AdminSubCommand.java) |
+| Permissions | [`Permissions.java`](../src/main/java/com/hyperfactions/Permissions.java) |

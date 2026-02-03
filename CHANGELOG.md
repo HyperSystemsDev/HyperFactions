@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+*No changes yet*
+
+## [0.5.0] - 2026-02-02
+
+### Added
+
+**Death Power Loss System**
+- Implemented ECS-based `PlayerDeathSystem` to detect player deaths via `DeathComponent`
+- Power penalty now correctly applied when players die (was previously orphaned code)
+- Uses Hytale's native ECS pattern (`RefChangeSystem<EntityStore, DeathComponent>`)
+
+**Respawn Handling System**
+- Implemented ECS-based `PlayerRespawnSystem` to detect respawns via `DeathComponent` removal
+- Combat tag automatically cleared on respawn
+- Spawn protection applied at respawn location (configurable duration)
+
+**Claim Decay System**
+- New automatic claim decay for inactive factions
+- If ALL faction members are offline longer than `decayDaysInactive` (default: 30 days), all claims are removed
+- Decay runs hourly via scheduled task
+- Admin commands for decay management:
+  - `/f admin decay` - Show decay system status
+  - `/f admin decay run` - Manually trigger decay check
+  - `/f admin decay check <faction>` - Check specific faction's decay status
+
+**Debug Toggle Persistence**
+- Implemented `/f admin debug toggle <category> [on|off]` command
+- Debug category changes now persist to `config/debug.json` across server restarts
+- `/f admin debug toggle` shows current status of all 6 categories
+- `/f admin debug toggle all` enables/disables all categories at once
+- `/f admin debug status` now shows debug logging status alongside data counts
+
+**Zone Rename Modal**
+- Admin zone rename UI accessible from AdminZonePage
+- New ZoneRenameModalPage and ZoneRenameModalData classes
+- Zone name input with validation and immediate save
+
 ### Changed
 
 **Config System Restructure**
@@ -32,19 +69,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `command/util/` - CommandUtil shared utilities
 - Added `/hyperfactions` as additional command alias
 
-### Added
+### Fixed
 
-**Debug Toggle Persistence**
-- Implemented `/f admin debug toggle <category> [on|off]` command
-- Debug category changes now persist to `config/debug.json` across server restarts
-- `/f admin debug toggle` shows current status of all 6 categories
-- `/f admin debug toggle all` enables/disables all categories at once
-- `/f admin debug status` now shows debug logging status alongside data counts
-
-**Zone Rename Modal**
-- Admin zone rename UI accessible from AdminZonePage
-- New ZoneRenameModalPage and ZoneRenameModalData classes
-- Zone name input with validation and immediate save
+**Power Debug Logging**
+- Fixed `PlayerListener.onPlayerDeath()` using wrong logger category (`Logger.debug` → `Logger.debugPower`)
 
 ## [0.4.3] - 2026-02-02
 

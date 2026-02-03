@@ -55,7 +55,7 @@ public class PlayerListener {
      */
     public void onPlayerDeath(@NotNull UUID playerUuid) {
         double newPower = hyperFactions.getPowerManager().applyDeathPenalty(playerUuid);
-        Logger.debug("Player %s died, power now %.2f", playerUuid, newPower);
+        Logger.debugPower("Player %s died, power now %.2f", playerUuid, newPower);
     }
 
     /**

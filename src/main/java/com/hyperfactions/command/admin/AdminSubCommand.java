@@ -118,6 +118,7 @@ public class AdminSubCommand extends FactionSubCommand {
             case "backup" -> handleAdminBackup(ctx, player, Arrays.copyOfRange(args, 1, args.length));
             case "import" -> handleAdminImport(ctx, player, Arrays.copyOfRange(args, 1, args.length));
             case "debug" -> handleDebug(ctx, store, ref, player, currentWorld, Arrays.copyOfRange(args, 1, args.length));
+            case "decay" -> handleAdminDecay(ctx, player, Arrays.copyOfRange(args, 1, args.length));
             default -> ctx.sendMessage(prefix().insert(msg("Unknown admin command. Use /f admin help", COLOR_RED)));
         }
     }
@@ -134,6 +135,7 @@ public class AdminSubCommand extends FactionSubCommand {
         commands.add(new CommandHelp("/f admin reload", "Reload configuration"));
         commands.add(new CommandHelp("/f admin sync", "Sync data from disk"));
         commands.add(new CommandHelp("/f admin debug", "Debug commands"));
+        commands.add(new CommandHelp("/f admin decay", "Claim decay management"));
         commands.add(new CommandHelp("/f admin safezone [name]", "Create SafeZone + claim chunk"));
         commands.add(new CommandHelp("/f admin warzone [name]", "Create WarZone + claim chunk"));
         commands.add(new CommandHelp("/f admin removezone", "Unclaim chunk from zone"));
@@ -1004,5 +1006,152 @@ public class AdminSubCommand extends FactionSubCommand {
             return;
         }
         ctx.sendMessage(prefix().insert(msg("Debug relation info not yet implemented.", COLOR_YELLOW)));
+    }
+
+    // === Admin Decay Commands ===
+    private void handleAdminDecay(CommandContext ctx, PlayerRef player, String[] args) {
+        if (!hasPermission(player, Permissions.ADMIN)) {
+            ctx.sendMessage(prefix().insert(msg("You don't have permission.", COLOR_RED)));
+            return;
+        }
+
+        if (args.length == 0) {
+            showDecayStatus(ctx);
+            return;
+        }
+
+        String subCmd = args[0].toLowerCase();
+
+        switch (subCmd) {
+            case "run", "trigger" -> handleDecayRun(ctx);
+            case "check" -> handleDecayCheck(ctx, Arrays.copyOfRange(args, 1, args.length));
+            case "status" -> showDecayStatus(ctx);
+            case "help", "?" -> showDecayHelp(ctx);
+            default -> {
+                ctx.sendMessage(prefix().insert(msg("Unknown decay command: " + subCmd, COLOR_RED)));
+                showDecayHelp(ctx);
+            }
+        }
+    }
+
+    private void showDecayHelp(CommandContext ctx) {
+        List<CommandHelp> commands = new ArrayList<>();
+        commands.add(new CommandHelp("/f admin decay", "Show decay status"));
+        commands.add(new CommandHelp("/f admin decay run", "Manually trigger claim decay"));
+        commands.add(new CommandHelp("/f admin decay check <faction>", "Check faction decay status"));
+        ctx.sendMessage(HelpFormatter.buildHelp("Claim Decay", "Auto-removes claims from inactive factions", commands, null));
+    }
+
+    private void showDecayStatus(CommandContext ctx) {
+        ConfigManager config = ConfigManager.get();
+
+        ctx.sendMessage(msg("=== Claim Decay Status ===", COLOR_CYAN).bold(true));
+        ctx.sendMessage(msg("Enabled: ", COLOR_GRAY)
+            .insert(msg(config.isDecayEnabled() ? "Yes" : "No", config.isDecayEnabled() ? COLOR_GREEN : COLOR_RED)));
+        ctx.sendMessage(msg("Inactivity Threshold: ", COLOR_GRAY)
+            .insert(msg(config.getDecayDaysInactive() + " days", COLOR_WHITE)));
+        ctx.sendMessage(msg("Check Interval: ", COLOR_GRAY)
+            .insert(msg("Every hour", COLOR_WHITE)));
+
+        // Count factions at risk
+        if (config.isDecayEnabled()) {
+            int atRisk = 0;
+            int totalWithClaims = 0;
+            for (var faction : hyperFactions.getFactionManager().getAllFactions()) {
+                if (faction.getClaimCount() > 0) {
+                    totalWithClaims++;
+                    int daysUntil = hyperFactions.getClaimManager().getDaysUntilDecay(faction.id());
+                    if (daysUntil >= 0 && daysUntil <= 7) {
+                        atRisk++;
+                    }
+                }
+            }
+            ctx.sendMessage(msg("Factions with claims: ", COLOR_GRAY)
+                .insert(msg(String.valueOf(totalWithClaims), COLOR_WHITE)));
+            ctx.sendMessage(msg("At risk (≤7 days): ", COLOR_GRAY)
+                .insert(msg(String.valueOf(atRisk), atRisk > 0 ? COLOR_YELLOW : COLOR_GREEN)));
+        }
+    }
+
+    private void handleDecayRun(CommandContext ctx) {
+        ConfigManager config = ConfigManager.get();
+
+        if (!config.isDecayEnabled()) {
+            ctx.sendMessage(prefix().insert(msg("Claim decay is disabled in config.", COLOR_YELLOW)));
+            ctx.sendMessage(msg("Set claims.decayEnabled to true to enable.", COLOR_GRAY));
+            return;
+        }
+
+        ctx.sendMessage(prefix().insert(msg("Running claim decay check...", COLOR_YELLOW)));
+
+        // Run decay on separate thread to avoid blocking
+        CompletableFuture.runAsync(() -> {
+            try {
+                hyperFactions.getClaimManager().tickClaimDecay();
+                ctx.sendMessage(prefix().insert(msg("Claim decay check complete. Check console for details.", COLOR_GREEN)));
+            } catch (Exception e) {
+                ctx.sendMessage(prefix().insert(msg("Error during decay: " + e.getMessage(), COLOR_RED)));
+            }
+        });
+    }
+
+    private void handleDecayCheck(CommandContext ctx, String[] args) {
+        if (args.length < 1) {
+            ctx.sendMessage(prefix().insert(msg("Usage: /f admin decay check <faction>", COLOR_RED)));
+            return;
+        }
+
+        String factionName = args[0];
+        var faction = hyperFactions.getFactionManager().getFactionByName(factionName);
+        if (faction == null) {
+            ctx.sendMessage(prefix().insert(msg("Faction '" + factionName + "' not found.", COLOR_RED)));
+            return;
+        }
+
+        ConfigManager config = ConfigManager.get();
+
+        ctx.sendMessage(msg("=== Decay Check: " + faction.name() + " ===", COLOR_CYAN).bold(true));
+        ctx.sendMessage(msg("Claims: ", COLOR_GRAY).insert(msg(String.valueOf(faction.getClaimCount()), COLOR_WHITE)));
+
+        if (faction.getClaimCount() == 0) {
+            ctx.sendMessage(msg("No claims to decay.", COLOR_GRAY));
+            return;
+        }
+
+        if (!config.isDecayEnabled()) {
+            ctx.sendMessage(msg("Decay Status: ", COLOR_GRAY).insert(msg("Disabled globally", COLOR_YELLOW)));
+            return;
+        }
+
+        // Find most recent login
+        long mostRecentLogin = 0;
+        String mostRecentPlayer = "Unknown";
+        for (var member : faction.members().values()) {
+            if (member.lastOnline() > mostRecentLogin) {
+                mostRecentLogin = member.lastOnline();
+                mostRecentPlayer = member.username();
+            }
+        }
+
+        long daysSinceActive = (System.currentTimeMillis() - mostRecentLogin) / (24L * 60 * 60 * 1000);
+        int daysUntilDecay = hyperFactions.getClaimManager().getDaysUntilDecay(faction.id());
+        boolean isInactive = hyperFactions.getClaimManager().isFactionInactive(faction.id());
+
+        ctx.sendMessage(msg("Last Active: ", COLOR_GRAY)
+            .insert(msg(daysSinceActive + " days ago", COLOR_WHITE))
+            .insert(msg(" (" + mostRecentPlayer + ")", COLOR_GRAY)));
+        ctx.sendMessage(msg("Threshold: ", COLOR_GRAY)
+            .insert(msg(config.getDecayDaysInactive() + " days", COLOR_WHITE)));
+
+        if (isInactive) {
+            ctx.sendMessage(msg("Status: ", COLOR_GRAY)
+                .insert(msg("INACTIVE - Claims will decay on next check!", COLOR_RED).bold(true)));
+        } else if (daysUntilDecay <= 7) {
+            ctx.sendMessage(msg("Status: ", COLOR_GRAY)
+                .insert(msg("AT RISK - " + daysUntilDecay + " days until decay", COLOR_YELLOW)));
+        } else {
+            ctx.sendMessage(msg("Status: ", COLOR_GRAY)
+                .insert(msg("Active - " + daysUntilDecay + " days until decay", COLOR_GREEN)));
+        }
     }
 }
