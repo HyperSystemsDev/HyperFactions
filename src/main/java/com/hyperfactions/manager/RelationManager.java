@@ -1,7 +1,7 @@
 package com.hyperfactions.manager;
 
 import com.hyperfactions.Permissions;
-import com.hyperfactions.config.HyperFactionsConfig;
+import com.hyperfactions.config.ConfigManager;
 import com.hyperfactions.data.*;
 import com.hyperfactions.integration.PermissionManager;
 import com.hyperfactions.util.Logger;
@@ -251,7 +251,7 @@ public class RelationManager {
         }
 
         // Check ally cap
-        int maxAllies = HyperFactionsConfig.get().getMaxAllies();
+        int maxAllies = ConfigManager.get().getMaxAllies();
         if (maxAllies >= 0) {
             long allyCount = actorFaction.relations().values().stream()
                 .filter(r -> r.type() == RelationType.ALLY)
@@ -390,7 +390,7 @@ public class RelationManager {
         }
 
         // Check enemy cap
-        int maxEnemies = HyperFactionsConfig.get().getMaxEnemies();
+        int maxEnemies = ConfigManager.get().getMaxEnemies();
         if (maxEnemies >= 0) {
             long enemyCount = actorFaction.relations().values().stream()
                 .filter(r -> r.type() == RelationType.ENEMY)

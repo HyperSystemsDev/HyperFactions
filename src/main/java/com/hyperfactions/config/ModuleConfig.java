@@ -1,0 +1,94 @@
+package com.hyperfactions.config;
+
+import com.google.gson.JsonObject;
+import org.jetbrains.annotations.NotNull;
+
+import java.nio.file.Path;
+
+/**
+ * Abstract base class for module configuration files.
+ * <p>
+ * Module configs live in the config/ subdirectory and have an "enabled" field
+ * that can completely disable the module's functionality.
+ */
+public abstract class ModuleConfig extends ConfigFile {
+
+    protected boolean enabled = true;
+
+    /**
+     * Creates a new module config handler.
+     *
+     * @param filePath path to the module config file
+     */
+    protected ModuleConfig(@NotNull Path filePath) {
+        super(filePath);
+    }
+
+    /**
+     * Gets the module name for logging.
+     *
+     * @return module name
+     */
+    @NotNull
+    public abstract String getModuleName();
+
+    /**
+     * Checks if this module is enabled.
+     * When disabled, the module's functionality should be completely skipped.
+     *
+     * @return true if enabled
+     */
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    /**
+     * Sets whether this module is enabled.
+     *
+     * @param enabled true to enable
+     */
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
+    /**
+     * Gets the default enabled state for this module.
+     * Override to change the default (most modules default to true).
+     *
+     * @return default enabled state
+     */
+    protected boolean getDefaultEnabled() {
+        return true;
+    }
+
+    @Override
+    protected void loadFromJson(@NotNull JsonObject root) {
+        this.enabled = getBool(root, "enabled", getDefaultEnabled());
+        loadModuleSettings(root);
+    }
+
+    @Override
+    @NotNull
+    protected JsonObject toJson() {
+        JsonObject root = new JsonObject();
+        root.addProperty("enabled", enabled);
+        writeModuleSettings(root);
+        return root;
+    }
+
+    /**
+     * Loads module-specific settings from the JSON object.
+     * The "enabled" field has already been loaded.
+     *
+     * @param root the root JSON object
+     */
+    protected abstract void loadModuleSettings(@NotNull JsonObject root);
+
+    /**
+     * Writes module-specific settings to the JSON object.
+     * The "enabled" field has already been written.
+     *
+     * @param root the root JSON object
+     */
+    protected abstract void writeModuleSettings(@NotNull JsonObject root);
+}

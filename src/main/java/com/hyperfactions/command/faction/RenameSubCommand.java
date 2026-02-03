@@ -4,7 +4,7 @@ import com.hyperfactions.HyperFactions;
 import com.hyperfactions.Permissions;
 import com.hyperfactions.command.FactionCommandContext;
 import com.hyperfactions.command.FactionSubCommand;
-import com.hyperfactions.config.HyperFactionsConfig;
+import com.hyperfactions.config.ConfigManager;
 import com.hyperfactions.data.Faction;
 import com.hyperfactions.data.FactionLog;
 import com.hyperfactions.data.FactionMember;
@@ -73,7 +73,7 @@ public class RenameSubCommand extends FactionSubCommand {
         }
 
         String newName = fctx.joinArgs();
-        HyperFactionsConfig config = HyperFactionsConfig.get();
+        ConfigManager config = ConfigManager.get();
 
         if (newName.length() < config.getMinNameLength()) {
             ctx.sendMessage(prefix().insert(msg("Name is too short (min " + config.getMinNameLength() + " chars).", COLOR_RED)));

@@ -1,6 +1,6 @@
 package com.hyperfactions.integration;
 
-import com.hyperfactions.config.HyperFactionsConfig;
+import com.hyperfactions.config.ConfigManager;
 import com.hyperfactions.util.Logger;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import org.jetbrains.annotations.NotNull;
@@ -173,7 +173,7 @@ public class PermissionManager {
      * Handles fallback when no provider can answer.
      */
     private boolean handleFallback(@NotNull UUID playerUuid, @NotNull String permission) {
-        HyperFactionsConfig config = HyperFactionsConfig.get();
+        ConfigManager config = ConfigManager.get();
 
         // Admin permissions require OP when no permission plugin is handling them
         if (permission.startsWith("hyperfactions.admin")) {
@@ -350,8 +350,8 @@ public class PermissionManager {
             sb.append("  - ").append(provider.getName())
                     .append(" (available: ").append(provider.isAvailable()).append(")\n");
         }
-        sb.append("Fallback Behavior: ").append(HyperFactionsConfig.get().getPermissionFallbackBehavior()).append("\n");
-        sb.append("Admin Requires OP: ").append(HyperFactionsConfig.get().isAdminRequiresOp()).append("\n");
+        sb.append("Fallback Behavior: ").append(ConfigManager.get().getPermissionFallbackBehavior()).append("\n");
+        sb.append("Admin Requires OP: ").append(ConfigManager.get().isAdminRequiresOp()).append("\n");
         return sb.toString();
     }
 }

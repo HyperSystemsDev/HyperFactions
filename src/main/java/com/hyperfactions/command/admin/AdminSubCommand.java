@@ -6,6 +6,7 @@ import com.hyperfactions.backup.BackupManager;
 import com.hyperfactions.backup.BackupMetadata;
 import com.hyperfactions.backup.BackupType;
 import com.hyperfactions.command.FactionSubCommand;
+import com.hyperfactions.config.ConfigManager;
 import com.hyperfactions.data.Zone;
 import com.hyperfactions.data.ZoneFlags;
 import com.hyperfactions.data.ZoneType;
@@ -848,14 +849,100 @@ public class AdminSubCommand extends FactionSubCommand {
     }
 
     private void handleDebugToggle(CommandContext ctx, String[] args) {
-        ctx.sendMessage(prefix().insert(msg("Debug toggle not yet implemented.", COLOR_YELLOW)));
+        var debugConfig = ConfigManager.get().debug();
+
+        if (args.length == 0) {
+            // Show current status
+            ctx.sendMessage(msg("=== Debug Logging Status ===", COLOR_CYAN).bold(true));
+            ctx.sendMessage(msg("Categories:", COLOR_GRAY));
+            ctx.sendMessage(msg("  power: ", COLOR_WHITE).insert(msg(debugConfig.isPower() ? "ON" : "OFF", debugConfig.isPower() ? COLOR_GREEN : COLOR_RED)));
+            ctx.sendMessage(msg("  claim: ", COLOR_WHITE).insert(msg(debugConfig.isClaim() ? "ON" : "OFF", debugConfig.isClaim() ? COLOR_GREEN : COLOR_RED)));
+            ctx.sendMessage(msg("  combat: ", COLOR_WHITE).insert(msg(debugConfig.isCombat() ? "ON" : "OFF", debugConfig.isCombat() ? COLOR_GREEN : COLOR_RED)));
+            ctx.sendMessage(msg("  protection: ", COLOR_WHITE).insert(msg(debugConfig.isProtection() ? "ON" : "OFF", debugConfig.isProtection() ? COLOR_GREEN : COLOR_RED)));
+            ctx.sendMessage(msg("  relation: ", COLOR_WHITE).insert(msg(debugConfig.isRelation() ? "ON" : "OFF", debugConfig.isRelation() ? COLOR_GREEN : COLOR_RED)));
+            ctx.sendMessage(msg("  territory: ", COLOR_WHITE).insert(msg(debugConfig.isTerritory() ? "ON" : "OFF", debugConfig.isTerritory() ? COLOR_GREEN : COLOR_RED)));
+            ctx.sendMessage(msg("Usage: /f admin debug toggle <category|all> [on|off]", COLOR_GRAY));
+            return;
+        }
+
+        String category = args[0].toLowerCase();
+
+        // Handle "all" category
+        if (category.equals("all")) {
+            boolean enable = args.length > 1 ? args[1].equalsIgnoreCase("on") : !debugConfig.isEnabledByDefault();
+            if (enable) {
+                debugConfig.enableAll();
+                ctx.sendMessage(prefix().insert(msg("All debug categories enabled.", COLOR_GREEN)));
+            } else {
+                debugConfig.disableAll();
+                ctx.sendMessage(prefix().insert(msg("All debug categories disabled.", COLOR_GREEN)));
+            }
+            debugConfig.save();
+            return;
+        }
+
+        // Get current value and determine new value
+        boolean currentValue;
+        switch (category) {
+            case "power" -> currentValue = debugConfig.isPower();
+            case "claim" -> currentValue = debugConfig.isClaim();
+            case "combat" -> currentValue = debugConfig.isCombat();
+            case "protection" -> currentValue = debugConfig.isProtection();
+            case "relation" -> currentValue = debugConfig.isRelation();
+            case "territory" -> currentValue = debugConfig.isTerritory();
+            default -> {
+                ctx.sendMessage(prefix().insert(msg("Unknown category: " + category, COLOR_RED)));
+                ctx.sendMessage(msg("Valid categories: power, claim, combat, protection, relation, territory, all", COLOR_GRAY));
+                return;
+            }
+        }
+
+        // Determine new value: if explicit on/off provided use that, otherwise toggle
+        boolean newValue = args.length > 1
+            ? args[1].equalsIgnoreCase("on")
+            : !currentValue;
+
+        // Apply the change
+        switch (category) {
+            case "power" -> debugConfig.setPower(newValue);
+            case "claim" -> debugConfig.setClaim(newValue);
+            case "combat" -> debugConfig.setCombat(newValue);
+            case "protection" -> debugConfig.setProtection(newValue);
+            case "relation" -> debugConfig.setRelation(newValue);
+            case "territory" -> debugConfig.setTerritory(newValue);
+        }
+
+        // Save to persist the change
+        debugConfig.save();
+
+        ctx.sendMessage(prefix().insert(
+            msg("Debug category '", COLOR_GREEN)
+                .insert(msg(category, COLOR_CYAN))
+                .insert(msg("' set to ", COLOR_GREEN))
+                .insert(msg(newValue ? "ON" : "OFF", newValue ? COLOR_GREEN : COLOR_RED))
+                .insert(msg(" (saved)", COLOR_GRAY))
+        ));
     }
 
     private void handleDebugStatus(CommandContext ctx) {
+        var debugConfig = ConfigManager.get().debug();
+
         ctx.sendMessage(msg("=== HyperFactions Debug Status ===", COLOR_CYAN).bold(true));
-        ctx.sendMessage(msg("Factions: " + hyperFactions.getFactionManager().getAllFactions().size(), COLOR_WHITE));
-        ctx.sendMessage(msg("Zones: " + hyperFactions.getZoneManager().getAllZones().size(), COLOR_WHITE));
-        ctx.sendMessage(msg("Claims loaded: " + hyperFactions.getClaimManager().getTotalClaimCount(), COLOR_WHITE));
+
+        // Data counts
+        ctx.sendMessage(msg("Data:", COLOR_GRAY));
+        ctx.sendMessage(msg("  Factions: " + hyperFactions.getFactionManager().getAllFactions().size(), COLOR_WHITE));
+        ctx.sendMessage(msg("  Zones: " + hyperFactions.getZoneManager().getAllZones().size(), COLOR_WHITE));
+        ctx.sendMessage(msg("  Claims: " + hyperFactions.getClaimManager().getTotalClaimCount(), COLOR_WHITE));
+
+        // Debug logging status
+        ctx.sendMessage(msg("Debug Logging:", COLOR_GRAY));
+        ctx.sendMessage(msg("  power: ", COLOR_WHITE).insert(msg(debugConfig.isPower() ? "ON" : "OFF", debugConfig.isPower() ? COLOR_GREEN : COLOR_RED)));
+        ctx.sendMessage(msg("  claim: ", COLOR_WHITE).insert(msg(debugConfig.isClaim() ? "ON" : "OFF", debugConfig.isClaim() ? COLOR_GREEN : COLOR_RED)));
+        ctx.sendMessage(msg("  combat: ", COLOR_WHITE).insert(msg(debugConfig.isCombat() ? "ON" : "OFF", debugConfig.isCombat() ? COLOR_GREEN : COLOR_RED)));
+        ctx.sendMessage(msg("  protection: ", COLOR_WHITE).insert(msg(debugConfig.isProtection() ? "ON" : "OFF", debugConfig.isProtection() ? COLOR_GREEN : COLOR_RED)));
+        ctx.sendMessage(msg("  relation: ", COLOR_WHITE).insert(msg(debugConfig.isRelation() ? "ON" : "OFF", debugConfig.isRelation() ? COLOR_GREEN : COLOR_RED)));
+        ctx.sendMessage(msg("  territory: ", COLOR_WHITE).insert(msg(debugConfig.isTerritory() ? "ON" : "OFF", debugConfig.isTerritory() ? COLOR_GREEN : COLOR_RED)));
     }
 
     private void handleDebugPower(CommandContext ctx, String[] args) {

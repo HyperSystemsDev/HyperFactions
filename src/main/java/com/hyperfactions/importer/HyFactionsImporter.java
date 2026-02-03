@@ -4,7 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.hyperfactions.backup.BackupManager;
 import com.hyperfactions.backup.BackupType;
-import com.hyperfactions.config.HyperFactionsConfig;
+import com.hyperfactions.config.ConfigManager;
 import com.hyperfactions.data.*;
 import com.hyperfactions.importer.hyfactions.*;
 import com.hyperfactions.manager.ClaimManager;
@@ -1210,7 +1210,7 @@ public class HyFactionsImporter {
         int memberCount = faction.getMemberCount();
         if (memberCount == 0) return;
 
-        double maxPower = HyperFactionsConfig.get().getMaxPlayerPower();
+        double maxPower = ConfigManager.get().getMaxPlayerPower();
         double powerPerMember = Math.min((double) totalPower / memberCount, maxPower);
 
         progress("  - Distributing %d power among %d members (%.1f each, capped at %.1f)",

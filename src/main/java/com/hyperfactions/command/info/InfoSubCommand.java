@@ -4,7 +4,7 @@ import com.hyperfactions.HyperFactions;
 import com.hyperfactions.Permissions;
 import com.hyperfactions.command.FactionCommandContext;
 import com.hyperfactions.command.FactionSubCommand;
-import com.hyperfactions.config.HyperFactionsConfig;
+import com.hyperfactions.config.ConfigManager;
 import com.hyperfactions.data.Faction;
 import com.hyperfactions.data.FactionMember;
 import com.hyperfactions.manager.PowerManager;
@@ -78,7 +78,7 @@ public class InfoSubCommand extends FactionSubCommand {
 
         ctx.sendMessage(msg("=== " + faction.name() + " ===", COLOR_CYAN).bold(true));
         ctx.sendMessage(msg("Leader: ", COLOR_GRAY).insert(msg(leader != null ? leader.username() : "None", COLOR_YELLOW)));
-        ctx.sendMessage(msg("Members: ", COLOR_GRAY).insert(msg(faction.getMemberCount() + "/" + HyperFactionsConfig.get().getMaxMembers(), COLOR_WHITE)));
+        ctx.sendMessage(msg("Members: ", COLOR_GRAY).insert(msg(faction.getMemberCount() + "/" + ConfigManager.get().getMaxMembers(), COLOR_WHITE)));
         ctx.sendMessage(msg("Power: ", COLOR_GRAY).insert(msg(String.format("%.1f/%.1f", stats.currentPower(), stats.maxPower()), COLOR_WHITE)));
         ctx.sendMessage(msg("Claims: ", COLOR_GRAY).insert(msg(stats.currentClaims() + "/" + stats.maxClaims(), COLOR_WHITE)));
         if (stats.isRaidable()) {

@@ -4,7 +4,7 @@ import com.hyperfactions.HyperFactions;
 import com.hyperfactions.api.HyperFactionsAPI;
 import com.hyperfactions.chat.PublicChatListener;
 import com.hyperfactions.command.FactionCommand;
-import com.hyperfactions.config.HyperFactionsConfig;
+import com.hyperfactions.config.ConfigManager;
 import com.hyperfactions.listener.PlayerListener;
 import com.hyperfactions.protection.ProtectionListener;
 import com.hyperfactions.protection.damage.DamageProtectionHandler;
@@ -258,7 +258,7 @@ public class HyperFactionsPlugin extends JavaPlugin {
      * our AddWorldEvent listener was registered.
      */
     private void applyWorldMapProviderToExistingWorlds() {
-        if (!HyperFactionsConfig.get().isWorldMapMarkersEnabled()) {
+        if (!ConfigManager.get().isWorldMapMarkersEnabled()) {
             Logger.debug("World map markers disabled, skipping provider setup for existing worlds");
             return;
         }
@@ -430,7 +430,7 @@ public class HyperFactionsPlugin extends JavaPlugin {
             }
 
             // Register our world map provider for this world
-            boolean worldMapEnabled = HyperFactionsConfig.get().isWorldMapMarkersEnabled();
+            boolean worldMapEnabled = ConfigManager.get().isWorldMapMarkersEnabled();
             Logger.debug("World map markers enabled: %s for world: %s", worldMapEnabled, world.getName());
 
             if (worldMapEnabled) {

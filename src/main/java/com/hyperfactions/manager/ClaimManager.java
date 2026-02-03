@@ -1,7 +1,7 @@
 package com.hyperfactions.manager;
 
 import com.hyperfactions.Permissions;
-import com.hyperfactions.config.HyperFactionsConfig;
+import com.hyperfactions.config.ConfigManager;
 import com.hyperfactions.data.ChunkKey;
 import com.hyperfactions.data.Faction;
 import com.hyperfactions.data.FactionClaim;
@@ -204,7 +204,7 @@ public class ClaimManager {
         }
 
         // Check world
-        if (!HyperFactionsConfig.get().isWorldAllowed(world)) {
+        if (!ConfigManager.get().isWorldAllowed(world)) {
             return ClaimResult.WORLD_NOT_ALLOWED;
         }
 
@@ -221,13 +221,13 @@ public class ClaimManager {
 
         // Check max claims
         double factionPower = powerManager.getFactionPower(faction.id());
-        int maxClaims = HyperFactionsConfig.get().calculateMaxClaims(factionPower);
+        int maxClaims = ConfigManager.get().calculateMaxClaims(factionPower);
         if (faction.getClaimCount() >= maxClaims) {
             return ClaimResult.MAX_CLAIMS_REACHED;
         }
 
         // Check adjacency if required
-        HyperFactionsConfig config = HyperFactionsConfig.get();
+        ConfigManager config = ConfigManager.get();
         if (config.isOnlyAdjacent() && faction.getClaimCount() > 0) {
             if (!hasAdjacentClaim(world, chunkX, chunkZ, faction.id())) {
                 return ClaimResult.NOT_ADJACENT;
@@ -367,7 +367,7 @@ public class ClaimManager {
 
         // Check defender power
         double defenderPower = powerManager.getFactionPower(defenderId);
-        int defenderMaxClaims = HyperFactionsConfig.get().calculateMaxClaims(defenderPower);
+        int defenderMaxClaims = ConfigManager.get().calculateMaxClaims(defenderPower);
 
         if (defenderFaction.getClaimCount() < defenderMaxClaims) {
             return ClaimResult.TARGET_HAS_POWER;
@@ -375,7 +375,7 @@ public class ClaimManager {
 
         // Check attacker can claim
         double attackerPower = powerManager.getFactionPower(attackerFaction.id());
-        int attackerMaxClaims = HyperFactionsConfig.get().calculateMaxClaims(attackerPower);
+        int attackerMaxClaims = ConfigManager.get().calculateMaxClaims(attackerPower);
         if (attackerFaction.getClaimCount() >= attackerMaxClaims) {
             return ClaimResult.MAX_CLAIMS_REACHED;
         }

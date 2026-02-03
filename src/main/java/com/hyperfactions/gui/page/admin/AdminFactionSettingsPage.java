@@ -1,6 +1,6 @@
 package com.hyperfactions.gui.page.admin;
 
-import com.hyperfactions.config.HyperFactionsConfig;
+import com.hyperfactions.config.ConfigManager;
 import com.hyperfactions.data.Faction;
 import com.hyperfactions.data.FactionPermissions;
 import com.hyperfactions.gui.GuiManager;
@@ -189,10 +189,10 @@ public class AdminFactionSettingsPage extends InteractiveCustomUIPage<AdminFacti
 
     private void buildPermissions(UICommandBuilder cmd, UIEventBuilder events, Faction faction) {
         // Get effective permissions
-        FactionPermissions perms = HyperFactionsConfig.get().getEffectiveFactionPermissions(
+        FactionPermissions perms = ConfigManager.get().getEffectiveFactionPermissions(
                 faction.getEffectivePermissions()
         );
-        HyperFactionsConfig config = HyperFactionsConfig.get();
+        ConfigManager config = ConfigManager.get();
 
         // === Outsider Permissions ===
         buildToggle(cmd, events, "OutsiderBreakToggle", "outsiderBreak", perms.outsiderBreak(), config);
@@ -220,7 +220,7 @@ public class AdminFactionSettingsPage extends InteractiveCustomUIPage<AdminFacti
 
     private void buildToggle(UICommandBuilder cmd, UIEventBuilder events,
                              String elementId, String permName, boolean currentValue,
-                             HyperFactionsConfig config) {
+                             ConfigManager config) {
         boolean locked = config.isPermissionLocked(permName);
         String selector = "#" + elementId;
 
@@ -318,7 +318,7 @@ public class AdminFactionSettingsPage extends InteractiveCustomUIPage<AdminFacti
             return;
         }
 
-        HyperFactionsConfig config = HyperFactionsConfig.get();
+        ConfigManager config = ConfigManager.get();
 
         // Check if server has locked this setting
         if (config.isPermissionLocked(permName)) {
@@ -454,10 +454,10 @@ public class AdminFactionSettingsPage extends InteractiveCustomUIPage<AdminFacti
     }
 
     private void rebuildPermissions(UICommandBuilder cmd, UIEventBuilder events, Faction faction) {
-        FactionPermissions perms = HyperFactionsConfig.get().getEffectiveFactionPermissions(
+        FactionPermissions perms = ConfigManager.get().getEffectiveFactionPermissions(
                 faction.getEffectivePermissions()
         );
-        HyperFactionsConfig config = HyperFactionsConfig.get();
+        ConfigManager config = ConfigManager.get();
 
         buildToggle(cmd, events, "OutsiderBreakToggle", "outsiderBreak", perms.outsiderBreak(), config);
         buildToggle(cmd, events, "OutsiderPlaceToggle", "outsiderPlace", perms.outsiderPlace(), config);

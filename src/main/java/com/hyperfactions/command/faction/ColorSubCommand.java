@@ -4,7 +4,7 @@ import com.hyperfactions.HyperFactions;
 import com.hyperfactions.Permissions;
 import com.hyperfactions.command.FactionCommandContext;
 import com.hyperfactions.command.FactionSubCommand;
-import com.hyperfactions.config.HyperFactionsConfig;
+import com.hyperfactions.config.ConfigManager;
 import com.hyperfactions.data.Faction;
 import com.hyperfactions.data.FactionLog;
 import com.hyperfactions.data.FactionMember;
@@ -52,7 +52,7 @@ public class ColorSubCommand extends FactionSubCommand {
             return;
         }
 
-        if (!HyperFactionsConfig.get().isAllowColors()) {
+        if (!ConfigManager.get().isAllowColors()) {
             ctx.sendMessage(prefix().insert(msg("Faction colors are disabled.", COLOR_RED)));
             return;
         }

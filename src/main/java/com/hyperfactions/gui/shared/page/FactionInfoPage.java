@@ -1,6 +1,6 @@
 package com.hyperfactions.gui.shared.page;
 
-import com.hyperfactions.config.HyperFactionsConfig;
+import com.hyperfactions.config.ConfigManager;
 import com.hyperfactions.data.Faction;
 import com.hyperfactions.data.FactionMember;
 import com.hyperfactions.data.FactionRole;
@@ -118,7 +118,7 @@ public class FactionInfoPage extends InteractiveCustomUIPage<FactionPageData> {
 
         // Members
         int memberCount = targetFaction.getMemberCount();
-        int maxMembers = HyperFactionsConfig.get().getMaxMembers();
+        int maxMembers = ConfigManager.get().getMaxMembers();
         cmd.set("#MembersValue.Text", String.format("%d / %d", memberCount, maxMembers));
 
         // Recruitment status

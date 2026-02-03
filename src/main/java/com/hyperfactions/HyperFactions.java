@@ -3,7 +3,7 @@ package com.hyperfactions;
 import com.hyperfactions.api.events.EventBus;
 import com.hyperfactions.api.events.FactionDisbandEvent;
 import com.hyperfactions.backup.BackupManager;
-import com.hyperfactions.config.HyperFactionsConfig;
+import com.hyperfactions.config.ConfigManager;
 import com.hyperfactions.gui.GuiManager;
 import com.hyperfactions.integration.HyperPermsIntegration;
 import com.hyperfactions.integration.PermissionManager;
@@ -149,8 +149,8 @@ public class HyperFactions {
         Logger.init(javaLogger);
         Logger.info("HyperFactions v%s starting... (build: %d)", VERSION, BuildInfo.BUILD_TIMESTAMP);
 
-        // Load configuration
-        HyperFactionsConfig.get().load(dataDir);
+        // Load configuration (uses new ConfigManager with migration support)
+        ConfigManager.get().loadAll(dataDir);
 
         // Initialize HyperPerms integration (legacy, for backward compatibility)
         HyperPermsIntegration.init();
@@ -238,7 +238,7 @@ public class HyperFactions {
         // Setup combat tag callbacks
         combatTagManager.setOnCombatLogout(playerUuid -> {
             // Apply combat logout penalty (configurable, default same as death penalty)
-            double penalty = HyperFactionsConfig.get().getLogoutPowerLoss();
+            double penalty = ConfigManager.get().getLogoutPowerLoss();
             powerManager.applyCombatLogoutPenalty(playerUuid, penalty);
             Logger.info("Player %s combat logged - %.1f power penalty applied", playerUuid, penalty);
         });
@@ -263,9 +263,9 @@ public class HyperFactions {
         zoneManager.setOnZoneChangeCallback(worldMapService::refreshAllWorldMaps);
 
         // Initialize update checker if enabled
-        if (HyperFactionsConfig.get().isUpdateCheckEnabled()) {
-            updateChecker = new UpdateChecker(dataDir, VERSION, HyperFactionsConfig.get().getUpdateCheckUrl(),
-                    HyperFactionsConfig.get().isPreReleaseChannel());
+        if (ConfigManager.get().isUpdateCheckEnabled()) {
+            updateChecker = new UpdateChecker(dataDir, VERSION, ConfigManager.get().getUpdateCheckUrl(),
+                    ConfigManager.get().isPreReleaseChannel());
             updateChecker.checkForUpdates();
 
             // Initialize notification preferences
@@ -407,7 +407,7 @@ public class HyperFactions {
      * Reloads the configuration.
      */
     public void reloadConfig() {
-        HyperFactionsConfig.get().reload(dataDir);
+        ConfigManager.get().reloadAll();
         Logger.info("Configuration reloaded");
     }
 
@@ -511,7 +511,7 @@ public class HyperFactions {
      * Starts the auto-save periodic task if enabled.
      */
     private void startAutoSaveTask() {
-        HyperFactionsConfig config = HyperFactionsConfig.get();
+        ConfigManager config = ConfigManager.get();
         if (!config.isAutoSaveEnabled()) {
             Logger.info("Auto-save is disabled in config");
             return;

@@ -1,7 +1,7 @@
 package com.hyperfactions.manager;
 
 import com.hyperfactions.Permissions;
-import com.hyperfactions.config.HyperFactionsConfig;
+import com.hyperfactions.config.ConfigManager;
 import com.hyperfactions.data.Faction;
 import com.hyperfactions.data.TeleportContext;
 import com.hyperfactions.integration.PermissionManager;
@@ -155,7 +155,7 @@ public class TeleportManager {
             return TeleportResult.NO_PERMISSION;
         }
 
-        HyperFactionsConfig config = HyperFactionsConfig.get();
+        ConfigManager config = ConfigManager.get();
 
         // Get player's faction
         Faction faction = factionManager.getPlayerFaction(playerUuid);
@@ -264,7 +264,7 @@ public class TeleportManager {
         @NotNull Consumer<Integer> cancelTask,
         @NotNull Consumer<String> sendMessage
     ) {
-        if (!HyperFactionsConfig.get().isCancelOnMove()) {
+        if (!ConfigManager.get().isCancelOnMove()) {
             return false;
         }
 
@@ -281,7 +281,7 @@ public class TeleportManager {
 
         if (distSq > 0.25) { // 0.5 blocks
             cancelPending(playerUuid, cancelTask);
-            sendMessage.accept(HyperFactionsConfig.get().getPrefix() + "\u00A7cTeleportation cancelled - you moved!");
+            sendMessage.accept(ConfigManager.get().getPrefix() + "\u00A7cTeleportation cancelled - you moved!");
             return true;
         }
 
@@ -301,13 +301,13 @@ public class TeleportManager {
         @NotNull Consumer<Integer> cancelTask,
         @NotNull Consumer<String> sendMessage
     ) {
-        if (!HyperFactionsConfig.get().isCancelOnDamage()) {
+        if (!ConfigManager.get().isCancelOnDamage()) {
             return false;
         }
 
         if (pendingTeleports.containsKey(playerUuid)) {
             cancelPending(playerUuid, cancelTask);
-            sendMessage.accept(HyperFactionsConfig.get().getPrefix() + "\u00A7cTeleportation cancelled - you took damage!");
+            sendMessage.accept(ConfigManager.get().getPrefix() + "\u00A7cTeleportation cancelled - you took damage!");
             return true;
         }
 
@@ -338,7 +338,7 @@ public class TeleportManager {
         if (PermissionManager.get().hasPermission(playerUuid, Permissions.BYPASS_WARMUP)) {
             return 0;
         }
-        return HyperFactionsConfig.get().getWarmupSeconds();
+        return ConfigManager.get().getWarmupSeconds();
     }
 
     /**
@@ -350,7 +350,7 @@ public class TeleportManager {
         if (PermissionManager.get().hasPermission(playerUuid, Permissions.BYPASS_COOLDOWN)) {
             return;
         }
-        int cooldownSeconds = HyperFactionsConfig.get().getCooldownSeconds();
+        int cooldownSeconds = ConfigManager.get().getCooldownSeconds();
         if (cooldownSeconds > 0) {
             cooldowns.put(playerUuid, System.currentTimeMillis() + (cooldownSeconds * 1000L));
         }
@@ -360,7 +360,7 @@ public class TeleportManager {
      * Handles the teleport result.
      */
     private void handleResult(@NotNull TeleportResult result, @NotNull Consumer<String> sendMessage) {
-        HyperFactionsConfig config = HyperFactionsConfig.get();
+        ConfigManager config = ConfigManager.get();
         switch (result) {
             case SUCCESS_INSTANT -> sendMessage.accept(config.getPrefix() + "\u00A7aTeleported to faction home!");
             case NO_PERMISSION -> sendMessage.accept(config.getPrefix() + "\u00A7cYou don't have permission to teleport home.");

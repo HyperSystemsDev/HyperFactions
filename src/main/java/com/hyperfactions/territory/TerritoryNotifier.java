@@ -1,6 +1,6 @@
 package com.hyperfactions.territory;
 
-import com.hyperfactions.config.HyperFactionsConfig;
+import com.hyperfactions.config.ConfigManager;
 import com.hyperfactions.data.ChunkKey;
 import com.hyperfactions.data.Faction;
 import com.hyperfactions.data.RelationType;
@@ -60,7 +60,7 @@ public class TerritoryNotifier {
      * @param z         the player's Z coordinate
      */
     public void onPlayerMove(@NotNull PlayerRef playerRef, @NotNull String world, double x, double z) {
-        if (!HyperFactionsConfig.get().isTerritoryNotificationsEnabled()) {
+        if (!ConfigManager.get().isTerritoryNotificationsEnabled()) {
             return;
         }
 
@@ -224,7 +224,7 @@ public class TerritoryNotifier {
      * @param z         the spawn Z coordinate
      */
     public void onPlayerConnect(@NotNull PlayerRef playerRef, @NotNull String world, double x, double z) {
-        if (!HyperFactionsConfig.get().isTerritoryNotificationsEnabled()) {
+        if (!ConfigManager.get().isTerritoryNotificationsEnabled()) {
             return;
         }
 

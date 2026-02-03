@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+**Config System Restructure**
+- Migrated all 31 files from deprecated `HyperFactionsConfig.get()` to `ConfigManager.get()`
+- New modular config architecture with `ConfigFile`, `ModuleConfig`, and `ConfigManager`
+- Added validation support with auto-correction for invalid config values
+- `HyperFactionsConfig` facade retained for backward compatibility (marked deprecated)
+- Config modules now support individual save/reload operations
+
 **Command Architecture Refactor**
 - Split monolithic FactionCommand.java (3500+ lines) into 40+ individual subcommand files
 - New `FactionSubCommand` base class with shared functionality and permission checks
@@ -26,6 +33,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `/hyperfactions` as additional command alias
 
 ### Added
+
+**Debug Toggle Persistence**
+- Implemented `/f admin debug toggle <category> [on|off]` command
+- Debug category changes now persist to `config/debug.json` across server restarts
+- `/f admin debug toggle` shows current status of all 6 categories
+- `/f admin debug toggle all` enables/disables all categories at once
+- `/f admin debug status` now shows debug logging status alongside data counts
 
 **Zone Rename Modal**
 - Admin zone rename UI accessible from AdminZonePage

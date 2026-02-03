@@ -1,6 +1,6 @@
 package com.hyperfactions.chat;
 
-import com.hyperfactions.config.HyperFactionsConfig;
+import com.hyperfactions.config.ConfigManager;
 import com.hyperfactions.data.Faction;
 import com.hyperfactions.data.RelationType;
 import com.hyperfactions.integration.PermissionManager;
@@ -35,7 +35,7 @@ public class FactionChatFormatter implements PlayerChatEvent.Formatter {
 
     private final FactionManager factionManager;
     private final RelationManager relationManager;
-    private final HyperFactionsConfig config;
+    private final ConfigManager config;
 
     /**
      * Creates a new FactionChatFormatter.
@@ -47,7 +47,7 @@ public class FactionChatFormatter implements PlayerChatEvent.Formatter {
                                  @NotNull RelationManager relationManager) {
         this.factionManager = factionManager;
         this.relationManager = relationManager;
-        this.config = HyperFactionsConfig.get();
+        this.config = ConfigManager.get();
     }
 
     @Override

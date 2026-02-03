@@ -1,7 +1,7 @@
 package com.hyperfactions.manager;
 
 import com.hyperfactions.api.EconomyAPI;
-import com.hyperfactions.config.HyperFactionsConfig;
+import com.hyperfactions.config.ConfigManager;
 import com.hyperfactions.data.Faction;
 import com.hyperfactions.data.FactionEconomy;
 import com.hyperfactions.data.FactionLog;
@@ -281,25 +281,25 @@ public class EconomyManager implements EconomyAPI {
     @Override
     @NotNull
     public String getCurrencyName() {
-        return HyperFactionsConfig.get().getEconomyCurrencyName();
+        return ConfigManager.get().getEconomyCurrencyName();
     }
 
     @Override
     @NotNull
     public String getCurrencyNamePlural() {
-        return HyperFactionsConfig.get().getEconomyCurrencyNamePlural();
+        return ConfigManager.get().getEconomyCurrencyNamePlural();
     }
 
     @Override
     @NotNull
     public String formatCurrency(double amount) {
-        String symbol = HyperFactionsConfig.get().getEconomyCurrencySymbol();
+        String symbol = ConfigManager.get().getEconomyCurrencySymbol();
         return String.format("%s%.2f", symbol, amount);
     }
 
     @Override
     public boolean isEnabled() {
-        return HyperFactionsConfig.get().isEconomyEnabled();
+        return ConfigManager.get().isEconomyEnabled();
     }
 
     /**

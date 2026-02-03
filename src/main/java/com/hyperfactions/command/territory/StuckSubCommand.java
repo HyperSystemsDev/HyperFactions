@@ -3,7 +3,7 @@ package com.hyperfactions.command.territory;
 import com.hyperfactions.HyperFactions;
 import com.hyperfactions.Permissions;
 import com.hyperfactions.command.FactionSubCommand;
-import com.hyperfactions.config.HyperFactionsConfig;
+import com.hyperfactions.config.ConfigManager;
 import com.hyperfactions.data.Faction;
 import com.hyperfactions.manager.TeleportManager;
 import com.hyperfactions.platform.HyperFactionsPlugin;
@@ -92,7 +92,7 @@ public class StuckSubCommand extends FactionSubCommand {
         double targetY = pos.getY();
 
         // Use extended warmup for stuck (30 seconds by default)
-        int warmupSeconds = HyperFactionsConfig.get().getStuckWarmupSeconds();
+        int warmupSeconds = ConfigManager.get().getStuckWarmupSeconds();
 
         TeleportManager.StartLocation startLoc = new TeleportManager.StartLocation(
             currentWorld.getName(), pos.getX(), pos.getY(), pos.getZ()

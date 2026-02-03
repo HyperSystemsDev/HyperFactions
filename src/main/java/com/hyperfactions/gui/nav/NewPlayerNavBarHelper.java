@@ -1,6 +1,6 @@
 package com.hyperfactions.gui.nav;
 
-import com.hyperfactions.config.HyperFactionsConfig;
+import com.hyperfactions.config.ConfigManager;
 import com.hyperfactions.gui.GuiManager;
 import com.hyperfactions.gui.NewPlayerPageRegistry;
 import com.hyperfactions.gui.shared.data.NavAwareData;
@@ -53,7 +53,7 @@ public final class NewPlayerNavBarHelper {
         }
 
         // Set the nav bar title from config (default: "HyperFactions")
-        String guiTitle = HyperFactionsConfig.get().getGuiTitle();
+        String guiTitle = ConfigManager.get().getGuiTitle();
         cmd.set("#HyperFactionsNavBar #NavBarTitle #NavBarTitleLabel.Text", guiTitle);
 
         // Following AdminUI pattern exactly:

@@ -1,6 +1,6 @@
 package com.hyperfactions.worldmap;
 
-import com.hyperfactions.config.HyperFactionsConfig;
+import com.hyperfactions.config.ConfigManager;
 import com.hyperfactions.manager.ClaimManager;
 import com.hyperfactions.manager.FactionManager;
 import com.hyperfactions.manager.RelationManager;
@@ -55,7 +55,7 @@ public class WorldMapService {
      * @param world the world to register with
      */
     public void registerProviderIfNeeded(@NotNull World world) {
-        if (!HyperFactionsConfig.get().isWorldMapMarkersEnabled()) {
+        if (!ConfigManager.get().isWorldMapMarkersEnabled()) {
             return;
         }
 
@@ -96,7 +96,7 @@ public class WorldMapService {
      * @param world the world to refresh
      */
     public void refreshWorldMap(@NotNull World world) {
-        if (!HyperFactionsConfig.get().isWorldMapMarkersEnabled()) {
+        if (!ConfigManager.get().isWorldMapMarkersEnabled()) {
             return;
         }
 
@@ -137,7 +137,7 @@ public class WorldMapService {
      * Call this when faction data changes (color, claims, etc.).
      */
     public void refreshAllWorldMaps() {
-        if (!HyperFactionsConfig.get().isWorldMapMarkersEnabled()) {
+        if (!ConfigManager.get().isWorldMapMarkersEnabled()) {
             return;
         }
 

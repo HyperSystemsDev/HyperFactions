@@ -2,7 +2,7 @@ package com.hyperfactions.gui.faction.page;
 
 import com.hyperfactions.HyperFactions;
 import com.hyperfactions.Permissions;
-import com.hyperfactions.config.HyperFactionsConfig;
+import com.hyperfactions.config.ConfigManager;
 import com.hyperfactions.data.Faction;
 import com.hyperfactions.data.FactionMember;
 import com.hyperfactions.data.FactionPermissions;
@@ -245,10 +245,10 @@ public class FactionSettingsTabsPage extends InteractiveCustomUIPage<FactionSett
         cmd.append("#PermissionsContent", "HyperFactions/faction/settings_permissions_content.ui");
 
         // Get effective permissions
-        FactionPermissions perms = HyperFactionsConfig.get().getEffectiveFactionPermissions(
+        FactionPermissions perms = ConfigManager.get().getEffectiveFactionPermissions(
                 faction.getEffectivePermissions()
         );
-        HyperFactionsConfig config = HyperFactionsConfig.get();
+        ConfigManager config = ConfigManager.get();
 
         // Outsider toggles
         buildToggle(cmd, events, "OutsiderBreakToggle", "outsiderBreak", perms.outsiderBreak(), canEdit, config);
@@ -281,7 +281,7 @@ public class FactionSettingsTabsPage extends InteractiveCustomUIPage<FactionSett
 
     private void buildToggle(UICommandBuilder cmd, UIEventBuilder events,
                              String elementId, String permName, boolean currentValue,
-                             boolean canEdit, HyperFactionsConfig config) {
+                             boolean canEdit, ConfigManager config) {
         boolean locked = config.isPermissionLocked(permName);
         String selector = "#" + elementId;
 
@@ -461,7 +461,7 @@ public class FactionSettingsTabsPage extends InteractiveCustomUIPage<FactionSett
             return;
         }
 
-        HyperFactionsConfig config = HyperFactionsConfig.get();
+        ConfigManager config = ConfigManager.get();
 
         // Check if server has locked this setting
         if (config.isPermissionLocked(permName)) {

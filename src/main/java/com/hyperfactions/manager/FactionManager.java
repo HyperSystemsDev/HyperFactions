@@ -3,7 +3,7 @@ package com.hyperfactions.manager;
 import com.hyperfactions.Permissions;
 import com.hyperfactions.api.events.EventBus;
 import com.hyperfactions.api.events.FactionDisbandEvent;
-import com.hyperfactions.config.HyperFactionsConfig;
+import com.hyperfactions.config.ConfigManager;
 import com.hyperfactions.data.*;
 import com.hyperfactions.integration.PermissionManager;
 import com.hyperfactions.storage.FactionStorage;
@@ -350,7 +350,7 @@ public class FactionManager {
             return FactionResult.ALREADY_IN_FACTION;
         }
 
-        HyperFactionsConfig config = HyperFactionsConfig.get();
+        ConfigManager config = ConfigManager.get();
         if (name.length() < config.getMinNameLength()) {
             return FactionResult.NAME_TOO_SHORT;
         }
@@ -486,7 +486,7 @@ public class FactionManager {
             return FactionResult.ALREADY_IN_FACTION;
         }
 
-        if (faction.getMemberCount() >= HyperFactionsConfig.get().getMaxMembers()) {
+        if (faction.getMemberCount() >= ConfigManager.get().getMaxMembers()) {
             return FactionResult.FACTION_FULL;
         }
 

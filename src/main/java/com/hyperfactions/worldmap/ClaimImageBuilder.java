@@ -1,6 +1,6 @@
 package com.hyperfactions.worldmap;
 
-import com.hyperfactions.config.HyperFactionsConfig;
+import com.hyperfactions.config.ConfigManager;
 import com.hyperfactions.data.Faction;
 import com.hyperfactions.data.Zone;
 import com.hyperfactions.manager.ClaimManager;
@@ -375,7 +375,7 @@ public class ClaimImageBuilder {
         String worldName = this.worldChunk.getWorld().getName();
 
         // Check claim status for this chunk
-        boolean showClaimsOnMap = HyperFactionsConfig.get().isWorldMapMarkersEnabled();
+        boolean showClaimsOnMap = ConfigManager.get().isWorldMapMarkersEnabled();
         boolean isSafeZone = zoneManager.isInSafeZone(worldName, chunkX, chunkZ);
         boolean isWarZone = zoneManager.isInWarZone(worldName, chunkX, chunkZ);
         UUID claimOwner = claimManager.getClaimOwner(worldName, chunkX, chunkZ);

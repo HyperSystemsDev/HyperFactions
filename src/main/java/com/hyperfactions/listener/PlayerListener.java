@@ -1,7 +1,7 @@
 package com.hyperfactions.listener;
 
 import com.hyperfactions.HyperFactions;
-import com.hyperfactions.config.HyperFactionsConfig;
+import com.hyperfactions.config.ConfigManager;
 import com.hyperfactions.data.Faction;
 import com.hyperfactions.protection.ProtectionChecker;
 import com.hyperfactions.util.ChunkUtil;
@@ -126,7 +126,7 @@ public class PlayerListener {
         hyperFactions.getCombatTagManager().clearTag(playerUuid);
 
         // Apply spawn protection if enabled
-        HyperFactionsConfig config = HyperFactionsConfig.get();
+        ConfigManager config = ConfigManager.get();
         if (config.isSpawnProtectionEnabled()) {
             int chunkX = ChunkUtil.toChunkCoord(x);
             int chunkZ = ChunkUtil.toChunkCoord(z);

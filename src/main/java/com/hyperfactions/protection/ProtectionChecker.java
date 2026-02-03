@@ -1,7 +1,7 @@
 package com.hyperfactions.protection;
 
 import com.hyperfactions.HyperFactions;
-import com.hyperfactions.config.HyperFactionsConfig;
+import com.hyperfactions.config.ConfigManager;
 import com.hyperfactions.data.Faction;
 import com.hyperfactions.data.FactionPermissions;
 import com.hyperfactions.data.RelationType;
@@ -205,7 +205,7 @@ public class ProtectionChecker {
         Faction ownerFaction = factionManager.getFaction(claimOwner);
         FactionPermissions perms = null;
         if (ownerFaction != null) {
-            perms = HyperFactionsConfig.get().getEffectiveFactionPermissions(
+            perms = ConfigManager.get().getEffectiveFactionPermissions(
                 ownerFaction.getEffectivePermissions()
             );
         }
@@ -325,7 +325,7 @@ public class ProtectionChecker {
     @NotNull
     public PvPResult canDamagePlayerChunk(@NotNull UUID attackerUuid, @NotNull UUID defenderUuid,
                                           @NotNull String world, int chunkX, int chunkZ) {
-        HyperFactionsConfig config = HyperFactionsConfig.get();
+        ConfigManager config = ConfigManager.get();
 
         // 0. Check defender's spawn protection
         if (combatTagManager.hasSpawnProtection(defenderUuid)) {

@@ -1,7 +1,7 @@
 package com.hyperfactions.chat;
 
 import com.hyperfactions.HyperFactions;
-import com.hyperfactions.config.HyperFactionsConfig;
+import com.hyperfactions.config.ConfigManager;
 import com.hyperfactions.util.Logger;
 import com.hypixel.hytale.event.EventPriority;
 import com.hypixel.hytale.server.core.event.events.player.PlayerChatEvent;
@@ -42,7 +42,7 @@ public class PublicChatListener {
      */
     @NotNull
     public EventPriority getEventPriority() {
-        String priority = HyperFactionsConfig.get().getChatEventPriority();
+        String priority = ConfigManager.get().getChatEventPriority();
         try {
             return EventPriority.valueOf(priority.toUpperCase());
         } catch (IllegalArgumentException e) {
@@ -82,7 +82,7 @@ public class PublicChatListener {
         }
 
         // Skip if chat formatting is disabled
-        if (!HyperFactionsConfig.get().isChatFormattingEnabled()) {
+        if (!ConfigManager.get().isChatFormattingEnabled()) {
             return event;
         }
 

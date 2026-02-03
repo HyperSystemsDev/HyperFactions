@@ -1,7 +1,7 @@
 package com.hyperfactions.territory;
 
 import com.hyperfactions.HyperFactions;
-import com.hyperfactions.config.HyperFactionsConfig;
+import com.hyperfactions.config.ConfigManager;
 import com.hyperfactions.util.Logger;
 import com.hypixel.hytale.component.ArchetypeChunk;
 import com.hypixel.hytale.component.CommandBuffer;
@@ -44,7 +44,7 @@ public class TerritoryTickingSystem extends EntityTickingSystem<EntityStore> {
     public void tick(float dt, int index, @NotNull ArchetypeChunk<EntityStore> archetypeChunk,
                      @NotNull Store<EntityStore> store, @NotNull CommandBuffer<EntityStore> commandBuffer) {
         // Skip if territory notifications are disabled
-        if (!HyperFactionsConfig.get().isTerritoryNotificationsEnabled()) {
+        if (!ConfigManager.get().isTerritoryNotificationsEnabled()) {
             return;
         }
 

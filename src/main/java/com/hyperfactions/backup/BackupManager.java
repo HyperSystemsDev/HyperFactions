@@ -1,7 +1,7 @@
 package com.hyperfactions.backup;
 
 import com.hyperfactions.HyperFactions;
-import com.hyperfactions.config.HyperFactionsConfig;
+import com.hyperfactions.config.ConfigManager;
 import com.hyperfactions.util.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -35,7 +35,8 @@ import java.util.zip.ZipOutputStream;
  * - data/factions/ directory
  * - data/players/ directory
  * - data/zones.json
- * - config.json
+ * - config.json (core configuration)
+ * - config/ directory (module configurations: backup.json, chat.json, debug.json, economy.json, faction-permissions.json)
  */
 public class BackupManager {
 
@@ -95,7 +96,7 @@ public class BackupManager {
             return;
         }
 
-        if (!HyperFactionsConfig.get().isBackupEnabled()) {
+        if (!ConfigManager.get().isBackupEnabled()) {
             Logger.info("[BackupManager] Backups are disabled in config");
             return;
         }
@@ -139,7 +140,7 @@ public class BackupManager {
         }
 
         // Create shutdown backup if enabled
-        if (HyperFactionsConfig.get().isBackupOnShutdown()) {
+        if (ConfigManager.get().isBackupOnShutdown()) {
             Logger.info("[BackupManager] Creating shutdown backup...");
             createBackup(BackupType.MANUAL, "shutdown", null).join();
         }
@@ -266,6 +267,12 @@ public class BackupManager {
                     Path configFile = dataDir.resolve("config.json");
                     if (Files.exists(configFile)) {
                         addFileToZip(zos, configFile, "config.json");
+                    }
+
+                    // Add config/ directory (module configs)
+                    Path configDir = dataDir.resolve("config");
+                    if (Files.exists(configDir)) {
+                        addDirectoryToZip(zos, configDir, "config");
                     }
                 }
 
@@ -406,7 +413,7 @@ public class BackupManager {
      * Performs GFS rotation, pruning old backups according to retention settings.
      */
     public void performRotation() {
-        HyperFactionsConfig config = HyperFactionsConfig.get();
+        ConfigManager config = ConfigManager.get();
         Map<BackupType, List<BackupMetadata>> grouped = getBackupsGroupedByType();
 
         // Rotate hourly backups

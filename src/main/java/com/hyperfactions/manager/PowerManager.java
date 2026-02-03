@@ -1,6 +1,6 @@
 package com.hyperfactions.manager;
 
-import com.hyperfactions.config.HyperFactionsConfig;
+import com.hyperfactions.config.ConfigManager;
 import com.hyperfactions.data.Faction;
 import com.hyperfactions.data.PlayerPower;
 import com.hyperfactions.storage.PlayerStorage;
@@ -93,7 +93,7 @@ public class PowerManager {
     @NotNull
     public PlayerPower getPlayerPower(@NotNull UUID playerUuid) {
         return powerCache.computeIfAbsent(playerUuid, uuid -> {
-            HyperFactionsConfig config = HyperFactionsConfig.get();
+            ConfigManager config = ConfigManager.get();
             return PlayerPower.create(uuid, config.getStartingPower(), config.getMaxPlayerPower());
         });
     }
@@ -113,7 +113,7 @@ public class PowerManager {
 
         return storage.loadPlayerPower(playerUuid).thenApply(opt -> {
             PlayerPower power = opt.orElseGet(() -> {
-                HyperFactionsConfig config = HyperFactionsConfig.get();
+                ConfigManager config = ConfigManager.get();
                 return PlayerPower.create(playerUuid, config.getStartingPower(), config.getMaxPlayerPower());
             });
             powerCache.put(playerUuid, power);
@@ -154,7 +154,7 @@ public class PowerManager {
      */
     public double applyDeathPenalty(@NotNull UUID playerUuid) {
         PlayerPower power = getPlayerPower(playerUuid);
-        double penalty = HyperFactionsConfig.get().getDeathPenalty();
+        double penalty = ConfigManager.get().getDeathPenalty();
 
         PlayerPower updated = power.withDeathPenalty(penalty);
         powerCache.put(playerUuid, updated);
@@ -209,7 +209,7 @@ public class PowerManager {
      * Called periodically to regenerate power for online players.
      */
     public void tickPowerRegen() {
-        HyperFactionsConfig config = HyperFactionsConfig.get();
+        ConfigManager config = ConfigManager.get();
         double regenAmount = config.getRegenPerMinute();
 
         if (regenAmount <= 0) {
@@ -273,7 +273,7 @@ public class PowerManager {
      */
     public int getFactionClaimCapacity(@NotNull UUID factionId) {
         double power = getFactionPower(factionId);
-        return HyperFactionsConfig.get().calculateMaxClaims(power);
+        return ConfigManager.get().calculateMaxClaims(power);
     }
 
     /**

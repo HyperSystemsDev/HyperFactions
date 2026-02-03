@@ -7,7 +7,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.hyperfactions.Permissions;
-import com.hyperfactions.config.HyperFactionsConfig;
+import com.hyperfactions.config.ConfigManager;
 import com.hyperfactions.data.PendingInvite;
 import com.hyperfactions.integration.PermissionManager;
 import com.hyperfactions.util.Logger;
@@ -120,7 +120,7 @@ public class InviteManager {
         // Remove any existing invite from this faction
         removeInviteInternal(factionId, playerUuid);
 
-        long durationMs = HyperFactionsConfig.get().getInviteExpirationMs();
+        long durationMs = ConfigManager.get().getInviteExpirationMs();
         PendingInvite invite = PendingInvite.create(factionId, playerUuid, invitedBy, durationMs);
 
         invitesByPlayer.computeIfAbsent(playerUuid, k -> ConcurrentHashMap.newKeySet())

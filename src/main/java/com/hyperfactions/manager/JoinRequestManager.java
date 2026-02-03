@@ -7,7 +7,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.hyperfactions.Permissions;
-import com.hyperfactions.config.HyperFactionsConfig;
+import com.hyperfactions.config.ConfigManager;
 import com.hyperfactions.data.JoinRequest;
 import com.hyperfactions.integration.PermissionManager;
 import com.hyperfactions.util.Logger;
@@ -130,7 +130,7 @@ public class JoinRequestManager {
         // Remove any existing request to this faction
         removeRequestInternal(factionId, playerUuid);
 
-        long durationMs = HyperFactionsConfig.get().getJoinRequestExpirationMs();
+        long durationMs = ConfigManager.get().getJoinRequestExpirationMs();
         JoinRequest request = JoinRequest.create(factionId, playerUuid, playerName, message, durationMs);
 
         requestsByPlayer.computeIfAbsent(playerUuid, k -> ConcurrentHashMap.newKeySet())
