@@ -23,31 +23,46 @@ import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 
 /**
- * Create Zone Wizard page - enter zone name and select type.
- * After creation, opens the zone map for claiming chunks.
+ * Create Zone Wizard page - modern card-based UI with 5 claiming methods.
+ * Uses immutable state pattern: each state change creates a fresh page instance.
  */
 public class CreateZoneWizardPage extends InteractiveCustomUIPage<AdminZoneData> {
 
     private static final int MIN_NAME_LENGTH = 2;
     private static final int MAX_NAME_LENGTH = 32;
+    private static final int[] RADIUS_PRESETS = {3, 5, 10, 15, 20};
+    private static final int DEFAULT_RADIUS = 5;
+    private static final int MAX_RADIUS = 50;
+
+    /**
+     * Available claiming methods for zone creation.
+     */
+    public enum ClaimMethod {
+        NO_CLAIMS,        // Create empty zone
+        SINGLE_CHUNK,     // Current location
+        RADIUS_CIRCLE,    // Circular radius around player
+        RADIUS_SQUARE,    // Square radius around player
+        USE_MAP           // Navigate to map after creation
+    }
 
     private final PlayerRef playerRef;
     private final ZoneManager zoneManager;
     private final GuiManager guiManager;
 
-    // Selected zone type (immutable - set via constructor for fresh page pattern)
+    // Immutable state fields (set via constructor for fresh page pattern)
     private final ZoneType selectedType;
-
-    // Preserved name for page rebuilds (e.g., when switching zone types)
     private final String preservedName;
+    private final ClaimMethod claimMethod;
+    private final int selectedRadius;
+    private final boolean customizeFlags;
 
     /**
-     * Default constructor - opens with SafeZone selected.
+     * Default constructor - opens with SafeZone selected and defaults.
      */
     public CreateZoneWizardPage(PlayerRef playerRef,
                                 ZoneManager zoneManager,
                                 GuiManager guiManager) {
-        this(playerRef, zoneManager, guiManager, ZoneType.SAFE, "");
+        this(playerRef, zoneManager, guiManager, ZoneType.SAFE, "", ClaimMethod.NO_CLAIMS, DEFAULT_RADIUS, false);
     }
 
     /**
@@ -57,7 +72,7 @@ public class CreateZoneWizardPage extends InteractiveCustomUIPage<AdminZoneData>
                                 ZoneManager zoneManager,
                                 GuiManager guiManager,
                                 ZoneType selectedType) {
-        this(playerRef, zoneManager, guiManager, selectedType, "");
+        this(playerRef, zoneManager, guiManager, selectedType, "", ClaimMethod.NO_CLAIMS, DEFAULT_RADIUS, false);
     }
 
     /**
@@ -69,36 +84,84 @@ public class CreateZoneWizardPage extends InteractiveCustomUIPage<AdminZoneData>
                                 GuiManager guiManager,
                                 ZoneType selectedType,
                                 String preservedName) {
+        this(playerRef, zoneManager, guiManager, selectedType, preservedName, ClaimMethod.NO_CLAIMS, DEFAULT_RADIUS, false);
+    }
+
+    /**
+     * Full constructor with all state fields.
+     */
+    public CreateZoneWizardPage(PlayerRef playerRef,
+                                ZoneManager zoneManager,
+                                GuiManager guiManager,
+                                ZoneType selectedType,
+                                String preservedName,
+                                ClaimMethod claimMethod,
+                                int selectedRadius,
+                                boolean customizeFlags) {
         super(playerRef, CustomPageLifetime.CanDismiss, AdminZoneData.CODEC);
         this.playerRef = playerRef;
         this.zoneManager = zoneManager;
         this.guiManager = guiManager;
         this.selectedType = selectedType != null ? selectedType : ZoneType.SAFE;
         this.preservedName = preservedName != null ? preservedName : "";
+        this.claimMethod = claimMethod != null ? claimMethod : ClaimMethod.NO_CLAIMS;
+        this.selectedRadius = Math.max(1, Math.min(MAX_RADIUS, selectedRadius));
+        this.customizeFlags = customizeFlags;
     }
 
     @Override
     public void build(Ref<EntityStore> ref, UICommandBuilder cmd,
                       UIEventBuilder events, Store<EntityStore> store) {
-        Logger.debug("[CreateZoneWizardPage] build() for type '%s', preservedName='%s'",
-                selectedType.name(), preservedName);
+        Logger.debug("[CreateZoneWizardPage] build() type=%s, method=%s, radius=%d, customizeFlags=%s",
+                selectedType.name(), claimMethod.name(), selectedRadius, customizeFlags);
 
         // Load the template
         cmd.append("HyperFactions/admin/create_zone_wizard.ui");
 
-        // Restore preserved input value (for type selection rebuilds)
+        // Restore preserved input value
         if (!preservedName.isEmpty()) {
             cmd.set("#NameInput.Value", preservedName);
         }
 
-        // Show current selection
-        if (selectedType == ZoneType.SAFE) {
-            cmd.set("#CurrentType.TextSpans", Message.raw("SafeZone").color("#2dd4bf"));
-            cmd.set("#TypeDescription.Text", "Protected area - no PvP, no explosions");
-        } else {
-            cmd.set("#CurrentType.TextSpans", Message.raw("WarZone").color("#c084fc"));
-            cmd.set("#TypeDescription.Text", "Combat area - PvP enabled, no faction protection");
-        }
+        // Setup zone type display
+        buildZoneTypeSection(cmd, events);
+
+        // Setup claiming method section
+        buildClaimMethodSection(cmd, events);
+
+        // Setup radius section (visible/hidden based on claim method)
+        buildRadiusSection(cmd, events);
+
+        // Setup flags section
+        buildFlagsSection(cmd, events);
+
+        // Back button
+        events.addEventBinding(
+                CustomUIEventBindingType.Activating,
+                "#BackBtn",
+                EventData.of("Button", "Back"),
+                false
+        );
+
+        // Create button
+        events.addEventBinding(
+                CustomUIEventBindingType.Activating,
+                "#CreateBtn",
+                EventData.of("Button", "Create")
+                        .append("ZoneType", selectedType == ZoneType.SAFE ? "safe" : "war")
+                        .append("@Name", "#NameInput.Value")
+                        .append("ClaimMethod", claimMethod.name().toLowerCase())
+                        .append("Radius", String.valueOf(selectedRadius))
+                        .append("FlagsChoice", customizeFlags ? "customize" : "defaults"),
+                false
+        );
+    }
+
+    private void buildZoneTypeSection(UICommandBuilder cmd, UIEventBuilder events) {
+        // Use disabled state to show selected type
+        boolean isSafe = selectedType == ZoneType.SAFE;
+        cmd.set("#SafeZoneBtn.Disabled", isSafe);
+        cmd.set("#WarZoneBtn.Disabled", !isSafe);
 
         // Type selection buttons - capture name when switching
         events.addEventBinding(
@@ -118,34 +181,128 @@ public class CreateZoneWizardPage extends InteractiveCustomUIPage<AdminZoneData>
                         .append("@Name", "#NameInput.Value"),
                 false
         );
+    }
 
-        // Create button (creates zone with no chunks)
+    private void buildClaimMethodSection(UICommandBuilder cmd, UIEventBuilder events) {
+        // Highlight selected method by using cyan style
+        String[] methodButtons = {"#MethodNone", "#MethodSingle", "#MethodCircle", "#MethodSquare", "#MethodMap"};
+        ClaimMethod[] methods = {ClaimMethod.NO_CLAIMS, ClaimMethod.SINGLE_CHUNK,
+                                 ClaimMethod.RADIUS_CIRCLE, ClaimMethod.RADIUS_SQUARE, ClaimMethod.USE_MAP};
+
+        for (int i = 0; i < methodButtons.length; i++) {
+            // We can't dynamically change button styles, so we use Disabled state to indicate selection
+            cmd.set(methodButtons[i] + ".Disabled", claimMethod == methods[i]);
+        }
+
+        // Event bindings for each method
+        for (ClaimMethod method : ClaimMethod.values()) {
+            String buttonId = switch (method) {
+                case NO_CLAIMS -> "#MethodNone";
+                case SINGLE_CHUNK -> "#MethodSingle";
+                case RADIUS_CIRCLE -> "#MethodCircle";
+                case RADIUS_SQUARE -> "#MethodSquare";
+                case USE_MAP -> "#MethodMap";
+            };
+
+            events.addEventBinding(
+                    CustomUIEventBindingType.Activating,
+                    buttonId,
+                    EventData.of("Button", "SetClaimMethod")
+                            .append("ClaimMethod", method.name().toLowerCase())
+                            .append("@Name", "#NameInput.Value"),
+                    false
+            );
+        }
+    }
+
+    private void buildRadiusSection(UICommandBuilder cmd, UIEventBuilder events) {
+        // Show/hide radius card based on claim method
+        boolean showRadius = claimMethod == ClaimMethod.RADIUS_CIRCLE || claimMethod == ClaimMethod.RADIUS_SQUARE;
+        cmd.set("#RadiusCard.Visible", showRadius);
+
+        if (!showRadius) {
+            return;
+        }
+
+        // Calculate and show preview
+        int previewChunks = calculateChunkCount(selectedRadius, claimMethod == ClaimMethod.RADIUS_CIRCLE);
+        cmd.set("#RadiusPreview.Text", "~" + previewChunks + " chunks");
+
+        // Highlight selected preset
+        for (int preset : RADIUS_PRESETS) {
+            cmd.set("#Radius" + preset + ".Disabled", selectedRadius == preset);
+        }
+
+        // Show custom radius value in the input field
+        boolean isCustomRadius = true;
+        for (int preset : RADIUS_PRESETS) {
+            if (selectedRadius == preset) {
+                isCustomRadius = false;
+                break;
+            }
+        }
+        if (isCustomRadius || selectedRadius > 20) {
+            cmd.set("#CustomRadiusInput.Value", String.valueOf(selectedRadius));
+        }
+
+        // Preset button events
+        for (int preset : RADIUS_PRESETS) {
+            events.addEventBinding(
+                    CustomUIEventBindingType.Activating,
+                    "#Radius" + preset,
+                    EventData.of("Button", "SetRadius")
+                            .append("Radius", String.valueOf(preset))
+                            .append("@Name", "#NameInput.Value"),
+                    false
+            );
+        }
+
+        // Custom radius apply button
         events.addEventBinding(
                 CustomUIEventBindingType.Activating,
-                "#CreateBtn",
-                EventData.of("Button", "Create")
-                        .append("ZoneType", selectedType == ZoneType.SAFE ? "safe" : "war")
+                "#ApplyCustomRadius",
+                EventData.of("Button", "ApplyCustomRadius")
+                        .append("@CustomRadius", "#CustomRadiusInput.Value")
+                        .append("@Name", "#NameInput.Value"),
+                false
+        );
+    }
+
+    private void buildFlagsSection(UICommandBuilder cmd, UIEventBuilder events) {
+        // Highlight selected choice
+        cmd.set("#FlagsDefaults.Disabled", !customizeFlags);
+        cmd.set("#FlagsCustomize.Disabled", customizeFlags);
+
+        events.addEventBinding(
+                CustomUIEventBindingType.Activating,
+                "#FlagsDefaults",
+                EventData.of("Button", "SetFlagsChoice")
+                        .append("FlagsChoice", "defaults")
                         .append("@Name", "#NameInput.Value"),
                 false
         );
 
-        // Create & Claim button (creates zone and claims current chunk)
         events.addEventBinding(
                 CustomUIEventBindingType.Activating,
-                "#CreateClaimBtn",
-                EventData.of("Button", "CreateClaim")
-                        .append("ZoneType", selectedType == ZoneType.SAFE ? "safe" : "war")
+                "#FlagsCustomize",
+                EventData.of("Button", "SetFlagsChoice")
+                        .append("FlagsChoice", "customize")
                         .append("@Name", "#NameInput.Value"),
                 false
         );
+    }
 
-        // Back button
-        events.addEventBinding(
-                CustomUIEventBindingType.Activating,
-                "#BackBtn",
-                EventData.of("Button", "Back"),
-                false
-        );
+    /**
+     * Calculates approximate chunk count for a radius.
+     */
+    private int calculateChunkCount(int radius, boolean circle) {
+        if (circle) {
+            // Circle: pi * r^2 (approximate)
+            return (int) Math.ceil(Math.PI * radius * radius);
+        } else {
+            // Square: (2r+1)^2
+            return (2 * radius + 1) * (2 * radius + 1);
+        }
     }
 
     @Override
@@ -167,23 +324,73 @@ public class CreateZoneWizardPage extends InteractiveCustomUIPage<AdminZoneData>
             case "Back" -> guiManager.openAdminZone(player, ref, store, playerRef);
 
             case "SelectType" -> {
-                // Open fresh page with new type selection, preserving the entered name
                 ZoneType newType = "war".equals(data.zoneType) ? ZoneType.WAR : ZoneType.SAFE;
                 String name = data.inputName != null ? data.inputName : preservedName;
-                guiManager.openCreateZoneWizard(player, ref, store, playerRef, newType, name);
+                guiManager.openCreateZoneWizard(player, ref, store, playerRef, newType, name,
+                        claimMethod, selectedRadius, customizeFlags);
             }
 
-            case "Create" -> handleCreate(player, ref, store, playerRef, data, worldName, false);
+            case "SetClaimMethod" -> {
+                ClaimMethod newMethod = parseClaimMethod(data.claimMethod);
+                String name = data.inputName != null ? data.inputName : preservedName;
+                guiManager.openCreateZoneWizard(player, ref, store, playerRef, selectedType, name,
+                        newMethod, selectedRadius, customizeFlags);
+            }
 
-            case "CreateClaim" -> handleCreate(player, ref, store, playerRef, data, worldName, true);
+            case "SetRadius" -> {
+                int newRadius = parseRadius(data.radius);
+                String name = data.inputName != null ? data.inputName : preservedName;
+                guiManager.openCreateZoneWizard(player, ref, store, playerRef, selectedType, name,
+                        claimMethod, newRadius, customizeFlags);
+            }
+
+            case "ApplyCustomRadius" -> {
+                int newRadius = parseRadius(data.customRadius);
+                if (newRadius < 1 || newRadius > MAX_RADIUS) {
+                    player.sendMessage(Message.raw("Radius must be between 1 and " + MAX_RADIUS + ".").color("#FF5555"));
+                    sendUpdate();
+                    return;
+                }
+                String name = data.inputName != null ? data.inputName : preservedName;
+                guiManager.openCreateZoneWizard(player, ref, store, playerRef, selectedType, name,
+                        claimMethod, newRadius, customizeFlags);
+            }
+
+            case "SetFlagsChoice" -> {
+                boolean newCustomize = "customize".equals(data.flagsChoice);
+                String name = data.inputName != null ? data.inputName : preservedName;
+                guiManager.openCreateZoneWizard(player, ref, store, playerRef, selectedType, name,
+                        claimMethod, selectedRadius, newCustomize);
+            }
+
+            case "Create" -> handleCreate(player, ref, store, playerRef, data, worldName);
 
             default -> sendUpdate();
         }
     }
 
+    private ClaimMethod parseClaimMethod(String value) {
+        if (value == null) return ClaimMethod.NO_CLAIMS;
+        return switch (value.toLowerCase()) {
+            case "single_chunk" -> ClaimMethod.SINGLE_CHUNK;
+            case "radius_circle" -> ClaimMethod.RADIUS_CIRCLE;
+            case "radius_square" -> ClaimMethod.RADIUS_SQUARE;
+            case "use_map" -> ClaimMethod.USE_MAP;
+            default -> ClaimMethod.NO_CLAIMS;
+        };
+    }
+
+    private int parseRadius(String value) {
+        if (value == null || value.isEmpty()) return DEFAULT_RADIUS;
+        try {
+            return Integer.parseInt(value.trim());
+        } catch (NumberFormatException e) {
+            return DEFAULT_RADIUS;
+        }
+    }
+
     private void handleCreate(Player player, Ref<EntityStore> ref, Store<EntityStore> store,
-                              PlayerRef playerRef, AdminZoneData data, String worldName,
-                              boolean claimCurrentChunk) {
+                              PlayerRef playerRef, AdminZoneData data, String worldName) {
         String name = data.inputName != null ? data.inputName.trim() : "";
 
         // Validate zone name
@@ -212,72 +419,108 @@ public class CreateZoneWizardPage extends InteractiveCustomUIPage<AdminZoneData>
             return;
         }
 
-        // Get zone type from data
+        // Get zone type
         ZoneType type = "war".equals(data.zoneType) ? ZoneType.WAR : ZoneType.SAFE;
 
-        // Create the zone
+        // Parse claim method and other options from data
+        ClaimMethod method = parseClaimMethod(data.claimMethod);
+        int radius = parseRadius(data.radius);
+        boolean customize = "customize".equals(data.flagsChoice);
+
+        // Create the zone (always starts empty)
         ZoneManager.ZoneResult result = zoneManager.createZone(name, type, worldName, playerRef.getUuid());
 
-        switch (result) {
-            case SUCCESS -> {
-                Zone newZone = zoneManager.getZoneByName(name);
-                if (newZone != null) {
-                    String typeColor = type == ZoneType.SAFE ? "#2dd4bf" : "#c084fc";
-                    player.sendMessage(
-                            Message.raw("Created ").color("#55FF55")
-                                    .insert(Message.raw(type.getDisplayName()).color(typeColor))
-                                    .insert(Message.raw(" '" + name + "'!").color("#55FF55"))
-                    );
+        if (result != ZoneManager.ZoneResult.SUCCESS) {
+            player.sendMessage(Message.raw("Could not create zone: " + result).color("#FF5555"));
+            sendUpdate();
+            return;
+        }
 
-                    // Optionally claim the player's current chunk
-                    if (claimCurrentChunk) {
-                        TransformComponent transform = store.getComponent(ref, TransformComponent.getComponentType());
-                        if (transform != null) {
-                            var position = transform.getPosition();
-                            int chunkX = ChunkUtil.blockToChunk((int) position.x);
-                            int chunkZ = ChunkUtil.blockToChunk((int) position.z);
+        Zone newZone = zoneManager.getZoneByName(name);
+        if (newZone == null) {
+            player.sendMessage(Message.raw("Zone created but could not be found.").color("#FFAA00"));
+            guiManager.openAdminZone(player, ref, store, playerRef);
+            return;
+        }
 
-                            ZoneManager.ZoneResult claimResult = zoneManager.claimChunk(
-                                    newZone.id(), worldName, chunkX, chunkZ);
+        // Success message
+        String typeColor = type == ZoneType.SAFE ? "#55FF55" : "#FF5555";
+        player.sendMessage(
+                Message.raw("Created ").color("#55FF55")
+                        .insert(Message.raw(type.getDisplayName()).color(typeColor))
+                        .insert(Message.raw(" '" + name + "'!").color("#55FF55"))
+        );
 
-                            if (claimResult == ZoneManager.ZoneResult.SUCCESS) {
-                                player.sendMessage(Message.raw("Claimed chunk (" + chunkX + ", " + chunkZ + ") for this zone.").color("#44cc44"));
-                                // Refresh zone after claim
-                                newZone = zoneManager.getZoneById(newZone.id());
-                            } else {
-                                player.sendMessage(Message.raw("Could not claim current chunk: " + claimResult).color("#FFAA00"));
-                            }
-                        }
+        // Handle claiming based on method
+        switch (method) {
+            case SINGLE_CHUNK -> {
+                TransformComponent transform = store.getComponent(ref, TransformComponent.getComponentType());
+                if (transform != null) {
+                    var position = transform.getPosition();
+                    int chunkX = ChunkUtil.blockToChunk((int) position.x);
+                    int chunkZ = ChunkUtil.blockToChunk((int) position.z);
+
+                    ZoneManager.ZoneResult claimResult = zoneManager.claimChunk(
+                            newZone.id(), worldName, chunkX, chunkZ);
+
+                    if (claimResult == ZoneManager.ZoneResult.SUCCESS) {
+                        player.sendMessage(Message.raw("Claimed chunk (" + chunkX + ", " + chunkZ + ").").color("#44cc44"));
+                        newZone = zoneManager.getZoneById(newZone.id());
                     } else {
-                        player.sendMessage(Message.raw("Click on the map to claim chunks for this zone.").color("#888888"));
+                        player.sendMessage(Message.raw("Could not claim current chunk: " + claimResult).color("#FFAA00"));
                     }
-
-                    // Open the zone map for claiming/viewing
-                    if (newZone != null) {
-                        guiManager.openAdminZoneMap(player, ref, store, playerRef, newZone);
-                    } else {
-                        guiManager.openAdminZone(player, ref, store, playerRef);
-                    }
-                } else {
-                    player.sendMessage(Message.raw("Zone created but could not open map.").color("#FFAA00"));
-                    guiManager.openAdminZone(player, ref, store, playerRef);
                 }
             }
 
-            case NAME_TAKEN -> {
-                player.sendMessage(Message.raw("A zone with this name already exists.").color("#FF5555"));
-                sendUpdate();
+            case RADIUS_CIRCLE, RADIUS_SQUARE -> {
+                TransformComponent transform = store.getComponent(ref, TransformComponent.getComponentType());
+                if (transform != null) {
+                    var position = transform.getPosition();
+                    int centerX = ChunkUtil.blockToChunk((int) position.x);
+                    int centerZ = ChunkUtil.blockToChunk((int) position.z);
+                    boolean circle = method == ClaimMethod.RADIUS_CIRCLE;
+
+                    int claimed = zoneManager.claimRadius(newZone.id(), worldName, centerX, centerZ, radius, circle);
+
+                    if (claimed > 0) {
+                        player.sendMessage(Message.raw("Claimed " + claimed + " chunks in a "
+                                + (circle ? "circular" : "square") + " radius of " + radius + ".").color("#44cc44"));
+                        newZone = zoneManager.getZoneById(newZone.id());
+                    } else {
+                        player.sendMessage(Message.raw("No chunks could be claimed (area may be occupied).").color("#FFAA00"));
+                    }
+                }
             }
 
-            case INVALID_NAME -> {
-                player.sendMessage(Message.raw("Invalid zone name.").color("#FF5555"));
-                sendUpdate();
+            case NO_CLAIMS, USE_MAP -> {
+                // No chunks to claim now
+                if (method == ClaimMethod.NO_CLAIMS) {
+                    player.sendMessage(Message.raw("Zone created with no claims.").color("#888888"));
+                }
             }
+        }
 
-            default -> {
-                player.sendMessage(Message.raw("Could not create zone: " + result).color("#FF5555"));
-                sendUpdate();
-            }
+        // Navigate based on user choices
+        navigateAfterCreation(player, ref, store, playerRef, newZone, method, customize);
+    }
+
+    private void navigateAfterCreation(Player player, Ref<EntityStore> ref, Store<EntityStore> store,
+                                       PlayerRef playerRef, Zone zone, ClaimMethod method, boolean customize) {
+        if (zone == null) {
+            guiManager.openAdminZone(player, ref, store, playerRef);
+            return;
+        }
+
+        if (method == ClaimMethod.USE_MAP) {
+            // USE_MAP takes priority - open map for claiming first
+            // If customize is also set, open map with flag to go to settings after
+            guiManager.openAdminZoneMap(player, ref, store, playerRef, zone, customize);
+        } else if (customize) {
+            // Open flag settings
+            guiManager.openAdminZoneSettings(player, ref, store, playerRef, zone.id());
+        } else {
+            // Return to zone list
+            guiManager.openAdminZone(player, ref, store, playerRef);
         }
     }
 }

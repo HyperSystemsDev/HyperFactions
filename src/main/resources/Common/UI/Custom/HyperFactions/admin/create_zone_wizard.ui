@@ -1,6 +1,5 @@
 // Create Zone Wizard
-// Enter zone name and select type (SafeZone or WarZone)
-// After creation, opens the zone map for claiming chunks
+// Two-column layout for compact display
 
 $C = "../../Common.ui";
 $S = "../shared/styles.ui";
@@ -8,7 +7,7 @@ $S = "../shared/styles.ui";
 $C.@PageOverlay {}
 
 $C.@Container {
-  Anchor: (Width: 500, Height: 400);
+  Anchor: (Width: 720, Height: 500);
 
   #Title {
     $C.@Title {
@@ -18,109 +17,389 @@ $C.@Container {
 
   #Content {
     LayoutMode: Top;
-    Padding: (Left: 25, Right: 25, Top: 20, Bottom: 20);
+    Padding: (Left: 15, Right: 15, Top: 10, Bottom: 10);
 
-    // Zone Name Input
-    Group {
-      Anchor: (Height: 75, Bottom: 20);
-      LayoutMode: Top;
-
-      Label {
-        Text: "ZONE NAME";
-        Style: (FontSize: 12, TextColor: #00FFFF, RenderBold: true);
-        Anchor: (Height: 20);
-      }
-
-      TextField #NameInput {
-        Anchor: (Height: 40);
-        Style: $C.@DefaultInputFieldStyle;
-        Background: $C.@InputBoxBackground;
-      }
-    }
-
-    // Zone Type Selection
-    Group {
-      Anchor: (Height: 100, Bottom: 20);
-      LayoutMode: Top;
-
-      Label {
-        Text: "ZONE TYPE";
-        Style: (FontSize: 12, TextColor: #00FFFF, RenderBold: true);
-        Anchor: (Height: 20, Bottom: 10);
-      }
-
-      Group {
-        LayoutMode: Left;
-        Anchor: (Height: 50);
-
-        TextButton #SafeZoneBtn {
-          Text: "SAFEZONE";
-          Anchor: (Height: 45, Width: 160);
-          Style: $S.@TealButtonStyle;
-        }
-
-        Label { Anchor: (Width: 20); }
-
-        TextButton #WarZoneBtn {
-          Text: "WARZONE";
-          Anchor: (Height: 45, Width: 160);
-          Style: $S.@PurpleButtonStyle;
-        }
-      }
-
-      // Description of selected type
-      Label #TypeDescription {
-        Text: "Protected area - no PvP, no explosions";
-        Style: (FontSize: 11, TextColor: #888888, HorizontalAlignment: Center);
-        Anchor: (Height: 18, Top: 5);
-      }
-    }
-
-    // Current Selection
-    Group {
-      Anchor: (Height: 30, Bottom: 15);
-      LayoutMode: Left;
-
-      Label {
-        Text: "Selected: ";
-        Style: (FontSize: 14, TextColor: #888888, VerticalAlignment: Center);
-      }
-
-      Label #CurrentType {
-        Text: "SafeZone";
-        Style: (FontSize: 14, TextColor: #2dd4bf, RenderBold: true, VerticalAlignment: Center);
-      }
-    }
-
-    // Spacer
-    Label { FlexWeight: 1; }
-
-    // Buttons
-    Group {
-      Anchor: (Height: 45);
+    // ==========================================
+    // ACTION BUTTONS (at top)
+    // ==========================================
+    Group #ActionButtons {
+      Anchor: (Height: 45, Bottom: 8);
       LayoutMode: Left;
 
       TextButton #BackBtn {
         Text: "< BACK";
-        Anchor: (Height: 40, Width: 90);
+        Anchor: (Height: 36, Width: 100);
         Style: $S.@ButtonStyle;
       }
 
       Label { FlexWeight: 1; }
 
       TextButton #CreateBtn {
-        Text: "CREATE";
-        Anchor: (Height: 40, Width: 120);
-        Style: $S.@CyanButtonStyle;
-      }
-
-      Label { Anchor: (Width: 10); }
-
-      TextButton #CreateClaimBtn {
-        Text: "CREATE & CLAIM";
-        Anchor: (Height: 40, Width: 155);
+        Text: "CREATE ZONE";
+        Anchor: (Height: 36, Width: 150);
         Style: $S.@GreenButtonStyle;
       }
     }
+
+    // Divider
+    Group {
+      Anchor: (Height: 1, Bottom: 10);
+      Background: (Color: #00AAAA);
+    }
+
+    // ==========================================
+    // TOP ROW: Zone Type + Zone Name
+    // ==========================================
+    Group {
+      LayoutMode: Left;
+      Anchor: (Height: 105, Bottom: 10);
+
+      // Zone Type Card (left)
+      Group #ZoneTypeCard {
+        LayoutMode: Top;
+        FlexWeight: 1;
+        Background: (Color: #1a2a3a);
+        Padding: (Left: 12, Right: 12, Top: 10, Bottom: 10);
+
+        Label {
+          Text: "ZONE TYPE";
+          Style: (FontSize: 11, TextColor: #00FFFF, RenderBold: true);
+          Anchor: (Height: 14, Bottom: 8);
+        }
+
+        // Two type buttons side by side
+        Group {
+          LayoutMode: Left;
+          Anchor: (Height: 58);
+
+          Group {
+            LayoutMode: Top;
+            FlexWeight: 1;
+
+            Label {
+              Text: "Protected, no PvP";
+              Style: (FontSize: 10, TextColor: #AAAAAA, HorizontalAlignment: Center);
+              Anchor: (Height: 16, Bottom: 4);
+            }
+
+            TextButton #SafeZoneBtn {
+              Text: "SAFEZONE";
+              Anchor: (Height: 30);
+              Style: $S.@SafeZoneButtonStyle;
+            }
+          }
+
+          Group { Anchor: (Width: 10); }
+
+          Group {
+            LayoutMode: Top;
+            FlexWeight: 1;
+
+            Label {
+              Text: "Combat, PvP enabled";
+              Style: (FontSize: 10, TextColor: #AAAAAA, HorizontalAlignment: Center);
+              Anchor: (Height: 16, Bottom: 4);
+            }
+
+            TextButton #WarZoneBtn {
+              Text: "WARZONE";
+              Anchor: (Height: 30);
+              Style: $S.@WarZoneButtonStyle;
+            }
+          }
+        }
+      }
+
+      Group { Anchor: (Width: 10); }
+
+      // Zone Name Card (right)
+      Group #ZoneNameCard {
+        LayoutMode: Top;
+        FlexWeight: 1;
+        Background: (Color: #1a2a3a);
+        Padding: (Left: 12, Right: 12, Top: 10, Bottom: 10);
+
+        Label {
+          Text: "ZONE NAME";
+          Style: (FontSize: 11, TextColor: #00FFFF, RenderBold: true);
+          Anchor: (Height: 14, Bottom: 6);
+        }
+
+        Label {
+          Text: "Enter a unique name for the zone";
+          Style: (FontSize: 10, TextColor: #AAAAAA);
+          Anchor: (Height: 16, Bottom: 6);
+        }
+
+        TextField #NameInput {
+          Anchor: (Height: 34);
+          Style: $C.@DefaultInputFieldStyle;
+          Background: $C.@InputBoxBackground;
+        }
+      }
+    }
+
+    // ==========================================
+    // MIDDLE ROW: Claiming Method + Radius/Flags
+    // ==========================================
+    Group {
+      LayoutMode: Left;
+      Anchor: (Height: 200, Bottom: 10);
+
+      // Claiming Method Card (left) - 2 columns
+      Group #ClaimMethodCard {
+        LayoutMode: Top;
+        FlexWeight: 1;
+        Background: (Color: #1a2a3a);
+        Padding: (Left: 12, Right: 12, Top: 10, Bottom: 10);
+
+        Label {
+          Text: "CLAIMING METHOD";
+          Style: (FontSize: 11, TextColor: #00FFFF, RenderBold: true);
+          Anchor: (Height: 14, Bottom: 8);
+        }
+
+        // Row 1: No claims + Single chunk
+        Group {
+          LayoutMode: Left;
+          Anchor: (Height: 52, Bottom: 6);
+
+          Group {
+            LayoutMode: Top;
+            FlexWeight: 1;
+
+            Label {
+              Text: "Create empty zone";
+              Style: (FontSize: 9, TextColor: #AAAAAA, HorizontalAlignment: Center);
+              Anchor: (Height: 14, Bottom: 2);
+            }
+            TextButton #MethodNone {
+              Text: "No claims";
+              Anchor: (Height: 26);
+              Style: $S.@SmallButtonStyle;
+            }
+          }
+
+          Group { Anchor: (Width: 8); }
+
+          Group {
+            LayoutMode: Top;
+            FlexWeight: 1;
+
+            Label {
+              Text: "Your current chunk";
+              Style: (FontSize: 9, TextColor: #AAAAAA, HorizontalAlignment: Center);
+              Anchor: (Height: 14, Bottom: 2);
+            }
+            TextButton #MethodSingle {
+              Text: "Single chunk";
+              Anchor: (Height: 26);
+              Style: $S.@SmallButtonStyle;
+            }
+          }
+        }
+
+        // Row 2: Circle + Square radius
+        Group {
+          LayoutMode: Left;
+          Anchor: (Height: 52, Bottom: 6);
+
+          Group {
+            LayoutMode: Top;
+            FlexWeight: 1;
+
+            Label {
+              Text: "Circular area";
+              Style: (FontSize: 9, TextColor: #AAAAAA, HorizontalAlignment: Center);
+              Anchor: (Height: 14, Bottom: 2);
+            }
+            TextButton #MethodCircle {
+              Text: "Circle radius";
+              Anchor: (Height: 26);
+              Style: $S.@SmallButtonStyle;
+            }
+          }
+
+          Group { Anchor: (Width: 8); }
+
+          Group {
+            LayoutMode: Top;
+            FlexWeight: 1;
+
+            Label {
+              Text: "Square area";
+              Style: (FontSize: 9, TextColor: #AAAAAA, HorizontalAlignment: Center);
+              Anchor: (Height: 14, Bottom: 2);
+            }
+            TextButton #MethodSquare {
+              Text: "Square radius";
+              Anchor: (Height: 26);
+              Style: $S.@SmallButtonStyle;
+            }
+          }
+        }
+
+        // Row 3: Use map (full width)
+        Group {
+          LayoutMode: Top;
+          Anchor: (Height: 44);
+
+          Label {
+            Text: "Interactive chunk editor";
+            Style: (FontSize: 9, TextColor: #AAAAAA, HorizontalAlignment: Center);
+            Anchor: (Height: 14, Bottom: 2);
+          }
+          TextButton #MethodMap {
+            Text: "Use claim map";
+            Anchor: (Height: 26);
+            Style: $S.@SmallButtonStyle;
+          }
+        }
+      }
+
+      Group { Anchor: (Width: 10); }
+
+      // Right side: Radius + Flags stacked
+      Group {
+        LayoutMode: Top;
+        FlexWeight: 1;
+
+        // Radius Card
+        Group #RadiusCard {
+          LayoutMode: Top;
+          Anchor: (Height: 105, Bottom: 10);
+          Background: (Color: #1a2a3a);
+          Padding: (Left: 12, Right: 12, Top: 10, Bottom: 10);
+
+          Group {
+            LayoutMode: Left;
+            Anchor: (Height: 14, Bottom: 8);
+
+            Label {
+              Text: "RADIUS";
+              Style: (FontSize: 11, TextColor: #00FFFF, RenderBold: true);
+            }
+            Label { FlexWeight: 1; }
+            Label #RadiusPreview {
+              Text: "~79 chunks";
+              Style: (FontSize: 11, TextColor: #55FF55, RenderBold: true);
+            }
+          }
+
+          // Presets
+          Group {
+            LayoutMode: Left;
+            Anchor: (Height: 28, Bottom: 8);
+
+            TextButton #Radius3 {
+              Text: "3";
+              Anchor: (Height: 26, Width: 38);
+              Style: $S.@SmallButtonStyle;
+            }
+            Group { Anchor: (Width: 4); }
+            TextButton #Radius5 {
+              Text: "5";
+              Anchor: (Height: 26, Width: 38);
+              Style: $S.@SmallButtonStyle;
+            }
+            Group { Anchor: (Width: 4); }
+            TextButton #Radius10 {
+              Text: "10";
+              Anchor: (Height: 26, Width: 38);
+              Style: $S.@SmallButtonStyle;
+            }
+            Group { Anchor: (Width: 4); }
+            TextButton #Radius15 {
+              Text: "15";
+              Anchor: (Height: 26, Width: 38);
+              Style: $S.@SmallButtonStyle;
+            }
+            Group { Anchor: (Width: 4); }
+            TextButton #Radius20 {
+              Text: "20";
+              Anchor: (Height: 26, Width: 38);
+              Style: $S.@SmallButtonStyle;
+            }
+          }
+
+          // Custom input
+          Group {
+            LayoutMode: Left;
+            Anchor: (Height: 28);
+
+            Label {
+              Text: "Custom (1-50):";
+              Style: (FontSize: 10, TextColor: #AAAAAA, VerticalAlignment: Center);
+              Anchor: (Width: 85);
+            }
+            TextField #CustomRadiusInput {
+              Anchor: (Height: 26, Width: 55);
+              Style: $C.@DefaultInputFieldStyle;
+              Background: $C.@InputBoxBackground;
+            }
+            Group { Anchor: (Width: 6); }
+            TextButton #ApplyCustomRadius {
+              Text: "APPLY";
+              Anchor: (Height: 26, Width: 60);
+              Style: $S.@SmallCyanButtonStyle;
+            }
+          }
+        }
+
+        // Flags Card - side by side like zone type
+        Group #FlagsCard {
+          LayoutMode: Top;
+          Anchor: (Height: 85);
+          Background: (Color: #1a2a3a);
+          Padding: (Left: 12, Right: 12, Top: 10, Bottom: 10);
+
+          Label {
+            Text: "FLAGS";
+            Style: (FontSize: 11, TextColor: #00FFFF, RenderBold: true);
+            Anchor: (Height: 14, Bottom: 8);
+          }
+
+          Group {
+            LayoutMode: Left;
+            Anchor: (Height: 44);
+
+            Group {
+              LayoutMode: Top;
+              FlexWeight: 1;
+
+              Label {
+                Text: "Based on zone type";
+                Style: (FontSize: 9, TextColor: #AAAAAA, HorizontalAlignment: Center);
+                Anchor: (Height: 14, Bottom: 2);
+              }
+              TextButton #FlagsDefaults {
+                Text: "Use defaults";
+                Anchor: (Height: 26);
+                Style: $S.@SmallButtonStyle;
+              }
+            }
+
+            Group { Anchor: (Width: 8); }
+
+            Group {
+              LayoutMode: Top;
+              FlexWeight: 1;
+
+              Label {
+                Text: "Open settings after";
+                Style: (FontSize: 9, TextColor: #AAAAAA, HorizontalAlignment: Center);
+                Anchor: (Height: 14, Bottom: 2);
+              }
+              TextButton #FlagsCustomize {
+                Text: "Customize";
+                Anchor: (Height: 26);
+                Style: $S.@SmallButtonStyle;
+              }
+            }
+          }
+        }
+      }
+    }
+
   }
 }

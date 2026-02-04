@@ -1,0 +1,183 @@
+// Change Zone Type Modal
+// Allows changing a zone between SafeZone and WarZone
+// with options to keep or reset flags
+
+$C = "../../Common.ui";
+$S = "../shared/styles.ui";
+
+$C.@PageOverlay {
+  $C.@DecoratedContainer {
+    Anchor: (Width: 480, Height: 400);
+
+    #Title {
+      Group {
+        $C.@Title {
+          @Text = "Change Zone Type";
+        }
+      }
+    }
+
+    #Content {
+      LayoutMode: Top;
+      Padding: (Left: 20, Right: 20, Top: 12, Bottom: 12);
+
+      // Zone name
+      Group {
+        Anchor: (Height: 26, Bottom: 6);
+        LayoutMode: Left;
+
+        Label {
+          Text: "Zone:";
+          Style: (FontSize: 12, TextColor: #888888, VerticalAlignment: Center);
+          Anchor: (Width: 55);
+        }
+
+        Label #ZoneName {
+          Text: "Zone Name";
+          Style: (FontSize: 14, TextColor: #00FFFF, RenderBold: true, VerticalAlignment: Center);
+          FlexWeight: 1;
+        }
+      }
+
+      // Current type display
+      Group {
+        Anchor: (Height: 26, Bottom: 4);
+        LayoutMode: Left;
+
+        Label {
+          Text: "Current:";
+          Style: (FontSize: 12, TextColor: #888888, VerticalAlignment: Center);
+          Anchor: (Width: 55);
+        }
+
+        Label #CurrentTypeSafe {
+          Text: "SafeZone";
+          Style: (FontSize: 13, TextColor: #55FF55, RenderBold: true, VerticalAlignment: Center);
+          FlexWeight: 1;
+        }
+        Label #CurrentTypeWar {
+          Text: "WarZone";
+          Style: (FontSize: 13, TextColor: #FF5555, RenderBold: true, VerticalAlignment: Center);
+          FlexWeight: 1;
+        }
+      }
+
+      // Arrow indicator
+      Label {
+        Text: "will become";
+        Style: (FontSize: 10, TextColor: #666666, HorizontalAlignment: Center);
+        Anchor: (Height: 18);
+      }
+
+      // New type display
+      Group {
+        Anchor: (Height: 26, Bottom: 8);
+        LayoutMode: Left;
+
+        Label {
+          Text: "New:";
+          Style: (FontSize: 12, TextColor: #888888, VerticalAlignment: Center);
+          Anchor: (Width: 55);
+        }
+
+        Label #NewTypeSafe {
+          Text: "SafeZone";
+          Style: (FontSize: 13, TextColor: #55FF55, RenderBold: true, VerticalAlignment: Center);
+          FlexWeight: 1;
+        }
+        Label #NewTypeWar {
+          Text: "WarZone";
+          Style: (FontSize: 13, TextColor: #FF5555, RenderBold: true, VerticalAlignment: Center);
+          FlexWeight: 1;
+        }
+      }
+
+      // Warning info
+      Group {
+        Anchor: (Height: 38, Bottom: 10);
+        Background: (Color: #1a2530);
+        Padding: (Left: 10, Right: 10, Top: 6, Bottom: 6);
+        LayoutMode: Top;
+
+        Label {
+          Text: "Different zone types have different default flag values.";
+          Style: (FontSize: 10, TextColor: #AAAAAA, HorizontalAlignment: Center);
+          Anchor: (Height: 12);
+        }
+        Label {
+          Text: "Choose how to handle existing flag settings:";
+          Style: (FontSize: 10, TextColor: #AAAAAA, HorizontalAlignment: Center);
+          Anchor: (Height: 12);
+        }
+      }
+
+      // Action buttons - side by side with descriptions above
+      Group {
+        Anchor: (Height: 70, Bottom: 8);
+        Background: (Color: #1a2530);
+        Padding: (Left: 15, Right: 15, Top: 10, Bottom: 10);
+        LayoutMode: Left;
+
+        // Keep flags option
+        Group {
+          LayoutMode: Top;
+          FlexWeight: 1;
+
+          Label {
+            Text: "Keep custom overrides";
+            Style: (FontSize: 10, TextColor: #AAAAAA, HorizontalAlignment: Center);
+            Anchor: (Height: 16, Bottom: 4);
+          }
+
+          TextButton #KeepFlagsBtn {
+            Text: "KEEP FLAGS";
+            Anchor: (Height: 32);
+            Style: $S.@GreenButtonStyle;
+          }
+        }
+
+        Group { Anchor: (Width: 15); }
+
+        // Reset flags option
+        Group {
+          LayoutMode: Top;
+          FlexWeight: 1;
+
+          Label {
+            Text: "Use new type defaults";
+            Style: (FontSize: 10, TextColor: #AAAAAA, HorizontalAlignment: Center);
+            Anchor: (Height: 16, Bottom: 4);
+          }
+
+          TextButton #ResetFlagsBtn {
+            Text: "RESET FLAGS";
+            Anchor: (Height: 32);
+            Style: $S.@ButtonStyle;
+          }
+        }
+      }
+
+      // Spacer to push cancel to bottom
+      Group { FlexWeight: 1; }
+
+      // Cancel button
+      Group {
+        Anchor: (Height: 40);
+        LayoutMode: Left;
+
+        Label { FlexWeight: 1; }
+
+        TextButton #CancelBtn {
+          Text: "CANCEL";
+          Anchor: (Height: 32, Width: 100);
+          Style: $S.@RedButtonStyle;
+        }
+
+        Label { FlexWeight: 1; }
+      }
+    }
+  }
+}
+
+// Native Hytale back button (bottom-left ESC)
+$C.@BackButton {}

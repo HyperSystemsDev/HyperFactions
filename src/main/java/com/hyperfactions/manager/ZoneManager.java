@@ -720,6 +720,45 @@ public class ZoneManager {
     }
 
     /**
+     * Changes the type of a zone (SafeZone to WarZone or vice versa).
+     *
+     * @param zoneId     the zone ID
+     * @param resetFlags if true, clears all custom flags (uses new type defaults);
+     *                   if false, preserves existing custom flag overrides
+     * @return the result
+     */
+    public ZoneResult changeZoneType(@NotNull UUID zoneId, boolean resetFlags) {
+        Zone zone = zonesById.get(zoneId);
+        if (zone == null) {
+            return ZoneResult.NOT_FOUND;
+        }
+
+        // Toggle the type
+        ZoneType newType = zone.isSafeZone() ? ZoneType.WAR : ZoneType.SAFE;
+
+        // Preserve or clear flags based on parameter
+        Map<String, Boolean> flags = resetFlags ? null : zone.flags();
+
+        Zone updated = new Zone(
+                zone.id(),
+                zone.name(),
+                newType,
+                zone.world(),
+                zone.chunks(),
+                zone.createdAt(),
+                zone.createdBy(),
+                flags
+        );
+
+        updateZone(updated);
+
+        Logger.info("Changed zone '%s' from %s to %s (resetFlags=%s)",
+                zone.name(), zone.type().getDisplayName(), newType.getDisplayName(), resetFlags);
+        notifyZoneChange();
+        return ZoneResult.SUCCESS;
+    }
+
+    /**
      * Renames a zone.
      *
      * @param zoneId  the zone ID

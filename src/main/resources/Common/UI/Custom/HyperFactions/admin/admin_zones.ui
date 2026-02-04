@@ -6,7 +6,7 @@ $C.@PageOverlay {
   $Nav.@HyperFactionsAdminNavBar #HyperFactionsAdminNavBar {}
 
   $C.@Container {
-    Anchor: (Width: 550, Height: 450);
+    Anchor: (Width: 700, Height: 500);
 
     #Title {
       $C.@Title {

@@ -37,6 +37,18 @@ public class AdminZoneData implements AdminNavAwareData {
     /** Zone name input from wizard */
     public String inputName;
 
+    /** Claiming method selection (no_claims, single_chunk, radius_circle, radius_square, use_map) */
+    public String claimMethod;
+
+    /** Selected radius preset value */
+    public String radius;
+
+    /** Custom radius input value */
+    public String customRadius;
+
+    /** Flags choice selection (defaults, customize) */
+    public String flagsChoice;
+
     /** Admin nav bar target (for navigation) */
     public String adminNavBar;
 
@@ -105,6 +117,26 @@ public class AdminZoneData implements AdminNavAwareData {
                     new KeyedCodec<>("@Name", Codec.STRING),
                     (data, value) -> data.inputName = value,
                     data -> data.inputName
+            )
+            .addField(
+                    new KeyedCodec<>("ClaimMethod", Codec.STRING),
+                    (data, value) -> data.claimMethod = value,
+                    data -> data.claimMethod
+            )
+            .addField(
+                    new KeyedCodec<>("Radius", Codec.STRING),
+                    (data, value) -> data.radius = value,
+                    data -> data.radius
+            )
+            .addField(
+                    new KeyedCodec<>("@CustomRadius", Codec.STRING),
+                    (data, value) -> data.customRadius = value,
+                    data -> data.customRadius
+            )
+            .addField(
+                    new KeyedCodec<>("FlagsChoice", Codec.STRING),
+                    (data, value) -> data.flagsChoice = value,
+                    data -> data.flagsChoice
             )
             .addField(
                     new KeyedCodec<>("AdminNavBar", Codec.STRING),

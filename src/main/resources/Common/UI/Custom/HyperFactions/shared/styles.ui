@@ -201,12 +201,79 @@ $C = "../../Common.ui";
 );
 
 // =============================================================================
-// ZONE BUTTON STYLES (SafeZone = Teal, WarZone = Purple)
+// ZONE BUTTON STYLES (SafeZone = Green, WarZone = Red)
 // =============================================================================
 
+// SafeZone styles (green #55FF55)
+@SafeZoneLabelStyle = LabelStyle(
+  FontSize: 13,
+  TextColor: #55FF55,
+  RenderBold: true,
+  HorizontalAlignment: Center,
+  VerticalAlignment: Center
+);
+
+// WarZone styles (red #FF5555)
+@WarZoneLabelStyle = LabelStyle(
+  FontSize: 13,
+  TextColor: #FF5555,
+  RenderBold: true,
+  HorizontalAlignment: Center,
+  VerticalAlignment: Center
+);
+
+@SafeZoneButtonStyle = TextButtonStyle(
+  Default: (Background: $C.@DefaultSquareButtonDefaultBackground, LabelStyle: @SafeZoneLabelStyle),
+  Hovered: (Background: $C.@DefaultSquareButtonHoveredBackground, LabelStyle: @SafeZoneLabelStyle),
+  Pressed: (Background: $C.@DefaultSquareButtonPressedBackground, LabelStyle: @SafeZoneLabelStyle),
+  Disabled: (Background: $C.@DefaultSquareButtonDisabledBackground, LabelStyle: @SafeZoneLabelStyle),
+  Sounds: $C.@ButtonSounds,
+);
+
+@WarZoneButtonStyle = TextButtonStyle(
+  Default: (Background: $C.@DefaultSquareButtonDefaultBackground, LabelStyle: @WarZoneLabelStyle),
+  Hovered: (Background: $C.@DefaultSquareButtonHoveredBackground, LabelStyle: @WarZoneLabelStyle),
+  Pressed: (Background: $C.@DefaultSquareButtonPressedBackground, LabelStyle: @WarZoneLabelStyle),
+  Disabled: (Background: $C.@DefaultSquareButtonDisabledBackground, LabelStyle: @WarZoneLabelStyle),
+  Sounds: $C.@ButtonSounds,
+);
+
+@SmallSafeZoneLabelStyle = LabelStyle(
+  FontSize: 12,
+  TextColor: #55FF55,
+  RenderBold: true,
+  HorizontalAlignment: Center,
+  VerticalAlignment: Center
+);
+
+@SmallWarZoneLabelStyle = LabelStyle(
+  FontSize: 12,
+  TextColor: #FF5555,
+  RenderBold: true,
+  HorizontalAlignment: Center,
+  VerticalAlignment: Center
+);
+
+@SmallSafeZoneButtonStyle = TextButtonStyle(
+  Default: (Background: $C.@DefaultSquareButtonDefaultBackground, LabelStyle: @SmallSafeZoneLabelStyle),
+  Hovered: (Background: $C.@DefaultSquareButtonHoveredBackground, LabelStyle: @SmallSafeZoneLabelStyle),
+  Pressed: (Background: $C.@DefaultSquareButtonPressedBackground, LabelStyle: @SmallSafeZoneLabelStyle),
+  Disabled: (Background: $C.@DefaultSquareButtonDisabledBackground, LabelStyle: @SmallSafeZoneLabelStyle),
+  Sounds: $C.@ButtonSounds,
+);
+
+@SmallWarZoneButtonStyle = TextButtonStyle(
+  Default: (Background: $C.@DefaultSquareButtonDefaultBackground, LabelStyle: @SmallWarZoneLabelStyle),
+  Hovered: (Background: $C.@DefaultSquareButtonHoveredBackground, LabelStyle: @SmallWarZoneLabelStyle),
+  Pressed: (Background: $C.@DefaultSquareButtonPressedBackground, LabelStyle: @SmallWarZoneLabelStyle),
+  Disabled: (Background: $C.@DefaultSquareButtonDisabledBackground, LabelStyle: @SmallWarZoneLabelStyle),
+  Sounds: $C.@ButtonSounds,
+);
+
+// Legacy aliases for backwards compatibility (deprecated)
 @TealLabelStyle = LabelStyle(
   FontSize: 13,
-  TextColor: #2dd4bf,
+  TextColor: #55FF55,
   RenderBold: true,
   HorizontalAlignment: Center,
   VerticalAlignment: Center
@@ -214,7 +281,7 @@ $C = "../../Common.ui";
 
 @PurpleLabelStyle = LabelStyle(
   FontSize: 13,
-  TextColor: #c084fc,
+  TextColor: #FF5555,
   RenderBold: true,
   HorizontalAlignment: Center,
   VerticalAlignment: Center
@@ -238,7 +305,7 @@ $C = "../../Common.ui";
 
 @SmallTealLabelStyle = LabelStyle(
   FontSize: 12,
-  TextColor: #2dd4bf,
+  TextColor: #55FF55,
   RenderBold: true,
   HorizontalAlignment: Center,
   VerticalAlignment: Center
@@ -246,7 +313,7 @@ $C = "../../Common.ui";
 
 @SmallPurpleLabelStyle = LabelStyle(
   FontSize: 12,
-  TextColor: #c084fc,
+  TextColor: #FF5555,
   RenderBold: true,
   HorizontalAlignment: Center,
   VerticalAlignment: Center

@@ -71,7 +71,7 @@ public class AdminZoneSettingsPage extends InteractiveCustomUIPage<AdminZoneSett
         cmd.set("#ZoneChunks.Text", zone.getChunkCount() + " chunks");
 
         // Type indicator color
-        String typeColor = zone.isSafeZone() ? "#2dd4bf" : "#c084fc";
+        String typeColor = zone.isSafeZone() ? "#55FF55" : "#FF5555";
         cmd.set("#ZoneType.Style.TextColor", typeColor);
 
         // Build flag toggles by category (matching 2-column UI layout)

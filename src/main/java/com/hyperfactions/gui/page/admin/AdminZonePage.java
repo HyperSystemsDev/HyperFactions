@@ -185,6 +185,9 @@ public class AdminZonePage extends InteractiveCustomUIPage<AdminZoneData> {
         cmd.set(idx + " #ZoneType.Text", zone.type().name() + " (" + zone.getChunkCount() + " chunks)");
         cmd.set(idx + " #ZoneWorld.Text", zone.world());
 
+        // Inline stats (visible in collapsed row)
+        cmd.set(idx + " #InlineChunks.Text", String.valueOf(zone.getChunkCount()));
+
         // Expansion state
         cmd.set(idx + " #ExpandIcon.Visible", !isExpanded);
         cmd.set(idx + " #CollapseIcon.Visible", isExpanded);
@@ -248,6 +251,16 @@ public class AdminZonePage extends InteractiveCustomUIPage<AdminZoneData> {
                     CustomUIEventBindingType.Activating,
                     idx + " #RenameBtn",
                     EventData.of("Button", "RenameZone")
+                            .append("ZoneId", zone.id().toString())
+                            .append("ZoneName", zone.name()),
+                    false
+            );
+
+            // Type button
+            events.addEventBinding(
+                    CustomUIEventBindingType.Activating,
+                    idx + " #TypeBtn",
+                    EventData.of("Button", "ChangeType")
                             .append("ZoneId", zone.id().toString())
                             .append("ZoneName", zone.name()),
                     false
@@ -359,6 +372,17 @@ public class AdminZonePage extends InteractiveCustomUIPage<AdminZoneData> {
                     try {
                         UUID zoneId = UUID.fromString(data.zoneId);
                         guiManager.openZoneRenameModal(player, ref, store, playerRef, zoneId, currentTab, currentPage);
+                    } catch (IllegalArgumentException e) {
+                        player.sendMessage(Message.raw("Invalid zone ID.").color("#FF5555"));
+                    }
+                }
+            }
+
+            case "ChangeType" -> {
+                if (data.zoneId != null) {
+                    try {
+                        UUID zoneId = UUID.fromString(data.zoneId);
+                        guiManager.openZoneChangeTypeModal(player, ref, store, playerRef, zoneId, currentTab, currentPage);
                     } catch (IllegalArgumentException e) {
                         player.sendMessage(Message.raw("Invalid zone ID.").color("#FF5555"));
                     }

@@ -41,12 +41,42 @@ Group {
         }
       }
 
-      // World
-      Label #ZoneWorld {
-        Text: "world";
-        Style: (FontSize: 11, TextColor: #666666, VerticalAlignment: Center);
-        FlexWeight: 1;
+      // World with label
+      Group {
+        Anchor: (Width: 140);
+        LayoutMode: Left;
+
+        Label {
+          Text: "World:";
+          Style: (FontSize: 10, TextColor: #555555, VerticalAlignment: Center);
+          Anchor: (Width: 40);
+        }
+        Label #ZoneWorld {
+          Text: "world";
+          Style: (FontSize: 11, TextColor: #888888, VerticalAlignment: Center);
+          FlexWeight: 1;
+        }
       }
+
+      // Inline stats: Chunks
+      Group {
+        Anchor: (Width: 80);
+        LayoutMode: Left;
+
+        Label {
+          Text: "Chunks:";
+          Style: (FontSize: 10, TextColor: #555555, VerticalAlignment: Center);
+          Anchor: (Width: 45);
+        }
+        Label #InlineChunks {
+          Text: "0";
+          Style: (FontSize: 11, TextColor: #888888, VerticalAlignment: Center);
+          FlexWeight: 1;
+        }
+      }
+
+      // Spacer
+      Label { FlexWeight: 1; }
 
       // Expand indicators
       Label #ExpandIcon {
@@ -142,6 +172,14 @@ Group {
       }
 
       Group { FlexWeight: 1; }
+
+      TextButton #TypeBtn {
+        Text: "TYPE";
+        Anchor: (Height: 28, Width: 55);
+        Style: $S.@SmallButtonStyle;
+      }
+
+      Group { Anchor: (Width: 6); }
 
       TextButton #DeleteBtn {
         Text: "DELETE";

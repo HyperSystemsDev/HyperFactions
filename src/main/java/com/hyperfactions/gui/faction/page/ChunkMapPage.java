@@ -42,7 +42,7 @@ public class ChunkMapPage extends InteractiveCustomUIPage<ChunkMapData> {
     private static final String COLOR_OTHER = "#fbbf24";      // Yellow/gold - neutral faction
     private static final String COLOR_WILDERNESS = "#1e293b"; // Dark slate - unclaimed (darker for contrast)
     private static final String COLOR_SAFEZONE = "#2dd4bf";   // Teal - safe zone
-    private static final String COLOR_WARZONE = "#c084fc";    // Light purple - war zone
+    private static final String COLOR_WARZONE = "#ff5555";    // Red - war zone
     private static final String COLOR_PLAYER_POS = "#ffffff"; // White - player position stands out
 
     private final PlayerRef playerRef;

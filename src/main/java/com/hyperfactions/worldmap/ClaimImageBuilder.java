@@ -39,7 +39,7 @@ public class ClaimImageBuilder {
 
     // SafeZone/WarZone colors (RGB format) - using distinct colors to avoid faction conflicts
     private static final int COLOR_SAFEZONE = 0x00CED1;      // Dark Turquoise (distinct from green 'a')
-    private static final int COLOR_WARZONE = 0xFF8C00;       // Dark Orange (distinct from red 'c')
+    private static final int COLOR_WARZONE = 0xFF5555;       // Red (matches GUI theme)
     private static final int COLOR_FACTION_DEFAULT = 0x55FFFF; // Cyan (default faction color)
 
     // Overlay transparency (0.0 = fully transparent, 1.0 = fully opaque)

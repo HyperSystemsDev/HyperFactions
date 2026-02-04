@@ -36,9 +36,9 @@ public class AdminZoneMapPage extends InteractiveCustomUIPage<AdminZoneMapData> 
 
     // Color constants
     private static final String COLOR_CURRENT_SAFE = "#14b8a6";     // Bright teal - current zone (SafeZone)
-    private static final String COLOR_CURRENT_WAR = "#a855f7";      // Bright purple - current zone (WarZone)
+    private static final String COLOR_CURRENT_WAR = "#ef4444";      // Bright red - current zone (WarZone)
     private static final String COLOR_OTHER_SAFE = "#2dd4bf80";     // Light teal - other SafeZone
-    private static final String COLOR_OTHER_WAR = "#c084fc80";      // Light purple - other WarZone
+    private static final String COLOR_OTHER_WAR = "#ff555580";      // Light red - other WarZone
     private static final String COLOR_FACTION = "#6b7280";          // Gray - faction claims
     private static final String COLOR_WILDERNESS = "#1e293b";       // Dark slate - unclaimed
     private static final String COLOR_PLAYER_POS = "#ffffff";       // White - player position
@@ -48,18 +48,29 @@ public class AdminZoneMapPage extends InteractiveCustomUIPage<AdminZoneMapData> 
     private final ZoneManager zoneManager;
     private final ClaimManager claimManager;
     private final GuiManager guiManager;
+    private final boolean openFlagsAfter;
 
     public AdminZoneMapPage(PlayerRef playerRef,
                             Zone zone,
                             ZoneManager zoneManager,
                             ClaimManager claimManager,
                             GuiManager guiManager) {
+        this(playerRef, zone, zoneManager, claimManager, guiManager, false);
+    }
+
+    public AdminZoneMapPage(PlayerRef playerRef,
+                            Zone zone,
+                            ZoneManager zoneManager,
+                            ClaimManager claimManager,
+                            GuiManager guiManager,
+                            boolean openFlagsAfter) {
         super(playerRef, CustomPageLifetime.CanDismiss, AdminZoneMapData.CODEC);
         this.playerRef = playerRef;
         this.zoneId = zone.id();
         this.zoneManager = zoneManager;
         this.claimManager = claimManager;
         this.guiManager = guiManager;
+        this.openFlagsAfter = openFlagsAfter;
     }
 
     @Override
@@ -269,7 +280,14 @@ public class AdminZoneMapPage extends InteractiveCustomUIPage<AdminZoneMapData> 
         String zoneWorld = zone.world();
 
         switch (data.button) {
-            case "Confirm" -> guiManager.openAdminZone(player, ref, store, playerRef);
+            case "Confirm" -> {
+                if (openFlagsAfter) {
+                    // Navigate to flags settings as requested during zone creation
+                    guiManager.openAdminZoneSettings(player, ref, store, playerRef, zoneId);
+                } else {
+                    guiManager.openAdminZone(player, ref, store, playerRef);
+                }
+            }
 
             case "Claim" -> {
                 ZoneManager.ZoneResult result = zoneManager.claimChunk(zoneId, zoneWorld, data.chunkX, data.chunkZ);
@@ -278,10 +296,10 @@ public class AdminZoneMapPage extends InteractiveCustomUIPage<AdminZoneMapData> 
                 } else {
                     player.sendMessage(Message.raw("Failed to claim chunk: " + result).color("#ff5555"));
                 }
-                // Refresh by opening new page with fresh zone data
+                // Refresh by opening new page with fresh zone data, preserving openFlagsAfter
                 Zone freshZone = zoneManager.getZoneById(zoneId);
                 if (freshZone != null) {
-                    guiManager.openAdminZoneMap(player, ref, store, playerRef, freshZone);
+                    guiManager.openAdminZoneMap(player, ref, store, playerRef, freshZone, openFlagsAfter);
                 }
             }
 
@@ -292,10 +310,10 @@ public class AdminZoneMapPage extends InteractiveCustomUIPage<AdminZoneMapData> 
                 } else {
                     player.sendMessage(Message.raw("Failed to unclaim chunk: " + result).color("#ff5555"));
                 }
-                // Refresh by opening new page with fresh zone data
+                // Refresh by opening new page with fresh zone data, preserving openFlagsAfter
                 Zone freshZone = zoneManager.getZoneById(zoneId);
                 if (freshZone != null) {
-                    guiManager.openAdminZoneMap(player, ref, store, playerRef, freshZone);
+                    guiManager.openAdminZoneMap(player, ref, store, playerRef, freshZone, openFlagsAfter);
                 }
             }
 

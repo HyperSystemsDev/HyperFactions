@@ -1599,8 +1599,34 @@ public class GuiManager {
                                      Store<EntityStore> store, PlayerRef playerRef,
                                      com.hyperfactions.data.ZoneType selectedType,
                                      String preservedName) {
-        Logger.debug("[GUI] Opening CreateZoneWizardPage for %s (type: %s, name: '%s')",
-                playerRef.getUsername(), selectedType.name(), preservedName);
+        openCreateZoneWizard(player, ref, store, playerRef, selectedType, preservedName,
+                CreateZoneWizardPage.ClaimMethod.NO_CLAIMS, 5, false);
+    }
+
+    /**
+     * Opens the Create Zone Wizard page with full state.
+     * Used when changing wizard options to preserve all entered state.
+     *
+     * @param player         The Player entity
+     * @param ref            The entity reference
+     * @param store          The entity store
+     * @param playerRef      The PlayerRef component
+     * @param selectedType   The selected zone type
+     * @param preservedName  The preserved zone name from previous input
+     * @param claimMethod    The selected claiming method
+     * @param selectedRadius The selected radius (for radius methods)
+     * @param customizeFlags Whether to open flag settings after creation
+     */
+    public void openCreateZoneWizard(Player player, Ref<EntityStore> ref,
+                                     Store<EntityStore> store, PlayerRef playerRef,
+                                     com.hyperfactions.data.ZoneType selectedType,
+                                     String preservedName,
+                                     CreateZoneWizardPage.ClaimMethod claimMethod,
+                                     int selectedRadius,
+                                     boolean customizeFlags) {
+        Logger.debug("[GUI] Opening CreateZoneWizardPage for %s (type: %s, name: '%s', method: %s, radius: %d)",
+                playerRef.getUsername(), selectedType.name(), preservedName,
+                claimMethod != null ? claimMethod.name() : "NO_CLAIMS", selectedRadius);
         try {
             PageManager pageManager = player.getPageManager();
             CreateZoneWizardPage page = new CreateZoneWizardPage(
@@ -1608,7 +1634,10 @@ public class GuiManager {
                 zoneManager.get(),
                 this,
                 selectedType,
-                preservedName
+                preservedName,
+                claimMethod,
+                selectedRadius,
+                customizeFlags
             );
             pageManager.openCustomPage(ref, store, page);
             Logger.debug("[GUI] CreateZoneWizardPage opened successfully");
@@ -1630,7 +1659,24 @@ public class GuiManager {
     public void openAdminZoneMap(Player player, Ref<EntityStore> ref,
                                  Store<EntityStore> store, PlayerRef playerRef,
                                  Zone zone) {
-        Logger.debug("[GUI] Opening AdminZoneMapPage for %s (zone: %s)", playerRef.getUsername(), zone.name());
+        openAdminZoneMap(player, ref, store, playerRef, zone, false);
+    }
+
+    /**
+     * Opens the Admin Zone Map page for editing zone chunks.
+     *
+     * @param player          The Player entity
+     * @param ref             The entity reference
+     * @param store           The entity store
+     * @param playerRef       The PlayerRef component
+     * @param zone            The zone to edit
+     * @param openFlagsAfter  Whether to open flags settings when done with map
+     */
+    public void openAdminZoneMap(Player player, Ref<EntityStore> ref,
+                                 Store<EntityStore> store, PlayerRef playerRef,
+                                 Zone zone, boolean openFlagsAfter) {
+        Logger.debug("[GUI] Opening AdminZoneMapPage for %s (zone: %s, openFlagsAfter: %s)",
+                playerRef.getUsername(), zone.name(), openFlagsAfter);
         try {
             PageManager pageManager = player.getPageManager();
             AdminZoneMapPage page = new AdminZoneMapPage(
@@ -1638,7 +1684,8 @@ public class GuiManager {
                 zone,
                 zoneManager.get(),
                 claimManager.get(),
-                this
+                this,
+                openFlagsAfter
             );
             pageManager.openCustomPage(ref, store, page);
             Logger.debug("[GUI] AdminZoneMapPage opened successfully");
@@ -1706,6 +1753,39 @@ public class GuiManager {
             Logger.debug("[GUI] ZoneRenameModalPage opened successfully");
         } catch (Exception e) {
             Logger.severe("[GUI] Failed to open ZoneRenameModalPage: %s", e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Opens the Zone Change Type modal.
+     *
+     * @param player      The Player entity
+     * @param ref         The entity reference
+     * @param store       The entity store
+     * @param playerRef   The PlayerRef component
+     * @param zoneId      The UUID of the zone to change type
+     * @param currentTab  The current tab filter in AdminZonePage
+     * @param currentPage The current page number in AdminZonePage
+     */
+    public void openZoneChangeTypeModal(Player player, Ref<EntityStore> ref,
+                                        Store<EntityStore> store, PlayerRef playerRef,
+                                        UUID zoneId, String currentTab, int currentPage) {
+        Logger.debug("[GUI] Opening ZoneChangeTypeModalPage for %s (zone: %s)", playerRef.getUsername(), zoneId);
+        try {
+            PageManager pageManager = player.getPageManager();
+            ZoneChangeTypeModalPage page = new ZoneChangeTypeModalPage(
+                playerRef,
+                zoneManager.get(),
+                this,
+                zoneId,
+                currentTab,
+                currentPage
+            );
+            pageManager.openCustomPage(ref, store, page);
+            Logger.debug("[GUI] ZoneChangeTypeModalPage opened successfully");
+        } catch (Exception e) {
+            Logger.severe("[GUI] Failed to open ZoneChangeTypeModalPage: %s", e.getMessage());
             e.printStackTrace();
         }
     }

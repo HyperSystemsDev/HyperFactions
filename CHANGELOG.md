@@ -9,6 +9,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+**Zone Type Change Feature**
+- New TYPE button in zone list entries to change between SafeZone and WarZone
+- Modal dialog with options to keep existing flag overrides or reset to new type defaults
+- ZoneManager.changeZoneType() method for programmatic zone type changes
+
+**Redesigned Create Zone Wizard**
+- Modern card-based two-column layout with better organization
+- 5 claiming methods: No Claims, Single Chunk, Radius (Circle), Radius (Square), Use Claim Map
+- Radius presets (3, 5, 10, 15, 20) with custom input up to 50 chunks
+- Live chunk count preview for radius selections
+- Flag customization choice: use defaults or customize after creation
+- Action buttons moved to top with cyan divider
+- Proper navigation flow: USE_MAP + customize flags goes create → map → flags
+
+### Changed
+
+**WarZone Color Scheme**
+- Changed WarZone color from purple/orange to red (#FF5555) across all maps
+- In-game world map now shows WarZones in red with light opacity
+- GUI faction map and admin zone map use consistent red coloring
+- Better visual distinction between SafeZones (teal) and WarZones (red)
+
+**Zone List UI Improvements**
+- Removed bounds from collapsed zone entry (still visible when expanded)
+- Cleaner inline stats showing only chunk count
+
 **Mob Spawn Suppression System**
 - New SpawnSuppressionManager integrates with Hytale's native SpawnSuppressionController
 - Chunk-based spawn suppression using the server's built-in suppression system
