@@ -27,16 +27,14 @@ import java.util.concurrent.ConcurrentHashMap;
  * Integrates with Hytale's SpawnSuppressionController to block mob spawning
  * at the chunk level using the native suppression system.
  *
- * <p>Suppression is chunk-based and uses the following flags:</p>
- * <ul>
- *   <li>{@link ZoneFlags#MOB_SPAWNING} - Master toggle (false = block all mobs)</li>
- *   <li>{@link ZoneFlags#HOSTILE_MOB_SPAWNING} - Controls hostile mob spawning</li>
- *   <li>{@link ZoneFlags#PASSIVE_MOB_SPAWNING} - Controls passive mob spawning</li>
- *   <li>{@link ZoneFlags#NEUTRAL_MOB_SPAWNING} - Controls neutral mob spawning</li>
- * </ul>
+ * Suppression is chunk-based and uses the following flags:
+ * - MOB_SPAWNING: Master toggle (false = block all mobs)
+ * - HOSTILE_MOB_SPAWNING: Controls hostile mob spawning
+ * - PASSIVE_MOB_SPAWNING: Controls passive mob spawning
+ * - NEUTRAL_MOB_SPAWNING: Controls neutral mob spawning
  *
- * <p>The suppression uses a unique ID prefix to identify HyperFactions suppressions,
- * allowing them to be updated without affecting other plugins.</p>
+ * The suppression uses a unique ID prefix to identify HyperFactions suppressions,
+ * allowing them to be updated without affecting other plugins.
  */
 public class SpawnSuppressionManager {
 
@@ -98,7 +96,7 @@ public class SpawnSuppressionManager {
             neutralGroupIndex = assetMap.getIndex(GROUP_NEUTRAL);
             groupsResolved = true;
 
-            Logger.debug("Resolved NPC groups: hostile=%d, passive=%d, neutral=%d",
+            Logger.debugSpawning("Resolved NPC groups: hostile=%d, passive=%d, neutral=%d",
                 hostileGroupIndex, passiveGroupIndex, neutralGroupIndex);
         } catch (Exception e) {
             Logger.warn("Failed to resolve NPC groups: %s", e.getMessage());
@@ -111,25 +109,39 @@ public class SpawnSuppressionManager {
      * Call this on world load or when zones are modified.
      *
      * @param world the world to apply suppression to
+     * @return true if suppression was applied successfully, false if world not ready
      */
-    public void applyToWorld(@NotNull World world) {
+    public boolean applyToWorld(@NotNull World world) {
         if (!groupsResolved) {
             resolveNPCGroups();
             if (!groupsResolved) {
                 Logger.warn("Cannot apply spawn suppression - NPC groups not resolved");
-                return;
+                return false;
             }
         }
 
         String worldName = world.getName();
-        Store<EntityStore> entityStore = world.getEntityStore().getStore();
+
+        // Get entity store - may be null for worlds that don't support entities
+        EntityStore entityStoreHolder = world.getEntityStore();
+        if (entityStoreHolder == null) {
+            Logger.debugSpawning("No EntityStore for world '%s', will retry when world is ready", worldName);
+            return false;
+        }
+
+        Store<EntityStore> entityStore = entityStoreHolder.getStore();
+        if (entityStore == null) {
+            Logger.debugSpawning("EntityStore not initialized for world '%s', will retry when world is ready", worldName);
+            return false;
+        }
+
         SpawnSuppressionController controller = entityStore.getResource(
             SpawnSuppressionController.getResourceType()
         );
 
         if (controller == null) {
-            Logger.warn("SpawnSuppressionController not found for world '%s'", worldName);
-            return;
+            Logger.warn("SpawnSuppressionController not found for world '%s' - spawning module may not be loaded", worldName);
+            return false;
         }
 
         Long2ObjectConcurrentHashMap<ChunkSuppressionEntry> chunkMap = controller.getChunkSuppressionMap();
@@ -165,6 +177,7 @@ public class SpawnSuppressionManager {
 
         Logger.info("Applied spawn suppression to %d zones (%d chunks) in world '%s'",
             zonesProcessed, chunksProcessed, worldName);
+        return true;
     }
 
     /**
@@ -187,7 +200,7 @@ public class SpawnSuppressionManager {
         // Find the world for this zone
         // This requires iterating worlds since we don't have direct world access
         // In practice, this would be called with a world reference
-        Logger.debug("Zone '%s' suppression update requested - apply via world refresh", zone.name());
+        Logger.debugSpawning("Zone '%s' suppression update requested - apply via world refresh", zone.name());
     }
 
     /**

@@ -5,6 +5,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Constants for zone flag names.
@@ -15,14 +16,44 @@ import java.util.Map;
  * - Building flags: Use BreakBlockEvent, PlaceBlockEvent, UseBlockEvent
  * - Item flags: Use DropItemEvent, InteractivelyPickupItemEvent
  *
+ * MIXIN-DEPENDENT FLAGS
+ * Some flags require OrbisGuard-Mixins to function properly. When OrbisGuard-Mixins
+ * is not installed, these flags will have no effect. Use requiresMixin(String)
+ * to check if a flag requires mixin support, and getMixinType(String) to
+ * determine which specific mixin is required.
+ *
+ * Mixin Types:
+ * - MIXIN_PICKUP: Required for F-key item pickup blocking
+ * - MIXIN_DEATH: Required for keep inventory on death
+ * - MIXIN_DURABILITY: Required for invincible items (no durability loss)
+ * - MIXIN_SEATING: Required for enhanced seat/mount blocking
+ *
  * Removed Minecraft-specific flags:
- * - hunger_loss - No hunger system in Hytale
- * - mob_spawning - Not exposed to plugins
- * - container_access + interact_allowed - Consolidated to block_interact
+ * - hunger_loss: No hunger system in Hytale
+ * - container_access + interact_allowed: Consolidated to block_interact
  */
 public final class ZoneFlags {
 
     private ZoneFlags() {} // Prevent instantiation
+
+    // ==========================================================================
+    // MIXIN TYPE CONSTANTS
+    // ==========================================================================
+
+    /** Mixin type for F-key item pickup interception. */
+    public static final String MIXIN_PICKUP = "pickup";
+
+    /** Mixin type for death event interception (keep inventory). */
+    public static final String MIXIN_DEATH = "death";
+
+    /** Mixin type for durability/damage interception (invincible items). */
+    public static final String MIXIN_DURABILITY = "durability";
+
+    /** Mixin type for seating/mounting interception. */
+    public static final String MIXIN_SEATING = "seating";
+
+    /** Mixin type for NPC spawn interception. */
+    public static final String MIXIN_SPAWN = "spawn";
 
     // ==========================================================================
     // COMBAT FLAGS (4)
@@ -70,14 +101,28 @@ public final class ZoneFlags {
     public static final String SEAT_USE = "seat_use";
 
     // ==========================================================================
-    // ITEM FLAGS (2)
+    // ITEM FLAGS (4)
     // ==========================================================================
 
     /** Whether players can drop items. Uses DropItemEvent. */
     public static final String ITEM_DROP = "item_drop";
 
-    /** Whether players can pick up items. Uses InteractivelyPickupItemEvent. */
+    /** Whether players can pick up items automatically (walking over them). Uses InteractivelyPickupItemEvent. */
     public static final String ITEM_PICKUP = "item_pickup";
+
+    /**
+     * Whether players can manually pick up items (F-key).
+     * REQUIRES: OrbisGuard-Mixins (pickup mixin)
+     * Uses OrbisGuard-Mixins pickup hook.
+     */
+    public static final String ITEM_PICKUP_MANUAL = "item_pickup_manual";
+
+    /**
+     * Whether items are invincible (no durability loss).
+     * REQUIRES: OrbisGuard-Mixins (durability mixin)
+     * Uses OrbisGuard-Mixins durability hook.
+     */
+    public static final String INVINCIBLE_ITEMS = "invincible_items";
 
     // ==========================================================================
     // DAMAGE FLAGS (2)
@@ -88,6 +133,17 @@ public final class ZoneFlags {
 
     /** Whether players take environmental damage (drowning, suffocation). Uses Damage with EnvironmentSource. */
     public static final String ENVIRONMENTAL_DAMAGE = "environmental_damage";
+
+    // ==========================================================================
+    // DEATH FLAGS (1)
+    // ==========================================================================
+
+    /**
+     * Whether players keep their inventory on death.
+     * REQUIRES: OrbisGuard-Mixins (death mixin)
+     * Uses OrbisGuard-Mixins death hook to prevent item drops.
+     */
+    public static final String KEEP_INVENTORY = "keep_inventory";
 
     // ==========================================================================
     // MOB SPAWNING FLAGS (4) - Uses SpawnSuppressionController
@@ -119,6 +175,14 @@ public final class ZoneFlags {
     public static final String NEUTRAL_MOB_SPAWNING = "neutral_mob_spawning";
 
     /**
+     * Whether NPC spawning is allowed (via mixin hook).
+     * REQUIRES: OrbisGuard-Mixins (spawn hook via WorldSpawnJobSystemsMixin)
+     * This is separate from the native hostile/passive/neutral flags.
+     * Uses OrbisGuard-Mixins spawn hook to intercept world spawn jobs.
+     */
+    public static final String NPC_SPAWNING = "npc_spawning";
+
+    /**
      * All available flag names for validation.
      */
     public static final String[] ALL_FLAGS = {
@@ -136,17 +200,22 @@ public final class ZoneFlags {
         BENCH_USE,
         PROCESSING_USE,
         SEAT_USE,
-        // Items (2)
+        // Items (4)
         ITEM_DROP,
         ITEM_PICKUP,
+        ITEM_PICKUP_MANUAL,
+        INVINCIBLE_ITEMS,
         // Damage (2)
         FALL_DAMAGE,
         ENVIRONMENTAL_DAMAGE,
-        // Mob Spawning (4)
+        // Death (1)
+        KEEP_INVENTORY,
+        // Mob Spawning (5)
         MOB_SPAWNING,
         HOSTILE_MOB_SPAWNING,
         PASSIVE_MOB_SPAWNING,
-        NEUTRAL_MOB_SPAWNING
+        NEUTRAL_MOB_SPAWNING,
+        NPC_SPAWNING
     };
 
     /**
@@ -156,9 +225,26 @@ public final class ZoneFlags {
     public static final String[] COMBAT_FLAGS = { PVP_ENABLED, FRIENDLY_FIRE, PROJECTILE_DAMAGE, MOB_DAMAGE };
     public static final String[] BUILDING_FLAGS = { BUILD_ALLOWED };
     public static final String[] DAMAGE_FLAGS = { FALL_DAMAGE, ENVIRONMENTAL_DAMAGE };
-    public static final String[] SPAWNING_FLAGS = { MOB_SPAWNING, HOSTILE_MOB_SPAWNING, PASSIVE_MOB_SPAWNING, NEUTRAL_MOB_SPAWNING };
+    public static final String[] DEATH_FLAGS = { KEEP_INVENTORY };
+    public static final String[] SPAWNING_FLAGS = { MOB_SPAWNING, HOSTILE_MOB_SPAWNING, PASSIVE_MOB_SPAWNING, NEUTRAL_MOB_SPAWNING, NPC_SPAWNING };
     public static final String[] INTERACTION_FLAGS = { BLOCK_INTERACT, DOOR_USE, CONTAINER_USE, BENCH_USE, PROCESSING_USE, SEAT_USE };
-    public static final String[] ITEM_FLAGS = { ITEM_DROP, ITEM_PICKUP };
+    public static final String[] ITEM_FLAGS = { ITEM_DROP, ITEM_PICKUP, ITEM_PICKUP_MANUAL, INVINCIBLE_ITEMS };
+
+    /**
+     * Flags that require OrbisGuard-Mixins to function.
+     * When mixins are not installed, these flags will have no effect even if enabled.
+     */
+    public static final String[] MIXIN_DEPENDENT_FLAGS = {
+        ITEM_PICKUP_MANUAL,  // Requires pickup mixin
+        INVINCIBLE_ITEMS,    // Requires durability mixin
+        KEEP_INVENTORY,      // Requires death mixin
+        NPC_SPAWNING         // Requires spawn mixin
+    };
+
+    /**
+     * Set of mixin-dependent flags for fast lookup.
+     */
+    private static final Set<String> MIXIN_FLAG_SET = Set.of(MIXIN_DEPENDENT_FLAGS);
 
     /**
      * Checks if a flag name is valid.
@@ -180,6 +266,14 @@ public final class ZoneFlags {
      * Gets the default value for a flag in SafeZones.
      * SafeZones are protected areas where combat and building are disabled.
      *
+     * SafeZone philosophy:
+     * - No combat, no building, no damage
+     * - Allow basic traversal (doors, seats)
+     * - Auto item pickup allowed, manual F-key pickup blocked
+     * - Keep inventory on death (if mixins available)
+     * - Invincible items (if mixins available)
+     * - No mob spawning
+     *
      * @param flagName the flag name
      * @return the default value
      */
@@ -199,17 +293,22 @@ public final class ZoneFlags {
             case BENCH_USE -> false;
             case PROCESSING_USE -> false;
             case SEAT_USE -> true;
-            // Items: Pickup allowed, but no dropping (prevents littering spawn)
+            // Items: Auto pickup allowed, manual F-key blocked, items are invincible
             case ITEM_DROP -> false;
-            case ITEM_PICKUP -> true;
+            case ITEM_PICKUP -> true;             // Auto pickup allowed
+            case ITEM_PICKUP_MANUAL -> false;     // F-key pickup blocked (mixin)
+            case INVINCIBLE_ITEMS -> true;        // No durability loss (mixin)
             // Damage: No environmental damage in safe zones
             case FALL_DAMAGE -> false;
             case ENVIRONMENTAL_DAMAGE -> false;
+            // Death: Keep inventory (mixin)
+            case KEEP_INVENTORY -> true;
             // Mob Spawning: Entirely disabled in safe zones
             case MOB_SPAWNING -> false;
             case HOSTILE_MOB_SPAWNING -> false;
             case PASSIVE_MOB_SPAWNING -> false;
             case NEUTRAL_MOB_SPAWNING -> false;
+            case NPC_SPAWNING -> false;           // Mixin spawn hook blocked
             default -> false;
         };
     }
@@ -217,6 +316,14 @@ public final class ZoneFlags {
     /**
      * Gets the default value for a flag in WarZones.
      * WarZones are PvP-enabled areas where building is blocked to prevent griefing.
+     *
+     * WarZone philosophy:
+     * - Full PvP combat enabled
+     * - No building to prevent griefing
+     * - All item interactions allowed
+     * - NO keep inventory - deaths have consequences
+     * - NO invincible items - equipment can break
+     * - Full mob spawning enabled
      *
      * @param flagName the flag name
      * @return the default value
@@ -237,17 +344,22 @@ public final class ZoneFlags {
             case BENCH_USE -> false;
             case PROCESSING_USE -> false;
             case SEAT_USE -> true;
-            // Items: Allowed
+            // Items: All allowed - looting and item interactions permitted
             case ITEM_DROP -> true;
-            case ITEM_PICKUP -> true;
+            case ITEM_PICKUP -> true;             // Auto pickup allowed
+            case ITEM_PICKUP_MANUAL -> true;      // F-key pickup allowed
+            case INVINCIBLE_ITEMS -> false;       // Items can break (no protection)
             // Damage: All environmental damage enabled
             case FALL_DAMAGE -> true;
             case ENVIRONMENTAL_DAMAGE -> true;
+            // Death: No keep inventory - deaths have consequences
+            case KEEP_INVENTORY -> false;
             // Mob Spawning: All mob spawning enabled in war zones
             case MOB_SPAWNING -> true;
             case HOSTILE_MOB_SPAWNING -> true;
             case PASSIVE_MOB_SPAWNING -> true;
             case NEUTRAL_MOB_SPAWNING -> true;
+            case NPC_SPAWNING -> true;            // Mixin spawn hook allowed
             default -> false;
         };
     }
@@ -300,13 +412,17 @@ public final class ZoneFlags {
             case PROCESSING_USE -> "Processing Use";
             case SEAT_USE -> "Seat Use";
             case ITEM_DROP -> "Item Drop";
-            case ITEM_PICKUP -> "Item Pickup";
+            case ITEM_PICKUP -> "Auto Pickup";
+            case ITEM_PICKUP_MANUAL -> "F-Key Pickup";
+            case INVINCIBLE_ITEMS -> "Invincible Items";
             case FALL_DAMAGE -> "Fall Damage";
-            case ENVIRONMENTAL_DAMAGE -> "Environmental Damage";
+            case ENVIRONMENTAL_DAMAGE -> "Env. Damage";
+            case KEEP_INVENTORY -> "Keep Inventory";
             case MOB_SPAWNING -> "Mob Spawning";
             case HOSTILE_MOB_SPAWNING -> "Hostile Mobs";
             case PASSIVE_MOB_SPAWNING -> "Passive Mobs";
             case NEUTRAL_MOB_SPAWNING -> "Neutral Mobs";
+            case NPC_SPAWNING -> "NPC Spawning";
             default -> flagName;
         };
     }
@@ -332,13 +448,17 @@ public final class ZoneFlags {
             case PROCESSING_USE -> "Players can use furnaces and smelters";
             case SEAT_USE -> "Players can sit on seats and mounts";
             case ITEM_DROP -> "Players can drop items";
-            case ITEM_PICKUP -> "Players can pick up items";
+            case ITEM_PICKUP -> "Auto-collect items when walking over them";
+            case ITEM_PICKUP_MANUAL -> "Pick up items with F-key (requires mixin)";
+            case INVINCIBLE_ITEMS -> "Items don't lose durability (requires mixin)";
             case FALL_DAMAGE -> "Fall damage applies";
             case ENVIRONMENTAL_DAMAGE -> "Drowning, suffocation, etc.";
+            case KEEP_INVENTORY -> "Keep items on death (requires mixin)";
             case MOB_SPAWNING -> "Master toggle for mob spawning (parent)";
             case HOSTILE_MOB_SPAWNING -> "Aggressive mobs can spawn";
             case PASSIVE_MOB_SPAWNING -> "Non-aggressive mobs can spawn";
             case NEUTRAL_MOB_SPAWNING -> "Conditionally aggressive mobs can spawn";
+            case NPC_SPAWNING -> "NPC spawning via mixin (requires mixin)";
             default -> "Unknown flag";
         };
     }
@@ -356,7 +476,7 @@ public final class ZoneFlags {
             // Interaction flags have BLOCK_INTERACT as parent
             case DOOR_USE, CONTAINER_USE, BENCH_USE, PROCESSING_USE, SEAT_USE -> BLOCK_INTERACT;
             // Mob group flags have MOB_SPAWNING as parent
-            case HOSTILE_MOB_SPAWNING, PASSIVE_MOB_SPAWNING, NEUTRAL_MOB_SPAWNING -> MOB_SPAWNING;
+            case HOSTILE_MOB_SPAWNING, PASSIVE_MOB_SPAWNING, NEUTRAL_MOB_SPAWNING, NPC_SPAWNING -> MOB_SPAWNING;
             default -> null;
         };
     }
@@ -381,8 +501,111 @@ public final class ZoneFlags {
     public static String[] getChildFlags(String parentFlagName) {
         return switch (parentFlagName) {
             case BLOCK_INTERACT -> new String[] { DOOR_USE, CONTAINER_USE, BENCH_USE, PROCESSING_USE, SEAT_USE };
-            case MOB_SPAWNING -> new String[] { HOSTILE_MOB_SPAWNING, PASSIVE_MOB_SPAWNING, NEUTRAL_MOB_SPAWNING };
+            case MOB_SPAWNING -> new String[] { HOSTILE_MOB_SPAWNING, PASSIVE_MOB_SPAWNING, NEUTRAL_MOB_SPAWNING, NPC_SPAWNING };
             default -> new String[0];
+        };
+    }
+
+    // ==========================================================================
+    // MIXIN DEPENDENCY METHODS
+    // ==========================================================================
+
+    /**
+     * Checks if a flag requires OrbisGuard-Mixins to function.
+     *
+     * @param flagName the flag name
+     * @return true if this flag requires mixin support
+     */
+    public static boolean requiresMixin(String flagName) {
+        return MIXIN_FLAG_SET.contains(flagName);
+    }
+
+    /**
+     * Gets the specific mixin type required for a flag.
+     *
+     * @param flagName the flag name
+     * @return the mixin type constant, or null if no mixin required
+     */
+    @Nullable
+    public static String getMixinType(String flagName) {
+        return switch (flagName) {
+            case ITEM_PICKUP_MANUAL -> MIXIN_PICKUP;
+            case INVINCIBLE_ITEMS -> MIXIN_DURABILITY;
+            case KEEP_INVENTORY -> MIXIN_DEATH;
+            case NPC_SPAWNING -> MIXIN_SPAWN;
+            default -> null;
+        };
+    }
+
+    /**
+     * Gets a human-readable name for a mixin type.
+     *
+     * @param mixinType the mixin type constant
+     * @return the display name
+     */
+    @NotNull
+    public static String getMixinDisplayName(String mixinType) {
+        return switch (mixinType) {
+            case MIXIN_PICKUP -> "Item Pickup Mixin";
+            case MIXIN_DEATH -> "Death Event Mixin";
+            case MIXIN_DURABILITY -> "Durability Mixin";
+            case MIXIN_SEATING -> "Seating Mixin";
+            case MIXIN_SPAWN -> "NPC Spawn Mixin";
+            default -> "Unknown Mixin";
+        };
+    }
+
+    /**
+     * Gets the category name for UI organization.
+     *
+     * @param flagName the flag name
+     * @return the category name
+     */
+    @NotNull
+    public static String getCategory(String flagName) {
+        for (String f : COMBAT_FLAGS) if (f.equals(flagName)) return "Combat";
+        for (String f : BUILDING_FLAGS) if (f.equals(flagName)) return "Building";
+        for (String f : DAMAGE_FLAGS) if (f.equals(flagName)) return "Damage";
+        for (String f : DEATH_FLAGS) if (f.equals(flagName)) return "Death";
+        for (String f : SPAWNING_FLAGS) if (f.equals(flagName)) return "Spawning";
+        for (String f : INTERACTION_FLAGS) if (f.equals(flagName)) return "Interaction";
+        for (String f : ITEM_FLAGS) if (f.equals(flagName)) return "Items";
+        return "Other";
+    }
+
+    /**
+     * Gets all flags organized by category for UI display.
+     *
+     * @return map of category name to flag arrays
+     */
+    @NotNull
+    public static Map<String, String[]> getFlagsByCategory() {
+        Map<String, String[]> categories = new HashMap<>();
+        categories.put("Combat", COMBAT_FLAGS);
+        categories.put("Building", BUILDING_FLAGS);
+        categories.put("Interaction", INTERACTION_FLAGS);
+        categories.put("Items", ITEM_FLAGS);
+        categories.put("Damage", DAMAGE_FLAGS);
+        categories.put("Death", DEATH_FLAGS);
+        categories.put("Spawning", SPAWNING_FLAGS);
+        return categories;
+    }
+
+    /**
+     * Gets the ordered list of category names for UI display.
+     *
+     * @return array of category names in display order
+     */
+    @NotNull
+    public static String[] getCategoryOrder() {
+        return new String[] {
+            "Combat",
+            "Building",
+            "Interaction",
+            "Items",
+            "Damage",
+            "Death",
+            "Spawning"
         };
     }
 }

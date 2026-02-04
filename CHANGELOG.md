@@ -5,9 +5,79 @@ All notable changes to HyperFactions will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.6.0] - 2026-02-03
+
+### Breaking Changes
+
+**New Optional Dependencies for Full Protection**
+
+HyperFactions now integrates with OrbisGuard-Mixins for enhanced protection coverage. While HyperFactions works without these, some zone protections require the mixin system:
+
+- [Hyxin](https://www.curseforge.com/hytale/mods/hyxin) - Mixin loader (enables protection hooks)
+- [OrbisGuard-Mixins](https://www.curseforge.com/hytale/mods/orbisguard-mixins) - F-key pickup, keep inventory, invincible items
+
+**Installation for Hyxin + OrbisGuard-Mixins:**
+1. Create an `earlyplugins/` folder in your server directory
+2. Place Hyxin and OrbisGuard-Mixins JARs in `earlyplugins/` (NOT mods/)
+3. Add `--accept-early-plugins` to your server start script:
+   - Linux: `DEFAULT_ARGS="--accept-early-plugins --assets ../Assets.zip ..."`
+   - Windows: `set DEFAULT_ARGS=--accept-early-plugins --assets ../Assets.zip ...`
+
+**Additional Recommended Dependencies:**
+- [HyperPerms](https://www.curseforge.com/hytale/mods/hyperperms) - Permission-based limits for claims, power, and features
+- [VaultUnlocked](https://www.curseforge.com/hytale/mods/vaultunlocked) - Chat, economy, and permission compatibility with other mods
+
+**New Zone Flags (some require mixins)**
+
+New flags added that require OrbisGuard-Mixins to function:
+- `item_pickup_manual` - F-key pickup blocking (requires mixin)
+- `invincible_items` - Prevent durability loss (requires mixin)
+- `keep_inventory` - Keep items on death (requires mixin)
+- `npc_spawning` - NPC spawn control via mixin hook (requires mixin)
+
+Native flags that work without mixins:
+- `item_pickup` - Auto pickup (walking over items)
+- `item_drop` - Item dropping from inventory
 
 ### Added
+
+**OrbisGuard-Mixins Integration**
+- New `OrbisMixinsIntegration` class for registering protection hooks
+- Harvest hook for F-key rubble/crop pickup protection
+- Pickup hook for auto and manual item pickup protection
+- Spawn hook for NPC spawn control in zones
+- Detection system with status logging at startup
+- Graceful degradation when mixins are not installed
+
+**OrbisGuard API Integration (Work in Progress)**
+- New `OrbisGuardIntegration` class for region protection detection
+- Foundation for preventing claims in OrbisGuard-protected regions
+
+**Enhanced Item Protection**
+- `HarvestPickupProtectionSystem` - ECS system for InteractivelyPickupItemEvent
+- `ProtectionChecker.canPickupItem()` method with mode awareness (auto vs manual)
+- Admin bypass support for all pickup protections
+- Zone flag checks cascade properly (global → zone-specific)
+
+**New Zone Flags**
+- `item_pickup_manual` - Control F-key pickup separately from auto pickup
+- `invincible_items` - Prevent tool/armor durability loss in zones
+- `keep_inventory` - Keep inventory on death in zones
+- `npc_spawning` - Control NPC spawning via mixin hook
+- Updated SafeZone defaults: auto pickup ON, manual pickup OFF, keep inventory ON, invincible items ON
+- Updated WarZone defaults: all pickup ON, keep inventory OFF, invincible items OFF
+
+**Zone Flag Categories**
+- New "Death" category with `keep_inventory` flag
+- Reorganized "Items" category with 4 flags
+- `ZoneFlags.requiresMixin()` method to check if a flag needs mixin support
+- `ZoneFlags.getMixinType()` method to identify which mixin a flag requires
+- `ZoneFlags.getCategory()` and `ZoneFlags.getFlagsByCategory()` for UI organization
+
+**Debug System**
+- New `mixin` debug category for OrbisGuard-Mixins integration logging
+- New `spawning` debug category for mob/NPC spawn control logging
+- `Logger.debugMixin()` and `Logger.debugSpawning()` methods
 
 **Zone Type Change Feature**
 - New TYPE button in zone list entries to change between SafeZone and WarZone

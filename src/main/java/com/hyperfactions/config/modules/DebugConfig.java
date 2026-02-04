@@ -9,7 +9,6 @@ import java.nio.file.Path;
 
 /**
  * Configuration for the debug logging system.
- * <p>
  * Controls debug output by category, with integration into the Logger utility.
  */
 public class DebugConfig extends ModuleConfig {
@@ -26,6 +25,9 @@ public class DebugConfig extends ModuleConfig {
     private boolean relation = false;
     private boolean territory = false;
     private boolean worldmap = false;
+    private boolean interaction = false;
+    private boolean mixin = false;
+    private boolean spawning = false;
 
     /**
      * Creates a new debug config.
@@ -59,6 +61,9 @@ public class DebugConfig extends ModuleConfig {
         relation = false;
         territory = false;
         worldmap = false;
+        interaction = false;
+        mixin = false;
+        spawning = false;
     }
 
     @Override
@@ -76,6 +81,9 @@ public class DebugConfig extends ModuleConfig {
             relation = getBool(categories, "relation", false);
             territory = getBool(categories, "territory", false);
             worldmap = getBool(categories, "worldmap", false);
+            interaction = getBool(categories, "interaction", false);
+            mixin = getBool(categories, "mixin", false);
+            spawning = getBool(categories, "spawning", false);
         }
 
         // Apply settings to Logger
@@ -95,6 +103,9 @@ public class DebugConfig extends ModuleConfig {
         categories.addProperty("relation", relation);
         categories.addProperty("territory", territory);
         categories.addProperty("worldmap", worldmap);
+        categories.addProperty("interaction", interaction);
+        categories.addProperty("mixin", mixin);
+        categories.addProperty("spawning", spawning);
         root.add("categories", categories);
     }
 
@@ -112,6 +123,9 @@ public class DebugConfig extends ModuleConfig {
         Logger.setDebugEnabled(Logger.DebugCategory.RELATION, relation);
         Logger.setDebugEnabled(Logger.DebugCategory.TERRITORY, territory);
         Logger.setDebugEnabled(Logger.DebugCategory.WORLDMAP, worldmap);
+        Logger.setDebugEnabled(Logger.DebugCategory.INTERACTION, interaction);
+        Logger.setDebugEnabled(Logger.DebugCategory.MIXIN, mixin);
+        Logger.setDebugEnabled(Logger.DebugCategory.SPAWNING, spawning);
     }
 
     // === Getters ===
@@ -197,6 +211,33 @@ public class DebugConfig extends ModuleConfig {
         return worldmap;
     }
 
+    /**
+     * Checks if interaction debug is enabled.
+     *
+     * @return true if enabled
+     */
+    public boolean isInteraction() {
+        return interaction;
+    }
+
+    /**
+     * Checks if mixin debug is enabled.
+     *
+     * @return true if enabled
+     */
+    public boolean isMixin() {
+        return mixin;
+    }
+
+    /**
+     * Checks if spawning debug is enabled.
+     *
+     * @return true if enabled
+     */
+    public boolean isSpawning() {
+        return spawning;
+    }
+
     // === Setters (for runtime toggle) ===
 
     /**
@@ -270,6 +311,36 @@ public class DebugConfig extends ModuleConfig {
     }
 
     /**
+     * Sets interaction debug state and applies to Logger.
+     *
+     * @param enabled true to enable
+     */
+    public void setInteraction(boolean enabled) {
+        this.interaction = enabled;
+        applyToLogger();
+    }
+
+    /**
+     * Sets mixin debug state and applies to Logger.
+     *
+     * @param enabled true to enable
+     */
+    public void setMixin(boolean enabled) {
+        this.mixin = enabled;
+        applyToLogger();
+    }
+
+    /**
+     * Sets spawning debug state and applies to Logger.
+     *
+     * @param enabled true to enable
+     */
+    public void setSpawning(boolean enabled) {
+        this.spawning = enabled;
+        applyToLogger();
+    }
+
+    /**
      * Enables all debug categories.
      */
     public void enableAll() {
@@ -281,6 +352,9 @@ public class DebugConfig extends ModuleConfig {
         relation = true;
         territory = true;
         worldmap = true;
+        interaction = true;
+        mixin = true;
+        spawning = true;
         applyToLogger();
     }
 
@@ -296,6 +370,9 @@ public class DebugConfig extends ModuleConfig {
         relation = false;
         territory = false;
         worldmap = false;
+        interaction = false;
+        mixin = false;
+        spawning = false;
         applyToLogger();
     }
 }

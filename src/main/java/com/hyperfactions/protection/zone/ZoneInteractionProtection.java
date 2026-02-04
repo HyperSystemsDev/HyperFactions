@@ -101,10 +101,18 @@ public class ZoneInteractionProtection {
     }
 
     /**
-     * Checks if item pickup is allowed at a location.
+     * Checks if automatic item pickup (walking over items) is allowed at a location.
      */
     public boolean isItemPickupAllowed(@NotNull String worldName, double x, double z) {
         return isInteractionAllowed(worldName, x, z, ZoneFlags.ITEM_PICKUP);
+    }
+
+    /**
+     * Checks if manual item pickup (F-key / InteractivelyPickupItemEvent) is allowed at a location.
+     * This is separate from auto pickup because SafeZones may allow auto pickup but block F-key pickup.
+     */
+    public boolean isManualPickupAllowed(@NotNull String worldName, double x, double z) {
+        return isInteractionAllowed(worldName, x, z, ZoneFlags.ITEM_PICKUP_MANUAL);
     }
 
     /**

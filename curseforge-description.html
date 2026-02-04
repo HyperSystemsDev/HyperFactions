@@ -1,0 +1,121 @@
+<p><strong>HyperFactions</strong> is a complete faction management system for Hytale servers. Create factions, claim territory, forge alliances, and wage war — all through an intuitive GUI or commands.</p>
+
+<p><em>Early Access: Actively developing. Report bugs on GitHub!</em></p>
+
+<p>&nbsp;</p>
+<hr>
+<p>&nbsp;</p>
+
+<p><strong>KEY FEATURES</strong></p>
+
+<p><strong>Factions &amp; Territory</strong></p>
+<ul>
+<li>Create factions with custom names, colors, and tags</li>
+<li>Chunk-based territory claiming with visual map</li>
+<li>Power system that rewards active play</li>
+<li>Three-tier hierarchy: Leader, Officer, Member</li>
+<li>Diplomacy system with allies, enemies, and truces</li>
+</ul>
+
+<p><strong>Protection System</strong></p>
+<ul>
+<li>20+ configurable zone flags (PvP, building, containers, mob spawning, etc.)</li>
+<li>Admin SafeZones and WarZones</li>
+<li>Per-faction territory permissions</li>
+<li>Combat tagging system</li>
+</ul>
+
+<p><strong>Admin Tools</strong></p>
+<ul>
+<li>Full GUI administration panel</li>
+<li>Automatic backup system with smart rotation</li>
+<li>Debug mode for troubleshooting</li>
+<li>Bypass mode for investigations</li>
+</ul>
+
+<p>&nbsp;</p>
+<hr>
+<p>&nbsp;</p>
+
+<p><strong>OPTIONAL DEPENDENCIES</strong></p>
+
+<p><strong>Strongly Recommended:</strong></p>
+<ul>
+<li><a href="https://www.curseforge.com/hytale/mods/hyperperms">HyperPerms</a> — Permission-based limits for claims, power, and features</li>
+<li><a href="https://www.curseforge.com/hytale/mods/vaultunlocked">VaultUnlocked</a> — Chat, economy, and permission compatibility with other mods</li>
+</ul>
+
+<p><strong>Recommended for Full Protection:</strong></p>
+<ul>
+<li><a href="https://www.curseforge.com/hytale/mods/hyxin">Hyxin</a> — Mixin loader (enables protection hooks)</li>
+<li><a href="https://www.curseforge.com/hytale/mods/orbisguard-mixins">OrbisGuard-Mixins</a> — F-key pickup protection, keep inventory, invincible items</li>
+</ul>
+
+<p><strong>Optional:</strong></p>
+<ul>
+<li><a href="https://www.curseforge.com/hytale/mods/orbisguard">OrbisGuard</a> — Region protection integration (work in progress)</li>
+</ul>
+
+<p>&nbsp;</p>
+<hr>
+<p>&nbsp;</p>
+
+<p><strong>INSTALLATION</strong></p>
+
+<p><strong>Basic Install:</strong></p>
+<ol>
+<li>Drop HyperFactions.jar in your <code>mods/</code> folder</li>
+<li>Start your server</li>
+<li>Type <code>/f</code> to open the GUI</li>
+</ol>
+
+<p><strong>For Full Protection (Hyxin + OrbisGuard-Mixins):</strong></p>
+<ol>
+<li>Create an <code>earlyplugins/</code> folder in your server directory</li>
+<li>Place Hyxin and OrbisGuard-Mixins in <code>earlyplugins/</code> (NOT mods/)</li>
+<li>Edit your server start script to add the <code>--accept-early-plugins</code> flag:</li>
+</ol>
+
+<p><strong>Linux (start.sh):</strong></p>
+<pre>DEFAULT_ARGS="--accept-early-plugins --assets ../Assets.zip --backup --backup-dir backups --backup-frequency 30"</pre>
+
+<p><strong>Windows (start.bat):</strong></p>
+<pre>set DEFAULT_ARGS=--accept-early-plugins --assets ../Assets.zip --backup --backup-dir backups --backup-frequency 30</pre>
+
+<p><em>HyperFactions works without these, but some zone protections (F-key pickup blocking, keep inventory, invincible items) require the mixin system.</em></p>
+
+<p>&nbsp;</p>
+<hr>
+<p>&nbsp;</p>
+
+<p><strong>QUICK START</strong></p>
+
+<p><strong>1. Grant permissions</strong> (with HyperPerms):</p>
+<pre>/hp group setperm default hyperfactions.use
+/hp group setperm default hyperfactions.faction.*
+/hp group setperm default hyperfactions.member.*
+/hp group setperm default hyperfactions.territory.*
+/hp group setperm default hyperfactions.teleport.*
+/hp group setperm default hyperfactions.relation.*
+/hp group setperm default hyperfactions.chat.*
+/hp group setperm default hyperfactions.info.*</pre>
+
+<p><strong>2. Start playing:</strong></p>
+<p>Players: <code>/f create MyFaction</code> or just <code>/f</code> for the GUI</p>
+<p>Admins: <code>/f admin</code> for the admin panel</p>
+
+<p>&nbsp;</p>
+<hr>
+<p>&nbsp;</p>
+
+<p><strong>LINKS</strong></p>
+<ul>
+<li><a href="https://www.hypersystems.dev/">HyperSystems Website</a></li>
+<li><a href="https://www.hypersystems.dev/plugins/hyperfactions/wiki">Documentation &amp; Wiki</a></li>
+<li><a href="https://github.com/HyperSystemsDev/HyperFactions">GitHub Repository</a></li>
+<li><a href="https://github.com/HyperSystemsDev/HyperFactions/issues">Issue Tracker</a></li>
+</ul>
+
+<p>&nbsp;</p>
+
+<p><em>Part of the <a href="https://github.com/HyperSystemsDev">HyperSystems</a> suite. Built for Hytale.</em></p>

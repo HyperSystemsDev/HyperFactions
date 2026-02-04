@@ -23,7 +23,10 @@ public final class Logger {
         PROTECTION("protection"),
         RELATION("relation"),
         TERRITORY("territory"),
-        WORLDMAP("worldmap");
+        WORLDMAP("worldmap"),
+        INTERACTION("interaction"),
+        MIXIN("mixin"),
+        SPAWNING("spawning");
 
         private final String configKey;
 
@@ -325,6 +328,45 @@ public final class Logger {
     public static void debugWorldMap(@NotNull String message, Object... args) {
         if (isDebugEnabled(DebugCategory.WORLDMAP)) {
             logDebug("WORLDMAP", message, args);
+        }
+    }
+
+    /**
+     * Logs an interaction-related debug message (F-key pickups, entity interactions).
+     * Used for debugging player interactions with world entities.
+     *
+     * @param message the message format
+     * @param args    format arguments
+     */
+    public static void debugInteraction(@NotNull String message, Object... args) {
+        if (isDebugEnabled(DebugCategory.INTERACTION)) {
+            logDebug("INTERACTION", message, args);
+        }
+    }
+
+    /**
+     * Logs a mixin-related debug message (OrbisGuard-Mixins integration, hook registration).
+     * Used for debugging mixin-dependent features like F-key pickup, keep inventory, etc.
+     *
+     * @param message the message format
+     * @param args    format arguments
+     */
+    public static void debugMixin(@NotNull String message, Object... args) {
+        if (isDebugEnabled(DebugCategory.MIXIN)) {
+            logDebug("MIXIN", message, args);
+        }
+    }
+
+    /**
+     * Logs a spawning-related debug message (mob spawn suppression, NPC groups).
+     * Used for debugging spawn suppression controller integration and zone-based spawning rules.
+     *
+     * @param message the message format
+     * @param args    format arguments
+     */
+    public static void debugSpawning(@NotNull String message, Object... args) {
+        if (isDebugEnabled(DebugCategory.SPAWNING)) {
+            logDebug("SPAWNING", message, args);
         }
     }
 

@@ -43,6 +43,11 @@ public class ItemDropProtectionSystem extends EntityEventSystem<EntityStore, Dro
             PlayerRef player = chunk.getComponent(entityIndex, PlayerRef.getComponentType());
             if (player == null) return;
 
+            // Check admin bypass first
+            if (hyperFactions.isAdminBypassEnabled(player.getUuid())) {
+                return;
+            }
+
             TransformComponent transform = chunk.getComponent(entityIndex, TransformComponent.getComponentType());
             if (transform == null) return;
 

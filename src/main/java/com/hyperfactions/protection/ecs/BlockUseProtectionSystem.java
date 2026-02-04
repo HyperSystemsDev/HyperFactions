@@ -46,17 +46,64 @@ public class BlockUseProtectionSystem extends EntityEventSystem<EntityStore, Use
                        UseBlockEvent.Pre event) {
         try {
             PlayerRef player = chunk.getComponent(entityIndex, PlayerRef.getComponentType());
-            if (player == null) return;
+            if (player == null) {
+                Logger.debugInteraction("UseBlockEvent.Pre: No PlayerRef component, skipping");
+                return;
+            }
 
             Vector3i pos = event.getTargetBlock();
             String worldName = getWorldName(store);
-            if (worldName == null) return;
+            if (worldName == null) {
+                Logger.debugInteraction("UseBlockEvent.Pre: Could not determine world name");
+                return;
+            }
+
+            // Debug log the interaction details
+            BlockType blockType = event.getBlockType();
+            String blockId = blockType != null ? blockType.getId() : "null";
 
             // Get block state ID for zone flag checking (uses Hytale's state system)
-            String stateId = getBlockStateId(event.getBlockType());
+            String stateId = getBlockStateId(blockType);
 
-            // 1. First check zone flags (specific interaction type based on block state)
+            Logger.debugInteraction("UseBlockEvent.Pre: player=%s, world=%s, pos=(%d,%d,%d), blockId=%s, stateId=%s, cancelled=%s",
+                player.getUuid(), worldName, pos.getX(), pos.getY(), pos.getZ(),
+                blockId, stateId, event.isCancelled());
+
+            // Check bypass permissions first
+            if (hyperFactions.isAdminBypassEnabled(player.getUuid())) {
+                return;
+            }
+
             ZoneInteractionProtection zoneProtection = hyperFactions.getZoneInteractionProtection();
+
+            // 1. Check if this is a crop/plant block (berry, etc.) - uses ITEM_PICKUP_MANUAL flag
+            //    Crop harvesting is conceptually the same as F-key pickup (manual item acquisition)
+            if (isCropBlock(blockId)) {
+                boolean cropHarvestAllowed = zoneProtection.isManualPickupAllowed(worldName, pos.getX(), pos.getZ());
+                if (!cropHarvestAllowed) {
+                    event.setCancelled(true);
+                    player.sendMessage(Message.raw("You cannot harvest crops in this zone.").color("#FF5555"));
+                    Logger.debugProtection("Crop harvest blocked by zone (ITEM_PICKUP_MANUAL=false) at %s/%d/%d for player %s",
+                        worldName, pos.getX(), pos.getZ(), player.getUuid());
+                    return;
+                }
+                // If crop harvest allowed by zone, still check faction permissions
+                boolean blocked = protectionListener.onBlockInteract(
+                    player.getUuid(), worldName, pos.getX(), pos.getY(), pos.getZ()
+                );
+                if (blocked) {
+                    event.setCancelled(true);
+                    player.sendMessage(Message.raw(protectionListener.getDenialMessage(
+                        hyperFactions.getProtectionChecker().canInteract(
+                            player.getUuid(), worldName, pos.getX(), pos.getZ(),
+                            ProtectionChecker.InteractionType.INTERACT
+                        )
+                    )).color("#FF5555"));
+                }
+                return;
+            }
+
+            // 2. For non-crop blocks, check zone flags based on block state
             boolean zoneAllows = zoneProtection.isBlockInteractionAllowed(stateId, worldName, pos.getX(), pos.getZ());
 
             if (!zoneAllows) {
@@ -133,6 +180,22 @@ public class BlockUseProtectionSystem extends EntityEventSystem<EntityStore, Use
     private boolean isDoorState(String stateId) {
         if (stateId == null) return false;
         return "Door".equalsIgnoreCase(stateId);
+    }
+
+    /**
+     * Checks if a block ID indicates a harvestable crop/plant block.
+     * Crop harvesting uses the ITEM_PICKUP_MANUAL flag since it's conceptually
+     * the same as F-key item pickup (manual item acquisition from the world).
+     *
+     * Examples:
+     * - *Plant_Crop_Berry_Block_State_Definitions_StageFinal (berry bush)
+     * - *Plant_Crop_* (any crop at harvestable stage)
+     */
+    private boolean isCropBlock(String blockId) {
+        if (blockId == null) return false;
+        String lower = blockId.toLowerCase();
+        // Check for crop plants (berry, wheat, etc.)
+        return lower.contains("plant_crop") || lower.contains("crop_");
     }
 
     private String getWorldName(Store<EntityStore> store) {

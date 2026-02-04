@@ -326,6 +326,7 @@ public class ChunkMapPage extends InteractiveCustomUIPage<ChunkMapData> {
             case NOT_ADJACENT -> Message.raw("You can only claim chunks adjacent to your territory.").color("#ff5555");
             case MAX_CLAIMS_REACHED -> Message.raw("You have reached your maximum claim limit.").color("#ff5555");
             case WORLD_NOT_ALLOWED -> Message.raw("Claiming is not allowed in this world.").color("#ff5555");
+            case ORBISGUARD_PROTECTED -> Message.raw("This area is protected by OrbisGuard.").color("#ff5555");
             default -> Message.raw("Failed to claim chunk.").color("#ff5555");
         };
 

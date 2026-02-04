@@ -8,6 +8,7 @@ import com.hyperfactions.data.FactionClaim;
 import com.hyperfactions.data.FactionLog;
 import com.hyperfactions.data.FactionMember;
 import com.hyperfactions.integration.PermissionManager;
+import com.hyperfactions.integration.orbis.OrbisGuardIntegration;
 import com.hyperfactions.util.ChunkUtil;
 import com.hyperfactions.util.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -145,7 +146,8 @@ public class ClaimManager {
         CANNOT_UNCLAIM_HOME,
         NOT_YOUR_CLAIM,
         OVERCLAIM_NOT_ALLOWED,
-        TARGET_HAS_POWER
+        TARGET_HAS_POWER,
+        ORBISGUARD_PROTECTED
     }
 
     // === Queries ===
@@ -246,6 +248,12 @@ public class ClaimManager {
         // Check world
         if (!ConfigManager.get().isWorldAllowed(world)) {
             return ClaimResult.WORLD_NOT_ALLOWED;
+        }
+
+        // Check OrbisGuard protection (if OrbisGuard is installed)
+        if (OrbisGuardIntegration.isChunkProtected(world, chunkX, chunkZ)) {
+            Logger.debugClaim("Claim blocked: chunk=%s/%d/%d is protected by OrbisGuard", world, chunkX, chunkZ);
+            return ClaimResult.ORBISGUARD_PROTECTED;
         }
 
         ChunkKey key = new ChunkKey(world, chunkX, chunkZ);
@@ -527,8 +535,8 @@ public class ClaimManager {
      * Removes claims from factions where ALL members have been offline
      * for longer than the configured threshold.
      *
-     * <p>This method is called periodically (default: every hour) to clean up
-     * territory from abandoned factions.</p>
+     * This method is called periodically (default: every hour) to clean up
+     * territory from abandoned factions.
      */
     public void tickClaimDecay() {
         ConfigManager config = ConfigManager.get();

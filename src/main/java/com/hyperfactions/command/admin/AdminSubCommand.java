@@ -864,6 +864,9 @@ public class AdminSubCommand extends FactionSubCommand {
             ctx.sendMessage(msg("  relation: ", COLOR_WHITE).insert(msg(debugConfig.isRelation() ? "ON" : "OFF", debugConfig.isRelation() ? COLOR_GREEN : COLOR_RED)));
             ctx.sendMessage(msg("  territory: ", COLOR_WHITE).insert(msg(debugConfig.isTerritory() ? "ON" : "OFF", debugConfig.isTerritory() ? COLOR_GREEN : COLOR_RED)));
             ctx.sendMessage(msg("  worldmap: ", COLOR_WHITE).insert(msg(debugConfig.isWorldmap() ? "ON" : "OFF", debugConfig.isWorldmap() ? COLOR_GREEN : COLOR_RED)));
+            ctx.sendMessage(msg("  interaction: ", COLOR_WHITE).insert(msg(debugConfig.isInteraction() ? "ON" : "OFF", debugConfig.isInteraction() ? COLOR_GREEN : COLOR_RED)));
+            ctx.sendMessage(msg("  mixin: ", COLOR_WHITE).insert(msg(debugConfig.isMixin() ? "ON" : "OFF", debugConfig.isMixin() ? COLOR_GREEN : COLOR_RED)));
+            ctx.sendMessage(msg("  spawning: ", COLOR_WHITE).insert(msg(debugConfig.isSpawning() ? "ON" : "OFF", debugConfig.isSpawning() ? COLOR_GREEN : COLOR_RED)));
             ctx.sendMessage(msg("Usage: /f admin debug toggle <category|all> [on|off]", COLOR_GRAY));
             return;
         }
@@ -894,9 +897,12 @@ public class AdminSubCommand extends FactionSubCommand {
             case "relation" -> currentValue = debugConfig.isRelation();
             case "territory" -> currentValue = debugConfig.isTerritory();
             case "worldmap", "map" -> currentValue = debugConfig.isWorldmap();
+            case "interaction" -> currentValue = debugConfig.isInteraction();
+            case "mixin" -> currentValue = debugConfig.isMixin();
+            case "spawning" -> currentValue = debugConfig.isSpawning();
             default -> {
                 ctx.sendMessage(prefix().insert(msg("Unknown category: " + category, COLOR_RED)));
-                ctx.sendMessage(msg("Valid categories: power, claim, combat, protection, relation, territory, worldmap, all", COLOR_GRAY));
+                ctx.sendMessage(msg("Valid categories: power, claim, combat, protection, relation, territory, worldmap, interaction, mixin, spawning, all", COLOR_GRAY));
                 return;
             }
         }
@@ -915,6 +921,9 @@ public class AdminSubCommand extends FactionSubCommand {
             case "relation" -> debugConfig.setRelation(newValue);
             case "territory" -> debugConfig.setTerritory(newValue);
             case "worldmap", "map" -> debugConfig.setWorldmap(newValue);
+            case "interaction" -> debugConfig.setInteraction(newValue);
+            case "mixin" -> debugConfig.setMixin(newValue);
+            case "spawning" -> debugConfig.setSpawning(newValue);
         }
 
         // Save to persist the change
@@ -949,6 +958,9 @@ public class AdminSubCommand extends FactionSubCommand {
         ctx.sendMessage(msg("  relation: ", COLOR_WHITE).insert(msg(debugConfig.isRelation() ? "ON" : "OFF", debugConfig.isRelation() ? COLOR_GREEN : COLOR_RED)));
         ctx.sendMessage(msg("  territory: ", COLOR_WHITE).insert(msg(debugConfig.isTerritory() ? "ON" : "OFF", debugConfig.isTerritory() ? COLOR_GREEN : COLOR_RED)));
         ctx.sendMessage(msg("  worldmap: ", COLOR_WHITE).insert(msg(debugConfig.isWorldmap() ? "ON" : "OFF", debugConfig.isWorldmap() ? COLOR_GREEN : COLOR_RED)));
+        ctx.sendMessage(msg("  interaction: ", COLOR_WHITE).insert(msg(debugConfig.isInteraction() ? "ON" : "OFF", debugConfig.isInteraction() ? COLOR_GREEN : COLOR_RED)));
+        ctx.sendMessage(msg("  mixin: ", COLOR_WHITE).insert(msg(debugConfig.isMixin() ? "ON" : "OFF", debugConfig.isMixin() ? COLOR_GREEN : COLOR_RED)));
+        ctx.sendMessage(msg("  spawning: ", COLOR_WHITE).insert(msg(debugConfig.isSpawning() ? "ON" : "OFF", debugConfig.isSpawning() ? COLOR_GREEN : COLOR_RED)));
     }
 
     private void handleDebugPower(CommandContext ctx, String[] args) {

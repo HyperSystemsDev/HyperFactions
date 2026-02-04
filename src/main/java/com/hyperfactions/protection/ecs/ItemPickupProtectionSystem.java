@@ -16,10 +16,13 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * ECS system for handling item pickup protection (interactive pickup only).
- * NOTE: This only handles interactive pickup (clicking to pick up items).
- * Automatic pickup (walking near items) is handled internally by the engine and cannot be cancelled.
- * Checks zone flags first, then faction permissions.
+ * ECS system for handling interactive/manual item pickup protection.
+ *
+ * This handles InteractivelyPickupItemEvent (F-key/manual pickup).
+ * Automatic pickup (walking near items) is handled internally by the engine.
+ *
+ * This checks the ITEM_PICKUP_MANUAL zone flag, not ITEM_PICKUP (auto pickup).
+ * SafeZones typically allow auto pickup but block manual F-key pickup.
  */
 public class ItemPickupProtectionSystem extends EntityEventSystem<EntityStore, InteractivelyPickupItemEvent> {
 
@@ -57,12 +60,14 @@ public class ItemPickupProtectionSystem extends EntityEventSystem<EntityStore, I
             int y = (int) Math.floor(position.getY());
             int z = (int) Math.floor(position.getZ());
 
-            // 1. First check zone flags (no message to avoid spam)
+            // 1. First check zone flags (ITEM_PICKUP_MANUAL for interactive/F-key pickup)
             ZoneInteractionProtection zoneProtection = hyperFactions.getZoneInteractionProtection();
-            boolean zoneAllows = zoneProtection.isItemPickupAllowed(worldName, x, z);
+            boolean zoneAllows = zoneProtection.isManualPickupAllowed(worldName, x, z);
 
             if (!zoneAllows) {
                 event.setCancelled(true);
+                Logger.debugProtection("Manual pickup blocked by zone (ITEM_PICKUP_MANUAL=false) at %s/%d/%d for player %s",
+                    worldName, x, z, playerRef.getUuid());
                 return;
             }
 

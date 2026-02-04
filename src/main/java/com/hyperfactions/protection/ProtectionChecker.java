@@ -438,6 +438,110 @@ public class ProtectionChecker {
     }
 
     /**
+     * Checks if a player can pick up items at a location (auto pickup mode).
+     *
+     * This is for native ECS events (InteractivelyPickupItemEvent) and always
+     * checks ITEM_PICKUP flag. For mode-aware pickup checks, use the overload
+     * that accepts a mode parameter.
+     *
+     * @param playerUuid the player's UUID
+     * @param worldName  the world name
+     * @param x          the X coordinate
+     * @param y          the Y coordinate (unused, but included for API consistency)
+     * @param z          the Z coordinate
+     * @return true if pickup is allowed
+     */
+    public boolean canPickupItem(@NotNull UUID playerUuid, @NotNull String worldName, double x, double y, double z) {
+        return canPickupItem(playerUuid, worldName, x, y, z, "auto");
+    }
+
+    /**
+     * Checks if a player can pick up items at a location with pickup mode awareness.
+     *
+     * This is called by OrbisGuard-Mixins hook for F-key and auto pickup events.
+     * It checks:
+     * 1. Admin bypass toggle
+     * 2. Bypass permission (hyperfactions.bypass.pickup)
+     * 3. Zone flags (ITEM_PICKUP for auto, ITEM_PICKUP_MANUAL for F-key)
+     * 4. Faction claim permissions
+     *
+     * @param playerUuid the player's UUID
+     * @param worldName  the world name
+     * @param x          the X coordinate
+     * @param y          the Y coordinate (unused, but included for API consistency)
+     * @param z          the Z coordinate
+     * @param mode       the pickup mode: "auto" for walking over items, "manual" for F-key
+     * @return true if pickup is allowed
+     */
+    public boolean canPickupItem(@NotNull UUID playerUuid, @NotNull String worldName, double x, double y, double z, @NotNull String mode) {
+        int chunkX = ChunkUtil.toChunkCoord(x);
+        int chunkZ = ChunkUtil.toChunkCoord(z);
+
+        // Determine which flag to check based on pickup mode
+        // "manual" = F-key pickup → ITEM_PICKUP_MANUAL
+        // "auto" or anything else = auto pickup → ITEM_PICKUP
+        boolean isManualPickup = "manual".equalsIgnoreCase(mode);
+        String flagToCheck = isManualPickup ? ZoneFlags.ITEM_PICKUP_MANUAL : ZoneFlags.ITEM_PICKUP;
+
+        // 1. Check admin bypass toggle
+        if (plugin != null) {
+            HyperFactions hyperFactions = plugin.get();
+            if (hyperFactions != null && hyperFactions.isAdminBypassEnabled(playerUuid)) {
+                Logger.debug("[Pickup:%s] Admin bypass enabled for %s", mode, playerUuid);
+                return true;
+            }
+        }
+
+        // 2. Check bypass permission
+        if (PermissionManager.get().hasPermission(playerUuid, "hyperfactions.bypass.pickup") ||
+            PermissionManager.get().hasPermission(playerUuid, "hyperfactions.bypass.*")) {
+            Logger.debug("[Pickup:%s] Bypass permission for %s", mode, playerUuid);
+            return true;
+        }
+
+        // 3. Check zone flags (check appropriate flag based on mode)
+        Zone zone = zoneManager.getZone(worldName, chunkX, chunkZ);
+        if (zone != null) {
+            boolean pickupAllowed = zone.getEffectiveFlag(flagToCheck);
+            if (!pickupAllowed) {
+                Logger.debug("[Pickup:%s] Blocked by zone '%s' flag '%s'=false for %s at %s/%d/%d",
+                        mode, zone.name(), flagToCheck, playerUuid, worldName, chunkX, chunkZ);
+                return false;
+            }
+        }
+
+        // 4. Check faction claim
+        UUID claimOwner = claimManager.getClaimOwner(worldName, chunkX, chunkZ);
+        if (claimOwner == null) {
+            // Wilderness - pickup allowed
+            return true;
+        }
+
+        // 5. Get player's faction
+        UUID playerFactionId = factionManager.getPlayerFactionId(playerUuid);
+
+        // 6. Check if same faction (members can always pick up in own territory)
+        if (playerFactionId != null && playerFactionId.equals(claimOwner)) {
+            return true;
+        }
+
+        // 7. Check ally relation (allies can pick up in allied territory)
+        if (playerFactionId != null) {
+            RelationType relation = relationManager.getRelation(playerFactionId, claimOwner);
+            if (relation == RelationType.ALLY) {
+                return true;
+            }
+        }
+
+        // 8. Check outsider pickup flag on the owning faction
+        // For now, deny pickup in enemy/neutral territory by default
+        // This could be made configurable via faction permissions in the future
+        Logger.debug("[Pickup:%s] Blocked in other faction's territory for %s at %s/%d/%d",
+                mode, playerUuid, worldName, chunkX, chunkZ);
+        return false;
+    }
+
+    /**
      * Checks if a protection result is "allowed".
      *
      * @param result the result
@@ -635,5 +739,50 @@ public class ProtectionChecker {
         }
 
         return color + ownerFaction.name();
+    }
+
+    // === Spawn Protection (via OrbisGuard-Mixins hook) ===
+
+    /**
+     * Checks if NPC spawning should be blocked at a location.
+     * Called by OrbisGuard-Mixins spawn hook.
+     *
+     * Note: The mixin hook doesn't pass NPC type, so this can only do a blanket
+     * check. For type-specific spawn control, use the native SpawnSuppressionController.
+     *
+     * @param worldName the world name
+     * @param x         the spawn X coordinate
+     * @param y         the spawn Y coordinate
+     * @param z         the spawn Z coordinate
+     * @return true if spawn should be BLOCKED, false if allowed
+     */
+    public boolean shouldBlockSpawn(@NotNull String worldName, int x, int y, int z) {
+        int chunkX = ChunkUtil.toChunkCoord(x);
+        int chunkZ = ChunkUtil.toChunkCoord(z);
+
+        // Check zone flags
+        Zone zone = zoneManager.getZone(worldName, chunkX, chunkZ);
+        if (zone != null) {
+            boolean mobSpawningAllowed = zone.getEffectiveFlag(ZoneFlags.MOB_SPAWNING);
+            boolean npcSpawningAllowed = zone.getEffectiveFlag(ZoneFlags.NPC_SPAWNING);
+
+            if (!mobSpawningAllowed || !npcSpawningAllowed) {
+                Logger.debugSpawning("[Protection] Spawn BLOCKED in zone '%s' at chunk (%d,%d)",
+                    zone.name(), chunkX, chunkZ);
+                return true;
+            }
+            return false;
+        }
+
+        // Check faction claims (block spawns in faction territory by default)
+        UUID claimOwner = claimManager.getClaimOwner(worldName, chunkX, chunkZ);
+        if (claimOwner != null) {
+            Logger.debugSpawning("[Protection] Spawn BLOCKED in faction claim at chunk (%d,%d)",
+                chunkX, chunkZ);
+            return true;
+        }
+
+        // Wilderness - allow spawn
+        return false;
     }
 }

@@ -6,6 +6,6 @@
   "Website": "https://github.com/ZenithDevHQ/HyperFactions",
   "Main": "com.hyperfactions.platform.HyperFactionsPlugin",
   "ServerVersion": "*",
-  "SoftDependencies": ["HyperPerms"],
+  "SoftDependencies": ["HyperPerms", "OrbisGuard", "OrbisGuard-Mixins"],
   "IncludesAssetPack": true
 }

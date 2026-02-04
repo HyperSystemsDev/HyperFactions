@@ -588,6 +588,7 @@ public class FactionDashboardPage extends InteractiveCustomUIPage<FactionDashboa
             case WORLD_NOT_ALLOWED -> player.sendMessage(Message.raw("Claiming is not allowed in this world.").color("#FF5555"));
             case NOT_ADJACENT -> player.sendMessage(Message.raw("You can only claim chunks adjacent to existing claims.").color("#FF5555"));
             case INSUFFICIENT_POWER -> player.sendMessage(Message.raw("Your faction doesn't have enough power to claim more land.").color("#FF5555"));
+            case ORBISGUARD_PROTECTED -> player.sendMessage(Message.raw("This area is protected by OrbisGuard.").color("#FF5555"));
             default -> player.sendMessage(Message.raw("Could not claim this chunk.").color("#FF5555"));
         }
     }

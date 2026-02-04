@@ -16,9 +16,12 @@ import com.hyperfactions.protection.ecs.ItemDropProtectionSystem;
 import com.hyperfactions.protection.ecs.PlayerDeathSystem;
 import com.hyperfactions.protection.ecs.PlayerRespawnSystem;
 import com.hyperfactions.protection.ecs.PvPProtectionSystem;
+import com.hyperfactions.protection.ecs.HarvestPickupProtectionSystem;
 import com.hyperfactions.territory.TerritoryTickingSystem;
 import com.hyperfactions.util.Logger;
 import com.hyperfactions.worldmap.HyperFactionsWorldMapProvider;
+import com.hyperfactions.integration.orbis.OrbisMixinsIntegration;
+import com.hyperfactions.integration.orbis.OrbisGuardIntegration;
 import com.hypixel.hytale.component.system.ISystem;
 import com.hypixel.hytale.event.EventPriority;
 import com.hypixel.hytale.server.core.event.events.player.PlayerChatEvent;
@@ -43,6 +46,8 @@ import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.hypixel.hytale.server.core.universe.world.worldmap.provider.IWorldMapProvider;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -142,6 +147,12 @@ public class HyperFactionsPlugin extends JavaPlugin {
         // Initialize spawn suppression manager (must be after TagSetPlugin is ready)
         initializeSpawnSuppression();
 
+        // Initialize OrbisGuard integrations and register pickup hooks
+        initializeOrbisIntegrations();
+
+        // Log protection coverage summary
+        logProtectionCoverage();
+
         getLogger().at(Level.INFO).log("HyperFactions v%s enabled!", getManifest().getVersion());
     }
 
@@ -154,6 +165,9 @@ public class HyperFactionsPlugin extends JavaPlugin {
         for (UUID playerUuid : trackedPlayers.keySet()) {
             hyperFactions.getCombatTagManager().handleDisconnect(playerUuid);
         }
+
+        // Unregister all OrbisGuard-Mixins hooks
+        OrbisMixinsIntegration.unregisterAllHooks();
 
         // Clean up territory ticking system
         if (territoryTickingSystem != null) {
@@ -275,8 +289,23 @@ public class HyperFactionsPlugin extends JavaPlugin {
                 applySpawnSuppressionToAllWorlds();
             });
 
-            // Apply to existing worlds
-            applySpawnSuppressionToAllWorlds();
+            // Apply to existing worlds - some may not be ready yet during startup
+            List<String> failedWorlds = applySpawnSuppressionToAllWorlds();
+
+            if (!failedWorlds.isEmpty()) {
+                // Schedule a retry for worlds that weren't ready
+                Logger.debug("Scheduling spawn suppression retry for %d worlds: %s",
+                    failedWorlds.size(), String.join(", ", failedWorlds));
+
+                hyperFactions.scheduleDelayedTask(60, () -> { // Retry after 60 ticks (3 seconds)
+                    Logger.debug("Retrying spawn suppression for worlds that weren't ready at startup");
+                    List<String> stillFailed = applySpawnSuppressionToAllWorlds();
+                    if (!stillFailed.isEmpty()) {
+                        Logger.warn("Some worlds still not ready for spawn suppression: %s (will be handled by AddWorldEvent)",
+                            String.join(", ", stillFailed));
+                    }
+                });
+            }
 
             getLogger().at(Level.INFO).log("Spawn suppression initialized");
         } catch (Exception e) {
@@ -286,16 +315,22 @@ public class HyperFactionsPlugin extends JavaPlugin {
 
     /**
      * Applies spawn suppression to all loaded worlds.
+     * Returns a list of world names that weren't ready and should be retried.
      */
-    private void applySpawnSuppressionToAllWorlds() {
+    private List<String> applySpawnSuppressionToAllWorlds() {
+        List<String> failedWorlds = new ArrayList<>();
         try {
             Map<String, World> worlds = Universe.get().getWorlds();
             for (World world : worlds.values()) {
-                hyperFactions.getSpawnSuppressionManager().applyToWorld(world);
+                boolean success = hyperFactions.getSpawnSuppressionManager().applyToWorld(world);
+                if (!success) {
+                    failedWorlds.add(world.getName());
+                }
             }
         } catch (Exception e) {
             Logger.warn("Failed to apply spawn suppression to worlds: %s", e.getMessage());
         }
+        return failedWorlds;
     }
 
     /**
@@ -338,6 +373,68 @@ public class HyperFactionsPlugin extends JavaPlugin {
         } catch (Exception e) {
             Logger.warn("Failed to apply world map provider to existing worlds: %s", e.getMessage());
         }
+    }
+
+    /**
+     * Initializes OrbisGuard integrations and registers pickup protection hooks.
+     *
+     * OrbisGuard-Mixins provides hooks for F-key and auto item pickup protection.
+     * OrbisGuard provides region protection to prevent claiming in protected areas.
+     */
+    private void initializeOrbisIntegrations() {
+        // Initialize OrbisGuard API detection (for claim conflict checking)
+        OrbisGuardIntegration.init();
+
+        // Register mixin hooks unconditionally - the mixin will find them if loaded
+        // This matches how OrbisGuard registers its hooks
+        OrbisMixinsIntegration.registerPickupHook(
+                (playerUuid, worldName, x, y, z, mode) -> {
+                    // Delegate to ProtectionChecker with mode awareness
+                    // mode = "manual" for F-key pickup, "auto" for walking over items
+                    return hyperFactions.getProtectionChecker().canPickupItem(
+                            playerUuid, worldName, x, y, z, mode);
+                });
+
+        // Register harvest/F-key pickup protection hook
+        // This handles F-key pickup on rubble, crops, etc. via BlockHarvestUtils
+        OrbisMixinsIntegration.registerHarvestHook(
+                (playerUuid, worldName, x, y, z) -> {
+                    // Check ITEM_PICKUP_MANUAL flag for F-key pickup protection
+                    boolean allowed = hyperFactions.getProtectionChecker().canPickupItem(
+                            playerUuid, worldName, x, 0, z, "manual");
+                    if (!allowed) {
+                        return "You cannot pick up items manually in this zone.";
+                    }
+                    return null; // Allowed
+                });
+
+        // Register spawn protection hook
+        OrbisMixinsIntegration.registerSpawnHook(
+                (worldName, x, y, z) -> {
+                    // Delegate to ProtectionChecker - returns true if spawn should be BLOCKED
+                    return hyperFactions.getProtectionChecker().shouldBlockSpawn(worldName, x, y, z);
+                });
+    }
+
+    /**
+     * Logs a summary of protection coverage at startup.
+     * Informs admins which protections are active and which require additional plugins.
+     */
+    private void logProtectionCoverage() {
+        boolean orbisGuardAvailable = OrbisGuardIntegration.isAvailable();
+
+        getLogger().at(Level.INFO).log("=== HyperFactions Protection Coverage ===");
+        getLogger().at(Level.INFO).log("ECS Events (native): Block break/place, Use, Harvest drops, Damage - ENABLED");
+        getLogger().at(Level.INFO).log("Mixin Hooks (registered): F-key pickup, Auto pickup, NPC Spawn control");
+        getLogger().at(Level.INFO).log("  -> Requires Hyxin + OrbisGuard-Mixins in earlyplugins/ to activate");
+
+        if (orbisGuardAvailable) {
+            getLogger().at(Level.INFO).log("OrbisGuard API: Claim conflict detection - ENABLED");
+        } else {
+            getLogger().at(Level.INFO).log("OrbisGuard: Not detected (optional)");
+        }
+
+        getLogger().at(Level.INFO).log("=========================================");
     }
 
     /**
@@ -391,6 +488,10 @@ public class HyperFactionsPlugin extends JavaPlugin {
         // Register ECS event systems for block protection
         registerBlockProtectionSystems();
 
+        // Register harvest pickup protection (InteractivelyPickupItemEvent - for block harvest drops)
+        // Note: F-key entity pickup (PickupItemInteraction) cannot be intercepted - server API limitation
+        registerHarvestPickupProtection();
+
         // Register update notification listener (if update checking is enabled)
         if (hyperFactions.getUpdateNotificationListener() != null) {
             hyperFactions.getUpdateNotificationListener().register(getEventRegistry());
@@ -430,6 +531,23 @@ public class HyperFactionsPlugin extends JavaPlugin {
             getLogger().at(Level.INFO).log("Registered block, item, and player protection systems");
         } catch (Exception e) {
             getLogger().at(Level.WARNING).withCause(e).log("Failed to register block protection systems");
+        }
+    }
+
+    /**
+     * Registers the harvest pickup protection system.
+     * This handles block harvest drops (farming, mining, etc.) via InteractivelyPickupItemEvent.
+     *
+     * NOTE: F-key entity pickup of items already on the ground (PickupItemInteraction)
+     * cannot be intercepted as it does not fire any cancellable event. This is a
+     * limitation of the Hytale server API.
+     */
+    private void registerHarvestPickupProtection() {
+        try {
+            getEntityStoreRegistry().registerSystem(new HarvestPickupProtectionSystem(hyperFactions, protectionListener));
+            getLogger().at(Level.INFO).log("Registered harvest pickup protection system");
+        } catch (Exception e) {
+            getLogger().at(Level.WARNING).withCause(e).log("Failed to register harvest pickup protection system");
         }
     }
 

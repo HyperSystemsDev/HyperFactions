@@ -5,6 +5,7 @@ import com.hyperfactions.data.ZoneFlags;
 import com.hyperfactions.gui.GuiManager;
 import com.hyperfactions.gui.admin.AdminNavBarHelper;
 import com.hyperfactions.gui.admin.data.AdminZoneSettingsData;
+import com.hyperfactions.integration.orbis.OrbisMixinsIntegration;
 import com.hyperfactions.manager.ZoneManager;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
@@ -23,11 +24,16 @@ import java.util.UUID;
 
 /**
  * Admin Zone Settings page - configure zone flags visually.
- * Shows all 15 zone flags with toggle buttons and default indicators in 2-column layout.
+ * Shows all 22 zone flags with toggle buttons and default indicators in 2-column layout.
  *
- * Layout:
- * - Left column: Combat (0-3), Building (4-5), Damage (13-14)
- * - Right column: Interaction (6-10), Items (11-12)
+ * Layout (indices):
+ * - Left column: Combat (0-3), Damage (4-5), Death (6), Building (7), Items (8-11)
+ * - Right column: Interaction (12-17), Spawning (18-21)
+ *
+ * Mixin-dependent flags are disabled when OrbisGuard-Mixins is not installed:
+ * - ITEM_PICKUP_MANUAL: F-key pickup (requires pickup mixin)
+ * - INVINCIBLE_ITEMS: Item durability (requires durability mixin)
+ * - KEEP_INVENTORY: Keep items on death (requires death mixin)
  */
 public class AdminZoneSettingsPage extends InteractiveCustomUIPage<AdminZoneSettingsData> {
 
@@ -75,14 +81,15 @@ public class AdminZoneSettingsPage extends InteractiveCustomUIPage<AdminZoneSett
         cmd.set("#ZoneType.Style.TextColor", typeColor);
 
         // Build flag toggles by category (matching 2-column UI layout)
-        // Left column: Combat (0-3), Damage (4-5), Building (6), Items (7-8)
+        // Left column: Combat (0-3), Damage (4-5), Death (6), Building (7), Items (8-11)
         buildFlagCategory(cmd, events, zone, "Combat", ZoneFlags.COMBAT_FLAGS, 0);
         buildFlagCategory(cmd, events, zone, "Damage", ZoneFlags.DAMAGE_FLAGS, 4);
-        buildFlagCategory(cmd, events, zone, "Building", ZoneFlags.BUILDING_FLAGS, 6);
-        buildFlagCategory(cmd, events, zone, "Items", ZoneFlags.ITEM_FLAGS, 7);
-        // Right column: Interaction (9-14), Spawning (15-18)
-        buildFlagCategory(cmd, events, zone, "Interaction", ZoneFlags.INTERACTION_FLAGS, 9);
-        buildFlagCategory(cmd, events, zone, "Spawning", ZoneFlags.SPAWNING_FLAGS, 15);
+        buildFlagCategory(cmd, events, zone, "Death", ZoneFlags.DEATH_FLAGS, 6);
+        buildFlagCategory(cmd, events, zone, "Building", ZoneFlags.BUILDING_FLAGS, 7);
+        buildFlagCategory(cmd, events, zone, "Items", ZoneFlags.ITEM_FLAGS, 8);
+        // Right column: Interaction (12-17), Spawning (18-21)
+        buildFlagCategory(cmd, events, zone, "Interaction", ZoneFlags.INTERACTION_FLAGS, 12);
+        buildFlagCategory(cmd, events, zone, "Spawning", ZoneFlags.SPAWNING_FLAGS, 18);
 
         // Reset to Defaults button
         if (!zone.getFlags().isEmpty()) {
@@ -128,18 +135,33 @@ public class AdminZoneSettingsPage extends InteractiveCustomUIPage<AdminZoneSett
         String parentFlag = ZoneFlags.getParentFlag(flagName);
         boolean parentDisabled = parentFlag != null && !zone.getEffectiveFlag(parentFlag);
 
+        // Check if this flag requires a mixin that isn't available
+        boolean mixinUnavailable = false;
+        String mixinType = ZoneFlags.getMixinType(flagName);
+        if (mixinType != null) {
+            mixinUnavailable = !isMixinAvailable(mixinType);
+        }
+
         // Flag name (display name from ZoneFlags)
-        cmd.set(idx + "Name.Text", ZoneFlags.getDisplayName(flagName));
+        String displayName = ZoneFlags.getDisplayName(flagName);
+        cmd.set(idx + "Name.Text", displayName);
 
         // Current value toggle - convey state through text only
         // Note: Cannot set TextButton styles dynamically (crashes CustomUI)
-        cmd.set(idx + "Toggle.Text", currentValue ? "ON" : "OFF");
+        if (mixinUnavailable) {
+            cmd.set(idx + "Toggle.Text", "N/A");
+        } else {
+            cmd.set(idx + "Toggle.Text", currentValue ? "ON" : "OFF");
+        }
 
-        // Disable child toggles when parent is OFF, enable when ON
-        cmd.set(idx + "Toggle.Disabled", parentDisabled);
+        // Disable child toggles when parent is OFF, or when mixin not available
+        cmd.set(idx + "Toggle.Disabled", parentDisabled || mixinUnavailable);
 
-        // Default indicator (shows "(default)" or "(custom)")
-        if (isDefault) {
+        // Default indicator (shows "(default)" or "(custom)" or "(mixin)")
+        if (mixinUnavailable) {
+            cmd.set(idx + "Default.Text", "(mixin)");
+            cmd.set(idx + "Default.Style.TextColor", "#FF5555");
+        } else if (isDefault) {
             cmd.set(idx + "Default.Text", "(default)");
             cmd.set(idx + "Default.Style.TextColor", "#555555");
         } else {
@@ -156,6 +178,31 @@ public class AdminZoneSettingsPage extends InteractiveCustomUIPage<AdminZoneSett
                         .append("ZoneId", zoneId.toString()),
                 false
         );
+    }
+
+    /**
+     * Checks if a specific mixin type is available.
+     *
+     * Note: Individual mixin properties are only set when their target class loads.
+     * For example, the pickup mixin property is set when PlayerItemEntityPickupSystem
+     * is first used. However, if OrbisGuard-Mixins is installed (detected via durability
+     * mixin which loads early), we trust that ALL mixins will work when needed.
+     */
+    private boolean isMixinAvailable(String mixinType) {
+        // If OrbisGuard-Mixins is installed, trust all mixin features will work
+        // This handles the case where specific mixin classes haven't loaded yet
+        if (OrbisMixinsIntegration.isMixinsAvailable()) {
+            return true;
+        }
+        // Fallback to specific mixin checks (shouldn't normally reach here)
+        return switch (mixinType) {
+            case ZoneFlags.MIXIN_PICKUP -> OrbisMixinsIntegration.isPickupMixinLoaded();
+            case ZoneFlags.MIXIN_DEATH -> OrbisMixinsIntegration.isDeathMixinLoaded();
+            case ZoneFlags.MIXIN_DURABILITY -> OrbisMixinsIntegration.isDurabilityMixinLoaded();
+            case ZoneFlags.MIXIN_SEATING -> OrbisMixinsIntegration.isSeatingMixinLoaded();
+            case ZoneFlags.MIXIN_SPAWN -> OrbisMixinsIntegration.isMixinsAvailable(); // No specific detection
+            default -> false;
+        };
     }
 
     @Override
@@ -243,14 +290,15 @@ public class AdminZoneSettingsPage extends InteractiveCustomUIPage<AdminZoneSett
         }
 
         // Rebuild flag toggles (matching 2-column UI layout)
-        // Left column: Combat (0-3), Damage (4-5), Building (6), Items (7-8)
+        // Left column: Combat (0-3), Damage (4-5), Death (6), Building (7), Items (8-11)
         buildFlagCategory(cmd, events, zone, "Combat", ZoneFlags.COMBAT_FLAGS, 0);
         buildFlagCategory(cmd, events, zone, "Damage", ZoneFlags.DAMAGE_FLAGS, 4);
-        buildFlagCategory(cmd, events, zone, "Building", ZoneFlags.BUILDING_FLAGS, 6);
-        buildFlagCategory(cmd, events, zone, "Items", ZoneFlags.ITEM_FLAGS, 7);
-        // Right column: Interaction (9-14), Spawning (15-18)
-        buildFlagCategory(cmd, events, zone, "Interaction", ZoneFlags.INTERACTION_FLAGS, 9);
-        buildFlagCategory(cmd, events, zone, "Spawning", ZoneFlags.SPAWNING_FLAGS, 15);
+        buildFlagCategory(cmd, events, zone, "Death", ZoneFlags.DEATH_FLAGS, 6);
+        buildFlagCategory(cmd, events, zone, "Building", ZoneFlags.BUILDING_FLAGS, 7);
+        buildFlagCategory(cmd, events, zone, "Items", ZoneFlags.ITEM_FLAGS, 8);
+        // Right column: Interaction (12-17), Spawning (18-21)
+        buildFlagCategory(cmd, events, zone, "Interaction", ZoneFlags.INTERACTION_FLAGS, 12);
+        buildFlagCategory(cmd, events, zone, "Spawning", ZoneFlags.SPAWNING_FLAGS, 18);
 
         // Update reset button state
         if (!zone.getFlags().isEmpty()) {
