@@ -22,11 +22,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 **World Map Configuration**
 - New `showFactionTags` option in worldmap.json to hide faction tags on the in-game world map while keeping faction color overlays visible
 - New `refreshMode` option to control when world map tiles are regenerated:
-  - `immediate` - Best for small servers (<20 players). Regenerates tiles instantly when claims change. Lowest latency but highest CPU usage.
-  - `proximity` (default) - Best for medium servers (20-100 players). Only regenerates tiles for nearby players. Good balance of responsiveness and performance.
-  - `periodic` - Best for large servers (100+ players). Batches updates at configurable intervals. Most efficient for high player counts.
-- `periodicInterval` setting for periodic mode (default: 30 seconds)
-- `proximityDistance` setting for proximity mode (default: 5 chunks)
+  - `proximity` (default) - Only refreshes for players within range of claim changes. Best for most servers.
+  - `incremental` - Refreshes specific chunks for all players. Good balance of performance and consistency.
+  - `debounced` - Full map refresh after a quiet period (5s default). Use if incremental causes issues.
+  - `immediate` - Full map refresh on every claim change. Original behavior, not recommended for busy servers.
+  - `manual` - No automatic refresh. Use `/f admin map refresh` to update manually.
+- Configurable batch intervals, chunk limits, and proximity radius (default: 32 chunks) per mode
+- Auto-fallback option if reflection errors occur
 
 **Configuration**
 - Configurable message prefix via `messagePrefix` in config.json (default: "[HyperFactions]")
