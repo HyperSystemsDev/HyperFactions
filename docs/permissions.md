@@ -76,7 +76,7 @@ public final class Permissions {
 
 ```
 hyperfactions.*                       # All permissions
-├── hyperfactions.use                 # Basic faction access
+├── hyperfactions.use                 # Access to /f command and GUI (does NOT grant actions)
 │
 ├── hyperfactions.faction.*           # Faction management
 │   ├── hyperfactions.faction.create
@@ -277,7 +277,7 @@ Configuration in `config.json`:
 {
   "permissions": {
     "adminRequiresOp": true,
-    "fallbackBehavior": "allow"
+    "fallbackBehavior": "deny"
   }
 }
 ```

@@ -98,10 +98,14 @@ public class PermissionManager {
      * Chain behavior:
      * 1. Try each provider in order for the specific permission
      * 2. If any provider returns true/false, use that result
-     * 3. For user-level permissions (not admin/bypass), also check hyperfactions.use as alternative
-     * 4. If all providers return empty (undefined), use fallback:
+     * 3. Check the category wildcard (e.g., hyperfactions.teleport.* for hyperfactions.teleport.home)
+     * 4. Check hyperfactions.* wildcard
+     * 5. If all providers return empty (undefined), use fallback:
      *    - Admin perms (hyperfactions.admin.*): Check if player is OP
-     *    - Normal perms: Use config fallback behavior (default: allow)
+     *    - Normal perms: Use config fallback behavior (default: deny)
+     *
+     * Note: hyperfactions.use only grants access to the /f command itself,
+     * not to subcommand actions. Players need explicit permissions or wildcards.
      *
      * @param playerUuid the player's UUID
      * @param permission the permission to check
@@ -128,29 +132,68 @@ public class PermissionManager {
                         return false;
                     }
                     // For user-level permissions, false means "not specifically granted"
-                    // Continue to check hyperfactions.use below
-                    Logger.debug("[PermissionManager] %s returned false for %s, checking hyperfactions.use",
+                    // Continue to check wildcards below
+                    Logger.debug("[PermissionManager] %s returned false for %s, checking wildcards",
                         provider.getName(), permission);
                     break;
                 }
             }
         }
 
-        // For user-level permissions, check if player has hyperfactions.use as alternative
-        // This allows "hyperfactions.use" to grant all basic user permissions
-        if (isUserLevel && !permission.equals("hyperfactions.use")) {
+        // Check category wildcard (e.g., hyperfactions.teleport.* for hyperfactions.teleport.home)
+        String categoryWildcard = getCategoryWildcard(permission);
+        if (categoryWildcard != null) {
             for (PermissionProvider provider : providers) {
-                Optional<Boolean> result = provider.hasPermission(playerUuid, "hyperfactions.use");
+                Optional<Boolean> result = provider.hasPermission(playerUuid, categoryWildcard);
                 if (result.isPresent() && result.get()) {
-                    Logger.debug("[PermissionManager] %s granted via hyperfactions.use for %s",
-                        permission, playerUuid);
+                    Logger.debug("[PermissionManager] %s granted via category wildcard %s for %s",
+                        permission, categoryWildcard, playerUuid);
                     return true;
                 }
             }
         }
 
+        // Check root wildcard (hyperfactions.*)
+        for (PermissionProvider provider : providers) {
+            Optional<Boolean> result = provider.hasPermission(playerUuid, "hyperfactions.*");
+            if (result.isPresent() && result.get()) {
+                Logger.debug("[PermissionManager] %s granted via hyperfactions.* for %s",
+                    permission, playerUuid);
+                return true;
+            }
+        }
+
+        // Note: hyperfactions.use only grants access to the /f command itself,
+        // not to subcommand actions. Players need explicit permissions or wildcards
+        // (e.g., hyperfactions.teleport.* or hyperfactions.teleport.home) for actions.
+
         // Fallback behavior
         return handleFallback(playerUuid, permission);
+    }
+
+    /**
+     * Gets the category wildcard for a permission.
+     * For example, hyperfactions.teleport.home -> hyperfactions.teleport.*
+     *
+     * @param permission the specific permission
+     * @return the category wildcard, or null if not applicable
+     */
+    @Nullable
+    private String getCategoryWildcard(@NotNull String permission) {
+        if (!permission.startsWith("hyperfactions.")) {
+            return null;
+        }
+
+        // Count dots to determine depth
+        // hyperfactions.teleport.home has 2 dots = 3 segments
+        // We want hyperfactions.teleport.* which has the first 2 segments + .*
+        int lastDot = permission.lastIndexOf('.');
+        if (lastDot <= "hyperfactions".length()) {
+            // Already at root level (e.g., hyperfactions.use)
+            return null;
+        }
+
+        return permission.substring(0, lastDot) + ".*";
     }
 
     /**

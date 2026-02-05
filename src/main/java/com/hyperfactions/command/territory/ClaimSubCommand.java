@@ -117,6 +117,7 @@ public class ClaimSubCommand extends FactionSubCommand {
             case NOT_ADJACENT -> ctx.sendMessage(prefix().insert(msg("You must claim adjacent to existing territory.", COLOR_RED)));
             case WORLD_NOT_ALLOWED -> ctx.sendMessage(prefix().insert(msg("Claiming is not allowed in this world.", COLOR_RED)));
             case ORBISGUARD_PROTECTED -> ctx.sendMessage(prefix().insert(msg("This area is protected by OrbisGuard.", COLOR_RED)));
+            case ZONE_PROTECTED -> ctx.sendMessage(prefix().insert(msg("This chunk is in a safezone or warzone.", COLOR_RED)));
             default -> ctx.sendMessage(prefix().insert(msg("Failed to claim chunk.", COLOR_RED)));
         }
     }

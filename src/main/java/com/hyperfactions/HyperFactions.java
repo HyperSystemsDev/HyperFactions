@@ -181,6 +181,7 @@ public class HyperFactions {
         relationManager = new RelationManager(factionManager);
         combatTagManager = new CombatTagManager();
         zoneManager = new ZoneManager(zoneStorage, claimManager);
+        claimManager.setZoneManager(zoneManager); // Wire zone manager for zone protection checks
         spawnSuppressionManager = new SpawnSuppressionManager(zoneManager);
         teleportManager = new TeleportManager(factionManager);
         inviteManager = new InviteManager(dataDir);
@@ -288,6 +289,11 @@ public class HyperFactions {
         if (ConfigManager.get().isUpdateCheckEnabled()) {
             updateChecker = new UpdateChecker(dataDir, VERSION, ConfigManager.get().getUpdateCheckUrl(),
                     ConfigManager.get().isPreReleaseChannel());
+
+            // Clear any pending rollback marker - server has restarted, migrations may have run
+            // This must happen before checkForUpdates() so rollback safety is properly tracked
+            updateChecker.clearRollbackMarker();
+
             updateChecker.checkForUpdates();
 
             // Initialize notification preferences

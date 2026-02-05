@@ -5,6 +5,35 @@ All notable changes to HyperFactions will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.1] - 2026-02-04
+
+### Added
+
+**Update System Enhancements**
+- Pre-update data backup: Automatically creates a full backup of configs and data before downloading updates
+- Old JAR cleanup: Removes old `.jar.backup` files during updates, keeping only the version being upgraded from for rollback
+- New `/f admin rollback` command to revert to previous version before server restart
+- Rollback safety detection: Blocks automatic rollback after server restart (when migrations may have run)
+- Rollback marker system to track update state
+
+### Fixed
+
+**Zone Protection**
+- Factions can no longer claim SafeZone or WarZone chunks (security fix)
+- Added `ZONE_PROTECTED` result to ClaimManager for proper error messaging
+
+**Permission System**
+- Fixed wildcard permission expansion: `hyperfactions.teleport.*` now properly grants `home`, `sethome`, `stuck`
+- Fixed root wildcard: `hyperfactions.*` now grants all faction permissions
+- `hyperfactions.use` no longer grants all user-level actions (now only grants `/f` command and GUI access)
+- Fixed documentation: `fallbackBehavior` default is `"deny"`, not `"allow"`
+
+### Changed
+
+- ClaimManager now receives ZoneManager reference for zone protection checks
+- PermissionManager checks category wildcards before falling back to defaults
+- Updated help text to include `/f admin rollback` command
+
 ## [0.6.0] - 2026-02-03
 
 ### Breaking Changes

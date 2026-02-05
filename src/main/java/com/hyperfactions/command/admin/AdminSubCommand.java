@@ -115,6 +115,7 @@ public class AdminSubCommand extends FactionSubCommand {
             case "removezone" -> handleRemovezone(ctx, currentWorld, chunkX, chunkZ);
             case "zoneflag" -> handleZoneFlag(ctx, currentWorld.getName(), chunkX, chunkZ, Arrays.copyOfRange(args, 1, args.length));
             case "update" -> handleAdminUpdate(ctx, player);
+            case "rollback" -> handleAdminRollback(ctx, player);
             case "backup" -> handleAdminBackup(ctx, player, Arrays.copyOfRange(args, 1, args.length));
             case "import" -> handleAdminImport(ctx, player, Arrays.copyOfRange(args, 1, args.length));
             case "debug" -> handleDebug(ctx, store, ref, player, currentWorld, Arrays.copyOfRange(args, 1, args.length));
@@ -132,6 +133,7 @@ public class AdminSubCommand extends FactionSubCommand {
         commands.add(new CommandHelp("/f admin backup", "Backup management"));
         commands.add(new CommandHelp("/f admin import", "Import from other plugins"));
         commands.add(new CommandHelp("/f admin update", "Check for updates"));
+        commands.add(new CommandHelp("/f admin rollback", "Rollback to previous version"));
         commands.add(new CommandHelp("/f admin reload", "Reload configuration"));
         commands.add(new CommandHelp("/f admin sync", "Sync data from disk"));
         commands.add(new CommandHelp("/f admin debug", "Debug commands"));
@@ -553,17 +555,112 @@ public class AdminSubCommand extends FactionSubCommand {
 
     private void startDownload(PlayerRef player, com.hyperfactions.update.UpdateChecker updateChecker,
                                com.hyperfactions.update.UpdateChecker.UpdateInfo info) {
-        player.sendMessage(prefix().insert(msg("Downloading HyperFactions v" + info.version() + "...", COLOR_YELLOW)));
+        String currentVersion = updateChecker.getCurrentVersion();
 
-        updateChecker.downloadUpdate(info).thenAccept(path -> {
-            if (path == null) {
-                player.sendMessage(prefix().insert(msg("Failed to download update. Check server logs.", COLOR_RED)));
-            } else {
-                player.sendMessage(prefix().insert(msg("Update downloaded successfully!", COLOR_GREEN)));
-                player.sendMessage(msg("  File: " + path.getFileName(), COLOR_GRAY));
-                player.sendMessage(msg("  Restart the server to apply the update.", COLOR_YELLOW));
+        // Step 1: Create a data backup before downloading the update
+        player.sendMessage(prefix().insert(msg("Creating pre-update backup...", COLOR_YELLOW)));
+
+        hyperFactions.getBackupManager().createBackup(BackupType.MANUAL, "pre-update-" + currentVersion, player.getUuid())
+            .thenCompose(backupResult -> {
+                if (backupResult instanceof BackupManager.BackupResult.Success success) {
+                    player.sendMessage(prefix().insert(msg("Backup created: " + success.metadata().name(), COLOR_GREEN)));
+                } else if (backupResult instanceof BackupManager.BackupResult.Failure failure) {
+                    player.sendMessage(prefix().insert(msg("Warning: Backup failed - " + failure.error(), COLOR_YELLOW)));
+                    player.sendMessage(msg("  Continuing with update anyway...", COLOR_GRAY));
+                }
+
+                // Step 2: Download the update
+                player.sendMessage(prefix().insert(msg("Downloading HyperFactions v" + info.version() + "...", COLOR_YELLOW)));
+                return updateChecker.downloadUpdate(info);
+            })
+            .thenAccept(path -> {
+                if (path == null) {
+                    player.sendMessage(prefix().insert(msg("Failed to download update. Check server logs.", COLOR_RED)));
+                } else {
+                    player.sendMessage(prefix().insert(msg("Update downloaded successfully!", COLOR_GREEN)));
+                    player.sendMessage(msg("  File: " + path.getFileName(), COLOR_GRAY));
+
+                    // Step 3: Clean up old JAR backups (keep only the version we just upgraded from)
+                    int cleaned = updateChecker.cleanupOldBackups(currentVersion);
+                    if (cleaned > 0) {
+                        player.sendMessage(msg("  Cleanup: Removed " + cleaned + " old backup(s)", COLOR_GRAY));
+                    }
+                    player.sendMessage(msg("  Kept: HyperFactions-" + currentVersion + ".jar.backup (for rollback)", COLOR_GRAY));
+
+                    // Step 4: Create rollback marker (safe to rollback until server restarts)
+                    updateChecker.createRollbackMarker(currentVersion, info.version());
+
+                    player.sendMessage(msg("  Restart the server to apply the update.", COLOR_YELLOW));
+                    player.sendMessage(msg("  Use /f admin rollback to revert before restarting.", COLOR_GRAY));
+
+                    // Run manual backup rotation to respect retention limits
+                    hyperFactions.getBackupManager().performRotation();
+                }
+            });
+    }
+
+    // === Admin Rollback ===
+    private void handleAdminRollback(CommandContext ctx, PlayerRef player) {
+        var updateChecker = hyperFactions.getUpdateChecker();
+        if (updateChecker == null) {
+            ctx.sendMessage(prefix().insert(msg("Update checker is not available.", COLOR_RED)));
+            return;
+        }
+
+        // Check if there's a backup to rollback to
+        Path latestBackup = updateChecker.findLatestBackup();
+        if (latestBackup == null) {
+            ctx.sendMessage(prefix().insert(msg("No backup JAR found to rollback to.", COLOR_RED)));
+            return;
+        }
+
+        String backupVersion = latestBackup.getFileName().toString()
+                .replace("HyperFactions-", "")
+                .replace(".jar.backup", "");
+
+        // Check if rollback is safe (server hasn't restarted since update)
+        if (!updateChecker.isRollbackSafe()) {
+            // Server has restarted - migrations may have run
+            ctx.sendMessage(prefix().insert(msg("Cannot automatically rollback!", COLOR_RED)));
+            ctx.sendMessage(msg("", COLOR_GRAY));
+            ctx.sendMessage(msg("The server has been restarted since the last update.", COLOR_YELLOW));
+            ctx.sendMessage(msg("Config/data migrations may have been applied.", COLOR_YELLOW));
+            ctx.sendMessage(msg("", COLOR_GRAY));
+            ctx.sendMessage(msg("To rollback safely, you must:", COLOR_WHITE));
+            ctx.sendMessage(msg("  1. Stop the server", COLOR_GRAY));
+            ctx.sendMessage(msg("  2. Restore from the pre-update backup:", COLOR_GRAY));
+            ctx.sendMessage(msg("     /f admin backup restore <backup-name>", COLOR_CYAN));
+            ctx.sendMessage(msg("  3. Manually replace the JAR file:", COLOR_GRAY));
+            ctx.sendMessage(msg("     " + latestBackup.getFileName() + " -> HyperFactions-" + backupVersion + ".jar", COLOR_CYAN));
+            ctx.sendMessage(msg("  4. Restart the server", COLOR_GRAY));
+            ctx.sendMessage(msg("", COLOR_GRAY));
+            ctx.sendMessage(msg("Use /f admin backup list to find the pre-update backup.", COLOR_YELLOW));
+            return;
+        }
+
+        // Get rollback info
+        var rollbackInfo = updateChecker.getRollbackInfo();
+        if (rollbackInfo != null) {
+            ctx.sendMessage(prefix().insert(msg("Rolling back update...", COLOR_YELLOW)));
+            ctx.sendMessage(msg("  From: v" + rollbackInfo.toVersion() + " (new)", COLOR_GRAY));
+            ctx.sendMessage(msg("  To: v" + rollbackInfo.fromVersion() + " (previous)", COLOR_GRAY));
+        } else {
+            ctx.sendMessage(prefix().insert(msg("Rolling back to v" + backupVersion + "...", COLOR_YELLOW)));
+        }
+
+        // Perform the rollback
+        var result = updateChecker.performRollback();
+
+        if (result.success()) {
+            ctx.sendMessage(prefix().insert(msg("Rollback successful!", COLOR_GREEN)));
+            ctx.sendMessage(msg("  Restored: HyperFactions-" + result.restoredVersion() + ".jar", COLOR_GRAY));
+            if (result.removedVersion() != null) {
+                ctx.sendMessage(msg("  Removed: HyperFactions-" + result.removedVersion() + ".jar", COLOR_GRAY));
             }
-        });
+            ctx.sendMessage(msg("  Restart the server to apply the rollback.", COLOR_YELLOW));
+        } else {
+            ctx.sendMessage(prefix().insert(msg("Rollback failed: " + result.errorMessage(), COLOR_RED)));
+        }
     }
 
     // === Admin Backup Commands ===

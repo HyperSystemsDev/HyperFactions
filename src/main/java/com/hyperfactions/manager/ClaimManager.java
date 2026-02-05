@@ -25,6 +25,10 @@ public class ClaimManager {
     private final FactionManager factionManager;
     private final PowerManager powerManager;
 
+    // Zone manager for checking safezones/warzones (injected after construction)
+    @Nullable
+    private ZoneManager zoneManager;
+
     // Index: ChunkKey -> faction ID for fast lookups
     private final Map<ChunkKey, UUID> claimIndex = new ConcurrentHashMap<>();
 
@@ -50,6 +54,16 @@ public class ClaimManager {
     public ClaimManager(@NotNull FactionManager factionManager, @NotNull PowerManager powerManager) {
         this.factionManager = factionManager;
         this.powerManager = powerManager;
+    }
+
+    /**
+     * Sets the zone manager for checking safezones/warzones.
+     * This is injected after construction to avoid circular dependencies.
+     *
+     * @param zoneManager the zone manager
+     */
+    public void setZoneManager(@Nullable ZoneManager zoneManager) {
+        this.zoneManager = zoneManager;
     }
 
     /**
@@ -147,7 +161,8 @@ public class ClaimManager {
         NOT_YOUR_CLAIM,
         OVERCLAIM_NOT_ALLOWED,
         TARGET_HAS_POWER,
-        ORBISGUARD_PROTECTED
+        ORBISGUARD_PROTECTED,
+        ZONE_PROTECTED
     }
 
     // === Queries ===
@@ -254,6 +269,12 @@ public class ClaimManager {
         if (OrbisGuardIntegration.isChunkProtected(world, chunkX, chunkZ)) {
             Logger.debugClaim("Claim blocked: chunk=%s/%d/%d is protected by OrbisGuard", world, chunkX, chunkZ);
             return ClaimResult.ORBISGUARD_PROTECTED;
+        }
+
+        // Check zone protection (safezones and warzones)
+        if (zoneManager != null && zoneManager.getZone(world, chunkX, chunkZ) != null) {
+            Logger.debugClaim("Claim blocked: chunk=%s/%d/%d is in a safezone or warzone", world, chunkX, chunkZ);
+            return ClaimResult.ZONE_PROTECTED;
         }
 
         ChunkKey key = new ChunkKey(world, chunkX, chunkZ);

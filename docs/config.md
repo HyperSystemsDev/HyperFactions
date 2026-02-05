@@ -259,7 +259,7 @@ Permission behavior:
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | `adminRequiresOp` | bool | true | Admin commands require OP |
-| `fallbackBehavior` | string | "allow" | Default when no provider |
+| `fallbackBehavior` | string | "deny" | Default when no provider |
 
 ## Module Configs
 
