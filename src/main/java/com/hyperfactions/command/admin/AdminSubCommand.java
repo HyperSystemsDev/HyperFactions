@@ -120,6 +120,7 @@ public class AdminSubCommand extends FactionSubCommand {
             case "import" -> handleAdminImport(ctx, player, Arrays.copyOfRange(args, 1, args.length));
             case "debug" -> handleDebug(ctx, store, ref, player, currentWorld, Arrays.copyOfRange(args, 1, args.length));
             case "decay" -> handleAdminDecay(ctx, player, Arrays.copyOfRange(args, 1, args.length));
+            case "map" -> handleAdminMap(ctx, player, Arrays.copyOfRange(args, 1, args.length));
             default -> ctx.sendMessage(prefix().insert(msg("Unknown admin command. Use /f admin help", COLOR_RED)));
         }
     }
@@ -138,6 +139,7 @@ public class AdminSubCommand extends FactionSubCommand {
         commands.add(new CommandHelp("/f admin sync", "Sync data from disk"));
         commands.add(new CommandHelp("/f admin debug", "Debug commands"));
         commands.add(new CommandHelp("/f admin decay", "Claim decay management"));
+        commands.add(new CommandHelp("/f admin map", "World map management"));
         commands.add(new CommandHelp("/f admin safezone [name]", "Create SafeZone + claim chunk"));
         commands.add(new CommandHelp("/f admin warzone [name]", "Create WarZone + claim chunk"));
         commands.add(new CommandHelp("/f admin removezone", "Unclaim chunk from zone"));
@@ -1119,6 +1121,133 @@ public class AdminSubCommand extends FactionSubCommand {
             return;
         }
         ctx.sendMessage(prefix().insert(msg("Debug relation info not yet implemented.", COLOR_YELLOW)));
+    }
+
+    // === Admin Map Commands ===
+    private void handleAdminMap(CommandContext ctx, PlayerRef player, String[] args) {
+        if (!hasPermission(player, Permissions.ADMIN)) {
+            ctx.sendMessage(prefix().insert(msg("You don't have permission.", COLOR_RED)));
+            return;
+        }
+
+        if (args.length == 0) {
+            showMapHelp(ctx);
+            return;
+        }
+
+        String subCmd = args[0].toLowerCase();
+
+        switch (subCmd) {
+            case "refresh" -> handleMapRefresh(ctx, player);
+            case "status" -> handleMapStatus(ctx);
+            case "help", "?" -> showMapHelp(ctx);
+            default -> {
+                ctx.sendMessage(prefix().insert(msg("Unknown map command: " + subCmd, COLOR_RED)));
+                showMapHelp(ctx);
+            }
+        }
+    }
+
+    private void showMapHelp(CommandContext ctx) {
+        List<CommandHelp> commands = new ArrayList<>();
+        commands.add(new CommandHelp("/f admin map status", "Show world map status and statistics"));
+        commands.add(new CommandHelp("/f admin map refresh", "Force immediate map refresh"));
+        ctx.sendMessage(HelpFormatter.buildHelp("World Map", "Map overlay management", commands, null));
+    }
+
+    private void handleMapRefresh(CommandContext ctx, PlayerRef player) {
+        var worldMapService = hyperFactions.getWorldMapService();
+        if (worldMapService == null) {
+            ctx.sendMessage(prefix().insert(msg("World map service is not available.", COLOR_RED)));
+            return;
+        }
+
+        ctx.sendMessage(prefix().insert(msg("Forcing full world map refresh...", COLOR_YELLOW)));
+
+        worldMapService.forceFullRefresh();
+
+        ctx.sendMessage(prefix().insert(msg("World map refresh complete.", COLOR_GREEN)));
+    }
+
+    private void handleMapStatus(CommandContext ctx) {
+        var worldMapConfig = ConfigManager.get().worldMap();
+        var worldMapService = hyperFactions.getWorldMapService();
+
+        ctx.sendMessage(msg("=== World Map Status ===", COLOR_CYAN).bold(true));
+
+        // Config status
+        ctx.sendMessage(msg("Enabled: ", COLOR_GRAY)
+            .insert(msg(worldMapConfig.isEnabled() ? "Yes" : "No", worldMapConfig.isEnabled() ? COLOR_GREEN : COLOR_RED)));
+        ctx.sendMessage(msg("Refresh Mode: ", COLOR_GRAY)
+            .insert(msg(worldMapConfig.getRefreshMode().getConfigName(), COLOR_WHITE)));
+
+        if (worldMapService == null) {
+            ctx.sendMessage(msg("Service: ", COLOR_GRAY).insert(msg("Not initialized", COLOR_RED)));
+            return;
+        }
+
+        var scheduler = worldMapService.getRefreshScheduler();
+        if (scheduler == null) {
+            ctx.sendMessage(msg("Scheduler: ", COLOR_GRAY).insert(msg("Not initialized", COLOR_YELLOW)));
+            return;
+        }
+
+        // Scheduler status
+        ctx.sendMessage(msg("Effective Mode: ", COLOR_GRAY)
+            .insert(msg(scheduler.getEffectiveMode().getConfigName(), COLOR_WHITE)));
+
+        if (scheduler.isInFallbackMode()) {
+            ctx.sendMessage(msg("Fallback: ", COLOR_GRAY)
+                .insert(msg("Active (reflection failed)", COLOR_YELLOW)));
+        }
+
+        // Mode-specific settings
+        var mode = worldMapConfig.getRefreshMode();
+        switch (mode) {
+            case PROXIMITY -> {
+                ctx.sendMessage(msg("Proximity Radius: ", COLOR_GRAY)
+                    .insert(msg(worldMapConfig.getProximityChunkRadius() + " chunks", COLOR_WHITE)));
+                ctx.sendMessage(msg("Batch Interval: ", COLOR_GRAY)
+                    .insert(msg(worldMapConfig.getProximityBatchIntervalTicks() + " ticks", COLOR_WHITE)));
+                ctx.sendMessage(msg("Max Chunks/Batch: ", COLOR_GRAY)
+                    .insert(msg(String.valueOf(worldMapConfig.getProximityMaxChunksPerBatch()), COLOR_WHITE)));
+            }
+            case INCREMENTAL -> {
+                ctx.sendMessage(msg("Batch Interval: ", COLOR_GRAY)
+                    .insert(msg(worldMapConfig.getIncrementalBatchIntervalTicks() + " ticks", COLOR_WHITE)));
+                ctx.sendMessage(msg("Max Chunks/Batch: ", COLOR_GRAY)
+                    .insert(msg(String.valueOf(worldMapConfig.getIncrementalMaxChunksPerBatch()), COLOR_WHITE)));
+            }
+            case DEBOUNCED -> {
+                ctx.sendMessage(msg("Debounce Delay: ", COLOR_GRAY)
+                    .insert(msg(worldMapConfig.getDebouncedDelaySeconds() + " seconds", COLOR_WHITE)));
+            }
+            case IMMEDIATE, MANUAL -> {
+                // No additional settings to show
+            }
+        }
+
+        // Statistics
+        ctx.sendMessage(msg("", COLOR_GRAY));
+        ctx.sendMessage(msg("Statistics:", COLOR_YELLOW));
+        ctx.sendMessage(msg("  Pending Chunks: ", COLOR_GRAY)
+            .insert(msg(String.valueOf(scheduler.getPendingChunkCount()), COLOR_WHITE)));
+        ctx.sendMessage(msg("  Total Refreshes: ", COLOR_GRAY)
+            .insert(msg(String.valueOf(scheduler.getTotalRefreshes()), COLOR_WHITE)));
+        ctx.sendMessage(msg("  Chunks Processed: ", COLOR_GRAY)
+            .insert(msg(String.valueOf(scheduler.getChunksProcessed()), COLOR_WHITE)));
+        ctx.sendMessage(msg("  Players Notified: ", COLOR_GRAY)
+            .insert(msg(String.valueOf(scheduler.getPlayersNotified()), COLOR_WHITE)));
+
+        var lastRefresh = scheduler.getLastRefreshTime();
+        if (lastRefresh != null) {
+            long secondsAgo = java.time.Duration.between(lastRefresh, java.time.Instant.now()).getSeconds();
+            ctx.sendMessage(msg("  Last Refresh: ", COLOR_GRAY)
+                .insert(msg(secondsAgo + " seconds ago", COLOR_WHITE)));
+        } else {
+            ctx.sendMessage(msg("  Last Refresh: ", COLOR_GRAY)
+                .insert(msg("Never", COLOR_GRAY)));
+        }
     }
 
     // === Admin Decay Commands ===

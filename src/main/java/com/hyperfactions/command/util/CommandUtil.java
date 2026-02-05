@@ -1,6 +1,7 @@
 package com.hyperfactions.command.util;
 
 import com.hyperfactions.HyperFactions;
+import com.hyperfactions.config.ConfigManager;
 import com.hyperfactions.data.Faction;
 import com.hyperfactions.integration.PermissionManager;
 import com.hyperfactions.platform.HyperFactionsPlugin;
@@ -27,15 +28,21 @@ public final class CommandUtil {
     private CommandUtil() {}
 
     /**
-     * Creates the standard HyperFactions message prefix.
+     * Creates the standard HyperFactions message prefix using configured values.
+     * Format: [PrefixText] with configurable colors for brackets and text.
      *
      * @return the prefix message
      */
     @NotNull
     public static Message prefix() {
-        return Message.raw("[").color(COLOR_GRAY)
-            .insert(Message.raw("HyperFactions").color(COLOR_CYAN))
-            .insert(Message.raw("] ").color(COLOR_GRAY));
+        ConfigManager config = ConfigManager.get();
+        String text = config.getPrefixText();
+        String textColor = config.getPrefixColor();
+        String bracketColor = config.getPrefixBracketColor();
+
+        return Message.raw("[").color(bracketColor)
+            .insert(Message.raw(text).color(textColor))
+            .insert(Message.raw("] ").color(bracketColor));
     }
 
     /**

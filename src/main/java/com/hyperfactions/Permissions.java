@@ -86,6 +86,8 @@ public final class Permissions {
     public static final String HOME = "hyperfactions.teleport.home";
     /** Set faction home location */
     public static final String SETHOME = "hyperfactions.teleport.sethome";
+    /** Delete faction home location */
+    public static final String DELHOME = "hyperfactions.teleport.delhome";
     /** Use the /f stuck command */
     public static final String STUCK = "hyperfactions.teleport.stuck";
 
@@ -184,7 +186,7 @@ public final class Permissions {
             // Territory
             CLAIM, UNCLAIM, OVERCLAIM, MAP,
             // Teleportation
-            HOME, SETHOME, STUCK,
+            HOME, SETHOME, DELHOME, STUCK,
             // Diplomacy
             ALLY, ENEMY, NEUTRAL, RELATIONS,
             // Communication
@@ -231,7 +233,7 @@ public final class Permissions {
             CREATE, DISBAND, RENAME, DESC, TAG, COLOR, OPEN, CLOSE, FACTION_PERMISSIONS,
             INVITE, JOIN, LEAVE, KICK, PROMOTE, DEMOTE, TRANSFER,
             CLAIM, UNCLAIM, OVERCLAIM, MAP,
-            HOME, SETHOME, STUCK,
+            HOME, SETHOME, DELHOME, STUCK,
             ALLY, ENEMY, NEUTRAL, RELATIONS,
             CHAT_FACTION, CHAT_ALLY,
             INFO, LIST, WHO, POWER, MEMBERS, LOGS, HELP

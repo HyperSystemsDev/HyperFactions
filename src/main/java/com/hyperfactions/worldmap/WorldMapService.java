@@ -1,16 +1,21 @@
 package com.hyperfactions.worldmap;
 
 import com.hyperfactions.config.ConfigManager;
+import com.hyperfactions.config.modules.WorldMapConfig;
+import com.hyperfactions.data.ChunkKey;
 import com.hyperfactions.manager.ClaimManager;
 import com.hyperfactions.manager.FactionManager;
 import com.hyperfactions.manager.RelationManager;
 import com.hyperfactions.manager.ZoneManager;
 import com.hyperfactions.util.Logger;
+
+import java.util.UUID;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.worldmap.IWorldMap;
 import com.hypixel.hytale.server.core.universe.world.worldmap.WorldMapManager;
 import com.hypixel.hytale.server.core.universe.world.worldmap.provider.IWorldMapProvider;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -32,6 +37,9 @@ public class WorldMapService {
     /** Tracks which worlds have had the generator registered */
     private final Set<String> registeredWorlds = ConcurrentHashMap.newKeySet();
 
+    /** Refresh scheduler for optimized map updates */
+    private WorldMapRefreshScheduler refreshScheduler;
+
     public WorldMapService(
             @NotNull FactionManager factionManager,
             @NotNull ClaimManager claimManager,
@@ -41,6 +49,31 @@ public class WorldMapService {
         this.claimManager = claimManager;
         this.zoneManager = zoneManager;
         // relationManager parameter kept for API compatibility but not used
+    }
+
+    /**
+     * Initializes the refresh scheduler. Must be called after ConfigManager is loaded.
+     *
+     * @param worldMapConfig the world map configuration
+     */
+    public void initializeScheduler(@NotNull WorldMapConfig worldMapConfig) {
+        if (refreshScheduler != null) {
+            refreshScheduler.shutdown();
+        }
+        refreshScheduler = new WorldMapRefreshScheduler(worldMapConfig, this);
+        refreshScheduler.start();
+        Logger.info("[WorldMap] Refresh scheduler initialized with mode: %s",
+                worldMapConfig.getRefreshMode().getConfigName());
+    }
+
+    /**
+     * Gets the refresh scheduler for status/statistics.
+     *
+     * @return the refresh scheduler, or null if not initialized
+     */
+    @Nullable
+    public WorldMapRefreshScheduler getRefreshScheduler() {
+        return refreshScheduler;
     }
 
     /**
@@ -135,6 +168,9 @@ public class WorldMapService {
     /**
      * Forces a refresh of the world map for all registered worlds.
      * Call this when faction data changes (color, claims, etc.).
+     * <p>
+     * Note: This performs an immediate full refresh, bypassing the scheduler.
+     * For normal claim changes, use {@link #queueChunkRefresh} instead.
      */
     public void refreshAllWorldMaps() {
         if (!ConfigManager.get().isWorldMapMarkersEnabled()) {
@@ -152,6 +188,101 @@ public class WorldMapService {
             Logger.debugWorldMap("Refreshed world maps for %d/%d worlds", refreshed, registeredWorlds.size());
         } catch (Exception e) {
             Logger.warn("Failed to refresh all world maps: %s", e.getMessage());
+        }
+    }
+
+    /**
+     * Queues a chunk for refresh through the scheduler.
+     * This is the preferred method for claim changes as it respects the configured refresh mode.
+     *
+     * @param worldName the world name
+     * @param chunkX chunk X coordinate
+     * @param chunkZ chunk Z coordinate
+     */
+    public void queueChunkRefresh(@NotNull String worldName, int chunkX, int chunkZ) {
+        if (!ConfigManager.get().isWorldMapMarkersEnabled()) {
+            return;
+        }
+
+        if (refreshScheduler != null) {
+            refreshScheduler.queueChunkRefresh(worldName, chunkX, chunkZ);
+        } else {
+            // Fallback to immediate refresh if scheduler not initialized
+            Logger.debugWorldMap("Scheduler not initialized, using immediate refresh");
+            World world = com.hypixel.hytale.server.core.universe.Universe.get().getWorld(worldName);
+            if (world != null && registeredWorlds.contains(worldName)) {
+                refreshWorldMap(world);
+            }
+        }
+    }
+
+    /**
+     * Forces an immediate full refresh, bypassing the scheduler.
+     * Use for admin commands or critical updates.
+     */
+    public void forceFullRefresh() {
+        if (refreshScheduler != null) {
+            refreshScheduler.forceFullRefresh();
+        } else {
+            refreshAllWorldMaps();
+        }
+    }
+
+    /**
+     * Triggers a refresh for a faction's claimed chunks, respecting the configured refresh mode.
+     * Use for faction-wide changes (rename, tag, color) that affect all claimed chunks.
+     *
+     * If the faction has more claims than the configured threshold, falls back to full refresh.
+     *
+     * @param factionId the faction whose claims need refreshing
+     */
+    public void triggerFactionWideRefresh(@NotNull UUID factionId) {
+        if (!ConfigManager.get().isWorldMapMarkersEnabled()) {
+            return;
+        }
+
+        Set<ChunkKey> claims = claimManager.getFactionClaims(factionId);
+        triggerFactionWideRefresh(claims);
+    }
+
+    /**
+     * Triggers a refresh for specific chunks, respecting the configured refresh mode.
+     * Use for zone changes or other multi-chunk updates.
+     *
+     * If chunks is null or exceeds the configured threshold, falls back to full refresh.
+     *
+     * @param chunks the chunks to refresh, or null for full refresh
+     */
+    public void triggerFactionWideRefresh(@Nullable Set<ChunkKey> chunks) {
+        if (!ConfigManager.get().isWorldMapMarkersEnabled()) {
+            return;
+        }
+
+        if (refreshScheduler != null) {
+            refreshScheduler.queueFactionWideRefresh(chunks);
+        } else {
+            refreshAllWorldMaps();
+        }
+    }
+
+    /**
+     * Triggers a full refresh that respects the configured refresh mode.
+     * Use when chunk set is unknown or for legacy callers.
+     *
+     * Behavior by mode:
+     * - PROXIMITY/INCREMENTAL/IMMEDIATE: Full refresh
+     * - DEBOUNCED: Triggers debounce timer
+     * - MANUAL: No automatic refresh
+     */
+    public void triggerFactionWideRefresh() {
+        if (!ConfigManager.get().isWorldMapMarkersEnabled()) {
+            return;
+        }
+
+        if (refreshScheduler != null) {
+            refreshScheduler.queueFactionWideRefresh(null);
+        } else {
+            refreshAllWorldMaps();
         }
     }
 
@@ -180,6 +311,10 @@ public class WorldMapService {
      * Called on plugin shutdown.
      */
     public void shutdown() {
+        if (refreshScheduler != null) {
+            refreshScheduler.shutdown();
+            refreshScheduler = null;
+        }
         registeredWorlds.clear();
     }
 }

@@ -70,6 +70,7 @@ public class FactionCommand extends AbstractPlayerCommand {
         // Teleport commands
         addSubCommand(new HomeSubCommand(hyperFactions, plugin));
         addSubCommand(new SetHomeSubCommand(hyperFactions, plugin));
+        addSubCommand(new DelHomeSubCommand(hyperFactions, plugin));
 
         // Relation commands
         addSubCommand(new AllySubCommand(hyperFactions, plugin));

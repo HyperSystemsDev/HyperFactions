@@ -17,7 +17,10 @@ public enum BackupType {
     WEEKLY("weekly", "Weekly"),
 
     /** Manual backups - user-created, never auto-deleted */
-    MANUAL("manual", "Manual");
+    MANUAL("manual", "Manual"),
+
+    /** Migration backups - created before config/data migrations */
+    MIGRATION("migration", "Migration");
 
     private final String prefix;
     private final String displayName;
@@ -53,7 +56,7 @@ public enum BackupType {
      * @return true if backups of this type can be auto-deleted
      */
     public boolean isAutoRotated() {
-        return this != MANUAL;
+        return this != MANUAL && this != MIGRATION;
     }
 
     /**

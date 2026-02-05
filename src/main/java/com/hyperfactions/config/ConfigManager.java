@@ -1,6 +1,7 @@
 package com.hyperfactions.config;
 
 import com.hyperfactions.config.modules.*;
+import com.hyperfactions.config.modules.WorldMapConfig;
 import com.hyperfactions.data.FactionPermissions;
 import com.hyperfactions.migration.MigrationResult;
 import com.hyperfactions.migration.MigrationRunner;
@@ -28,6 +29,7 @@ public class ConfigManager {
     private DebugConfig debugConfig;
     private EconomyConfig economyConfig;
     private FactionPermissionsConfig factionPermissionsConfig;
+    private WorldMapConfig worldMapConfig;
 
     private ConfigManager() {}
 
@@ -85,6 +87,9 @@ public class ConfigManager {
         factionPermissionsConfig = new FactionPermissionsConfig(configDir.resolve("faction-permissions.json"));
         factionPermissionsConfig.load();
 
+        worldMapConfig = new WorldMapConfig(configDir.resolve("worldmap.json"));
+        worldMapConfig.load();
+
         // Step 4: Validate all configs and log any issues
         validateAll();
 
@@ -131,6 +136,11 @@ public class ConfigManager {
             combined.merge(factionPermissionsConfig.getLastValidationResult());
         }
 
+        worldMapConfig.validateAndLog();
+        if (worldMapConfig.getLastValidationResult() != null) {
+            combined.merge(worldMapConfig.getLastValidationResult());
+        }
+
         // Log summary
         if (combined.hasIssues()) {
             int warnings = combined.getWarnings().size();
@@ -171,6 +181,7 @@ public class ConfigManager {
         debugConfig.reload();
         economyConfig.reload();
         factionPermissionsConfig.reload();
+        worldMapConfig.reload();
 
         // Re-validate after reload
         validateAll();
@@ -188,6 +199,7 @@ public class ConfigManager {
         debugConfig.save();
         economyConfig.save();
         factionPermissionsConfig.save();
+        worldMapConfig.save();
     }
 
     // === Config Accessors ===
@@ -250,6 +262,16 @@ public class ConfigManager {
     @NotNull
     public FactionPermissionsConfig factionPermissions() {
         return factionPermissionsConfig;
+    }
+
+    /**
+     * Gets the world map module configuration.
+     *
+     * @return world map config
+     */
+    @NotNull
+    public WorldMapConfig worldMap() {
+        return worldMapConfig;
     }
 
     // === Convenience Methods (for backward compatibility) ===
@@ -336,8 +358,10 @@ public class ConfigManager {
     @NotNull public String getEconomyCurrencySymbol() { return economyConfig.getCurrencySymbol(); }
     public double getEconomyStartingBalance() { return economyConfig.getStartingBalance(); }
 
-    // Messages
-    @NotNull public String getPrefix() { return coreConfig.getPrefix(); }
+    // Messages (v3 structured prefix)
+    @NotNull public String getPrefixText() { return coreConfig.getPrefixText(); }
+    @NotNull public String getPrefixColor() { return coreConfig.getPrefixColor(); }
+    @NotNull public String getPrefixBracketColor() { return coreConfig.getPrefixBracketColor(); }
     @NotNull public String getPrimaryColor() { return coreConfig.getPrimaryColor(); }
 
     // GUI
@@ -346,8 +370,8 @@ public class ConfigManager {
     // Territory Notifications
     public boolean isTerritoryNotificationsEnabled() { return coreConfig.isTerritoryNotificationsEnabled(); }
 
-    // World Map
-    public boolean isWorldMapMarkersEnabled() { return coreConfig.isWorldMapMarkersEnabled(); }
+    // World Map (from worldmap.json module config)
+    public boolean isWorldMapMarkersEnabled() { return worldMapConfig.isEnabled(); }
 
     // Debug (from module)
     public boolean isDebugEnabledByDefault() { return debugConfig.isEnabledByDefault(); }

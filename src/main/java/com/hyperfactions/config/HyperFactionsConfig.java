@@ -162,8 +162,10 @@ public class HyperFactionsConfig {
     public String getEconomyCurrencySymbol() { return ConfigManager.get().getEconomyCurrencySymbol(); }
     public double getEconomyStartingBalance() { return ConfigManager.get().getEconomyStartingBalance(); }
 
-    // Message settings
-    public String getPrefix() { return ConfigManager.get().getPrefix(); }
+    // Message settings (v3: structured prefix)
+    public String getPrefixText() { return ConfigManager.get().getPrefixText(); }
+    public String getPrefixColor() { return ConfigManager.get().getPrefixColor(); }
+    public String getPrefixBracketColor() { return ConfigManager.get().getPrefixBracketColor(); }
     public String getPrimaryColor() { return ConfigManager.get().getPrimaryColor(); }
 
     // GUI settings

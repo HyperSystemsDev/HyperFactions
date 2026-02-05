@@ -1,17 +1,22 @@
 package com.hyperfactions.migration;
 
+import com.hyperfactions.backup.BackupMetadata;
+import com.hyperfactions.backup.BackupType;
 import com.hyperfactions.util.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+import java.util.zip.ZipOutputStream;
 
 /**
  * Executes migrations with backup and rollback support.
@@ -186,136 +191,142 @@ public class MigrationRunner {
 
     /**
      * Creates a backup before running a migration.
-     * <p>
-     * For config migrations, backs up config.json (and config/ directory if it exists).
-     * Backup naming: config.json.v{fromVersion}.backup
+     * Uses the same ZIP format as the normal backup system for consistency.
+     *
+     * Backup naming: backup_migration_v{fromVersion}-to-v{toVersion}_YYYY-MM-DD_HH-mm-ss.zip
+     * Location: backups/ directory
      *
      * @param migration the migration about to run
-     * @return path to the backup file/directory
+     * @return path to the backup ZIP file
      * @throws IOException if backup fails
      */
     @NotNull
     private Path createBackup(@NotNull Migration migration) throws IOException {
-        switch (migration.type()) {
-            case CONFIG -> {
-                Path configFile = dataDir.resolve("config.json");
-                Path backupFile = dataDir.resolve("config.json.v" + migration.fromVersion() + ".backup");
+        // Create backups directory if it doesn't exist
+        Path backupsDir = dataDir.resolve("backups");
+        Files.createDirectories(backupsDir);
 
-                if (Files.exists(configFile)) {
-                    Files.copy(configFile, backupFile, StandardCopyOption.REPLACE_EXISTING);
+        // Generate backup filename with version info
+        Instant timestamp = Instant.now();
+        String versionSuffix = "v" + migration.fromVersion() + "-to-v" + migration.toVersion();
+        String baseName = BackupMetadata.generateName(BackupType.MIGRATION, timestamp);
+        // Insert version info before the timestamp: backup_migration_v2-to-v3_2024-01-15_12-30-45
+        String name = baseName.replace("backup_migration_", "backup_migration_" + versionSuffix + "_");
+        Path backupFile = backupsDir.resolve(name + ".zip");
+
+        // Create ZIP file with relevant content based on migration type
+        try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(backupFile.toFile()))) {
+            switch (migration.type()) {
+                case CONFIG -> {
+                    // Backup config.json
+                    Path configFile = dataDir.resolve("config.json");
+                    if (Files.exists(configFile)) {
+                        addFileToZip(zos, configFile, "config.json");
+                    }
+
+                    // Backup config/ directory
+                    Path configDir = dataDir.resolve("config");
+                    if (Files.exists(configDir) && Files.isDirectory(configDir)) {
+                        addDirectoryToZip(zos, configDir, "config");
+                    }
                 }
+                case DATA -> {
+                    // Backup factions/
+                    Path factionsDir = dataDir.resolve("factions");
+                    if (Files.exists(factionsDir)) {
+                        addDirectoryToZip(zos, factionsDir, "factions");
+                    }
 
-                // Also backup config/ directory if it exists
-                Path configDir = dataDir.resolve("config");
-                if (Files.exists(configDir) && Files.isDirectory(configDir)) {
-                    Path configDirBackup = dataDir.resolve("config.v" + migration.fromVersion() + ".backup");
-                    copyDirectory(configDir, configDirBackup);
+                    // Backup players/
+                    Path playersDir = dataDir.resolve("players");
+                    if (Files.exists(playersDir)) {
+                        addDirectoryToZip(zos, playersDir, "players");
+                    }
+
+                    // Backup zones.json
+                    Path zonesFile = dataDir.resolve("zones.json");
+                    if (Files.exists(zonesFile)) {
+                        addFileToZip(zos, zonesFile, "zones.json");
+                    }
                 }
-
-                return backupFile;
+                case SCHEMA -> {
+                    // For schema migrations, include any database-related files
+                    Logger.warn("[Migration] Schema migration backup not fully implemented");
+                }
             }
-            case DATA -> {
-                // For data migrations, backup the entire data directory
-                Path backupDir = dataDir.resolve("data.v" + migration.fromVersion() + ".backup");
-                // Implementation depends on data structure
-                return backupDir;
-            }
-            case SCHEMA -> {
-                // For schema migrations, typically handled by database
-                return dataDir.resolve("schema.v" + migration.fromVersion() + ".backup");
-            }
-            default -> throw new IllegalStateException("Unknown migration type: " + migration.type());
         }
+
+        Logger.info("[Migration] Created ZIP backup: %s", backupFile.getFileName());
+        return backupFile;
     }
 
     /**
-     * Rolls back a failed migration by restoring from backup.
+     * Adds a single file to a ZIP output stream.
+     */
+    private void addFileToZip(@NotNull ZipOutputStream zos, @NotNull Path file, @NotNull String entryName)
+            throws IOException {
+        zos.putNextEntry(new ZipEntry(entryName));
+        Files.copy(file, zos);
+        zos.closeEntry();
+    }
+
+    /**
+     * Adds a directory recursively to a ZIP output stream.
+     */
+    private void addDirectoryToZip(@NotNull ZipOutputStream zos, @NotNull Path dir, @NotNull String zipPath)
+            throws IOException {
+        Files.walkFileTree(dir, new SimpleFileVisitor<>() {
+            @Override
+            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                String entryName = zipPath + "/" + dir.relativize(file).toString().replace("\\", "/");
+                addFileToZip(zos, file, entryName);
+                return FileVisitResult.CONTINUE;
+            }
+
+            @Override
+            public FileVisitResult preVisitDirectory(Path dir2, BasicFileAttributes attrs) throws IOException {
+                String entryName = zipPath + "/" + dir.relativize(dir2).toString().replace("\\", "/") + "/";
+                if (!entryName.equals(zipPath + "//")) {
+                    zos.putNextEntry(new ZipEntry(entryName));
+                    zos.closeEntry();
+                }
+                return FileVisitResult.CONTINUE;
+            }
+        });
+    }
+
+    /**
+     * Rolls back a failed migration by restoring from the ZIP backup.
      *
      * @param migration  the migration that failed
-     * @param backupPath path to the backup
+     * @param backupPath path to the ZIP backup
      * @throws IOException if rollback fails
      */
     private void rollback(@NotNull Migration migration, @NotNull Path backupPath) throws IOException {
-        Logger.info("[Migration] Rolling back migration '%s'...", migration.id());
+        Logger.info("[Migration] Rolling back migration '%s' from backup: %s", migration.id(), backupPath.getFileName());
 
-        switch (migration.type()) {
-            case CONFIG -> {
-                // Restore config.json from backup
-                Path configFile = dataDir.resolve("config.json");
-                if (Files.exists(backupPath)) {
-                    Files.copy(backupPath, configFile, StandardCopyOption.REPLACE_EXISTING);
-                }
+        if (!Files.exists(backupPath) || !backupPath.toString().endsWith(".zip")) {
+            throw new IOException("Backup file not found or invalid: " + backupPath);
+        }
 
-                // Delete any config/ directory that was created
-                Path configDir = dataDir.resolve("config");
-                if (Files.exists(configDir)) {
-                    deleteDirectory(configDir);
-                }
+        // Extract ZIP contents back to data directory
+        try (ZipInputStream zis = new ZipInputStream(Files.newInputStream(backupPath))) {
+            ZipEntry entry;
+            while ((entry = zis.getNextEntry()) != null) {
+                Path targetPath = dataDir.resolve(entry.getName());
 
-                // Restore config/ directory backup if it exists
-                Path configDirBackup = dataDir.resolve("config.v" + migration.fromVersion() + ".backup");
-                if (Files.exists(configDirBackup)) {
-                    copyDirectory(configDirBackup, configDir);
+                if (entry.isDirectory()) {
+                    Files.createDirectories(targetPath);
+                } else {
+                    // Ensure parent directory exists
+                    Files.createDirectories(targetPath.getParent());
+                    Files.copy(zis, targetPath, StandardCopyOption.REPLACE_EXISTING);
                 }
-            }
-            case DATA, SCHEMA -> {
-                // Implementation depends on data structure
-                Logger.warn("[Migration] Rollback for %s migrations not fully implemented", migration.type());
+                zis.closeEntry();
             }
         }
 
-        Logger.info("[Migration] Rollback complete");
-    }
-
-    /**
-     * Copies a directory recursively.
-     *
-     * @param source source directory
-     * @param target target directory
-     * @throws IOException if copy fails
-     */
-    private void copyDirectory(@NotNull Path source, @NotNull Path target) throws IOException {
-        Files.walkFileTree(source, new SimpleFileVisitor<>() {
-            @Override
-            public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
-                Path targetDir = target.resolve(source.relativize(dir));
-                Files.createDirectories(targetDir);
-                return FileVisitResult.CONTINUE;
-            }
-
-            @Override
-            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                Path targetFile = target.resolve(source.relativize(file));
-                Files.copy(file, targetFile, StandardCopyOption.REPLACE_EXISTING);
-                return FileVisitResult.CONTINUE;
-            }
-        });
-    }
-
-    /**
-     * Deletes a directory recursively.
-     *
-     * @param directory directory to delete
-     * @throws IOException if delete fails
-     */
-    private void deleteDirectory(@NotNull Path directory) throws IOException {
-        if (!Files.exists(directory)) {
-            return;
-        }
-
-        Files.walkFileTree(directory, new SimpleFileVisitor<>() {
-            @Override
-            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                Files.delete(file);
-                return FileVisitResult.CONTINUE;
-            }
-
-            @Override
-            public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
-                Files.delete(dir);
-                return FileVisitResult.CONTINUE;
-            }
-        });
+        Logger.info("[Migration] Rollback complete - restored from backup");
     }
 
     /**

@@ -39,6 +39,10 @@ public class ClaimManager {
     @Nullable
     private Runnable onClaimChangeCallback;
 
+    // Chunk-specific callback for optimized world map refresh
+    @Nullable
+    private ChunkChangeCallback onChunkChangeCallback;
+
     // Callback for notifying faction members (used for overclaim alerts)
     @Nullable
     private FactionNotificationCallback notificationCallback;
@@ -49,6 +53,15 @@ public class ClaimManager {
     @FunctionalInterface
     public interface FactionNotificationCallback {
         void notifyFaction(UUID factionId, String message, String hexColor);
+    }
+
+    /**
+     * Functional interface for chunk-specific change notifications.
+     * Used for optimized world map refresh.
+     */
+    @FunctionalInterface
+    public interface ChunkChangeCallback {
+        void onChunkChange(String worldName, int chunkX, int chunkZ);
     }
 
     public ClaimManager(@NotNull FactionManager factionManager, @NotNull PowerManager powerManager) {
@@ -98,17 +111,60 @@ public class ClaimManager {
      * Used to trigger world map refresh.
      *
      * @param callback the callback to run on claim changes
+     * @deprecated Use {@link #setOnChunkChangeCallback} for chunk-specific updates
      */
+    @Deprecated
     public void setOnClaimChangeCallback(@Nullable Runnable callback) {
         this.onClaimChangeCallback = callback;
     }
 
     /**
-     * Notifies that claims have changed (triggers world map refresh).
+     * Sets a callback for chunk-specific change notifications.
+     * Preferred over setOnClaimChangeCallback for optimized world map refresh.
+     *
+     * @param callback the callback to run on chunk changes
      */
+    public void setOnChunkChangeCallback(@Nullable ChunkChangeCallback callback) {
+        this.onChunkChangeCallback = callback;
+    }
+
+    /**
+     * Notifies that claims have changed (triggers world map refresh).
+     * @deprecated Use {@link #notifyChunkChange(String, int, int)} for chunk-specific updates
+     */
+    @Deprecated
     private void notifyClaimChange() {
-        Logger.debugClaim("Claim change notification triggered");
+        Logger.debugClaim("Claim change notification triggered (legacy)");
         if (onClaimChangeCallback != null) {
+            try {
+                onClaimChangeCallback.run();
+            } catch (Exception e) {
+                Logger.warn("Error in claim change callback: %s", e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Notifies that a specific chunk claim has changed.
+     * This enables optimized world map refresh by targeting only the affected chunk.
+     *
+     * @param worldName the world name
+     * @param chunkX chunk X coordinate
+     * @param chunkZ chunk Z coordinate
+     */
+    private void notifyChunkChange(@NotNull String worldName, int chunkX, int chunkZ) {
+        Logger.debugClaim("Chunk change notification: world=%s, chunk=(%d,%d)", worldName, chunkX, chunkZ);
+
+        // Try chunk-specific callback first (preferred for performance)
+        if (onChunkChangeCallback != null) {
+            try {
+                onChunkChangeCallback.onChunkChange(worldName, chunkX, chunkZ);
+            } catch (Exception e) {
+                Logger.warn("Error in chunk change callback: %s", e.getMessage());
+            }
+        }
+        // Fall back to legacy callback if no chunk-specific callback set
+        else if (onClaimChangeCallback != null) {
             try {
                 onClaimChangeCallback.run();
             } catch (Exception e) {
@@ -316,7 +372,7 @@ public class ClaimManager {
 
         Logger.debugClaim("Claim success: chunk=%s, faction=%s, player=%s, claimCount=%d/%d",
             key, faction.name(), playerUuid, updated.getClaimCount(), maxClaims);
-        notifyClaimChange();
+        notifyChunkChange(world, chunkX, chunkZ);
         return ClaimResult.SUCCESS;
     }
 
@@ -383,7 +439,7 @@ public class ClaimManager {
 
         Logger.debugClaim("Unclaim success: chunk=%s, faction=%s, player=%s",
             key, faction.name(), playerUuid);
-        notifyClaimChange();
+        notifyChunkChange(world, chunkX, chunkZ);
         return ClaimResult.SUCCESS;
     }
 
@@ -486,7 +542,7 @@ public class ClaimManager {
             String.format("Territory lost! %s overclaimed chunk at %d, %d", attackerFaction.name(), chunkX, chunkZ),
             "#FF5555");
 
-        notifyClaimChange();
+        notifyChunkChange(world, chunkX, chunkZ);
         return ClaimResult.SUCCESS;
     }
 
@@ -513,6 +569,8 @@ public class ClaimManager {
             Logger.debugClaim("Unclaim all: faction=%s, claims removed=%d", faction.name(), faction.getClaimCount());
         }
 
+        // For bulk operations like unclaimAll, use the legacy callback for full refresh
+        // This is appropriate since all chunks are affected
         notifyClaimChange();
     }
 

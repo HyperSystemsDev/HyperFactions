@@ -282,9 +282,10 @@ public class HyperFactionsPlugin extends JavaPlugin {
             hyperFactions.getSpawnSuppressionManager().initialize();
 
             // Wire up zone change callback to re-apply suppression
-            hyperFactions.getZoneManager().setOnZoneChangeCallback(() -> {
-                // Refresh world maps
-                hyperFactions.getWorldMapService().refreshAllWorldMaps();
+            hyperFactions.getZoneManager().setOnZoneChangeCallback(affectedChunks -> {
+                // Refresh world maps (respects configured refresh mode)
+                // Pass affected chunks for optimized refresh, or null for full refresh
+                hyperFactions.getWorldMapService().triggerFactionWideRefresh(affectedChunks);
                 // Re-apply spawn suppression to all worlds
                 applySpawnSuppressionToAllWorlds();
             });

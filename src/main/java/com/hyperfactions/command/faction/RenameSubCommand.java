@@ -95,9 +95,9 @@ public class RenameSubCommand extends FactionSubCommand {
 
         hyperFactions.getFactionManager().updateFaction(updated);
 
-        // Refresh world maps to show new faction name
+        // Refresh world maps to show new faction name (respects configured refresh mode)
         if (hyperFactions.getWorldMapService() != null) {
-            hyperFactions.getWorldMapService().refreshAllWorldMaps();
+            hyperFactions.getWorldMapService().triggerFactionWideRefresh(faction.id());
         }
 
         ctx.sendMessage(prefix().insert(msg("Faction renamed to ", COLOR_GREEN))

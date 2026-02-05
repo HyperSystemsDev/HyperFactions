@@ -201,6 +201,9 @@ public class FactionSettingsTabsPage extends InteractiveCustomUIPage<FactionSett
             cmd.set("#HomeLocation.Text", homeText);
         } else {
             cmd.set("#HomeLocation.Text", "Not set");
+            // Disable teleport and delete buttons when no home is set
+            cmd.set("#TeleportHomeBtn.Disabled", true);
+            cmd.set("#DeleteHomeBtn.Disabled", true);
         }
 
         // Bind general tab events
@@ -218,6 +221,8 @@ public class FactionSettingsTabsPage extends InteractiveCustomUIPage<FactionSett
                 EventData.of("Button", "SetHome"), false);
         events.addEventBinding(CustomUIEventBindingType.Activating, "#TeleportHomeBtn",
                 EventData.of("Button", "TeleportHome"), false);
+        events.addEventBinding(CustomUIEventBindingType.Activating, "#DeleteHomeBtn",
+                EventData.of("Button", "DeleteHome"), false);
         events.addEventBinding(CustomUIEventBindingType.Activating, "#ModulesBtn",
                 EventData.of("Button", "OpenModules"), false);
 
@@ -439,6 +444,7 @@ public class FactionSettingsTabsPage extends InteractiveCustomUIPage<FactionSett
             case "OpenTagModal" -> guiManager.openTagModal(player, ref, store, playerRef, faction);
             case "SetHome" -> handleSetHome(player, ref, store, uuid);
             case "TeleportHome" -> handleTeleportHome(player, ref, store, uuid);
+            case "DeleteHome" -> handleDeleteHome(player, ref, store, uuid);
             case "OpenModules" -> guiManager.openFactionModules(player, ref, store, playerRef, faction);
             case "Disband" -> {
                 if (!isLeader) {
@@ -608,6 +614,22 @@ public class FactionSettingsTabsPage extends InteractiveCustomUIPage<FactionSett
             case ON_COOLDOWN, SUCCESS_WARMUP -> {} // Message sent by TeleportManager
             default -> {}
         }
+    }
+
+    private void handleDeleteHome(Player player, Ref<EntityStore> ref, Store<EntityStore> store, UUID uuid) {
+        if (faction.home() == null) {
+            player.sendMessage(Message.raw("Your faction does not have a home set.").color("#FFAA00"));
+            sendUpdate();
+            return;
+        }
+
+        Faction updatedFaction = faction.withHome(null);
+        factionManager.updateFaction(updatedFaction);
+
+        player.sendMessage(Message.raw("Faction home deleted!").color("#55FF55"));
+
+        guiManager.openSettingsWithTab(player, ref, store, playerRef,
+                factionManager.getFaction(faction.id()), activeTab);
     }
 
     private record ColorInfo(String code, String hex, String name) {}

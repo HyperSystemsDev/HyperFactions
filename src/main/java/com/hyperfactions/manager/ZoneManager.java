@@ -12,6 +12,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
@@ -33,12 +34,14 @@ public class ZoneManager {
     private final Map<String, Zone> zonesByName = new ConcurrentHashMap<>();
 
     // Callback for when zones change (used to refresh world map)
+    // Accepts set of affected chunks, or null for full refresh
     @Nullable
-    private Runnable onZoneChangeCallback;
+    private Consumer<Set<ChunkKey>> onZoneChangeCallback;
 
     // Batch mode for bulk operations - defers notifyZoneChange until endBatch
     private boolean batchMode = false;
     private boolean pendingNotification = false;
+    private Set<ChunkKey> pendingChunks = new HashSet<>();
 
     public ZoneManager(@NotNull ZoneStorage storage, @NotNull ClaimManager claimManager) {
         this.storage = storage;
@@ -53,6 +56,7 @@ public class ZoneManager {
     public void startBatch() {
         batchMode = true;
         pendingNotification = false;
+        pendingChunks.clear();
         Logger.debug("Zone batch mode started");
     }
 
@@ -63,9 +67,13 @@ public class ZoneManager {
     public void endBatch() {
         batchMode = false;
         if (pendingNotification) {
-            Logger.debug("Zone batch mode ended - firing deferred notification");
-            notifyZoneChange();
+            Logger.debug("Zone batch mode ended - firing deferred notification for %d chunks",
+                pendingChunks.size());
+            // Pass accumulated chunks (may be empty if zones were created empty)
+            Set<ChunkKey> chunks = pendingChunks.isEmpty() ? null : new HashSet<>(pendingChunks);
+            notifyZoneChange(chunks);
             pendingNotification = false;
+            pendingChunks.clear();
         } else {
             Logger.debug("Zone batch mode ended - no pending notifications");
         }
@@ -83,28 +91,36 @@ public class ZoneManager {
     /**
      * Sets a callback to be invoked when zones change.
      * Used to trigger world map refresh.
+     * The callback receives the set of affected chunks, or null for full refresh.
      *
      * @param callback the callback to run on zone changes
      */
-    public void setOnZoneChangeCallback(@Nullable Runnable callback) {
+    public void setOnZoneChangeCallback(@Nullable Consumer<Set<ChunkKey>> callback) {
         this.onZoneChangeCallback = callback;
     }
 
     /**
      * Notifies that zones have changed (triggers world map refresh).
      * In batch mode, notifications are deferred until endBatch is called.
+     *
+     * @param affectedChunks the chunks that changed, or null for full refresh
      */
-    private void notifyZoneChange() {
+    private void notifyZoneChange(@Nullable Set<ChunkKey> affectedChunks) {
         if (batchMode) {
             pendingNotification = true;
-            Logger.debugTerritory("Zone change notification deferred (batch mode)");
+            if (affectedChunks != null) {
+                pendingChunks.addAll(affectedChunks);
+            }
+            Logger.debugTerritory("Zone change notification deferred (batch mode), %d chunks accumulated",
+                pendingChunks.size());
             return;
         }
 
-        Logger.debugTerritory("Zone change notification triggered");
+        Logger.debugTerritory("Zone change notification triggered for %s chunks",
+            affectedChunks == null ? "all" : String.valueOf(affectedChunks.size()));
         if (onZoneChangeCallback != null) {
             try {
-                onZoneChangeCallback.run();
+                onZoneChangeCallback.accept(affectedChunks);
             } catch (Exception e) {
                 Logger.warn("Error in zone change callback: %s", e.getMessage());
             }
@@ -389,7 +405,7 @@ public class ZoneManager {
         saveAll();
 
         Logger.info("Created empty %s '%s' in %s", type.getDisplayName(), name, world);
-        notifyZoneChange();
+        notifyZoneChange(null); // Empty zone, full refresh for map update
         return ZoneResult.SUCCESS;
     }
 
@@ -470,7 +486,7 @@ public class ZoneManager {
 
         // Save and notify
         return saveAll().thenApply(v -> {
-            notifyZoneChange();
+            notifyZoneChange(chunks);
             return ZoneResult.SUCCESS;
         });
     }
@@ -516,7 +532,7 @@ public class ZoneManager {
         saveAll();
 
         Logger.info("Created %s '%s' at %d, %d in %s", type.getDisplayName(), name, chunkX, chunkZ, world);
-        notifyZoneChange();
+        notifyZoneChange(Set.of(key));
         return ZoneResult.SUCCESS;
     }
 
@@ -561,7 +577,7 @@ public class ZoneManager {
         updateZone(updated);
 
         Logger.info("Claimed chunk (%d, %d) for zone '%s'", chunkX, chunkZ, zone.name());
-        notifyZoneChange();
+        notifyZoneChange(Set.of(key));
         return ZoneResult.SUCCESS;
     }
 
@@ -593,7 +609,7 @@ public class ZoneManager {
         updateZone(updated);
 
         Logger.info("Unclaimed chunk (%d, %d) from zone '%s'", chunkX, chunkZ, zone.name());
-        notifyZoneChange();
+        notifyZoneChange(Set.of(key));
         return ZoneResult.SUCCESS;
     }
 
@@ -664,11 +680,15 @@ public class ZoneManager {
         }
 
         if (claimed > 0) {
+            // Calculate which chunks were actually new (for map refresh)
+            Set<ChunkKey> claimedChunks = new HashSet<>(newChunks);
+            claimedChunks.removeAll(zone.chunks());
+
             Zone updated = new Zone(zone.id(), zone.name(), zone.type(), zone.world(),
                                    newChunks, zone.createdAt(), zone.createdBy(), zone.flags());
             updateZone(updated);
             Logger.info("Claimed %d chunks in radius for zone '%s'", claimed, zone.name());
-            notifyZoneChange();
+            notifyZoneChange(claimedChunks);
         }
 
         return claimed;
@@ -697,7 +717,7 @@ public class ZoneManager {
         saveAll();
 
         Logger.info("Removed %s '%s' with %d chunks", zone.type().getDisplayName(), zone.name(), zone.getChunkCount());
-        notifyZoneChange();
+        notifyZoneChange(zone.chunks());
         return ZoneResult.SUCCESS;
     }
 
@@ -754,7 +774,7 @@ public class ZoneManager {
 
         Logger.info("Changed zone '%s' from %s to %s (resetFlags=%s)",
                 zone.name(), zone.type().getDisplayName(), newType.getDisplayName(), resetFlags);
-        notifyZoneChange();
+        notifyZoneChange(zone.chunks());
         return ZoneResult.SUCCESS;
     }
 

@@ -226,8 +226,16 @@ Group {
 
       TextButton #TeleportHomeBtn {
         Text: "TELEPORT";
-        Anchor: (Height: 28, Width: 100);
+        Anchor: (Height: 28, Width: 90);
         Style: $S.@SmallGreenButtonStyle;
+      }
+
+      Label { Anchor: (Width: 10); }
+
+      TextButton #DeleteHomeBtn {
+        Text: "DELETE";
+        Anchor: (Height: 28, Width: 70);
+        Style: $S.@SmallRedButtonStyle;
       }
     }
   }

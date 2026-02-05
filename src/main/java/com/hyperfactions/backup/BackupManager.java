@@ -113,6 +113,22 @@ public class BackupManager {
     }
 
     /**
+     * Restarts the scheduled backup task with current config settings.
+     * Call this after config reload to pick up changes to backup settings.
+     */
+    public synchronized void restartScheduledBackups() {
+        // Cancel existing task
+        if (scheduledTaskId > 0) {
+            hyperFactions.cancelTask(scheduledTaskId);
+            scheduledTaskId = -1;
+            Logger.debug("[BackupManager] Cancelled existing backup task for restart");
+        }
+
+        // Start with new config
+        startScheduledBackups();
+    }
+
+    /**
      * Shuts down the backup manager.
      * Creates a shutdown backup if configured.
      */

@@ -67,6 +67,38 @@ public final class ChunkUtil {
     }
 
     /**
+     * Packs chunk coordinates into a single long value.
+     * Used for efficient storage and lookup.
+     *
+     * @param chunkX the chunk X coordinate
+     * @param chunkZ the chunk Z coordinate
+     * @return the packed key
+     */
+    public static long packChunkKey(int chunkX, int chunkZ) {
+        return ((long) chunkX << 32) | (chunkZ & 0xFFFFFFFFL);
+    }
+
+    /**
+     * Unpacks the X coordinate from a packed chunk key.
+     *
+     * @param packedKey the packed key
+     * @return the chunk X coordinate
+     */
+    public static int unpackChunkX(long packedKey) {
+        return (int) (packedKey >> 32);
+    }
+
+    /**
+     * Unpacks the Z coordinate from a packed chunk key.
+     *
+     * @param packedKey the packed key
+     * @return the chunk Z coordinate
+     */
+    public static int unpackChunkZ(long packedKey) {
+        return (int) packedKey;
+    }
+
+    /**
      * Checks if two chunks are adjacent (sharing an edge).
      *
      * @param x1 first chunk X

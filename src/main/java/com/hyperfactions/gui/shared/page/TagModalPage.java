@@ -138,9 +138,9 @@ public class TagModalPage extends InteractiveCustomUIPage<TagModalData> {
                     Faction updatedFaction = faction.withTag(null);
                     factionManager.updateFaction(updatedFaction);
 
-                    // Refresh world maps to remove faction tag
+                    // Refresh world maps to remove faction tag (respects configured refresh mode)
                     if (worldMapService != null) {
-                        worldMapService.refreshAllWorldMaps();
+                        worldMapService.triggerFactionWideRefresh(faction.id());
                     }
 
                     String prefix = adminMode ? "[Admin] " : "";
@@ -195,9 +195,9 @@ public class TagModalPage extends InteractiveCustomUIPage<TagModalData> {
                 Faction updatedFaction = faction.withTag(newTag);
                 factionManager.updateFaction(updatedFaction);
 
-                // Refresh world maps to show new faction tag
+                // Refresh world maps to show new faction tag (respects configured refresh mode)
                 if (worldMapService != null) {
-                    worldMapService.refreshAllWorldMaps();
+                    worldMapService.triggerFactionWideRefresh(faction.id());
                 }
 
                 String prefix = adminMode ? "[Admin] " : "";

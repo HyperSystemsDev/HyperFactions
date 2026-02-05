@@ -90,8 +90,8 @@ public class ColorSubCommand extends FactionSubCommand {
 
         hyperFactions.getFactionManager().updateFaction(updated);
 
-        // Refresh world maps to show new faction color
-        hyperFactions.getWorldMapService().refreshAllWorldMaps();
+        // Refresh world maps to show new faction color (respects configured refresh mode)
+        hyperFactions.getWorldMapService().triggerFactionWideRefresh(faction.id());
 
         ctx.sendMessage(prefix().insert(msg("Faction color updated to ", COLOR_GREEN))
             .insert(msg("\u00A7" + colorCode + "this color", null))

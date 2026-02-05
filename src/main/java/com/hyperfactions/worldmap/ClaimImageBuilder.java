@@ -483,7 +483,7 @@ public class ClaimImageBuilder {
         }
 
         // Draw faction tag text on claimed chunks (upper-left corner)
-        if (showClaimsOnMap && factionInfo != null) {
+        if (showClaimsOnMap && factionInfo != null && ConfigManager.get().worldMap().isShowFactionTags()) {
             String tag = factionInfo.tag();
             if (tag != null && !tag.isEmpty()) {
                 // Use white text with dark outline for visibility on any color

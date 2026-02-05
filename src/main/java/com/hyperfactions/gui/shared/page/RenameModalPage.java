@@ -167,9 +167,9 @@ public class RenameModalPage extends InteractiveCustomUIPage<RenameModalData> {
                 Faction updatedFaction = faction.withName(newName);
                 factionManager.updateFaction(updatedFaction);
 
-                // Refresh world maps to show new faction name
+                // Refresh world maps to show new faction name (respects configured refresh mode)
                 if (worldMapService != null) {
-                    worldMapService.refreshAllWorldMaps();
+                    worldMapService.triggerFactionWideRefresh(faction.id());
                 }
 
                 String prefix = adminMode ? "[Admin] " : "";

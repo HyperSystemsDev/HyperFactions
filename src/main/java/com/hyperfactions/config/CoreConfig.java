@@ -81,8 +81,10 @@ public class CoreConfig extends ConfigFile {
     private boolean autoSaveEnabled = true;
     private int autoSaveIntervalMinutes = 5;
 
-    // Message settings
-    private String prefix = "\u00A7b[HyperFactions]\u00A7r ";
+    // Message settings (v3 format: structured prefix)
+    private String prefixText = "HyperFactions";
+    private String prefixColor = "#55FFFF";
+    private String prefixBracketColor = "#AAAAAA";
     private String primaryColor = "#00FFFF";
 
     // GUI settings
@@ -90,9 +92,6 @@ public class CoreConfig extends ConfigFile {
 
     // Territory notification settings
     private boolean territoryNotificationsEnabled = true;
-
-    // World map marker settings
-    private boolean worldMapMarkersEnabled = true;
 
     // Permission settings
     private boolean adminRequiresOp = true;
@@ -109,7 +108,7 @@ public class CoreConfig extends ConfigFile {
 
     @Override
     protected void createDefaults() {
-        configVersion = 2;
+        configVersion = 3;
         // Defaults are already set in field declarations
     }
 
@@ -216,11 +215,34 @@ public class CoreConfig extends ConfigFile {
             autoSaveIntervalMinutes = getInt(autoSave, "intervalMinutes", autoSaveIntervalMinutes);
         }
 
-        // Message settings
+        // Message settings (supports both v2 string format and v3 structured format)
         if (hasSection(root, "messages")) {
             JsonObject messages = root.getAsJsonObject("messages");
-            prefix = getString(messages, "prefix", prefix);
             primaryColor = getString(messages, "primaryColor", primaryColor);
+
+            // Handle prefix - can be string (v2) or object (v3)
+            if (messages.has("prefix")) {
+                var prefixElement = messages.get("prefix");
+                if (prefixElement.isJsonObject()) {
+                    // v3 format: structured object
+                    JsonObject prefixObj = prefixElement.getAsJsonObject();
+                    prefixText = getString(prefixObj, "text", prefixText);
+                    prefixColor = getString(prefixObj, "color", prefixColor);
+                    prefixBracketColor = getString(prefixObj, "bracketColor", prefixBracketColor);
+                } else {
+                    // v2 format: plain string - will be migrated on next save
+                    String oldPrefix = prefixElement.getAsString();
+                    // Strip color codes and extract text
+                    prefixText = oldPrefix
+                            .replaceAll("\u00A7[0-9a-fk-or]", "")
+                            .replaceAll("&[0-9a-fk-or]", "")
+                            .replaceAll("[\\[\\]]", "")
+                            .trim();
+                    if (prefixText.isEmpty()) {
+                        prefixText = "HyperFactions";
+                    }
+                }
+            }
         }
 
         // GUI settings
@@ -235,11 +257,7 @@ public class CoreConfig extends ConfigFile {
             territoryNotificationsEnabled = getBool(notifications, "enabled", territoryNotificationsEnabled);
         }
 
-        // World map marker settings
-        if (hasSection(root, "worldMap")) {
-            JsonObject worldMap = root.getAsJsonObject("worldMap");
-            worldMapMarkersEnabled = getBool(worldMap, "enabled", worldMapMarkersEnabled);
-        }
+        // Note: worldMap section removed in v3 - settings now in config/worldmap.json
 
         // Permission settings
         if (hasSection(root, "permissions")) {
@@ -339,9 +357,13 @@ public class CoreConfig extends ConfigFile {
         autoSave.addProperty("intervalMinutes", autoSaveIntervalMinutes);
         root.add("autoSave", autoSave);
 
-        // Message settings
+        // Message settings (v3 format: structured prefix)
         JsonObject messages = new JsonObject();
-        messages.addProperty("prefix", prefix);
+        JsonObject prefixObj = new JsonObject();
+        prefixObj.addProperty("text", prefixText);
+        prefixObj.addProperty("color", prefixColor);
+        prefixObj.addProperty("bracketColor", prefixBracketColor);
+        messages.add("prefix", prefixObj);
         messages.addProperty("primaryColor", primaryColor);
         root.add("messages", messages);
 
@@ -355,10 +377,7 @@ public class CoreConfig extends ConfigFile {
         notifications.addProperty("enabled", territoryNotificationsEnabled);
         root.add("territoryNotifications", notifications);
 
-        // World map marker settings
-        JsonObject worldMap = new JsonObject();
-        worldMap.addProperty("enabled", worldMapMarkersEnabled);
-        root.add("worldMap", worldMap);
+        // Note: worldMap section removed in v3 - settings now in config/worldmap.json
 
         // Permission settings
         JsonObject permissions = new JsonObject();
@@ -438,8 +457,10 @@ public class CoreConfig extends ConfigFile {
     public boolean isAutoSaveEnabled() { return autoSaveEnabled; }
     public int getAutoSaveIntervalMinutes() { return autoSaveIntervalMinutes; }
 
-    // Messages
-    @NotNull public String getPrefix() { return prefix; }
+    // Messages (v3 structured prefix)
+    @NotNull public String getPrefixText() { return prefixText; }
+    @NotNull public String getPrefixColor() { return prefixColor; }
+    @NotNull public String getPrefixBracketColor() { return prefixBracketColor; }
     @NotNull public String getPrimaryColor() { return primaryColor; }
 
     // GUI
@@ -447,9 +468,6 @@ public class CoreConfig extends ConfigFile {
 
     // Territory Notifications
     public boolean isTerritoryNotificationsEnabled() { return territoryNotificationsEnabled; }
-
-    // World Map
-    public boolean isWorldMapMarkersEnabled() { return worldMapMarkersEnabled; }
 
     // Permissions
     public boolean isAdminRequiresOp() { return adminRequiresOp; }

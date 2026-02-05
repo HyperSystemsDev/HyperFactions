@@ -260,8 +260,15 @@ public class HyperFactions {
             factionManager, claimManager, zoneManager, relationManager
         );
 
-        // Wire up claim change callback to refresh world maps
-        claimManager.setOnClaimChangeCallback(worldMapService::refreshAllWorldMaps);
+        // Initialize the world map refresh scheduler with optimized mode
+        worldMapService.initializeScheduler(ConfigManager.get().worldMap());
+
+        // Wire up chunk-specific callback for optimized world map refresh
+        // This allows the scheduler to handle refresh timing based on config
+        claimManager.setOnChunkChangeCallback(worldMapService::queueChunkRefresh);
+
+        // Keep legacy callback for bulk operations (unclaimAll, etc.) - respects refresh mode
+        claimManager.setOnClaimChangeCallback(worldMapService::triggerFactionWideRefresh);
 
         // Wire up notification callback for overclaim alerts (uses deferred playerLookup)
         claimManager.setNotificationCallback((factionId, message, hexColor) -> {
@@ -432,10 +439,32 @@ public class HyperFactions {
     }
 
     /**
-     * Reloads the configuration.
+     * Reloads the configuration and reinitializes managers that depend on config values.
      */
     public void reloadConfig() {
         ConfigManager.get().reloadAll();
+
+        // Reinitialize world map scheduler in case refresh mode changed
+        if (worldMapService != null) {
+            worldMapService.initializeScheduler(ConfigManager.get().worldMap());
+        }
+
+        // Restart backup scheduler in case backup settings changed
+        if (backupManager != null) {
+            backupManager.restartScheduledBackups();
+        }
+
+        // Cleanup expired time-sensitive items with potentially new expiration settings
+        if (inviteManager != null) {
+            inviteManager.cleanupExpired();
+        }
+        if (joinRequestManager != null) {
+            joinRequestManager.cleanupExpired();
+        }
+        if (confirmationManager != null) {
+            confirmationManager.cleanupExpired();
+        }
+
         Logger.info("Configuration reloaded");
     }
 

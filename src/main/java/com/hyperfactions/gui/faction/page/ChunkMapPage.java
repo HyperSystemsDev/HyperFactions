@@ -1,5 +1,6 @@
 package com.hyperfactions.gui.faction.page;
 
+import com.hyperfactions.command.util.CommandUtil;
 import com.hyperfactions.data.*;
 import com.hyperfactions.gui.GuiManager;
 import com.hyperfactions.gui.nav.NavBarHelper;
@@ -318,16 +319,16 @@ public class ChunkMapPage extends InteractiveCustomUIPage<ChunkMapData> {
         ClaimManager.ClaimResult result = claimManager.claim(playerRef.getUuid(), worldName, chunkX, chunkZ);
 
         Message message = switch (result) {
-            case SUCCESS -> Message.raw("Claimed chunk at (" + chunkX + ", " + chunkZ + ")!").color("#44cc44");
-            case NOT_IN_FACTION -> Message.raw("You must be in a faction to claim territory.").color("#ff5555");
-            case NOT_OFFICER -> Message.raw("Only officers and leaders can claim territory.").color("#ff5555");
-            case ALREADY_CLAIMED_SELF -> Message.raw("You already own this chunk.").color("#ffaa00");
-            case ALREADY_CLAIMED_OTHER -> Message.raw("This chunk is already claimed by another faction.").color("#ff5555");
-            case NOT_ADJACENT -> Message.raw("You can only claim chunks adjacent to your territory.").color("#ff5555");
-            case MAX_CLAIMS_REACHED -> Message.raw("You have reached your maximum claim limit.").color("#ff5555");
-            case WORLD_NOT_ALLOWED -> Message.raw("Claiming is not allowed in this world.").color("#ff5555");
-            case ORBISGUARD_PROTECTED -> Message.raw("This area is protected by OrbisGuard.").color("#ff5555");
-            default -> Message.raw("Failed to claim chunk.").color("#ff5555");
+            case SUCCESS -> CommandUtil.prefix().insert(Message.raw("Claimed chunk at (" + chunkX + ", " + chunkZ + ")!").color("#55FF55"));
+            case NOT_IN_FACTION -> CommandUtil.prefix().insert(Message.raw("You must be in a faction to claim territory.").color("#FF5555"));
+            case NOT_OFFICER -> CommandUtil.prefix().insert(Message.raw("Only officers and leaders can claim territory.").color("#FF5555"));
+            case ALREADY_CLAIMED_SELF -> CommandUtil.prefix().insert(Message.raw("You already own this chunk.").color("#FFAA00"));
+            case ALREADY_CLAIMED_OTHER -> CommandUtil.prefix().insert(Message.raw("This chunk is already claimed by another faction.").color("#FF5555"));
+            case NOT_ADJACENT -> CommandUtil.prefix().insert(Message.raw("You can only claim chunks adjacent to your territory.").color("#FF5555"));
+            case MAX_CLAIMS_REACHED -> CommandUtil.prefix().insert(Message.raw("You have reached your maximum claim limit.").color("#FF5555"));
+            case WORLD_NOT_ALLOWED -> CommandUtil.prefix().insert(Message.raw("Claiming is not allowed in this world.").color("#FF5555"));
+            case ORBISGUARD_PROTECTED -> CommandUtil.prefix().insert(Message.raw("This area is protected by OrbisGuard.").color("#FF5555"));
+            default -> CommandUtil.prefix().insert(Message.raw("Failed to claim chunk.").color("#FF5555"));
         };
 
         player.sendMessage(message);
@@ -341,13 +342,13 @@ public class ChunkMapPage extends InteractiveCustomUIPage<ChunkMapData> {
         ClaimManager.ClaimResult result = claimManager.unclaim(playerRef.getUuid(), worldName, chunkX, chunkZ);
 
         Message message = switch (result) {
-            case SUCCESS -> Message.raw("Unclaimed chunk at (" + chunkX + ", " + chunkZ + ").").color("#44cc44");
-            case NOT_IN_FACTION -> Message.raw("You must be in a faction.").color("#ff5555");
-            case NOT_OFFICER -> Message.raw("Only officers and leaders can unclaim territory.").color("#ff5555");
-            case CHUNK_NOT_CLAIMED -> Message.raw("This chunk is not claimed.").color("#ffaa00");
-            case NOT_YOUR_CLAIM -> Message.raw("This chunk belongs to another faction.").color("#ff5555");
-            case CANNOT_UNCLAIM_HOME -> Message.raw("Cannot unclaim the chunk containing your faction home.").color("#ff5555");
-            default -> Message.raw("Failed to unclaim chunk.").color("#ff5555");
+            case SUCCESS -> CommandUtil.prefix().insert(Message.raw("Unclaimed chunk at (" + chunkX + ", " + chunkZ + ").").color("#55FF55"));
+            case NOT_IN_FACTION -> CommandUtil.prefix().insert(Message.raw("You must be in a faction.").color("#FF5555"));
+            case NOT_OFFICER -> CommandUtil.prefix().insert(Message.raw("Only officers and leaders can unclaim territory.").color("#FF5555"));
+            case CHUNK_NOT_CLAIMED -> CommandUtil.prefix().insert(Message.raw("This chunk is not claimed.").color("#FFAA00"));
+            case NOT_YOUR_CLAIM -> CommandUtil.prefix().insert(Message.raw("This chunk belongs to another faction.").color("#FF5555"));
+            case CANNOT_UNCLAIM_HOME -> CommandUtil.prefix().insert(Message.raw("Cannot unclaim the chunk containing your faction home.").color("#FF5555"));
+            default -> CommandUtil.prefix().insert(Message.raw("Failed to unclaim chunk.").color("#FF5555"));
         };
 
         player.sendMessage(message);
@@ -361,14 +362,14 @@ public class ChunkMapPage extends InteractiveCustomUIPage<ChunkMapData> {
         ClaimManager.ClaimResult result = claimManager.overclaim(playerRef.getUuid(), worldName, chunkX, chunkZ);
 
         Message message = switch (result) {
-            case SUCCESS -> Message.raw("Overclaimed enemy chunk at (" + chunkX + ", " + chunkZ + ")!").color("#44cc44");
-            case NOT_IN_FACTION -> Message.raw("You must be in a faction.").color("#ff5555");
-            case NOT_OFFICER -> Message.raw("Only officers and leaders can overclaim territory.").color("#ff5555");
-            case ALREADY_CLAIMED_SELF -> Message.raw("You already own this chunk.").color("#ffaa00");
-            case ALREADY_CLAIMED_ALLY -> Message.raw("You cannot overclaim allied territory.").color("#ff5555");
-            case TARGET_HAS_POWER -> Message.raw("This faction has enough power to defend their territory.").color("#ff5555");
-            case MAX_CLAIMS_REACHED -> Message.raw("You have reached your maximum claim limit.").color("#ff5555");
-            default -> Message.raw("Failed to overclaim chunk.").color("#ff5555");
+            case SUCCESS -> CommandUtil.prefix().insert(Message.raw("Overclaimed enemy chunk at (" + chunkX + ", " + chunkZ + ")!").color("#55FF55"));
+            case NOT_IN_FACTION -> CommandUtil.prefix().insert(Message.raw("You must be in a faction.").color("#FF5555"));
+            case NOT_OFFICER -> CommandUtil.prefix().insert(Message.raw("Only officers and leaders can overclaim territory.").color("#FF5555"));
+            case ALREADY_CLAIMED_SELF -> CommandUtil.prefix().insert(Message.raw("You already own this chunk.").color("#FFAA00"));
+            case ALREADY_CLAIMED_ALLY -> CommandUtil.prefix().insert(Message.raw("You cannot overclaim allied territory.").color("#FF5555"));
+            case TARGET_HAS_POWER -> CommandUtil.prefix().insert(Message.raw("This faction has enough power to defend their territory.").color("#FF5555"));
+            case MAX_CLAIMS_REACHED -> CommandUtil.prefix().insert(Message.raw("You have reached your maximum claim limit.").color("#FF5555"));
+            default -> CommandUtil.prefix().insert(Message.raw("Failed to overclaim chunk.").color("#FF5555"));
         };
 
         player.sendMessage(message);

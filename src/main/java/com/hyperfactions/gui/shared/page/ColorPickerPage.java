@@ -155,9 +155,9 @@ public class ColorPickerPage extends InteractiveCustomUIPage<ColorPickerData> {
                     Faction updatedFaction = faction.withColor(data.colorCode);
                     factionManager.updateFaction(updatedFaction);
 
-                    // Refresh world maps to show new faction color
+                    // Refresh world maps to show new faction color (respects configured refresh mode)
                     if (worldMapService != null) {
-                        worldMapService.refreshAllWorldMaps();
+                        worldMapService.triggerFactionWideRefresh(faction.id());
                     }
 
                     // Find color name for message

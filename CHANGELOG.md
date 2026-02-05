@@ -5,6 +5,37 @@ All notable changes to HyperFactions will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+*No changes yet*
+
+## [0.6.2] - 2026-02-04
+
+### Added
+
+**Delete Faction Home**
+- New `/f delhome` command to delete faction home location
+- New `hyperfactions.teleport.delhome` permission node
+- DELETE button in faction settings GUI (General tab, Home Location section)
+- Button automatically disabled when no home is set (same for TELEPORT button)
+
+**World Map Configuration**
+- New `showFactionTags` option in worldmap.json to hide faction tags on the in-game world map while keeping faction color overlays visible
+- New `refreshMode` option to control when world map tiles are regenerated:
+  - `immediate` - Best for small servers (<20 players). Regenerates tiles instantly when claims change. Lowest latency but highest CPU usage.
+  - `proximity` (default) - Best for medium servers (20-100 players). Only regenerates tiles for nearby players. Good balance of responsiveness and performance.
+  - `periodic` - Best for large servers (100+ players). Batches updates at configurable intervals. Most efficient for high player counts.
+- `periodicInterval` setting for periodic mode (default: 30 seconds)
+- `proximityDistance` setting for proximity mode (default: 5 chunks)
+
+**Configuration**
+- Configurable message prefix via `messagePrefix` in config.json (default: "[HyperFactions]")
+- Migration backups now use ZIP format for better compression and organization
+
+### Removed
+
+- Removed dead code: `FactionSettingsPage.java`, `FactionSettingsData.java`, `faction_settings.ui` (replaced by tabbed settings system)
+
 ## [0.6.1] - 2026-02-04
 
 ### Added
