@@ -1,608 +1,254 @@
 # HyperFactions GUI Audit: Native Hytale UI Alignment
 
 **Date**: 2026-02-05
-**Status**: Research-only audit (no code modifications)
+**Updated**: 2026-02-05 (post-research, confirmed test page results)
+**Status**: Partially implemented — Create Faction page complete, remaining pages pending
 **Scope**: All HyperFactions GUI pages vs. native Hytale CustomUI elements
 
 ---
 
 ## Executive Summary
 
-HyperFactions currently uses **~75 TextButton workarounds** across its GUI where native Hytale elements would provide better UX, clearer semantics, and less Java-side code. The biggest wins are:
-
-1. **46 toggle buttons** (ON/OFF text with manual color swaps) -> **CheckBoxWithLabel** (native boolean toggle)
-2. **16-button color grid** (pre-baked styles because `cmd.set()` crashes on TextButton styles) -> **ColorPicker** (native HSV gradient + hue strip + hex input)
-3. **5 radius preset buttons + TextField** -> **Slider** (native numeric range, matches Hytale's own tool reach slider)
-4. **30 sort/selection buttons** (`.Disabled = true` hack for active state) -> **DropdownBox** (native selection popup)
-5. **~5 TextButton tab bars** (`.Disabled` for active, manual visibility toggling) -> **TabNavigation + MenuItem** (native tab semantics)
-6. **27 custom button styles** (manual component assembly) -> **`$C.@DefaultTextButtonStyle`** / **`$C.@SecondaryTextButtonStyle`** for standard actions (keep SafeZone/WarZone for map claim system)
-7. **Button-triggered search** (TextField + SEARCH button + CLEAR button) -> **Native real-time search** (ValueChanged on TextField, matching Hytale's own pattern)
-
-All recommended native elements are **confirmed available** in the Hytale server's decompiled source (used in PrefabEditor, EntitySpawnPage, ChunkTintCommand, LaunchPad).
-
-**Design goals**:
-- GUIs should feel **seamless** — like they come from Hytale itself, not a third-party plugin
-- **Eliminate most custom colored button styles** — use `$C.@DefaultTextButtonStyle` and `$C.@SecondaryTextButtonStyle` for standard actions; keep SafeZone/WarZone styles for the map claim system's semantic color coding
-- **Admin GUI visual polish** (section headers, dividers, background cards) applied to all pages — especially the faction creation page as the key new-player entry point
-- **Merge the 2-step create faction wizard into a single page** — no unnecessary page transitions
-- **ColorPicker at 220px+ height** for a usable square gradient area (120px is too thin)
-
-### Screenshot Confirmation (Hytale Creative Mode Quick Settings)
-
-The following native elements have been **visually confirmed** from Hytale's own inventory/creative settings screens:
-
-| Element | Screenshot Evidence |
-|---|---|
-| **CheckBoxWithLabel** | "Hide Hotbar", "Hide Compass", "Hide Notifications", "Hide Chat" — native square checkboxes with label text |
-| **ColorPicker** | Full HSV gradient square + vertical hue strip + hex input (`#2effd3`) + color swatch button |
-| **Slider** | Tool Reach Distance, Tool Delay — diamond handle on horizontal track with numeric readout |
-| **Native Button** | "RESET TO DEFAULTS" — `$C.@DefaultTextButtonStyle` with 9-slice texture background |
-| **Collapsible Section** | "DISPLAY" section with chevron — client-side only, not replicable in plugins |
-| **Search Bar** | Magnifying glass icon that expands to search field — **client-side only** collapse/expand animation |
-| **ESC Back** | Bottom-left "ESC Back" button — `$C.@BackButton` (already used by HyperFactions) |
-| **Tab Bar** | "INVENTORY TAB", "MAP M", "CREATIVE TOOLS B" — native MenuItem tabs with keyboard shortcut labels |
-
----
-
-## Native Elements Confirmed Available
-
-| Element | Server Usage Evidence | Key Properties | Key Events |
-|---|---|---|---|
-| **CheckBox / CheckBoxWithLabel** | LaunchPad.java (10+ instances) | `.Value` (boolean), `.Disabled`, `$C.@CheckBoxStyle` | `ValueChanged` |
-| **DropdownBox** | PrefabEditorLoadSettingsPage.java (6+ instances) | `.Value` (string), `.Entries` (List\<DropdownEntryInfo\>), `AllowUnselection`, `MaxSelection` | `ValueChanged` |
-| **Slider** | EntitySpawnPage.java (#ScaleSlider), SliderDensity.java | `Min`, `Max`, `Step` (all int), `.Value` (int), `$C.@DefaultSliderStyle` | `ValueChanged`, `MouseButtonReleased` |
-| **ColorPicker** | ChunkTintCommand.java (#GrassTint) | `.Color` (hex string with `#` prefix) | `ValueChanged` |
-| **TabNavigation + MenuItem** | Inventory screen tab bar | Container with MenuItem children, `SelectedStyle` | `SelectedTabChanged` |
-| **ProgressBar** | PrefabEditorLoadSettingsPage.java, MemoriesPage.java | `.Value` (0.0-1.0), Direction, Bar/Background styling | None (visual only) |
-
-### Confirmed `cmd.set()` Patterns (from decompiled server code)
-
-```java
-// CheckBox
-commandBuilder.set("#EnableWorldTicking #CheckBox.Value", false);
-
-// DropdownBox
-List<DropdownEntryInfo> dropdown = new ObjectArrayList<>();
-dropdown.add(new DropdownEntryInfo(LocalizableString.fromString("Option A"), "optionA"));
-commandBuilder.set("#Dropdown #Input.Entries", dropdown);
-commandBuilder.set("#Dropdown #Input.Value", "optionA");
-
-// Slider
-eventBuilder.addEventBinding(ValueChanged, "#ScaleSlider",
-    new EventData().append("Type", "UpdateScale").append("@Scale", "#ScaleSlider.Value"), false);
-
-// ColorPicker
-commandBuilder.set("#GrassTint #Input.Color", "#5B9E28");
-eventBuilder.addEventBinding(Activating, "#LoadButton",
-    new EventData().append("@GrassTint", "#MainPage #GrassTint #Input.Color"));
-```
-
----
-
-## Audit by Pattern
-
-### Pattern 1: Toggle Buttons -> CheckBoxWithLabel
-
-**Current implementation**: TextButtons displaying "ON"/"OFF" text, with manual `LabelStyle.TextColor` color swaps (green `#55FF55` for ON, red `#FF5555` for OFF, gray `#666666` for LOCKED).
-
-**Three inconsistent approaches exist**:
-
-| Page | Text | Color | State Update |
-|---|---|---|---|
-| AdminZoneSettingsPage (22 flags) | "ON"/"OFF"/"N/A" | **None** (comment: "crashes CustomUI") | Full page rebuild |
-| AdminFactionSettingsPage (11 perms) | "ON"/"OFF"/"ON (LOCKED)" | Green/Red/Gray via `LabelStyle.TextColor` | Full page rebuild |
-| FactionSettingsTabsPage (11 perms) | "ON"/"OFF"/"LOCKED" | Green/Red via `LabelStyle.TextColor` | Fresh page pattern (close+reopen) |
-| AdminDashboardPage (1 bypass) | Label "ON"/"OFF" + Button "ENABLE"/"DISABLE" | Green/Red via `Style.TextColor` | Partial rebuild |
-
-**Total: 45 toggle instances across 4 pages**
-
-#### Exact Current Code (AdminFactionSettingsPage.java:221-253)
-```java
-private void buildToggle(UICommandBuilder cmd, UIEventBuilder events,
-                         String elementId, String permName, boolean currentValue,
-                         ConfigManager config) {
-    boolean locked = config.isPermissionLocked(permName);
-    String selector = "#" + elementId;
-
-    if (locked) {
-        cmd.set(selector + ".Text", currentValue ? "ON (LOCKED)" : "OFF (LOCKED)");
-        cmd.set(selector + ".Disabled", true);
-        cmd.set(selector + ".Style.Default.LabelStyle.TextColor", "#666666");
-    } else {
-        cmd.set(selector + ".Text", currentValue ? "ON" : "OFF");
-        cmd.set(selector + ".Disabled", false);
-        String color = currentValue ? "#55FF55" : "#FF5555";
-        cmd.set(selector + ".Style.Default.LabelStyle.TextColor", color);
-        cmd.set(selector + ".Style.Hovered.LabelStyle.TextColor", color);
-    }
-}
-```
-
-#### Proposed: CheckBoxWithLabel
-
-```java
-// Proposed replacement
-private void buildToggle(UICommandBuilder cmd, UIEventBuilder events,
-                         String elementId, String permName, boolean currentValue,
-                         ConfigManager config) {
-    boolean locked = config.isPermissionLocked(permName);
-    String selector = "#" + elementId;
-
-    cmd.set(selector + ".Value", currentValue);
-    cmd.set(selector + ".Disabled", locked);
-
-    if (!locked) {
-        events.addEventBinding(ValueChanged, selector,
-            EventData.of("Button", "TogglePerm")
-                     .append("Perm", permName)
-                     .append("@Value", selector + ".Value"),
-            false);
-    }
-}
-```
-
-**Impact**: Eliminates color swap logic, "ON"/"OFF" text management, and 3 divergent patterns -> 1 consistent pattern. CheckBox provides visual boolean state at a glance without reading text.
-
-#### Instance Breakdown
-
-**AdminZoneSettingsPage** (22 toggles, 7 categories):
-- Build: `buildFlagToggle()` at line 127
-- Template: `admin_zone_settings.ui` — 22 TextButton elements (`#Flag0Toggle` through `#Flag21Toggle`)
-- Categories: Building (4), Interaction (4), Entity (3), Environment (3), Misc (3), Special (3), Extra (2)
-- Special states: "N/A" for unavailable mixins, "(default)"/"(custom)"/"(mixin)" indicators
-
-**AdminFactionSettingsPage** (11 toggles):
-- Build: `buildToggle()` at line 221
-- Template: `admin_faction_settings.ui` — 11 TextButton elements
-- Permissions: 3 outsider (build/break/interact) + 3 ally + 3 member + PvP + officersCanEdit
-- Special states: "ON (LOCKED)"/"OFF (LOCKED)" for server-locked permissions
-
-**FactionSettingsTabsPage** (11 toggles):
-- Build: `buildToggle()` at line 287
-- Template: `settings_permissions_content.ui` — 11 TextButton elements
-- Same permission set as admin, but user-facing with role-based edit permissions
-- Special states: "LOCKED" (server-locked), read-only (insufficient role)
-
-**AdminDashboardPage** (1 toggle):
-- Build: inline at line 96
-- Template: `admin_dashboard.ui` — Label `#BypassState` + TextButton `#ToggleBypassBtn`
-- Unique split pattern: state display separate from action button
-
-#### Verification Needed
-- [x] `cmd.set("#checkbox.Value", true/false)` — **Confirmed**: Server uses `commandBuilder.set("#EnableWorldTicking #CheckBox.Value", false)`
-- [ ] `CheckBox.Disabled` dynamic setting — Likely works (`.Disabled` works on TextButton already)
-- [ ] CheckBoxWithLabel label text dynamic setting — Need to test if label portion updates via `cmd.set()`
-- [ ] Visual styling with HyperFactions' dark theme — May need custom `CheckedStyle`/`UncheckedStyle` for cyan/teal aesthetic
-
----
-
-### Pattern 2: Color Picker Modal -> Inline Native ColorPicker (Full Redesign)
-
-**Decision**: Replace the color picker modal entirely with inline native ColorPicker elements. Introduce zone colors as a new feature. Reorganize/enlarge settings pages as needed to accommodate the picker without scrolling.
-
-#### Current State
-
-**Faction colors**: Stored as Minecraft color codes (`"0"` through `"f"`) mapped to 16 hex values. Color selection is a separate modal page (`ColorPickerPage.java`) with a 4x4 grid of 16 pre-styled buttons. Styles are baked into the template because `cmd.set()` crashes on TextButton background styles.
-
-**Zone colors**: Zones have **no color field**. Safe zones are hardcoded green (`#55FF55`), war zones hardcoded red (`#FF5555`). The distinction is a 4px color bar + text label only.
-
-**Two separate color picker implementations exist**:
-
-| Page | Element Type | Color Count | Styles |
-|---|---|---|---|
-| ColorPickerPage (shared modal) | TextButton | 16 | 16 separate `@ColorNStyle` definitions (lines 10-127 of `color_picker.ui`) |
-| CreateFactionStep1Page | Button (raw) | 16 | Inline `Background: (Color: #hex)` on each element |
-
-**Current workarounds**:
-1. Cannot dynamically highlight selected color — no visual feedback of current selection
-2. Fresh page pattern — opens new page instance to update state
-3. `@` prefix input capture to preserve TextField values across page transitions
-4. 16 pre-baked style definitions because `cmd.set()` crashes on TextButton styles
-
-#### Native ColorPicker (Confirmed from Screenshot)
-
-The Hytale Creative Mode Quick Settings shows the native ColorPicker:
-- Full **HSV gradient square** (~200x200px)
-- Vertical **hue strip** beside it
-- **Hex text input** below (`#2effd3`)
-- **Color swatch button** for "Default Laser Pointer Color" (small colored square that opens the picker)
-- Value format: `#RRGGBB` hex string (confirmed from server code: `#5B9E28`)
-
-#### Design Decision: Arbitrary Hex Colors
-
-**Chosen: Option A — Accept arbitrary hex colors.** The 16 Minecraft color code constraint was a limitation of the old button grid, not a gameplay requirement. With a native ColorPicker:
-- Faction chat prefixes can use any hex color via `Message.raw(name).color(hexColor)`
-- Zone indicator bars can use any hex color
-- The `Faction.color` field changes from `String` (single char "0"-"f") to `String` (hex like `"#55FFFF"`)
-- Migration: existing single-char codes map to their hex equivalents on first load
-
----
-
-#### 2a. Faction Settings — Inline ColorPicker (Page Redesign)
-
-**Current page**: `settings_tabs.ui` — 600×620px, 3 tabs (General / Permissions / Members), all tabs use `TopScrolling`.
-
-**Current General tab APPEARANCE section**: 51px total — one row with Label + Preview + Hex text + "CHANGE" button that opens modal.
-
-**Proposed**: Enlarge page to **700×720px** and restructure the General tab to fit ColorPicker inline with no scrolling needed.
-
-```
-Proposed General Tab Layout (total content: ~590px, fits in ~650px content area):
-
-GENERAL (147px)
-├─ Name row (32px)
-├─ Tag row (32px)
-└─ Description row (32px)
-   + section header/dividers (~51px)
-
-APPEARANCE (220px) ← expanded from 51px
-├─ Section header + divider (19px)
-├─ Current color row: Preview swatch (24×24) + Hex label + color name (28px)
-├─ Gap (8px)
-├─ ColorPicker element (160px) ← native HSV gradient + hue strip + hex input
-└─ Gap (5px)
-
-RECRUITMENT (51px)
-├─ Section header + divider (19px)
-└─ DropdownBox inline (32px) ← replaces modal, see Pattern 6
-
-HOME LOCATION (99px)
-├─ Section header + divider (19px)
-├─ Location display (28px)
-└─ Action buttons (32px)
-
-MODULES (55px)
-├─ Section header + divider (19px)
-└─ View modules button (36px)
-
-DANGER ZONE (55px) — leader only
-├─ Section header + divider (19px)
-└─ Disband button (36px)
-
-Total: ~627px content (leader) / ~572px (non-leader)
-Available at 720px page height: ~650px content area (720 - 40 tab bar - 1 divider - ~29 padding)
-Result: Fits without scrolling for all users ✓
-```
-
-**Key changes**:
-- Page: 600×620 -> **700×720**
-- APPEARANCE section: 51px -> **220px** (ColorPicker inline)
-- RECRUITMENT: modal button -> inline DropdownBox (saves a page transition)
-- Remove `TopScrolling` from General tab content (no longer needed)
-
----
-
-#### 2b. Admin Faction Settings — Inline ColorPicker (Page Redesign)
-
-**Current page**: `admin_faction_settings.ui` — 720×560px, two-column layout, both columns `TopScrolling`.
-
-**Proposed**: Enlarge to **800×700px** and restructure left column to fit ColorPicker inline.
-
-```
-Proposed Left Column (330px wide, ~610px content):
-
-GENERAL (118px)
-├─ Name + EDIT (32px)
-├─ Tag + EDIT (32px)
-└─ Description + EDIT (32px)
-   + header/dividers (22px)
-
-APPEARANCE (210px) ← expanded from ~44px
-├─ Section header + divider (22px)
-├─ Preview swatch + Hex label (28px)
-├─ ColorPicker element (160px)
-
-RECRUITMENT (54px)
-├─ Section header + divider (22px)
-└─ DropdownBox inline (32px) ← replaces modal
-
-HOME LOCATION (82px)
-├─ Section header + divider (22px)
-├─ Location display (28px)
-└─ Clear home button (32px)
-
-DANGER ZONE (54px)
-├─ Section header + divider (22px)
-└─ Disband button (32px)
-
-Left column total: ~518px
-Available at 700px height: ~605px (700 - 50 title/header - 45 footer)
-Result: Fits without scrolling ✓
-
-Proposed Right Column (unchanged width, but shorter with CheckBoxes):
-TERRITORY PERMISSIONS (~180px with CheckBoxWithLabel)
-COMBAT (~58px)
-ACCESS CONTROL (~58px)
-Right column total: ~296px — plenty of room ✓
-```
-
-**Key changes**:
-- Page: 720×560 -> **800×700**
-- Left column APPEARANCE: 44px -> **210px**
-- Left column RECRUITMENT: modal button -> inline DropdownBox
-- Right column: TextButton toggles -> CheckBoxWithLabel (more compact)
-- Remove `TopScrolling` from both columns
-
----
-
-#### 2c. Zone Colors — New Feature + Zone Settings Redesign
-
-**Current state**: Zones have no color field. `Zone.java` is a record with `id`, `name`, `type`, `world`, `chunks`, `createdAt`, `createdBy`, `flags`.
-
-**Proposed**: Add a `color` field to zones. Default to type-based colors (safe=`#55FF55`, war=`#FF5555`). Allow admins to customize per-zone.
-
-##### Data Model Changes
-
-```java
-// Zone.java — add color field
-public record Zone(
-    UUID id,
-    String name,
-    ZoneType type,
-    String world,
-    Set<ChunkPos> chunks,
-    Instant createdAt,
-    UUID createdBy,
-    Map<String, Boolean> flags,
-    String color  // NEW: hex color like "#55FF55", defaults to type color
-) {
-    // Default color based on type
-    public String effectiveColor() {
-        return color != null ? color : type.defaultColor();
-    }
-}
-```
-
-```java
-// ZoneType.java — add default colors
-public enum ZoneType {
-    SAFE("SafeZone", "#55FF55", ...),
-    WAR("WarZone", "#FF5555", ...);
-
-    private final String defaultColor;
-    public String defaultColor() { return defaultColor; }
-}
-```
-
-##### Zone Settings Page Redesign
-
-**Current page**: `admin_zone_settings.ui` — 720×680px, two-column layout with 23 flag toggles, **no scrolling**. This page is packed tight.
-
-**Problem**: Adding an inline ColorPicker (~160px height) to this page requires significant reorganization. The current layout uses every pixel of both 330px columns for flag toggles.
-
-**Proposed**: Restructure into **tabbed layout** — split zone info from zone flags.
-
-```
-Proposed Zone Settings Page (800×700px):
-
-Title Bar: "Admin: Zone Settings"
-Header: Zone name + type badge + chunk count (32px)
-Divider (1px)
-
-Tab Bar: [PROPERTIES] [FLAGS] (30px)
-
-━━━ PROPERTIES TAB ━━━ (shown first)
-
-Two-Column Layout:
-
-LEFT COLUMN (380px):
-  ZONE INFO (130px)
-  ├─ Name + RENAME button (32px)
-  ├─ Type + CHANGE TYPE button (32px)
-  ├─ Chunks display (28px)
-  └─ Created by/date (28px)
-     + header/dividers
-
-  ZONE COLOR (210px)
-  ├─ Section header + divider (22px)
-  ├─ Preview swatch + Hex label (28px)
-  ├─ ColorPicker element (160px)
-
-RIGHT COLUMN (380px):
-  QUICK FLAGS SUMMARY (read-only overview)
-  ├─ PvP: Enabled/Disabled
-  ├─ Explosions: Enabled/Disabled
-  ├─ Building: Enabled/Disabled
-  └─ ... key flags at a glance
-  (Links to FLAGS tab for editing)
-
-  ACTIONS
-  ├─ Reset to Defaults button
-  ├─ Delete Zone button
-
-━━━ FLAGS TAB ━━━ (current 2-column flag layout, mostly unchanged)
-
-Two-Column Layout (same as current, with CheckBoxWithLabel):
-LEFT: Combat (4) + Damage (2) + Death (1) + Building (1) + Items (4) = 12 flags
-RIGHT: Interaction (6) + Mob Spawning (5) = 11 flags
-
-Footer: BACK TO ZONES button
-```
-
-**Key changes**:
-- Page: 720×680 -> **800×700**
-- Add TabNavigation with 2 tabs (Properties / Flags)
-- PROPERTIES tab: zone info + inline ColorPicker + actions
-- FLAGS tab: existing 23-toggle layout (now with CheckBoxWithLabel)
-- Both tabs fit without scrolling
-
-**Why tabs work here**: The current page tries to show everything at once. With 23 flag toggles + zone metadata, it's already at capacity. Adding a color picker would break the layout. Splitting into tabs gives each concern dedicated space while keeping everything accessible.
-
-##### Create Zone Wizard — Add Color Selection
-
-**Current page**: `create_zone_wizard.ui` — 720×500px. Has zone type, name, claiming method, radius, and flags sections.
-
-**Proposed**: Add a color section. Enlarge to **720×580px** or reorganize slightly.
-
-```
-Proposed addition to Create Zone Wizard:
-
-Top Row (existing):
-├─ Zone Type Card (SafeZone / WarZone)
-├─ Zone Name Card
-
-Middle Row (expanded):
-├─ Claiming Method Card (existing)
-├─ Right side (rearranged):
-   ├─ Zone Color Card (NEW, 120px)
-   │  ├─ "ZONE COLOR" label
-   │  ├─ Preview swatch showing default type color
-   │  └─ Small ColorPicker or "Use default" + "Custom..." option
-   ├─ Radius Card (existing, moved/resized)
-   └─ Flags Card (existing)
-```
-
-**Alternative**: For zone creation, default to the type color and let admins customize later via zone settings. This keeps the wizard simpler and puts the full ColorPicker only on the settings page.
-
----
-
-#### 2d. Create Faction — Two-Column Layout with Territory Permissions
-
-**Current state**: ~~Two separate pages~~ → ~~Single 600×800 page~~ → **Two-column 950×650 page** with territory permission toggles. The 600×800 single-column layout was too tall (CREATE button got cut off). The two-column layout fits everything on screen and adds territory permissions at creation time.
-
-**Layout**: **950×650px** two-column layout matching admin settings page pattern:
-- **Left column** (470px): Preview, basic info, details (description + recruitment)
-- **Right column** (flex): Faction color (ColorPicker), territory permissions grid, combat toggle, CREATE button
-- Vertical divider (#334455) between columns
-
-**Visual style (matching admin GUI)**: ✅ Implemented
-- [x] **Section headers**: Muted gray (#888888), FontSize 11, bold, uppercase
-- [x] **Divider lines**: 1px gray (#334455) below each section header
-- [x] **Background cards**: Dark background (#1a2a3a) grouping related inputs
-- [x] **Native button styles**: `$C.@DefaultTextButtonStyle` for CREATE + recruitment buttons
-- [x] **Native TextFields**: `$C.@TextField` template for all text inputs
-- [x] **Permission toggles**: `$S.@SmallButtonStyle` with dynamic text color (green ON / red OFF)
-- [x] **ColorPicker**: `Style: $C.@DefaultColorPickerStyle` (200px height, square gradient)
-
-```
-Create Faction Page (950×650px, two-column):
-
-Title: "CREATE YOUR FACTION" ($C.@Title)
-
-┌─── LEFT COLUMN (470px) ────────┬─── RIGHT COLUMN (flex) ──────────┐
-│                                 │                                   │
-│ ─── PREVIEW ────────────────── │ ─── FACTION COLOR ─────────────── │
-│ Card (#1a2a3a):                 │ ColorPicker (200px, HSV gradient)  │
-│   Name: [colored name + tag]    │                                   │
-│   Leader: [player name]         │ ─── TERRITORY PERMISSIONS ─────── │
-│                                 │                                   │
-│ ─── BASIC INFO ──────────────── │ Header: BREAK | PLACE | INTERACT  │
-│ Card (#1a2a3a):                 │                                   │
-│   FACTION NAME *                │ Outsiders (#AAAAAA) [OFF][OFF][OFF]│
-│   ├─ $C.@TextField #NameInput   │ Allies    (#55FF55) [OFF][OFF][OFF]│
-│   FACTION TAG (2-4 chars)       │ Members   (#00FFFF) [ON] [ON] [ON] │
-│   ├─ $C.@TextField #TagInput    │                                   │
-│                                 │ ─── COMBAT ───────────────────── │
-│ ─── DETAILS ────────────────── │ PvP in Territory [ON] Enabled     │
-│ Card (#1a2a3a):                 │                                   │
-│   DESCRIPTION (Optional)        │           (spacer)                │
-│   ├─ $C.@TextField #DescInput   │                                   │
-│   RECRUITMENT  Status: ...      │      [CREATE FACTION]             │
-│   [INVITE ONLY] [OPEN]         │                                   │
-└─────────────────────────────────┴───────────────────────────────────┘
-```
-
-**Permission toggle system**:
-- 10 toggle buttons: 9 territory perms (3 roles × 3 actions) + PvP
-- Uses `FactionPermissions.defaults()` for initial state (outsiders deny all, allies interact only, members full, PvP on)
-- Toggles are in-memory only (faction doesn't exist yet) — applied on CREATE
-- `handleTogglePerm()` uses `FactionPermissions.toggle(name)` → `sendUpdate()` for instant UI feedback
-- Matches admin settings page pattern exactly (`$S.@SmallButtonStyle`, dynamic `.Style.Default.LabelStyle.TextColor`)
-
-**Impact**:
-- [x] Eliminated Step 2 page (`CreateFactionStep2Page.java`, `create_step2.ui`)
-- [x] Eliminated 16-button color grid + 16 pre-baked style definitions
-- [x] No more page transitions — everything on one screen
-- [x] Full HSV color freedom with native ColorPicker
-- [x] Real-time preview via `ValueChanged` on ColorPicker
-- [x] Territory permissions configurable at creation time (not just defaults)
-- [x] `NewPlayerPageData` extended with `perm` field for toggle events
-
-**Files modified**:
-- `newplayer/create_faction.ui` — Rewritten from 600×800 single-column to 950×650 two-column
-- `CreateFactionPage.java` — Added `FactionPermissions` field, toggle handlers, `buildPermissionToggles()`
-- `NewPlayerPageData.java` — Added `perm` field + codec entry
-
----
-
-#### ColorPicker Summary
-
-| Location | Current | Proposed | Page Size Change |
-|---|---|---|---|
-| **Create Faction** (two-column) | 2-step wizard + 16-button grid | Two-column 950×650 + ColorPicker (200px) + permission grid | 500×550 + 500×520 -> **950×650** (1 page) |
-| **Faction Settings General** | "CHANGE" button -> modal | Inline ColorPicker (220px section) | 600×620 -> **700×720** |
-| **Admin Faction Settings** | "CHANGE" button -> modal | Inline ColorPicker (220px section) | 720×560 -> **800×700** |
-| **Admin Zone Settings** | No color | New PROPERTIES tab with ColorPicker | 720×680 -> **800×700** + tabs |
-| **Create Zone Wizard** | No color | Default to type color (customize later) | Unchanged |
-
-**ColorPicker sizing note**: The ColorPicker element's gradient area needs sufficient height to be **square-shaped** for usable color selection. At 120px height the gradient renders as a thin wide rectangle (confirmed via testing). **220px minimum height recommended** for a properly square gradient area.
-
-#### Files Eliminated
-- `shared/page/ColorPickerPage.java` (198 lines) — Replaced by inline ColorPicker
-- `shared/data/ColorPickerData.java` — No longer needed
-- `shared/component/ColorPickerModal.java` — No longer needed
-- `shared/color_picker.ui` (261 lines, 16 baked style definitions) — Replaced by native element
-- `newplayer/CreateFactionStep2Page.java` (~376 lines) — Merged into single create page
-- `newplayer/create_step2.ui` (~187 lines) — Merged into single create page
-
-#### Data Model Changes Required
-- `Faction.java` — `color` field: `String` single-char -> `String` hex (`#RRGGBB`)
-- `Zone.java` — Add `String color` field (nullable, defaults to type color)
-- `ZoneType.java` — Add `defaultColor()` method
-- `JsonFactionStorage.java` — Migration: `"a"` -> `"#55FF55"`, `"b"` -> `"#55FFFF"`, etc.
-- `JsonZoneStorage.java` — Add color field serialization, default to null for existing zones
-
-#### Verification Results
-- [x] ColorPicker is full HSV gradient — **Confirmed via screenshot**: gradient square + hue strip + hex input
-- [x] Value format — **Confirmed**: `.Value` returns `#RRGGBBAA` (with alpha). Strip to 7 chars for `#RRGGBB`.
-- [x] Dynamic initial value — **Confirmed**: `cmd.set("#FactionColorPicker.Value", "#55FFFF")` works correctly
-- [x] Minimum usable size — **Confirmed too small at 120px**: renders as thin wide rectangle. **220px minimum recommended** for square gradient
-- [x] ColorPicker within DecoratedContainer — **Confirmed working** inside `$C.@DecoratedContainer`
-- [x] **CRITICAL: Style property required** — `Style: $C.@DefaultColorPickerStyle;` is **mandatory**. Without it, client crashes with "Object reference not set to an instance of an object". Must be declared in `.ui` template file (not `appendInline`) since `$C` template vars don't resolve in inline strings. See `resources/docs/customui/11-pitfalls.md` (#11).
-- [x] `DisplayTextField: true` — Shows hex text input below the picker. Works correctly.
-- [x] ValueChanged event — Fires as user drags color. `EventData.append("@Color", "#Picker.Value")` captures value correctly.
-
----
-
-### Pattern 3: Sort Buttons -> DropdownBox
-
-**Current implementation**: Multiple TextButtons in a horizontal row. The active sort option has `.Disabled = true`. All buttons always visible. State tracked via `SortMode` enum in Java.
-
-**100% consistent pattern across all 4 browse pages**:
-
-```java
-// Identical pattern in all pages:
-cmd.set("#SortByPower.Disabled", sortMode == SortMode.POWER);
-cmd.set("#SortByName.Disabled", sortMode == SortMode.NAME);
-cmd.set("#SortByMembers.Disabled", sortMode == SortMode.MEMBERS);
-```
-
-#### Instance Breakdown
-
-| Page | Options | Element IDs | Style |
-|---|---|---|---|
-| NewPlayerBrowsePage | POWER, NAME, MEMBERS (3) | `#SortByPower`, `#SortByName`, `#SortByMembers` | `@SmallCyanButtonStyle` + `@SmallButtonStyle` |
-| FactionBrowserPage | POWER, NAME, MEMBERS (3) | `#SortByPower`, `#SortByName`, `#SortByMembers` | Same |
-| FactionMembersPage | ROLE, LAST_ONLINE (2) | `#SortByRole`, `#SortByOnline` | Same |
-| AdminFactionsPage | POWER, NAME, MEMBERS (3) | `#SortByPower`, `#SortByName`, `#SortByMembers` | Same |
-| **Total** | **11 buttons** | | |
-
-#### Additional Selection Patterns (CreateZoneWizardPage)
-
-| Selection | Options | Current Implementation |
+HyperFactions uses TextButton workarounds across its GUI where native Hytale elements would provide better UX. The Create Faction page has been fully redesigned as the first implementation. Remaining pages still need migration.
+
+**Completed** (since v0.6.2):
+- Create Faction page: merged 2-step wizard into single 950x650 two-column page
+- Native `$C.@TextField` template on Create Faction inputs (3 instances)
+- Native `$C.@DefaultTextButtonStyle` on Create Faction buttons
+- Inline ColorPicker with `$C.@DefaultColorPickerStyle` on Create Faction
+- Territory permission toggles at creation time
+- Element test page (`/f admin testgui`) confirming all native elements work
+- Deleted: `CreateFactionStep1Page.java`, `CreateFactionStep2Page.java`, `create_step1.ui`, `create_step2.ui`
+
+**Remaining work**:
+1. **45 toggle buttons** across 4 pages -> **CheckBoxWithLabel** (native boolean toggle)
+2. **ColorPicker on 2 settings pages** (faction settings + admin settings still use modal)
+3. **9 raw TextFields** across 8 files -> **`$C.@TextField` template** (text positioning fix)
+4. **~100+ old custom button styles** across 38 files -> **native `$C.@` styles**
+5. **11 sort/selection buttons** -> **DropdownBox** (native selection)
+6. **3 button-triggered searches** -> **real-time ValueChanged search** with debounce
+7. **Faction color model** still single-char codes -> hex strings
+8. **Slider** for zone radius (currently 5 preset buttons + TextField)
+9. **ColorPickerPage + RecruitmentModalPage** still exist (used by settings pages)
+
+### Test Page Verification Results
+
+All native elements confirmed working in-game via `/f admin testgui` (commit `8da5387`):
+
+| Element | Status | Notes |
 |---|---|---|
-| Zone Type | SAFEZONE, WARZONE (2) | `#SafeZoneBtn.Disabled`, `#WarZoneBtn.Disabled` |
-| Claim Method | No claims, Single, Circle, Square, Map (5) | `#MethodNone.Disabled` through `#MethodMap.Disabled` |
-| Radius Presets | 3, 5, 10, 15, 20 (5) | `#Radius3.Disabled` through `#Radius20.Disabled` |
-| Flag Mode | Defaults, Customize (2) | `#FlagsDefaults.Disabled`, `#FlagsCustomize.Disabled` |
-| **Subtotal** | **14 buttons** | |
+| `$C.@DefaultTextButtonStyle` | **Works** | Native blue-tinted button, full states |
+| `$C.@SecondaryTextButtonStyle` | **Works** | Muted gray button, full states |
+| `$C.@TextField` | **Works** | Proper padding/alignment, accepts inline Style |
+| `Slider` + `$C.@DefaultSliderStyle` | **Works** | Handle works, **track invisible** (no custom styling possible) |
+| `$C.@CheckBoxWithLabel` | **Works** | `@Text`/`@Checked` params, child selector for `.Value`/`.Disabled` |
+| `DropdownBox` (bare) | **Works** | Entries from Java, opens downward |
+| `$C.@DropdownBox` + `$C.@DefaultDropdownBoxStyle` | **Works** | Styled with arrow, but opens **sideways** |
+| `ColorPicker` + `$C.@DefaultColorPickerStyle` | **Works** | **Style mandatory** (crash without it), `DisplayTextField: true` works |
+| `ProgressBar` | **Works** | `Bar`/`Background` PatchStyle, no Style needed |
+| `TimerLabel` | **Works** | Shows 00:00 by default |
+| `ItemIcon` / `ItemSlot` | **Works** | `ItemId` property |
+| `Value.ref()` style application | **Works** | Apply Common.ui styles from Java |
+| `$C.@CancelTextButton` | **Works** | Red/pink cancel template, `@Text` param |
+| `$C.@TertiaryTextButton` | **Works** | Outlined/bordered template |
+| `$C.@SecondaryTextButton` | **Works** | Secondary style template |
+| `$C.@SmallSecondaryTextButton` | **Works** | Small variant |
+| `$C.@SmallTertiaryTextButton` | **Works** | Small variant |
+| `$C.@NumberField` | **Renders** | Default "0", but `.Value` **not settable from Java** (crashes) |
+| `$C.@Container` | **Works** | With `#Title`/`#Content` structure |
 
-**Grand total: 25 selection buttons across 5 pages** (+ 5 radius buttons that would become a Slider instead)
+**Known limitations discovered:**
+- **Slider track**: No custom styling possible. `$C.@DefaultSliderStyle` is a built-in client asset. Track is invisible. No mod has custom slider styling.
+- **CheckBox requires template**: Native `CheckBox` without Style crashes. Must use `$C.@CheckBoxWithLabel`.
+- **CheckBox `.Disabled`**: Must target inner element: `#CB #CheckBox.Disabled` (not `#CB.Disabled`).
+- **DropdownBox template opens sideways**: `$C.@DropdownBox` with `$C.@DefaultDropdownBoxStyle` opens sideways. Bare `DropdownBox` opens downward.
+- **TabNavigation + TabButton**: Crashes (needs unknown style/setup). **Cannot use** — stick with TextButton tabs.
+- **NumberField `.Value`**: Not settable from Java. Inner element selector unknown.
 
-#### Proposed: DropdownBox
+---
+
+## Completed Work (Confirmed via Git)
+
+### Create Faction Page Redesign (commit `42267d9`)
+
+Merged 2-step wizard into single 950x650 two-column page:
+
+**Left column** (470px): Preview card, name/tag inputs (`$C.@TextField`), description/recruitment
+**Right column** (flex): ColorPicker (`$C.@DefaultColorPickerStyle`, 200px), territory permissions (10 TextButton toggles), CREATE button (`$C.@DefaultTextButtonStyle`)
+
+**Files created:**
+- `newplayer/create_faction.ui` (410 lines) — two-column layout
+- `CreateFactionPage.java` (490 lines) — unified page with permission toggles
+
+**Files deleted:**
+- `CreateFactionStep1Page.java` (239 lines)
+- `CreateFactionStep2Page.java` (376 lines)
+- `create_step1.ui` (189 lines)
+- `create_step2.ui` (187 lines)
+
+**Net reduction**: 615 lines deleted, single-page UX
+
+### Element Test Page (commit `8da5387`)
+
+Research page at `/f admin testgui` testing all native elements. Added flat button styles to `styles.ui`.
+
+---
+
+## Remaining Improvements
+
+### 1. CheckBoxWithLabel for Toggles (45 instances, 4 pages)
+
+**Current**: TextButtons displaying "ON"/"OFF" text with manual `LabelStyle.TextColor` color swaps.
+
+**Three inconsistent patterns exist:**
+
+| Page | Toggles | Pattern |
+|---|---|---|
+| AdminZoneSettingsPage | 22 flags | `buildFlagToggle()`, text "ON"/"OFF"/"N/A" |
+| AdminFactionSettingsPage | 11 perms | `buildToggle()`, text "ON"/"OFF"/"ON (LOCKED)", green/red/gray colors |
+| FactionSettingsTabsPage | 11 perms | `buildToggle()`, text "ON"/"OFF"/"LOCKED", fresh page pattern |
+| AdminDashboardPage | 1 bypass | Label + Button split, "ENABLE"/"DISABLE" |
+
+**Proposed**: Replace with `$C.@CheckBoxWithLabel`:
 
 ```java
-// Sort dropdown (replaces 3 TextButtons)
+// New pattern (confirmed working via test page)
+cmd.set("#" + elementId + " #CheckBox.Value", currentValue);
+cmd.set("#" + elementId + " #CheckBox.Disabled", locked);
+```
+
+**Key learnings from test page:**
+- Must use child selector: `#CB #CheckBox.Value` / `#CB #CheckBox.Disabled`
+- Direct `#CB.Value` or `#CB.Disabled` crashes
+- Template params: `@Text`, `@Checked`
+
+**Impact**: Eliminates color swap logic, "ON"/"OFF" text management, and 3 divergent patterns -> 1 consistent pattern.
+
+---
+
+### 2. ColorPicker on Remaining Settings Pages
+
+**Current state**: CreateFaction page has inline ColorPicker (done). But faction settings and admin settings still open `ColorPickerPage.java` (16-button modal with single-char codes).
+
+**Files still using old color picker:**
+- `shared/page/ColorPickerPage.java` (198 lines) — 16-button grid modal
+- `shared/data/ColorPickerData.java` — modal data
+- `shared/component/ColorPickerModal.java` — modal wrapper
+- `shared/color_picker.ui` (261 lines, 16 baked style definitions)
+- Referenced from: `FactionSettingsTabsPage`, `AdminFactionSettingsPage`
+
+**Faction color model**: Still uses single-char codes ("0"-"f"). `CreateFactionPage.java` converts via `hexToNearestColorCode()` — snaps arbitrary ColorPicker hex to nearest of 16 codes.
+
+#### 2a. Faction Settings General Tab — Inline ColorPicker
+
+**Current**: 600x620, "CHANGE" button opens modal. Proposed: Enlarge to **700x720**, inline ColorPicker (220px section).
+
+#### 2b. Admin Faction Settings — Inline ColorPicker
+
+**Current**: 720x560, "CHANGE" button opens modal. Proposed: Enlarge to **800x700**, inline ColorPicker in left column.
+
+#### 2c. Data Model Migration (prerequisite)
+
+Migrate `Faction.color` from single char (`"a"`) to hex string (`"#55FFFF"`):
+- `Faction.java` — change field type
+- `JsonFactionStorage.java` — migration: `"a"` -> `"#55FF55"`, etc.
+- Remove `hexToNearestColorCode()` from `CreateFactionPage.java`
+- Remove `ColorPickerPage.java`, `ColorPickerData.java`, `ColorPickerModal.java`, `color_picker.ui`
+
+#### 2d. Zone Colors (new feature, lower priority)
+
+Add optional `color` field to `Zone.java`. Default to type colors (safe=`#55FF55`, war=`#FF5555`). Admin-customizable via zone settings page. Requires zone settings page redesign (tabbed layout).
+
+**ColorPicker verified behavior:**
+- `Style: $C.@DefaultColorPickerStyle;` is **mandatory** (crash without it)
+- `DisplayTextField: true` shows hex input
+- `.Value` returns `#RRGGBBAA` (strip to 7 chars for `#RRGGBB`)
+- `ValueChanged` fires as user drags color
+- Minimum 200px+ height for usable square gradient
+
+---
+
+### 3. TextField Template Migration (9 instances, 8 files)
+
+**Current**: Raw `TextField` with explicit `Style: $C.@DefaultInputFieldStyle; Background: $C.@InputBoxBackground;` — text appears offset outside the input box.
+
+**Fix**: Swap to `$C.@TextField` template (confirmed working on Create Faction page):
+
+```
+// Before (old):
+TextField #SearchInput {
+    Style: $C.@DefaultInputFieldStyle;
+    Background: $C.@InputBoxBackground;
+    Anchor: (Height: 32);
+}
+
+// After (native template):
+$C.@TextField #SearchInput {
+    Anchor: (Height: 32);
+}
+```
+
+**Files still using old pattern:**
+
+| File | TextFields | Element IDs |
+|---|---|---|
+| `newplayer/browse.ui` | 1 | `#SearchInput` |
+| `faction/faction_browser.ui` | 1 | `#SearchInput` |
+| `faction/set_relation_modal.ui` | 1 | `#SearchInput` |
+| `shared/rename_modal.ui` | 1 | `#NameInput` |
+| `shared/tag_modal.ui` | 1 | `#TagInput` |
+| `shared/description_modal.ui` | 1 | `#DescInput` |
+| `admin/zone_rename_modal.ui` | 1 | `#NameInput` |
+| `admin/create_zone_wizard.ui` | 2 | `#NameInput`, `#CustomRadiusInput` |
+| **Total** | **9** | |
+
+**Impact**: Simple find-and-replace across 8 files. Fixes text positioning immediately.
+
+---
+
+### 4. Native Button Styles Migration (~100+ instances, 38 files)
+
+**Current**: 38 files reference custom `$S.@` button styles (ButtonStyle, CyanButtonStyle, GreenButtonStyle, RedButtonStyle, GoldButtonStyle, etc.). Only `create_faction.ui` and `test/button_test.ui` use native `$C.@DefaultTextButtonStyle`.
+
+**Proposed**: Replace all standard button styles with native tokens:
+
+- `$S.@ButtonStyle` / `$S.@CyanButtonStyle` / `$S.@GreenButtonStyle` / `$S.@GoldButtonStyle` -> `$C.@DefaultTextButtonStyle` (primary actions)
+- `$S.@SmallButtonStyle` / `$S.@SmallCyanButtonStyle` -> `$C.@SecondaryTextButtonStyle` (secondary actions)
+- `$S.@RedButtonStyle` / `$S.@SmallRedButtonStyle` -> `$C.@SecondaryTextButtonStyle` + confirm dialog for destructive
+
+**Also available** (confirmed working via test page):
+- `$C.@CancelTextButton` template — red/pink cancel button
+- `$C.@TertiaryTextButton` template — outlined/bordered button
+- `$C.@SecondaryTextButton` template — secondary button
+- `$C.@SmallSecondaryTextButton`, `$C.@SmallTertiaryTextButton` — small variants
+
+**Keep** (unique functional purpose, no native equivalent):
+- `$S.@SafeZoneButtonStyle` + Small — zone type indicator (green = safe)
+- `$S.@WarZoneButtonStyle` + Small — zone type indicator (red = war)
+- `$S.@InvisibleButtonStyle` — transparent click overlays
+- `$S.@PlayerMarkerButtonStyle` — map markers
+- `$S.@TocLinkButtonStyle` — help system links
+- `$S.@FlatRedButtonStyle`, `$S.@FlatDarkRedButtonStyle` — flat color backgrounds (new)
+
+**Estimated cleanup**: ~20 style definitions removed (~250+ lines from `styles.ui`)
+
+---
+
+### 5. DropdownBox for Sort/Selection (25 buttons, 5 pages)
+
+**Current**: TextButtons with `.Disabled = true` for active option. Consistent pattern across all browse pages.
+
+| Page | Sort Options | Current Pattern |
+|---|---|---|
+| FactionBrowserPage | POWER, NAME, MEMBERS (3) | TextButton + `.Disabled` |
+| NewPlayerBrowsePage | POWER, NAME, MEMBERS (3) | TextButton + `.Disabled` |
+| FactionMembersPage | ROLE, LAST_ONLINE (2) | TextButton + `.Disabled` |
+| AdminFactionsPage | POWER, NAME, MEMBERS (3) | TextButton + `.Disabled` |
+| CreateZoneWizardPage | Type(2), Method(5), Radius(5), Flags(2) | TextButton + `.Disabled` |
+
+**Proposed**: Replace with bare `DropdownBox` (not `$C.@DropdownBox` — opens sideways):
+
+```java
 List<DropdownEntryInfo> sortEntries = List.of(
     new DropdownEntryInfo(LocalizableString.fromString("Power"), "POWER"),
     new DropdownEntryInfo(LocalizableString.fromString("Name"), "NAME"),
@@ -610,998 +256,237 @@ List<DropdownEntryInfo> sortEntries = List.of(
 );
 cmd.set("#SortDropdown.Entries", sortEntries);
 cmd.set("#SortDropdown.Value", sortMode.name());
-
-events.addEventBinding(ValueChanged, "#SortDropdown",
-    EventData.of("Button", "ChangeSort")
-             .append("@Sort", "#SortDropdown.Value"),
-    false);
 ```
 
-**Impact**: Each dropdown replaces 2-5 TextButtons + their event bindings. More space-efficient. The current selection is always visible in the dropdown label.
-
-#### Verification Needed
-- [x] Dynamic entry population — **Confirmed**: Server uses `commandBuilder.set("#Dropdown #Input.Entries", entryList)`
-- [x] String value binding — **Confirmed**: Server stores enum `.name()` as values
-- [ ] Visual styling — Does DropdownBox inherit Common.ui dark theme automatically?
-- [ ] Popup positioning — Does the dropdown popup clip to page bounds?
+**Note**: Use bare `DropdownBox` (opens downward) — NOT `$C.@DropdownBox` template (opens sideways).
 
 ---
 
-### Pattern 4: Radius Presets -> Slider
+### 6. Real-Time Search with Debounce (3 pages + 1 new)
 
-**Current implementation** (CreateZoneWizardPage.java:231-258): 5 preset TextButtons (3, 5, 10, 15, 20) with `.Disabled` for selected + TextField for custom input (1-50 range, parsed and clamped).
+**Current**: All 3 browse pages use button-triggered search (TextField + SEARCH button + X clear button):
 
-```java
-// Current: 5 buttons + text field
-int[] RADIUS_PRESETS = {3, 5, 10, 15, 20};
-for (int preset : RADIUS_PRESETS) {
-    cmd.set("#Radius" + preset + ".Disabled", selectedRadius == preset);
-}
-cmd.set("#CustomRadiusInput.Value", String.valueOf(selectedRadius));
-```
+| Page | Current Pattern |
+|---|---|
+| FactionBrowserPage | `Activating` on `#SearchBtn` |
+| NewPlayerBrowsePage | `Activating` on `#SearchBtn` |
+| SetRelationModalPage | `Activating` on `#SearchBtn` |
+| FactionMembersPage | **No search at all** |
 
-#### Proposed: Slider
-
-```
-// In .ui template
-Slider #RadiusSlider {
-    Min: 1;
-    Max: 50;
-    Step: 1;
-    Value: 5;
-    Style: $C.@DefaultSliderStyle;
-    Anchor: (Height: 30, Width: 300);
-}
-
-Label #RadiusValue {
-    Text: "5 chunks (80 blocks)";
-    Style: (FontSize: 12, TextColor: #AAAAAA);
-    Anchor: (Height: 20);
-}
-```
+**Proposed**: Replace with `ValueChanged` on TextField (matching Hytale's native pattern):
 
 ```java
-// In Java
-cmd.set("#RadiusSlider.Value", selectedRadius);
-
-events.addEventBinding(ValueChanged, "#RadiusSlider",
-    EventData.of("Button", "SetRadius")
-             .append("@Radius", "#RadiusSlider.Value"),
-    false);
-```
-
-**Impact**: Replaces 5 preset buttons + TextField + custom apply button with a single Slider. Matches Hytale's own tool reach/delay sliders exactly. Users can select any value 1-50 with a drag, rather than choosing from 5 presets or typing.
-
-**Note**: The label showing chunk count ("5 chunks (80 blocks)") would update dynamically on each `ValueChanged` event.
-
-#### Verification Needed
-- [x] Slider with integer Step — **Confirmed**: Server uses int Min/Max/Step
-- [ ] Value label — Is numeric readout built into `@DefaultSliderStyle` or separate Label needed?
-- [ ] `cmd.set("#slider.Value", intValue)` — Needs testing for dynamic initial value
-
----
-
-### Pattern 5: Tab Bars -> TabNavigation
-
-**Current implementation**: Two distinct tab patterns exist:
-
-#### Sub-page tabs (TextButton + `.Disabled`)
-Used in: FactionRelationsPage, FactionSettingsTabsPage, AdminZonesPage
-
-```java
-// FactionRelationsPage.java:85-87
-cmd.set("#TabAllies.Disabled", currentTab == Tab.ALLIES);
-cmd.set("#TabEnemies.Disabled", currentTab == Tab.ENEMIES);
-cmd.set("#TabPending.Disabled", currentTab == Tab.PENDING);
-```
-
-Content switching via visibility toggle or container rebuild.
-
-#### Nav bars (AdminUI indexed selector pattern)
-Used in: NavBarHelper, NewPlayerNavBarHelper, AdminNavBarHelper
-
-```java
-// NavBarHelper.java:66
-cmd.appendInline("#HyperFactionsNavBar #NavBarButtons",
-    "Group #NavCards { LayoutMode: Left; }");
-// Then indexed: #NavCards[0] #NavActionButton, etc.
-```
-
-**Known limitation**: Nav bars have **no active tab highlighting** — the `currentPage` parameter exists but is unused (NavBarHelper.java line 41 comment).
-
-#### Tab Instance Breakdown
-
-| Page | Tab Count | Pattern | Content Switching |
-|---|---|---|---|
-| FactionRelationsPage | 3 (Allies/Enemies/Pending) | TextButton + Disabled | Container rebuild |
-| FactionSettingsTabsPage | 3 (General/Permissions/Members) | TextButton + Disabled | Visibility toggle |
-| AdminZonesPage | 3 (All/Safe/War) | TextButton + Disabled | Container rebuild |
-| NavBarHelper (faction) | ~7 | MenuItem (AdminUI pattern) | Page navigation |
-| NewPlayerNavBarHelper | ~5 | MenuItem (AdminUI pattern) | Page navigation |
-| AdminNavBarHelper | ~7 | MenuItem (AdminUI pattern) | Page navigation |
-
-#### Proposed: TabNavigation
-
-For sub-page tabs (Relations, Settings, Zones):
-```
-TabNavigation #RelationTabs {
-    LayoutMode: Left;
-
-    MenuItem #TabAllies {
-        Text: "ALLIES";
-        Style: (Default: @SmallButtonLabelStyle, Hovered: @SmallCyanLabelStyle);
-        SelectedStyle: @SmallCyanLabelStyle;
-    }
-    MenuItem #TabEnemies {
-        Text: "ENEMIES";
-        Style: (Default: @SmallButtonLabelStyle, Hovered: @SmallRedLabelStyle);
-        SelectedStyle: @SmallRedLabelStyle;
-    }
-    MenuItem #TabPending {
-        Text: "PENDING";
-        Style: (Default: @SmallButtonLabelStyle, Hovered: @SmallButtonLabelStyle);
-        SelectedStyle: @SmallCyanLabelStyle;
-    }
-}
-```
-
-**Impact**: Proper tab semantics. `SelectedTabChanged` event simplifies Java-side tab switching. Native `SelectedStyle` eliminates the `.Disabled` hack for visual feedback.
-
-#### Verification Needed
-- [ ] `SelectedTabChanged` event data — Does it provide tab index/ID?
-- [ ] Programmatic tab selection — Can `cmd.set("#tabs.SelectedIndex", 0)` work?
-- [ ] MenuItem icon support — Can MenuItem display icons (for faction-themed tabs)?
-
----
-
-### Pattern 6: Recruitment Modal -> Inline DropdownBox
-
-**Current implementation**: Separate modal page (`RecruitmentModalPage.java`, 150 lines) with a full page overlay containing:
-- Current status label
-- "OPEN" button (green)
-- "INVITE ONLY" button (gold)
-- "CANCEL" button
-
-The modal is opened from faction settings and admin faction settings. On selection, it saves the value and navigates back.
-
-#### Proposed: Inline DropdownBox on Settings Page
-
-```java
-// Replace modal flow with inline dropdown
-List<DropdownEntryInfo> entries = List.of(
-    new DropdownEntryInfo(LocalizableString.fromString("Open"), "open"),
-    new DropdownEntryInfo(LocalizableString.fromString("Invite Only"), "invite_only")
-);
-cmd.set("#RecruitmentDropdown.Entries", entries);
-cmd.set("#RecruitmentDropdown.Value", faction.open() ? "open" : "invite_only");
-```
-
-**Impact**: Eliminates `RecruitmentModalPage.java` (150 lines), `recruitment_modal.ui` (89 lines), and the modal navigation flow. Selection happens inline — no page transition needed.
-
----
-
-### Pattern 7: ProgressBar for Power Display (Optional Polish)
-
-**Current implementation**: Labels showing "Power: 45/100" text.
-
-#### Proposed: ProgressBar + Label
-
-```
-ProgressBar #PowerBar {
-    Value: 0.45;
-    Direction: LeftToRight;
-    Bar: (Color: #00FFFF);
-    Background: (Color: #333333);
-    Anchor: (Height: 8, Width: 150);
-}
-Label #PowerText {
-    Text: "45 / 100";
-    Style: (FontSize: 11, TextColor: #AAAAAA);
-}
-```
-
-**Impact**: Low — visual polish only. Power level becomes instantly readable as a bar fill rather than requiring mental division.
-
----
-
-### Pattern 8: Custom Button Styles -> Native Button Styles
-
-**Current implementation**: HyperFactions defines **27 custom TextButtonStyle variants** in `shared/styles.ui` (378 lines). Every style manually assembles four state backgrounds from Common.ui + a custom LabelStyle for text color:
-
-```
-@ButtonStyle = TextButtonStyle(
-  Default: (Background: $C.@DefaultSquareButtonDefaultBackground, LabelStyle: @ButtonLabelStyle),
-  Hovered: (Background: $C.@DefaultSquareButtonHoveredBackground, LabelStyle: @ButtonLabelStyle),
-  Pressed: (Background: $C.@DefaultSquareButtonPressedBackground, LabelStyle: @ButtonLabelStyle),
-  Disabled: (Background: $C.@DefaultSquareButtonDisabledBackground, LabelStyle: @ButtonLabelStyle),
-  Sounds: $C.@ButtonSounds,
-);
-// Repeated 27 times with different label colors (Cyan, Green, Red, Gold, etc.)
-```
-
-This produces buttons that use native background textures but **only differentiate by text color**. The native "RESET TO DEFAULTS" button visible in Hytale's Creative Mode Quick Settings (screenshot confirmed) uses a complete pre-built style token that includes matched backgrounds + text styling as a unified whole.
-
-#### Native Complete Style Tokens Available
-
-Two complete native button styles exist in Common.ui:
-
-| Token | Usage | Visual |
-|---|---|---|
-| `$C.@DefaultTextButtonStyle` | Primary/active buttons and tabs | Native blue-tinted background, light text, full hover/pressed/disabled states |
-| `$C.@SecondaryTextButtonStyle` | Secondary/inactive buttons and tabs | Muted gray background, dimmed text, full state variants |
-
-**Server usage confirmed** in `EntitySpawnPage.java`:
-```java
-private static final Value<String> TAB_STYLE_ACTIVE =
-    Value.ref("Common.ui", "DefaultTextButtonStyle");
-private static final Value<String> TAB_STYLE_INACTIVE =
-    Value.ref("Common.ui", "SecondaryTextButtonStyle");
-
-// Applied dynamically — this WORKS unlike TextButton background styles:
-commandBuilder.set("#TabNPC.Style", this.activeTab.equals("NPC")
-    ? TAB_STYLE_ACTIVE : TAB_STYLE_INACTIVE);
-```
-
-**Key discovery**: Native complete styles **CAN be set dynamically** via `cmd.set("#button.Style", styleRef)`. This is different from the known crash when setting individual style properties like `.Style.Default.Background`. The complete token reference works because it replaces the entire style object at once.
-
-#### Proposed: Full Native Button Style Migration
-
-**Goal**: Replace **all** custom button styles with native Hytale styles. The GUIs should feel seamless — like they come from Hytale itself, not a third-party plugin. Custom colored button styles (Cyan, Green, Red, Gold) create a "modded" feel that stands out from Hytale's native UI.
-
-**Replace with native tokens** (ALL standard buttons):
-```
-// Before: 6 lines of custom style definition per button
-TextButton #ResetBtn { Style: $S.@ButtonStyle; }
-TextButton #CreateBtn { Style: $S.@GreenButtonStyle; }
-TextButton #CancelBtn { Style: $S.@SmallButtonStyle; }
-
-// After: Direct native references only
-TextButton #CreateBtn { Style: $C.@DefaultTextButtonStyle; }    // Primary actions
-TextButton #CancelBtn { Style: $C.@SecondaryTextButtonStyle; }  // Secondary/cancel
-```
-
-**`$C.@DefaultTextButtonStyle`** — ALL primary/active buttons:
-- "CREATE FACTION", "CREATE ZONE", "SAVE", "APPLY", "CONFIRM"
-- "ACCEPT" (invites), "NEXT", "SEARCH", pagination (PREV/NEXT)
-- Active tabs, active sort options
-- Any button that is the primary action on the page
-
-**`$C.@SecondaryTextButtonStyle`** — ALL secondary/inactive buttons:
-- "CANCEL", "BACK", "CLOSE"
-- "DECLINE", "DENY"
-- Inactive tabs, inactive sort options
-- Any button that is a secondary or less-prominent action
-
-**Keep functional and map claim styles** (these serve unique purposes with no native equivalent):
-- `@SafeZoneButtonStyle` + Small — Zone type indicator (green = safe) for create wizard and map claim system
-- `@WarZoneButtonStyle` + Small — Zone type indicator (red = war) for create wizard and map claim system
-- `@InvisibleButtonStyle` — Click overlays for expandable entries (must be transparent)
-- `@PlayerMarkerButtonStyle` — Map markers (unique visual, not a standard button)
-
-#### Impact by Page
-
-| Page | Buttons Using `@ButtonStyle` | Replace With |
-|---|---|---|
-| All pages | "CANCEL" buttons | `$C.@SecondaryTextButtonStyle` |
-| Admin Dashboard | "RELOAD CONFIG" | `$C.@DefaultTextButtonStyle` |
-| Admin Zone Settings | "RESET TO DEFAULTS" | `$C.@DefaultTextButtonStyle` |
-| Create Zone Wizard | "CREATE ZONE" | `$C.@DefaultTextButtonStyle` |
-| Faction Settings | "SAVE DESCRIPTION" | `$C.@DefaultTextButtonStyle` |
-| Browse pages | Pagination (PREV/NEXT) | `$C.@DefaultTextButtonStyle` |
-| All modals | Modal action buttons | Primary: `@DefaultTextButtonStyle`, Secondary: `@SecondaryTextButtonStyle` |
-
-#### Dynamic Style Switching for Tabs
-
-The EntitySpawnPage pattern enables a cleaner tab implementation even without TabNavigation:
-
-```java
-// Current: .Disabled hack
-cmd.set("#TabAllies.Disabled", currentTab == Tab.ALLIES);
-
-// Proposed: Native style switching
-cmd.set("#TabAllies.Style",
-    currentTab == Tab.ALLIES ? TAB_STYLE_ACTIVE : TAB_STYLE_INACTIVE);
-```
-
-This gives proper visual feedback (active tab looks distinct, not "disabled") while keeping the existing TextButton elements if TabNavigation proves problematic.
-
-#### styles.ui Cleanup
-
-**Goal**: Eliminate nearly all custom button styles. Only keep styles that serve unique functional purposes with no native equivalent.
-
-| Current Style | Replacement | Delete? |
-|---|---|---|
-| `@ButtonStyle` | `$C.@DefaultTextButtonStyle` | **Yes** |
-| `@SmallButtonStyle` | `$C.@SecondaryTextButtonStyle` | **Yes** |
-| `@CyanButtonStyle` + Small | `$C.@DefaultTextButtonStyle` | **Yes** — no more brand-colored buttons |
-| `@GreenButtonStyle` + Small | `$C.@DefaultTextButtonStyle` | **Yes** — primary actions use native style |
-| `@RedButtonStyle` + Small | `$C.@SecondaryTextButtonStyle` + confirm dialog for destructive | **Yes** |
-| `@GoldButtonStyle` | `$C.@DefaultTextButtonStyle` | **Yes** |
-| `@SafeZoneButtonStyle` + Small | — | **Keep** — semantic zone type indicator (green = safe) for map claim system |
-| `@WarZoneButtonStyle` + Small | — | **Keep** — semantic zone type indicator (red = war) for map claim system |
-| `@DisabledButtonStyle` | Native `.Disabled` state | **Yes** |
-| `@TealButtonStyle` (legacy) | Already deprecated | **Yes** |
-| `@PurpleButtonStyle` (legacy) | Already deprecated | **Yes** |
-| `@SmallTealButtonStyle` (legacy) | Already deprecated | **Yes** |
-| `@SmallPurpleButtonStyle` (legacy) | Already deprecated | **Yes** |
-| `@InvisibleButtonStyle` | No native equivalent (transparent overlay) | **Keep** |
-| `@PlayerMarkerButtonStyle` | No native equivalent (map marker) | **Keep** |
-| `@TocLinkButtonStyle` | No native equivalent (link hover) | **Keep** |
-
-**Estimated reduction**: ~20 style definitions removed (~250+ lines from `styles.ui`)
-**Remaining**: 7 functional styles (SafeZone/WarZone + Invisible + PlayerMarker + TocLink) + label styles for section headers
-
-#### Verification Needed
-- [x] `cmd.set("#button.Style", Value.ref("Common.ui", "DefaultTextButtonStyle"))` — **Confirmed**: EntitySpawnPage does this for tab switching
-- [ ] Font size match — Does native `DefaultTextButtonStyle` use 13px like HyperFactions? If native uses a different size, `@SmallButtonStyle` may still be needed for compact layouts
-- [ ] UI template reference syntax — In `.ui` files, is it `Style: $C.@DefaultTextButtonStyle;` or does it require a different syntax for complete style tokens?
-- [ ] Native disabled appearance — When using `$C.@DefaultTextButtonStyle` with `.Disabled = true`, does the disabled state match HyperFactions' expectations?
-
----
-
-### Pattern 9: Button-Triggered Search -> Native Real-Time Search
-
-**Current implementation** (FactionBrowserPage.java): TextField + explicit "SEARCH" TextButton + "X" clear button. Search only executes on button click.
-
-```java
-// Current: search triggered by button click
-events.addEventBinding(Activating, "#SearchBtn",
-    EventData.of("Button", "Search")
-             .append("@SearchQuery", "#SearchInput.Value"),
-    false);
-```
-
-```
-// Current UI template (faction_browser.ui)
-TextField #SearchInput { FlexWeight: 1; Height: 32; Style: $C.@DefaultInputFieldStyle; }
-TextButton #SearchBtn { Width: 80; Text: "SEARCH"; Style: $S.@SmallCyanButtonStyle; }
-TextButton #ClearSearchBtn { Width: 30; Text: "X"; Visible: false; Style: $S.@SmallRedButtonStyle; }
-```
-
-#### Native Hytale Search Pattern
-
-Every Hytale server page with search (CommandListPage, WarpListPage, EntitySpawnPage, PlaySoundPage, ParticleSpawnPage, etc.) uses **real-time search via `ValueChanged`**:
-
-```java
-// Native pattern: search on every keystroke
-eventBuilder.addEventBinding(
-    CustomUIEventBindingType.ValueChanged,
-    "#SearchInput",
-    EventData.of("@SearchQuery", "#SearchInput.Value"),
-    false
-);
-```
-
-No search button. No clear button. The native pattern is:
-1. User types in TextField
-2. `ValueChanged` fires on each keystroke
-3. Server filters results immediately
-4. Clearing the field (backspace to empty) shows all results
-
-Hytale's `ServerFileBrowser` also implements **fuzzy matching** via `StringCompareUtil.getFuzzyDistance()` instead of simple substring matching, with results ranked by match quality and limited to a configurable `maxResults`.
-
-#### Collapsible Search Icon (Client-Side Only)
-
-The inventory screen shows a collapsible search pattern: magnifying glass icon collapses to save space, expands to full search field when clicked. This behavior is **client-side only** — no server-side API exists to control the collapse/expand animation. Plugin UIs cannot replicate this exact pattern.
-
-However, the **functional equivalent** can be achieved with a simpler approach: just use the TextField directly (always visible) with the native `ValueChanged` pattern. This matches how Hytale's own server pages (WarpListPage, CommandListPage, etc.) implement search.
-
-#### Proposed: Real-Time Search
-
-```java
-// Replace button-triggered search with real-time filtering
 events.addEventBinding(
     CustomUIEventBindingType.ValueChanged,
     "#SearchInput",
     EventData.of("Button", "Search")
              .append("@SearchQuery", "#SearchInput.Value"),
-    false
-);
-```
-
-```
-// Simplified UI template — remove SEARCH and X buttons
-TextField #SearchInput {
-    PlaceholderText: "Search factions...";
-    Style: $C.@DefaultInputFieldStyle;
-    Anchor: (Height: 32);
-    FlexWeight: 1;
-}
-```
-
-#### Debounce Strategy (Required)
-
-Real-time `ValueChanged` fires on **every keystroke**. On a server with hundreds of factions, rebuilding and transmitting the filtered list on each key would cause lag spikes. A server-side debounce is essential.
-
-**Proposed implementation**:
-```java
-// Per-player debounce timer
-private ScheduledFuture<?> searchDebounce;
-private static final long DEBOUNCE_MS = 250; // Wait 250ms after last keystroke
-
-private void handleSearchChanged(Player player, String query) {
-    // Cancel any pending search
-    if (searchDebounce != null) {
-        searchDebounce.cancel(false);
-    }
-
-    // Schedule new search after debounce period
-    searchDebounce = scheduler.schedule(() -> {
-        searchQuery = query.trim().toLowerCase();
-        currentPage = 0;
-        rebuildList();
-    }, DEBOUNCE_MS, TimeUnit.MILLISECONDS);
-}
-```
-
-**Why 250ms**: Fast enough to feel responsive (user sees results before finishing typing), slow enough to avoid rebuilding on rapid keystrokes. Hytale's own `ServerFileBrowser` processes on every event but caps results to `maxResults` — we should do both.
-
-#### Additional Improvements
-- **Fuzzy matching**: Replace `.contains()` with fuzzy distance scoring (`StringCompareUtil.getFuzzyDistance()`) for ranked results
-- **Result limiting**: Cap displayed results (e.g., 20) to prevent UI lag on large servers
-- **Empty query fast-path**: If query is empty, skip matching entirely and show all results
-
-#### Pages Affected
-- `FactionBrowserPage.java` — TextField + SEARCH + X buttons -> real-time TextField + debounce
-- `NewPlayerBrowsePage.java` — Same pattern
-- `FactionMembersPage.java` — **Add search** (currently has no search, see Pattern 10)
-- `AdminFactionsPage.java` — Same pattern (if it has search)
-- `faction_browser.ui` — Remove #SearchBtn and #ClearSearchBtn
-- `newplayer/browse.ui` — Same
-
-**Impact**: Removes 2 TextButtons per search page. Provides instant feedback as users type. Matches native Hytale UX. Debounce prevents performance issues.
-
----
-
-### Pattern 10: Members Page — Add Search
-
-**Current implementation**: The Members page (`FactionMembersPage.java`) shows a member count label and sort buttons (ROLE / ONLINE) but **no search functionality**. On a faction with many members, there's no way to quickly find a specific player.
-
-**Screenshot confirms**: The members page shows only "1 members" count + sort buttons + member list. No search field exists.
-
-#### Proposed: Add Real-Time Search to Members Page
-
-```
-// Updated faction_members.ui header row
-Group {
-    Anchor: (Height: 36, Bottom: 8);
-    LayoutMode: Left;
-
-    Label #MemberCount {
-        Text: "0 members";
-        Style: (FontSize: 14, TextColor: #888888, VerticalAlignment: Center);
-        Anchor: (Width: 100);
-    }
-
-    $C.@TextField #SearchInput {
-        PlaceholderText: "Search members...";
-        Anchor: (Height: 30);
-        FlexWeight: 1;
-    }
-
-    Group { Anchor: (Width: 8); }
-
-    // Sort dropdown replaces ROLE/ONLINE buttons (Pattern 3)
-    DropdownBox #SortDropdown { ... }
-}
-```
-
-```java
-// Real-time search with debounce (same pattern as Pattern 9)
-events.addEventBinding(ValueChanged, "#SearchInput",
-    EventData.of("Button", "Search")
-             .append("@SearchQuery", "#SearchInput.Value"),
     false);
 ```
 
-**Search matches against**: player name (primary), role name (secondary).
+**Debounce required** (250ms) — `ValueChanged` fires every keystroke.
 
-**Impact**: Completes the search story — all list pages (Browse, Members, Admin Factions, Admin Zones) have consistent search. Essential for factions with 20+ members.
+**New feature**: Add search to FactionMembersPage for finding players in large factions.
+
+**Impact**: Removes 2 TextButtons per page (SEARCH + X), provides instant feedback.
 
 ---
 
-### Pattern 11: TextField Text Positioning Fix
+### 7. Slider for Zone Radius (1 instance)
 
-**Current implementation**: All 14 TextFields across HyperFactions use raw `TextField` elements with manually applied styling:
+**Current**: 5 preset TextButtons (3, 5, 10, 15, 20) + TextField for custom input in CreateZoneWizardPage.
+
+**Proposed**: Replace with native Slider:
 
 ```
-// Current pattern (all 14 instances)
-TextField #SearchInput {
-    FlexWeight: 1;
-    Anchor: (Height: 32);
-    Style: $C.@DefaultInputFieldStyle;
-    Background: $C.@InputBoxBackground;
+Slider #RadiusSlider {
+    Min: 1; Max: 50; Step: 1; Value: 5;
+    Style: $C.@DefaultSliderStyle;
+    Anchor: (Height: 30);
 }
 ```
 
-**Problem**: Text appears offset outside the input box boundary (confirmed via screenshot). The text "test" renders misaligned from the visual box border.
+**Known limitation**: Slider track is invisible (confirmed via test page). Handle works fine. This is acceptable for a radius selector — the numeric label beside it shows the value.
 
-**Root cause**: HyperFactions uses raw `TextField` elements and manually applies `Style` + `Background` separately. The Hytale CustomUI documentation shows the correct pattern is to use the **`$C.@TextField` template** which is a complete pre-built element that includes proper padding, background, and text alignment as a unified whole.
+---
 
-- `$C.@DefaultInputFieldStyle` = **LabelStyle only** (font size, color, alignment)
-- `$C.@InputBoxBackground` = **PatchStyle only** (background texture/9-slice border)
-- `$C.@TextField` = **Complete template** (includes both + padding + layout properties)
+### 8. Recruitment Modal -> Inline DropdownBox
 
-By applying only the two components but not using the template, the padding that insets text from the box border is missing.
+**Current**: `RecruitmentModalPage.java` (150 lines) opens as separate page with Open/Invite Only buttons.
 
-#### Proposed: Use Native `$C.@TextField` Template
+**Proposed**: Replace with inline DropdownBox on settings pages:
 
-```
-// Before (current, broken):
-TextField #SearchInput {
-    FlexWeight: 1;
-    Anchor: (Height: 32);
-    Style: $C.@DefaultInputFieldStyle;
-    Background: $C.@InputBoxBackground;
-}
-
-// After (native template):
-$C.@TextField #SearchInput {
-    FlexWeight: 1;
-    Anchor: (Height: 32);
-}
+```java
+List<DropdownEntryInfo> entries = List.of(
+    new DropdownEntryInfo(LocalizableString.fromString("Open"), "open"),
+    new DropdownEntryInfo(LocalizableString.fromString("Invite Only"), "invite_only")
+);
+cmd.set("#RecruitmentDropdown.Entries", entries);
 ```
 
-The native template automatically includes:
-- Proper padding (text inset from box border)
-- Correct background with 9-slice texture
-- Matching text style
-- Proper vertical alignment
+**Note**: CreateFactionPage already handles recruitment inline with TextButtons. This change affects `FactionSettingsTabsPage` and `AdminFactionSettingsPage` only.
 
-#### Affected Files (14 TextFields across 10 files)
+**Files eliminated**: `RecruitmentModalPage.java`, `RecruitmentModalData.java`, `recruitment_modal.ui`
 
-| File | TextField Count | Element IDs |
+---
+
+### 9. Tab Bars (stick with TextButton pattern)
+
+**Original proposal**: Use native `TabNavigation + MenuItem`.
+
+**Updated**: TabNavigation + TabButton **crashes** (confirmed via test page). Stick with the current TextButton + `.Disabled` tab pattern. Can improve with `Value.ref()` style switching instead of `.Disabled` hack:
+
+```java
+// Better tab visual (confirmed working via test page)
+cmd.set("#TabAllies.Style", Value.ref("Common.ui",
+    currentTab == Tab.ALLIES ? "DefaultTextButtonStyle" : "SecondaryTextButtonStyle"));
+```
+
+This gives active/inactive tab visual feedback without the "disabled" appearance.
+
+---
+
+### 10. ProgressBar for Power Display (optional polish)
+
+**Current**: Labels showing "Power: 45/100" text.
+
+**Proposed**: Add ProgressBar alongside label:
+
+```
+ProgressBar #PowerBar {
+    Value: 0.45;
+    Bar: (Color: #00FFFF);
+    Background: (Color: #333333);
+    Anchor: (Height: 8);
+}
+```
+
+**Impact**: Low — visual polish only. Confirmed working via test page.
+
+---
+
+### 11. Centralized Color System (long-term)
+
+**Current**: ~660 hex color occurrences across 62 Java files, ~930 across 94 UI files. Partial centralization in `CommandUtil.java` (6 constants) and `TeleportManager.java` (5 duplicates). Inconsistencies exist (ally color differs between territory and chat).
+
+**Proposed**: `FactionTheme.java` + `config/style.json` with ~26 semantic color tokens. Server admins can customize colors to match their server theme.
+
+**This is the largest change** — best done last after all other UI improvements are stable.
+
+---
+
+## Verified Element Behavior (from test page)
+
+### What works
+
+| Element | Template/Style | Settable from Java |
 |---|---|---|
-| `newplayer/create_step1.ui` | 2 | `#NameInput`, `#TagInput` |
-| `newplayer/create_step2.ui` | 1 | `#DescriptionInput` |
+| TextButton | `$C.@DefaultTextButtonStyle`, `$C.@SecondaryTextButtonStyle` | `.Text`, `.Disabled`, `.Style` (via `Value.ref()`) |
+| TextButton | `$C.@CancelTextButton`, `$C.@TertiaryTextButton`, etc. | `.Text` via `@Text` param |
+| TextField | `$C.@TextField` | `.Value` (NOT `.Text`) |
+| Slider | `$C.@DefaultSliderStyle` | `.Value`, `Min`, `Max`, `Step` |
+| CheckBox | `$C.@CheckBoxWithLabel` | `#id #CheckBox.Value`, `#id #CheckBox.Disabled` |
+| DropdownBox | bare (no template) | `.Entries`, `.Value` |
+| ColorPicker | `$C.@DefaultColorPickerStyle` (**mandatory**) | `.Value` (set from Java, NOT in .ui) |
+| ProgressBar | no Style needed | `.Value` (0.0-1.0), `Bar`, `Background` |
+| Group | n/a | `Background: (Color: #hex)` |
+| Label | inline Style | `.Text`, `.TextSpans`, `.Style.TextColor` |
+
+### What crashes
+
+| Element | Issue |
+|---|---|
+| `TabNavigation + TabButton` | NullReferenceException — needs unknown style/setup |
+| `CheckBox` (native, no template) | NullReferenceException — must use `$C.@CheckBoxWithLabel` |
+| `ColorPicker` without Style | NullReferenceException — `$C.@DefaultColorPickerStyle` mandatory |
+| `#CB.Disabled` on CheckBoxWithLabel | "selector doesn't match" — use `#CB #CheckBox.Disabled` |
+| `#NumberField.Value` | "couldn't set value" — inner selector unknown |
+| `HorizontalAlignment` in inline Style | Client crash — only works in named LabelStyle definitions |
+| `$` in .ui text strings | Parser crash — resolves as variable reference |
+
+### What renders but has limitations
+
+| Element | Limitation |
+|---|---|
+| Slider track | Invisible — `$C.@DefaultSliderStyle` renders opaque background covering overlays. Handle works. |
+| `$C.@DropdownBox` template | Opens sideways (arrow right) — use bare `DropdownBox` instead |
+| `$C.@NumberField` | Renders with "0" but `.Value` not settable from Java |
+| `CircularProgressBar` | Invisible without `MaskTexturePath` texture |
+| `Button` (plain) | Invisible — always use `TextButton` instead |
+
+---
+
+## Files to Modify/Eliminate
+
+### Files to Delete (after ColorPicker migration)
+
+| File | Lines | Replacement |
+|---|---|---|
+| `shared/page/ColorPickerPage.java` | 198 | Inline ColorPicker on settings pages |
+| `shared/data/ColorPickerData.java` | ~30 | Not needed |
+| `shared/component/ColorPickerModal.java` | ~50 | Not needed |
+| `shared/color_picker.ui` | 261 | Native ColorPicker element |
+| `shared/page/RecruitmentModalPage.java` | 150 | Inline DropdownBox |
+| `shared/data/RecruitmentModalData.java` | ~30 | Not needed |
+| `shared/recruitment_modal.ui` | 89 | Inline DropdownBox |
+
+### Already Deleted
+
+| File | Commit |
+|---|---|
+| `CreateFactionStep1Page.java` (239 lines) | `42267d9` |
+| `CreateFactionStep2Page.java` (376 lines) | `42267d9` |
+| `create_step1.ui` (189 lines) | `42267d9` |
+| `create_step2.ui` (187 lines) | `42267d9` |
+
+### TextField Migration (8 files, simple swap)
+
+| File | Count | IDs |
+|---|---|---|
 | `newplayer/browse.ui` | 1 | `#SearchInput` |
 | `faction/faction_browser.ui` | 1 | `#SearchInput` |
 | `faction/set_relation_modal.ui` | 1 | `#SearchInput` |
 | `shared/rename_modal.ui` | 1 | `#NameInput` |
 | `shared/tag_modal.ui` | 1 | `#TagInput` |
-| `shared/description_modal.ui` | 1 | `#DescriptionInput` |
+| `shared/description_modal.ui` | 1 | `#DescInput` |
 | `admin/zone_rename_modal.ui` | 1 | `#NameInput` |
 | `admin/create_zone_wizard.ui` | 2 | `#NameInput`, `#CustomRadiusInput` |
 
-**Impact**: Simple find-and-replace fix across 10 files. Immediately fixes text positioning on all input fields. Matches native Hytale look.
+### Button Style Migration (38 files)
 
----
-
-### Pattern 12: Centralized Color System + Admin Style Config
-
-**Current state**: Colors are hardcoded throughout the codebase with no centralization:
-- **~660 hex color occurrences** across 62 Java files
-- **~930 hex color occurrences** across 94 .ui template files
-- **~40-50 unique colors** in total
-- **Partial centralization only**: `CommandUtil.java` has 6 constants, `TeleportManager.java` duplicates 5 of them, `styles.ui` has ~15 label style constants
-- **Inconsistencies**: Ally color is `#55FF55` in TerritoryInfo but `#AA00AA` in ChatManager. SafeZone uses both `#55FF55` and `#00CED1` in different contexts.
-
-#### Proposed: Three-Layer Color Architecture
-
-```
-Layer 1: config/style.json          (admin-editable, runtime loaded)
-    ↓ overrides defaults in
-Layer 2: FactionTheme.java          (Java constants, compile-time defaults)
-    ↓ referenced by
-Layer 3: styles.ui + Java code      (UI templates + message formatting)
-```
-
-##### Layer 1: `config/style.json` (Server Admin Customization)
-
-```json
-{
-    "brand": {
-        "primary": "#55FFFF",
-        "primaryBright": "#00FFFF",
-        "secondary": "#00AAAA"
-    },
-    "status": {
-        "success": "#55FF55",
-        "error": "#FF5555",
-        "warning": "#FFAA00"
-    },
-    "text": {
-        "primary": "#FFFFFF",
-        "secondary": "#AAAAAA",
-        "muted": "#888888",
-        "disabled": "#555555"
-    },
-    "roles": {
-        "leader": "#FFD700",
-        "officer": "#87CEEB",
-        "member": "#AAAAAA",
-        "recruit": "#888888"
-    },
-    "relations": {
-        "own": "#55FF55",
-        "ally": "#55FF55",
-        "neutral": "#FFFF55",
-        "enemy": "#FF5555",
-        "wilderness": "#AAAAAA"
-    },
-    "zones": {
-        "safe": "#55FF55",
-        "war": "#FF5555"
-    },
-    "ui": {
-        "backgroundPrimary": "#1a2a3a",
-        "backgroundSecondary": "#0d1520",
-        "backgroundTertiary": "#111a28",
-        "accent": "#334455",
-        "divider": "#00FFFF",
-        "buttonLabel": "#bfcdd5"
-    }
-}
-```
-
-Server admins can customize any color to match their server's theme (e.g., a red-themed PvP server, a green-themed survival server). Missing keys fall back to defaults. Invalid hex values are ignored with a config warning.
-
-##### Layer 2: `FactionTheme.java` (Centralized Java Constants)
-
-```java
-public class FactionTheme {
-    // Singleton, loaded from config/style.json with defaults
-
-    // Brand
-    public String primary()       { return get("brand.primary", "#55FFFF"); }
-    public String primaryBright() { return get("brand.primaryBright", "#00FFFF"); }
-    public String secondary()     { return get("brand.secondary", "#00AAAA"); }
-
-    // Status
-    public String success() { return get("status.success", "#55FF55"); }
-    public String error()   { return get("status.error", "#FF5555"); }
-    public String warning() { return get("status.warning", "#FFAA00"); }
-
-    // Text
-    public String textPrimary()   { return get("text.primary", "#FFFFFF"); }
-    public String textSecondary() { return get("text.secondary", "#AAAAAA"); }
-    public String textMuted()     { return get("text.muted", "#888888"); }
-
-    // Roles, Relations, Zones, UI...
-    // All with defaults matching current hardcoded values
-}
-```
-
-Replaces scattered constants in `CommandUtil.java`, `TeleportManager.java`, `HelpFormatter.java`, and all direct hex literals in Java code.
-
-##### Layer 3: `styles.ui` Refactor
-
-The `.ui` template styles currently hardcode colors inline:
-
-```
-// Current (hardcoded):
-@CyanLabelStyle = LabelStyle(
-    FontSize: 13, TextColor: #00FFFF, RenderBold: true, ...
-);
-```
-
-After centralization, **Java code dynamically sets colors on UI elements** using theme values:
-
-```java
-// Java-side: apply theme colors to UI
-cmd.set("#FactionName.Style.TextColor", theme.primaryBright());
-cmd.set("#StatusLabel.Style.TextColor", theme.success());
-```
-
-For `.ui` templates, colors that **cannot be set dynamically** (static label styles in template definitions) remain in `styles.ui` using the default values. These serve as fallbacks — the Java code overrides them at page build time with theme values.
-
-**Alternative approach**: If `cmd.set()` on LabelStyle.TextColor proves unreliable for all elements, generate `styles.ui` at plugin startup from the theme config (write the file with substituted colors, then reference it normally).
-
-##### Color Inventory: Semantic Groups
-
-| Group | Colors | Current Locations | After Centralization |
-|---|---|---|---|
-| **Brand** (3) | `#55FFFF`, `#00FFFF`, `#00AAAA` | 62 Java files, 30+ UI templates | `theme.primary()`, `theme.primaryBright()`, `theme.secondary()` |
-| **Status** (3) | `#55FF55`, `#FF5555`, `#FFAA00` | 40+ Java files, 20+ UI templates | `theme.success()`, `theme.error()`, `theme.warning()` |
-| **Text** (4) | `#FFFFFF`, `#AAAAAA`, `#888888`, `#555555` | Nearly every file | `theme.textPrimary()` through `theme.textDisabled()` |
-| **Roles** (4) | `#FFD700`, `#87CEEB`, `#AAAAAA`, `#888888` | Member display code, UI templates | `theme.roleLeader()` through `theme.roleRecruit()` |
-| **Relations** (5) | `#55FF55`, `#55FF55`, `#FFFF55`, `#FF5555`, `#AAAAAA` | Territory, chat, map code | `theme.relationOwn()` through `theme.relationWilderness()` |
-| **Zones** (2) | `#55FF55`, `#FF5555` | Zone settings, map, display | `theme.zoneSafe()`, `theme.zoneWar()` |
-| **UI backgrounds** (5) | `#1a2a3a`, `#0d1520`, `#111a28`, `#334455`, `#bfcdd5` | UI templates only | `theme.bgPrimary()` through `theme.buttonLabel()` |
-
-**Total: ~26 semantic color tokens** replacing ~40-50 inconsistent hardcoded values across ~1,590 occurrences.
-
-##### Inconsistencies Fixed
-
-| Issue | Current | After |
-|---|---|---|
-| Ally color differs between territory and chat | `#55FF55` vs `#AA00AA` | `theme.relationAlly()` everywhere |
-| SafeZone uses two different greens | `#55FF55` vs `#00CED1` | `theme.zoneSafe()` everywhere |
-| `CommandUtil`, `TeleportManager`, `HelpFormatter` each define their own color constants | 3 separate files, partial overlap | Single `FactionTheme` class |
-| UI template colors not overridable | Hardcoded in .ui files | Theme-driven via `cmd.set()` or generated styles |
-
-##### Implementation Scope
-
-**New files**:
-- `config/FactionTheme.java` — Theme loader + accessors with defaults
-- `config/style.json` — Default style configuration (generated on first run)
-
-**Modified files** (bulk refactor):
-- **62 Java files** — Replace hardcoded hex literals with `theme.xxx()` calls
-- **styles.ui** — Refactor color definitions to use default theme values, add comments mapping to `style.json` keys
-- **ConfigManager.java** — Load `style.json` on startup, provide `getTheme()` accessor
-
-**This is the largest single change in the audit** but provides long-term maintainability and server admin customization.
-
-#### Verification Needed
-- [ ] `cmd.set("#label.Style.TextColor", hexColor)` — Confirmed working on TextButtons (AdminFactionSettingsPage uses this). Need to verify it works on Labels too.
-- [ ] Performance of runtime theme loading — JSON parse once at startup, cached in `FactionTheme` singleton. Negligible.
-- [ ] Hot-reload support — Can theme changes apply without server restart? Would require re-opening player GUIs. Consider `/f admin reload` including style refresh.
-
----
-
-## Consolidated Impact Table
-
-| Element | Instance Count | Pages Affected | Code Eliminated | Visual Impact |
-|---|---|---|---|---|
-| **CheckBoxWithLabel** | 45 | 4 | ~200 lines toggle logic, 3 divergent patterns -> 1 | **Highest** |
-| **Native Button Styles** | ALL standard buttons (~60+) | All pages | ~20 style definitions (~250+ lines from styles.ui), most custom color-variant buttons eliminated (SafeZone/WarZone kept for map claim system) | **Highest** — seamless Hytale-native feel |
-| **ColorPicker (faction)** | 3 pages (create + settings + admin) | 3 (was 4) | ColorPickerPage.java (198 lines), color_picker.ui (261 lines), **CreateFactionStep2Page.java (~376 lines)**, **create_step2.ui (~187 lines)**, 16-button grids, modal flow | **High** |
-| **ColorPicker (zones)** | 1 new page (zone properties tab) | 1 | New feature — zone settings page split into tabs | **High** — enables per-zone custom colors |
-| **Page enlargements** | 4 pages resized | 4 | No code eliminated — layout changes for no-scroll ColorPicker | **High** — polished, no-scroll feel |
-| **Slider** | 1 | 1 | 5 preset buttons + TextField + apply logic | **High** (matches Hytale exactly) |
-| **Centralized Color System** | ~1,590 color occurrences | 62 Java + 94 UI files | Eliminates inconsistencies, enables admin customization | **High** — long-term maintainability |
-| **TextField Fix** | 14 TextFields | 10 UI files | Simple template swap, fixes text positioning | **Medium** — visible bug fix |
-| **Real-Time Search + Debounce** | 3-4 search bars (incl. new Members search) | 3-4 | 2 TextButtons per page (SEARCH + X), button event handlers | **Medium** — instant feedback, native UX |
-| **Members Page Search** | 1 new search field | 1 | New feature — enables finding members in large factions | **Medium** — usability |
-| **DropdownBox** | ~10 | 6 | ~100 lines button/event code, 25 TextButton elements | **Medium** |
-| **TabNavigation** | ~6 | 6 | `.Disabled` tab hack, manual visibility toggle | **Medium** |
-| **DropdownBox (recruitment)** | 2 | 2 | RecruitmentModalPage.java (150 lines), recruitment_modal.ui (89 lines) | **Medium** |
-| **ProgressBar** | 2-3 | 2 | None (additive) | **Low** |
-
-**Total elements replaced**: ~75+ TextButton workarounds -> native elements
-**Total code eliminated**: ~1,300+ lines (workaround logic + merged Step 2 page)
-**Style definitions cleaned up**: ~20 custom styles removed (~250+ lines from styles.ui); SafeZone/WarZone styles kept for map claim system
-**TextField fixes**: 14 input fields across 10 templates
-**Color occurrences centralized**: ~1,590 hardcoded hex values -> ~26 semantic theme tokens
-**New features**: Zone colors, Members search, admin style customization (`style.json`)
-
----
-
-## Open Questions / Risks
-
-### Must Verify Before Implementation
-
-1. **CheckBox `.Value` dynamic setting** — `cmd.set("#checkbox.Value", true)` — Server code confirms this works on CheckBox. **Low risk.**
-
-2. **CheckBox disabled state** — Zone settings have "LOCKED" flags. Can `CheckBox.Disabled` be set dynamically? TextButton `.Disabled` works, so likely yes. **Low risk.**
-
-3. **ColorPicker value constraints** — ~~Medium risk~~ **Resolved**: Free-form hex colors accepted. `hexToNearestColorCode()` snaps to nearest of 16 Minecraft codes for chat formatting. Data model will migrate to full hex (`#RRGGBB`). **CRITICAL**: `Style: $C.@DefaultColorPickerStyle;` is mandatory — see pitfalls doc #11.
-
-4. **DropdownBox entry population** — `cmd.set("#dropdown.Entries", list)` is confirmed from server code. **Low risk.**
-
-5. **TabNavigation event data** — Does `SelectedTabChanged` provide tab index/ID? **Medium risk — need to test.**
-
-6. **Slider value readout** — The Hytale screenshot shows numeric readout next to sliders. Is this built into `@DefaultSliderStyle` or does it need a separate Label? **Low risk — can always add Label.**
-
-7. **Dark theme compatibility** — Do native elements (`CheckBox`, `DropdownBox`, `Slider`) automatically inherit the dark theme from Common.ui, or do they need custom styling to match HyperFactions' cyan/teal aesthetic? **Medium risk — may need custom styles.**
-
-8. **Native button style font size** — Does `$C.@DefaultTextButtonStyle` use the same 13px font size as HyperFactions' custom styles? If it uses a larger size, small/compact buttons may still need custom definitions. **Low risk — can always keep `@SmallButtonStyle`.**
-
-9. **Complete style token syntax in .ui files** — In templates, is it `Style: $C.@DefaultTextButtonStyle;` (same as background refs), or does it need different syntax? **Low risk — confirmed working via `cmd.set()` in Java code.**
-
-10. **Search debouncing** — `ValueChanged` fires on every keystroke. **Debounce required** (250ms recommended). See Pattern 9 for implementation. **Low risk — straightforward `ScheduledFuture` pattern.**
-
-11. **Collapsible search icon** — The inventory's magnifying-glass-to-search-field animation is **client-side only**. Not replicable in server-side plugins. **Confirmed limitation — no workaround needed.**
-
-12. **`$C.@TextField` template padding** — Switching to the native template should fix text positioning. Need to verify padding values match expectations. **Low risk — native template is well-tested.**
-
-13. **Theme hot-reload** — Can `style.json` changes apply without server restart? Would need re-opening player GUIs. Consider including in `/f admin reload`. **Medium risk — optional feature.**
-
-14. **UI template color migration** — Can `cmd.set("#label.Style.TextColor", hexColor)` work on all element types? Confirmed on TextButtons. Need to verify on Labels and other elements. If not universal, may need to generate `styles.ui` from theme at startup. **Medium risk.**
-
-### Known Limitations
-
-- **TextButton styles cannot be changed dynamically** — Setting individual style properties (`.Style.Default.Background`) crashes. BUT complete style token references (`.Style = Value.ref("Common.ui", "DefaultTextButtonStyle")`) DO work. This distinction is critical.
-- **Collapsible search animation is client-side only** — The inventory's magnifying glass expand/collapse cannot be replicated in plugin UIs.
-- **Label HorizontalAlignment: Right crashes the client** — Unrelated to this audit but important context.
-- **Anchor cannot be changed dynamically** — Native elements have fixed size once rendered.
-- **TextField uses `.Value` not `.Text`** — Already known, confirmed for DropdownBox and Slider too.
-
----
-
-## Files That Would Be Modified
-
-### Eliminated Files (can be deleted)
-- `shared/page/ColorPickerPage.java` (198 lines) — Replaced by inline ColorPicker
-- `shared/page/RecruitmentModalPage.java` (150 lines) — Replaced by inline DropdownBox
-- `shared/data/RecruitmentModalData.java` — No longer needed
-- `shared/data/ColorPickerData.java` — No longer needed
-- `shared/component/ColorPickerModal.java` — No longer needed
-- `shared/color_picker.ui` (261 lines, 16 baked styles) — Replaced by native element
-- `shared/recruitment_modal.ui` (89 lines) — Replaced by native element
-
-### Data Model Changes (new feature: zone colors + hex faction colors)
-- `data/Faction.java` — `color` field: single char (`"a"`) -> hex string (`"#55FF55"`)
-- `data/Zone.java` — Add `String color` field (nullable, defaults to type color)
-- `data/ZoneType.java` — Add `defaultColor()` method returning hex
-- `storage/JsonFactionStorage.java` — Migration: map old char codes to hex on load
-- `storage/JsonZoneStorage.java` — Add color field serialization, null default for existing zones
-- Any code that reads `faction.color()` and maps to Minecraft codes — update to use hex directly
-
-### New Files (centralized color system)
-- `config/FactionTheme.java` — Theme loader + accessors with defaults (~26 semantic color tokens)
-- `config/style.json` — Default style configuration (generated on first run, admin-editable)
-
-### TextField Template Fixes (10 files, simple swap)
-- `newplayer/create_step1.ui` — 2 TextFields -> `$C.@TextField` template
-- `newplayer/create_step2.ui` — 1 TextField
-- `newplayer/browse.ui` — 1 TextField
-- `faction/faction_browser.ui` — 1 TextField
-- `faction/set_relation_modal.ui` — 1 TextField
-- `shared/rename_modal.ui` — 1 TextField
-- `shared/tag_modal.ui` — 1 TextField
-- `shared/description_modal.ui` — 1 TextField
-- `admin/zone_rename_modal.ui` — 1 TextField
-- `admin/create_zone_wizard.ui` — 2 TextFields
-
-### UI Templates (modify to add native elements)
-
-**Style definitions:**
-- `shared/styles.ui` — Add CheckBox, Dropdown, Slider style definitions; remove ~20 obsolete button styles (keep SafeZone/WarZone for map claim system)
-
-**Page resizing + ColorPicker integration (no-scroll goal):**
-- `faction/settings_tabs.ui` — **Resize 600×620 -> 700×720**; TabNavigation for tab bar
-- `faction/settings_general_content.ui` — APPEARANCE section expanded to ~220px with inline ColorPicker; DropdownBox for recruitment; remove TopScrolling
-- `admin/admin_faction_settings.ui` — **Resize 720×560 -> 800×700**; inline ColorPicker in left column; remove TopScrolling from both columns
-- `admin/admin_zone_settings.ui` — **Resize 720×680 -> 800×700**; split into Properties/Flags tabs; add ColorPicker on Properties tab
-- `newplayer/create_step1.ui` -> **rename to `create_faction.ui`**; **Resize to 600×800**; merge Step 2 fields (description, recruitment); ColorPicker at 220px height (square gradient); admin-style visual polish
-
-**CheckBox conversions:**
-- `admin/admin_zone_settings.ui` — 22 TextButton -> CheckBoxWithLabel (on FLAGS tab)
-- `admin/admin_faction_settings.ui` — 11 TextButton -> CheckBoxWithLabel
-- `admin/admin_dashboard.ui` — 1 Label+Button -> CheckBoxWithLabel
-- `faction/settings_permissions_content.ui` — 11 TextButton -> CheckBoxWithLabel
-
-**DropdownBox + Slider conversions:**
-- `admin/create_zone_wizard.ui` — Slider for radius, DropdownBox for type/method/flags
-- `admin/admin_factions.ui` — DropdownBox for sort
-- `faction/faction_members.ui` — DropdownBox for sort
-- `faction/faction_browser.ui` — DropdownBox for sort; remove SEARCH + X buttons (real-time search)
-- `newplayer/browse.ui` — DropdownBox for sort; remove SEARCH + X buttons
-
-**TabNavigation conversions:**
-- `admin/admin_zones.ui` — TabNavigation for filter tabs
-- `faction/faction_relations.ui` — TabNavigation for tabs
-
-**Native button style updates:**
-- Multiple `.ui` files — Replace `$S.@ButtonStyle` with `$C.@DefaultTextButtonStyle` on standard action buttons
-- Multiple `.ui` files — Replace `$S.@ButtonStyle` / `$S.@SmallButtonStyle` with `$C.@SecondaryTextButtonStyle` on cancel/secondary buttons
-
-**Eliminated (merged into single create page):**
-- `newplayer/create_step2.ui` — All Step 2 fields merged into `create_faction.ui`
-- `CreateFactionStep2Page.java` — All Step 2 logic merged into `CreateFactionPage.java`
-
-### Java Page Classes (modify event handling)
-- `AdminZoneSettingsPage.java` — Major redesign: split into Properties/Flags tabs; CheckBox ValueChanged handling on Flags tab; ColorPicker on Properties tab
-- `AdminFactionSettingsPage.java` — CheckBox + inline ColorPicker (replaces modal flow) + inline DropdownBox for recruitment
-- `AdminDashboardPage.java` — CheckBox handling
-- `AdminZonesPage.java` — TabNavigation handling; update zone color display
-- `AdminFactionsPage.java` — DropdownBox handling
-- `CreateZoneWizardPage.java` — Slider + DropdownBox handling
-- `FactionSettingsTabsPage.java` — CheckBox + TabNavigation + inline ColorPicker + inline DropdownBox for recruitment
-- `FactionRelationsPage.java` — TabNavigation handling
-- `FactionMembersPage.java` — DropdownBox handling
-- `FactionBrowserPage.java` — DropdownBox + real-time search with debounce (ValueChanged)
-- `FactionMembersPage.java` — DropdownBox + **add search** (new feature) with debounce
-- `NewPlayerBrowsePage.java` — DropdownBox + real-time search with debounce (ValueChanged)
-- `CreateFactionStep1Page.java` -> **rename to `CreateFactionPage.java`** — Merge Step 2 logic (description, recruitment, create action); native ColorPicker; admin-style visual polish
-- `CreateFactionStep2Page.java` — **Eliminated** (merged into single CreateFactionPage)
-
-### Centralized Color Migration (bulk refactor, Batch 6)
-- `config/FactionTheme.java` — New file: theme loader with ~26 semantic color tokens
-- `config/style.json` — New file: admin-editable style configuration
-- `ConfigManager.java` — Load style.json on startup, provide `getTheme()` accessor
-- **62 Java files** — Replace hardcoded hex literals with `theme.xxx()` calls
-- **94 UI template files** — Replace hardcoded TextColor/Background.Color with theme values or generated styles
-- `CommandUtil.java` — Remove 6 color constants (moved to FactionTheme)
-- `TeleportManager.java` — Remove 5 duplicate color constants
-- `HelpFormatter.java` — Remove 4 java.awt.Color constants
-
-### Shared/Utility
-- `NavBarHelper.java` — TabNavigation if upgrading main nav bars
-- `AdminNavBarHelper.java` — Same
-- `NewPlayerNavBarHelper.java` — Same
-- `GuiManager.java` — Remove `openColorPicker()` and `openRecruitmentModal()` methods
+All files currently using `$S.@ButtonStyle`, `$S.@CyanButtonStyle`, `$S.@GreenButtonStyle`, `$S.@RedButtonStyle`, `$S.@GoldButtonStyle` need migration to native `$C.@DefaultTextButtonStyle` / `$C.@SecondaryTextButtonStyle`.
 
 ---
 
 ## Recommended Implementation Order
 
-Each step is independently testable and rollback-safe:
+Each step is independently testable and rollback-safe. Steps already completed are removed.
 
 | Order | Change | Effort | Impact | Pages |
 |---|---|---|---|---|
-| 1 | CheckBoxWithLabel on AdminZoneSettingsPage (22 toggles) | Medium | **Highest** — biggest single page improvement | 1 |
-| 2 | CheckBoxWithLabel on FactionSettingsTabsPage (11 toggles) | Medium | High — user-facing permission controls | 1 |
-| 3 | CheckBoxWithLabel on AdminFactionSettingsPage (11 toggles) | Low | High — reuse pattern from step 2 | 1 |
-| 4 | Native button styles on action buttons (`@DefaultTextButtonStyle` / `@SecondaryTextButtonStyle`) | Low | **High** — immediate native look across all pages | 10+ |
-| 5 | Slider on CreateZoneWizardPage (1 slider) | Low | High — quick win, matches Hytale exactly | 1 |
-| 6 | Faction color model migration (char -> hex) | Low | Foundation — required before ColorPicker work | Data layer |
-| 7 | ColorPicker + merged single-page Create Faction (600×800, admin-style polish) | Medium | High — eliminates Step 2 + 16-button grid + modal; flagship new-player experience | 1 (replaces 2) |
-| 8 | ColorPicker on Faction Settings General tab (700×720) | Medium | High — inline picker, no-scroll layout | 1 |
-| 9 | ColorPicker on Admin Faction Settings (800×700) | Medium | High — inline picker, no-scroll layout | 1 |
-| 10 | Zone color data model + storage migration | Medium | Foundation — required before zone ColorPicker | Data layer |
-| 11 | Zone Settings page redesign: Properties/Flags tabs (800×700) | High | **High** — zone ColorPicker + tabbed layout | 1 |
-| 12 | TextField fix — swap to `$C.@TextField` template (14 fields, 10 files) | Low | Medium — fixes visible text positioning bug | 10 |
-| 13 | Real-time search + debounce on browse pages | Low | Medium — instant feedback, removes buttons | 2-3 |
-| 14 | Add search to Members page (new feature) | Low | Medium — usability for large factions | 1 |
-| 15 | DropdownBox on browse/sort patterns (4 pages) | Medium | Medium — repeated pattern, do all at once | 4 |
-| 16 | DropdownBox on CreateZoneWizardPage selections | Low | Medium — reuse pattern from step 15 | 1 |
-| 17 | Inline DropdownBox replacing RecruitmentModal | Low | Medium — eliminates modal page | 2 |
-| 18 | TabNavigation on Relations + Settings tabs | Medium | Medium — proper tab semantics | 2 |
-| 19 | TabNavigation on AdminZones filter tabs | Low | Low-Medium — reuse from step 18 | 1 |
-| 20 | CheckBoxWithLabel on AdminDashboardPage (1 toggle) | Low | Low — trivial, reuse from step 1 | 1 |
-| 21 | Centralized color system — `FactionTheme.java` + `style.json` | High | **High** — foundation for all color usage | 62+ Java files |
-| 22 | Migrate Java code to use `FactionTheme` color tokens | High | High — eliminates ~660 hardcoded hex values in Java | 62 files |
-| 23 | Migrate UI templates to use theme-driven colors | Medium | Medium — eliminates ~930 hardcoded hex values in .ui | 94 files |
-| 24 | styles.ui cleanup (remove ~20 obsolete style definitions, keep SafeZone/WarZone) | Low | Low — code hygiene | 1 |
-| 25 | ProgressBar on Dashboard power display | Low | Low — optional polish | 1-2 |
-| 26 | TabNavigation on main nav bars | Medium | Medium — biggest refactor, least urgency | 3 |
+| 1 | TextField fix — swap 9 instances to `$C.@TextField` | **Low** | Medium — fixes text positioning | 8 |
+| 2 | Native button styles on all pages | **Low** | **High** — immediate native look | 38 |
+| 3 | CheckBoxWithLabel on AdminFactionSettingsPage (11) | Medium | High — admin permission controls | 1 |
+| 4 | CheckBoxWithLabel on FactionSettingsTabsPage (11) | Medium | High — user-facing controls | 1 |
+| 5 | CheckBoxWithLabel on AdminZoneSettingsPage (22) | Medium | **Highest** — biggest single page | 1 |
+| 6 | CheckBoxWithLabel on AdminDashboardPage (1) | Low | Low — trivial reuse | 1 |
+| 7 | Faction color model migration (char -> hex) | Low | Foundation for ColorPicker work | Data |
+| 8 | ColorPicker on Faction Settings General tab | Medium | High — inline picker | 1 |
+| 9 | ColorPicker on Admin Faction Settings | Medium | High — inline picker | 1 |
+| 10 | Delete ColorPickerPage + modal files | Low | Cleanup — removes 539 lines | 4 files |
+| 11 | Slider on CreateZoneWizardPage | Low | Medium — replaces 5 preset buttons | 1 |
+| 12 | DropdownBox on browse/sort pages | Medium | Medium — replaces disabled-button pattern | 4 |
+| 13 | Inline DropdownBox replacing RecruitmentModal | Low | Medium — eliminates modal page | 2 |
+| 14 | Real-time search + debounce on browse pages | Low | Medium — instant feedback | 3 |
+| 15 | Add search to Members page (new feature) | Low | Medium — usability | 1 |
+| 16 | Tab bar style switching (Value.ref) | Low | Low — better active/inactive visual | 3 |
+| 17 | ProgressBar on Dashboard power display | Low | Low — optional polish | 1 |
+| 18 | Centralized color system (FactionTheme + style.json) | **High** | **High** — long-term | 62+ |
+| 19 | styles.ui cleanup (remove obsolete definitions) | Low | Low — code hygiene | 1 |
 
-**Suggested batches**:
-- **Batch 1 (steps 1-5)**: CheckBox + native button styles + Slider. Tests native form elements + styling. Low coupling.
-- **Batch 2 (steps 6-9)**: Faction ColorPicker — data migration + inline pickers on all 3 faction pages. Eliminates color modal.
-- **Batch 3 (steps 10-11)**: Zone ColorPicker — new zone color feature + zone settings page redesign with tabs.
-- **Batch 4 (steps 12-17)**: TextField fix + search (with debounce + Members page) + DropdownBox. Bug fixes + native UX patterns.
-- **Batch 5 (steps 18-20)**: TabNavigation. Proper tab semantics across remaining pages.
-- **Batch 6 (steps 21-26)**: Centralized color system + cleanup + polish. Biggest scope, highest long-term impact. Best done last so all other UI changes are stable before the color migration.
-
----
-
-## Appendix: Current styles.ui Analysis
-
-`shared/styles.ui` (378 lines) defines 27 button style variants. Key observations:
-
-- All styles reference `$C = "../../Common.ui"` for background textures
-- Button styles use `Default`/`Hovered`/`Pressed`/`Disabled` states from Common.ui backgrounds
-- Color variants: Button (default gray), Cyan, Green, Red, Gold, SafeZone, WarZone, Disabled, Invisible, PlayerMarker, TocLink
-- Each color has regular + small variant
-- Legacy aliases exist: @TealButtonStyle, @PurpleButtonStyle (deprecated)
-
-### Styles to Remove (replaced by native tokens)
-
-| Style | Replacement |
-|---|---|
-| `@ButtonStyle` + `@SmallButtonStyle` | `$C.@DefaultTextButtonStyle` / `$C.@SecondaryTextButtonStyle` |
-| `@CyanButtonStyle` + `@SmallCyanButtonStyle` | `$C.@DefaultTextButtonStyle` |
-| `@GreenButtonStyle` + `@SmallGreenButtonStyle` | `$C.@DefaultTextButtonStyle` |
-| `@RedButtonStyle` + `@SmallRedButtonStyle` | `$C.@SecondaryTextButtonStyle` + confirm dialog |
-| `@GoldButtonStyle` | `$C.@DefaultTextButtonStyle` |
-| `@DisabledButtonStyle` | Native `.Disabled` state |
-| `@TealButtonStyle` (legacy) | Already deprecated |
-| `@PurpleButtonStyle` (legacy) | Already deprecated |
-| `@SmallTealButtonStyle` (legacy) | Already deprecated |
-| `@SmallPurpleButtonStyle` (legacy) | Already deprecated |
-| `@ButtonLabelStyle` + non-zone color variants | Included in native button styles |
-
-**Total: ~20 styles removed (~250+ lines)**
-
-### Styles to Keep (unique functional purpose)
-
-| Style | Purpose | Why Keep |
-|---|---|---|
-| `@SafeZoneButtonStyle` + Small | Zone type indicator (green = safe) | Semantic color for map claim system — visually distinguishes safe zones in create wizard and zone maps |
-| `@WarZoneButtonStyle` + Small | Zone type indicator (red = war) | Semantic color for map claim system — visually distinguishes war zones in create wizard and zone maps |
-| `@InvisibleButtonStyle` | Click overlays for expandable entries | Unique transparent pattern — no native equivalent |
-| `@PlayerMarkerButtonStyle` | Map player position marker | Unique white-on-transparent — no native equivalent |
-| `@TocLinkButtonStyle` | Help system links | Unique hover behavior — no native equivalent |
-| `@SafeZoneLabelStyle` + Small | Zone type labels | Used by SafeZone button styles and standalone zone type labels |
-| `@WarZoneLabelStyle` + Small | Zone type labels | Used by WarZone button styles and standalone zone type labels |
-
-**Most color-variant button styles deleted** — replaced by `$C.@DefaultTextButtonStyle` (primary) and `$C.@SecondaryTextButtonStyle` (secondary). SafeZone/WarZone styles are kept because they serve a **semantic function** in the map claim system (green = safe, red = war), not just cosmetic branding.
-
-### New Styles to Add
-
-None — use native defaults for all new elements:
-- **CheckBox**: `$C.@CheckBoxStyle` (native)
-- **DropdownBox**: Native default styling
-- **Slider**: `$C.@DefaultSliderStyle` (native)
-- **ColorPicker**: `$C.@DefaultColorPickerStyle` (native, **mandatory** — see pitfalls #11)
-
-### Estimated styles.ui After Changes
-- **Current**: 27 custom styles, ~378 lines
-- **Removed**: ~20 button styles (~250+ lines)
-- **Added**: 0 (native styles come from Common.ui)
-- **Remaining**: 7 functional styles + label styles for section headers (~120 lines)
-- **Result**: Significant simplification — styles.ui retains only map claim system styles and unique functional patterns
+**Suggested batches:**
+- **Batch 1 (steps 1-2)**: Quick wins — TextField fix + native button styles. Low effort, high visual impact.
+- **Batch 2 (steps 3-6)**: CheckBox migration across all 4 toggle pages.
+- **Batch 3 (steps 7-10)**: ColorPicker on remaining settings pages + data model migration + cleanup.
+- **Batch 4 (steps 11-15)**: Slider + DropdownBox + real-time search. Native input elements.
+- **Batch 5 (steps 16-19)**: Polish + centralized color system.
