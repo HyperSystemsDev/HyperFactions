@@ -14,6 +14,7 @@ import com.hyperfactions.gui.help.page.HelpMainPage;
 import com.hyperfactions.gui.shared.page.*;
 import com.hyperfactions.gui.page.admin.*;
 import com.hyperfactions.gui.page.newplayer.*;
+import com.hyperfactions.gui.test.ButtonTestPage;
 import com.hyperfactions.manager.*;
 import com.hyperfactions.util.Logger;
 import com.hypixel.hytale.component.Ref;
@@ -2143,5 +2144,22 @@ public class GuiManager {
 
     public Supplier<Path> getDataDir() {
         return dataDir;
+    }
+
+    /**
+     * Opens the button style test page.
+     * Temporary — DELETE after testing is complete.
+     */
+    public void openButtonTestPage(Player player, Ref<EntityStore> ref,
+                                   Store<EntityStore> store, PlayerRef playerRef) {
+        Logger.info("[GUI] Opening ButtonTestPage for %s", playerRef.getUsername());
+        try {
+            PageManager pageManager = player.getPageManager();
+            ButtonTestPage page = new ButtonTestPage(playerRef);
+            pageManager.openCustomPage(ref, store, page);
+        } catch (Exception e) {
+            Logger.severe("[GUI] Failed to open ButtonTestPage: %s", e.getMessage());
+            e.printStackTrace();
+        }
     }
 }

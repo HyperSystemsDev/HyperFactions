@@ -121,6 +121,12 @@ public class AdminSubCommand extends FactionSubCommand {
             case "debug" -> handleDebug(ctx, store, ref, player, currentWorld, Arrays.copyOfRange(args, 1, args.length));
             case "decay" -> handleAdminDecay(ctx, player, Arrays.copyOfRange(args, 1, args.length));
             case "map" -> handleAdminMap(ctx, player, Arrays.copyOfRange(args, 1, args.length));
+            case "testgui" -> {
+                Player playerEntity = store.getComponent(ref, Player.getComponentType());
+                if (playerEntity != null) {
+                    hyperFactions.getGuiManager().openButtonTestPage(playerEntity, ref, store, player);
+                }
+            }
             default -> ctx.sendMessage(prefix().insert(msg("Unknown admin command. Use /f admin help", COLOR_RED)));
         }
     }

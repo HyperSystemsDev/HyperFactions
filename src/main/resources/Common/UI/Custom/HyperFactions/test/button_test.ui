@@ -1,0 +1,386 @@
+// Element & Style Test Page — Permanent debug/research page
+// Open via: /f admin testgui
+
+$C = "../../Common.ui";
+$S = "../shared/styles.ui";
+
+$C.@PageOverlay {
+  $C.@DecoratedContainer {
+    Anchor: (Width: 1300, Height: 1000);
+
+    #Title {
+      $C.@Title {
+        @Text = "Element Test Page";
+      }
+    }
+
+    #Content {
+      LayoutMode: Top;
+      Padding: (Left: 15, Right: 15, Top: 10, Bottom: 10);
+
+      Group {
+        LayoutMode: Left;
+        FlexWeight: 1;
+
+        // === LEFT COLUMN: All Buttons & Button Templates ===
+        Group #LeftCol {
+          Anchor: (Width: 400);
+          LayoutMode: Top;
+          Padding: (Left: 0, Right: 10, Top: 0, Bottom: 0);
+
+          Label {
+            Text: "NATIVE BUTTON STYLES";
+            Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
+            Anchor: (Height: 20, Bottom: 4);
+          }
+
+          TextButton #BtnDefault {
+            Text: "DEFAULT (PRIMARY BLUE)";
+            Anchor: (Height: 36, Bottom: 4);
+            Style: $C.@DefaultTextButtonStyle;
+          }
+
+          TextButton #BtnSecondary {
+            Text: "SECONDARY (MUTED GRAY)";
+            Anchor: (Height: 36, Bottom: 8);
+            Style: $C.@SecondaryTextButtonStyle;
+          }
+
+          Label {
+            Text: "CUSTOM STYLES (colored text)";
+            Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
+            Anchor: (Height: 20, Bottom: 4);
+          }
+
+          TextButton #BtnRed {
+            Text: "RED TEXT STYLE";
+            Anchor: (Height: 36, Bottom: 4);
+            Style: $S.@RedButtonStyle;
+          }
+
+          TextButton #BtnGreen {
+            Text: "GREEN TEXT STYLE";
+            Anchor: (Height: 36, Bottom: 4);
+            Style: $S.@GreenButtonStyle;
+          }
+
+          TextButton #BtnCyan {
+            Text: "CYAN TEXT STYLE";
+            Anchor: (Height: 36, Bottom: 4);
+            Style: $S.@CyanButtonStyle;
+          }
+
+          TextButton #BtnGold {
+            Text: "GOLD TEXT STYLE";
+            Anchor: (Height: 36, Bottom: 8);
+            Style: $S.@GoldButtonStyle;
+          }
+
+          Label {
+            Text: "FLAT COLOR BACKGROUNDS";
+            Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
+            Anchor: (Height: 20, Bottom: 4);
+          }
+
+          TextButton #BtnFlatRed {
+            Text: "FLAT RED BG";
+            Anchor: (Height: 36, Bottom: 4);
+            Style: $S.@FlatRedButtonStyle;
+          }
+
+          TextButton #BtnFlatDarkRed {
+            Text: "FLAT DARK RED BG";
+            Anchor: (Height: 36, Bottom: 8);
+            Style: $S.@FlatDarkRedButtonStyle;
+          }
+
+          Label {
+            Text: "COMMON.UI BUTTON TEMPLATES";
+            Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
+            Anchor: (Height: 20, Bottom: 4);
+          }
+
+          $C.@CancelTextButton #TestCancelBtn {
+            @Text = "CANCEL TEMPLATE";
+            Anchor: (Height: 36, Bottom: 4);
+          }
+
+          $C.@TertiaryTextButton #TestTertiaryBtn {
+            @Text = "TERTIARY TEMPLATE";
+            Anchor: (Height: 36, Bottom: 4);
+          }
+
+          $C.@TextButton #TestPrimaryBtn {
+            @Text = "PRIMARY TEMPLATE";
+            Anchor: (Height: 36, Bottom: 4);
+          }
+
+          $C.@SecondaryTextButton #TestSecBtn {
+            @Text = "SECONDARY TEMPLATE";
+            Anchor: (Height: 36, Bottom: 4);
+          }
+
+          $C.@SmallSecondaryTextButton #TestSmallSecBtn {
+            @Text = "SM SECONDARY";
+            Anchor: (Height: 28, Bottom: 4);
+          }
+
+          $C.@SmallTertiaryTextButton #TestSmallTertBtn {
+            @Text = "SM TERTIARY";
+            Anchor: (Height: 28, Bottom: 8);
+          }
+
+          Label {
+            Text: "BUTTON SIZES";
+            Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
+            Anchor: (Height: 20, Bottom: 4);
+          }
+
+          TextButton #BtnLarge {
+            Text: "LARGE (40H X 240W)";
+            Anchor: (Height: 40, Width: 240, Bottom: 4);
+            Style: $C.@DefaultTextButtonStyle;
+          }
+
+          TextButton #BtnMedium {
+            Text: "MEDIUM (36H X 200W)";
+            Anchor: (Height: 36, Width: 200, Bottom: 4);
+            Style: $C.@DefaultTextButtonStyle;
+          }
+
+          TextButton #BtnCompact {
+            Text: "COMPACT (32H X 160W)";
+            Anchor: (Height: 32, Width: 160, Bottom: 4);
+            Style: $C.@DefaultTextButtonStyle;
+          }
+
+          TextButton #BtnSmall {
+            Text: "SMALL (28H X 130W)";
+            Anchor: (Height: 28, Width: 130, Bottom: 4);
+            Style: $C.@DefaultTextButtonStyle;
+          }
+
+          TextButton #BtnTiny {
+            Text: "TINY (24H X 100W)";
+            Anchor: (Height: 24, Width: 100, Bottom: 4);
+            Style: $C.@DefaultTextButtonStyle;
+          }
+        }
+
+        // === MIDDLE COLUMN: Input Elements ===
+        Group #MidCol {
+          Anchor: (Width: 400);
+          LayoutMode: Top;
+          Padding: (Left: 10, Right: 10, Top: 0, Bottom: 0);
+
+          Label {
+            Text: "TEXT FIELD";
+            Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
+            Anchor: (Height: 20, Bottom: 4);
+          }
+
+          $C.@TextField #TestTextField {
+            Anchor: (Height: 36, Bottom: 8);
+            Style: (FontSize: 14, TextColor: #ffffff);
+          }
+
+          Label {
+            Text: "SLIDER";
+            Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
+            Anchor: (Height: 20, Bottom: 4);
+          }
+
+          // Slider track: no custom styling possible — DefaultSliderStyle renders
+          // its own opaque background covering any overlay. Track is invisible.
+          Slider #TestSlider {
+            Min: 0;
+            Max: 100;
+            Step: 1;
+            Value: 50;
+            Style: $C.@DefaultSliderStyle;
+            Anchor: (Height: 30, Bottom: 8);
+          }
+
+          Label {
+            Text: "CHECKBOX";
+            Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
+            Anchor: (Height: 20, Bottom: 4);
+          }
+
+          $C.@CheckBoxWithLabel #TestCheckBox {
+            @Text = "Test Option (enabled)";
+            @Checked = true;
+            Anchor: (Height: 28, Bottom: 4);
+          }
+
+          $C.@CheckBoxWithLabel #TestCheckBoxDisabled {
+            @Text = "Disabled Option";
+            @Checked = false;
+            Anchor: (Height: 28, Bottom: 8);
+          }
+
+          Label {
+            Text: "DROPDOWN BOX (styled)";
+            Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
+            Anchor: (Height: 20, Bottom: 4);
+          }
+
+          $C.@DropdownBox #TestDropdown {
+            Style: $C.@DefaultDropdownBoxStyle;
+            Anchor: (Height: 36, Bottom: 8);
+          }
+
+          Label {
+            Text: "NUMBER FIELD";
+            Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
+            Anchor: (Height: 20, Bottom: 4);
+          }
+
+          $C.@NumberField #TestNumberField {
+            Anchor: (Height: 36, Bottom: 8);
+          }
+
+          Label {
+            Text: "COLOR PICKER";
+            Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
+            Anchor: (Height: 20, Bottom: 4);
+          }
+
+          ColorPicker #TestColorPicker {
+            DisplayTextField: true;
+            Style: $C.@DefaultColorPickerStyle;
+            Anchor: (Height: 180, Bottom: 4);
+          }
+        }
+
+        // === RIGHT COLUMN: Display Elements & Containers ===
+        Group #RightCol {
+          FlexWeight: 1;
+          LayoutMode: Top;
+          Padding: (Left: 10, Right: 0, Top: 0, Bottom: 0);
+
+          Label {
+            Text: "PROGRESS BAR";
+            Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
+            Anchor: (Height: 20, Bottom: 4);
+          }
+
+          ProgressBar #TestProgressBar {
+            Value: 0.65;
+            Bar: (Color: #44CC44);
+            Background: (Color: #222222);
+            Anchor: (Height: 16, Bottom: 8);
+          }
+
+          Label {
+            Text: "TIMER LABEL";
+            Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
+            Anchor: (Height: 20, Bottom: 4);
+          }
+
+          TimerLabel #TestTimerLabel {
+            Anchor: (Height: 24, Bottom: 8);
+          }
+
+          Label {
+            Text: "GROUP WITH BACKGROUND";
+            Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
+            Anchor: (Height: 20, Bottom: 4);
+          }
+
+          Group #TestGroupBg {
+            Background: (Color: #1a2a3a);
+            Padding: (Left: 10, Right: 10, Top: 8, Bottom: 8);
+            Anchor: (Height: 50, Bottom: 8);
+            LayoutMode: Top;
+            Label {
+              Text: "Label inside colored Group";
+              Style: (FontSize: 12, TextColor: #ffffff);
+              Anchor: (Height: 18);
+            }
+            Label {
+              Text: "Second line in group";
+              Style: (FontSize: 11, TextColor: #aaaaaa);
+              Anchor: (Height: 16);
+            }
+          }
+
+          Label {
+            Text: "ITEM ICON / ITEM SLOT";
+            Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
+            Anchor: (Height: 20, Bottom: 4);
+          }
+
+          Group {
+            LayoutMode: Left;
+            Anchor: (Height: 56, Bottom: 8);
+            ItemIcon #TestItemIcon {
+              ItemId: "Weapon_Longsword_Flame";
+              Anchor: (Width: 48, Height: 48, Right: 16);
+            }
+            ItemSlot #TestItemSlot {
+              ItemId: "Weapon_Longsword_Flame";
+              Anchor: (Width: 48, Height: 48);
+            }
+          }
+
+          Label {
+            Text: "CIRCULAR PROGRESS BAR (invisible - needs texture)";
+            Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
+            Anchor: (Height: 20, Bottom: 4);
+          }
+
+          CircularProgressBar #TestCircularBar {
+            Value: 0.75;
+            Anchor: (Width: 60, Height: 60, Bottom: 8);
+          }
+
+          Label {
+            Text: "PLAIN BUTTON (invisible - no visual)";
+            Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
+            Anchor: (Height: 20, Bottom: 4);
+          }
+
+          Button #TestPlainButton {
+            Anchor: (Width: 100, Height: 36, Bottom: 8);
+          }
+
+          Label {
+            Text: "PLAIN CONTAINER";
+            Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
+            Anchor: (Height: 20, Bottom: 4);
+          }
+
+          $C.@Container #TestContainer {
+            Anchor: (Height: 80, Bottom: 8);
+            #Title {
+              $C.@Title #TestContainerTitle {
+                @Text = "Plain Container";
+              }
+            }
+            #Content {
+              LayoutMode: Top;
+              Label {
+                Text: "Content inside plain container";
+                Style: (FontSize: 11, TextColor: #aaaaaa);
+                Anchor: (Height: 18);
+              }
+            }
+          }
+
+          Label {
+            Text: "JAVA-APPENDED (Value.ref)";
+            Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
+            Anchor: (Height: 20, Bottom: 4);
+          }
+
+          Group #JavaTestArea {
+            LayoutMode: Top;
+          }
+        }
+      }
+    }
+  }
+}
+
+$C.@BackButton {}

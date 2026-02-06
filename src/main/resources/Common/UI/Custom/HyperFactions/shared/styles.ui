@@ -358,6 +358,31 @@ $C = "../../Common.ui";
   Sounds: $C.@ButtonSounds,
 );
 
+// Flat color button styles - solid color backgrounds (no texture)
+@FlatRedLabelStyle = LabelStyle(
+  FontSize: 13,
+  TextColor: #FFFFFF,
+  RenderBold: true,
+  HorizontalAlignment: Center,
+  VerticalAlignment: Center
+);
+
+@FlatRedButtonStyle = TextButtonStyle(
+  Default: (Background: (Color: #CC3344), LabelStyle: @FlatRedLabelStyle),
+  Hovered: (Background: (Color: #DD4455), LabelStyle: @FlatRedLabelStyle),
+  Pressed: (Background: (Color: #AA2233), LabelStyle: @FlatRedLabelStyle),
+  Disabled: (Background: (Color: #553333), LabelStyle: @FlatRedLabelStyle),
+  Sounds: $C.@ButtonSounds,
+);
+
+@FlatDarkRedButtonStyle = TextButtonStyle(
+  Default: (Background: (Color: #8b3a3a), LabelStyle: @FlatRedLabelStyle),
+  Hovered: (Background: (Color: #9b4a4a), LabelStyle: @FlatRedLabelStyle),
+  Pressed: (Background: (Color: #7b2a2a), LabelStyle: @FlatRedLabelStyle),
+  Disabled: (Background: (Color: #443333), LabelStyle: @FlatRedLabelStyle),
+  Sounds: $C.@ButtonSounds,
+);
+
 // Player marker style - white bold text for visibility on any background
 @PlayerMarkerLabelStyle = LabelStyle(
   FontSize: 14,
