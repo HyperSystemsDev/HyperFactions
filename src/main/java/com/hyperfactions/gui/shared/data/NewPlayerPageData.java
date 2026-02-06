@@ -48,6 +48,9 @@ public class NewPlayerPageData implements NavAwareData {
     /** Recruitment setting (true = open, false = invite only) */
     public String inputRecruitment;
 
+    /** Permission name for toggle events */
+    public String perm;
+
     // === Codec ===
 
     public static final BuilderCodec<NewPlayerPageData> CODEC = BuilderCodec
@@ -100,7 +103,7 @@ public class NewPlayerPageData implements NavAwareData {
                     data -> data.inputName
             )
             .addField(
-                    new KeyedCodec<>("Color", Codec.STRING),
+                    new KeyedCodec<>("@Color", Codec.STRING),
                     (data, value) -> data.inputColor = value,
                     data -> data.inputColor
             )
@@ -118,6 +121,11 @@ public class NewPlayerPageData implements NavAwareData {
                     new KeyedCodec<>("Recruitment", Codec.STRING),
                     (data, value) -> data.inputRecruitment = value,
                     data -> data.inputRecruitment
+            )
+            .addField(
+                    new KeyedCodec<>("Perm", Codec.STRING),
+                    (data, value) -> data.perm = value,
+                    data -> data.perm
             )
             .build();
 
@@ -144,6 +152,7 @@ public class NewPlayerPageData implements NavAwareData {
                 ", inputTag='" + inputTag + '\'' +
                 ", inputDescription='" + inputDescription + '\'' +
                 ", inputRecruitment='" + inputRecruitment + '\'' +
+                ", perm='" + perm + '\'' +
                 '}';
     }
 }

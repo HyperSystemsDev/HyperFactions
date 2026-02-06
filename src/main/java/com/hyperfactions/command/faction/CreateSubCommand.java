@@ -44,7 +44,7 @@ public class CreateSubCommand extends FactionSubCommand {
         String[] rawArgs = parts.length > 2 ? java.util.Arrays.copyOfRange(parts, 2, parts.length) : new String[0];
         FactionCommandContext fctx = parseContext(rawArgs);
 
-        // GUI mode: open CreateFactionStep1Page when no name provided
+        // GUI mode: open CreateFactionPage when no name provided
         if (!fctx.hasArgs() && !fctx.isTextMode()) {
             Player playerEntity = store.getComponent(ref, Player.getComponentType());
             if (playerEntity != null) {

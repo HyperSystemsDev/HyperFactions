@@ -237,7 +237,7 @@ public class GuiManager {
                 "Create",
                 null,
                 (player, ref, store, playerRef, guiManager) ->
-                        new CreateFactionStep1Page(playerRef, factionManager.get(), guiManager),
+                        new CreateFactionPage(playerRef, factionManager.get(), guiManager),
                 true,
                 1
         ));
@@ -1980,148 +1980,18 @@ public class GuiManager {
      */
     public void openCreateFactionWizard(Player player, Ref<EntityStore> ref,
                                         Store<EntityStore> store, PlayerRef playerRef) {
-        Logger.debug("[GUI] Opening CreateFactionStep1Page for %s", playerRef.getUsername());
+        Logger.debug("[GUI] Opening CreateFactionPage for %s", playerRef.getUsername());
         try {
             PageManager pageManager = player.getPageManager();
-            CreateFactionStep1Page page = new CreateFactionStep1Page(
+            CreateFactionPage page = new CreateFactionPage(
                 playerRef,
                 factionManager.get(),
                 this
             );
             pageManager.openCustomPage(ref, store, page);
-            Logger.debug("[GUI] CreateFactionStep1Page opened successfully");
+            Logger.debug("[GUI] CreateFactionPage opened successfully");
         } catch (Exception e) {
-            Logger.severe("[GUI] Failed to open CreateFactionStep1Page: %s", e.getMessage());
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     * Opens the Create Faction wizard Step 1 with preserved state.
-     * Used when rebuilding the page after color selection.
-     *
-     * @param player        The Player entity
-     * @param ref           The entity reference
-     * @param store         The entity store
-     * @param playerRef     The PlayerRef component
-     * @param selectedColor The currently selected color code
-     * @param name          The preserved faction name input
-     * @param tag           The preserved faction tag input
-     */
-    public void openCreateFactionStep1(Player player, Ref<EntityStore> ref,
-                                       Store<EntityStore> store, PlayerRef playerRef,
-                                       String selectedColor, String name, String tag) {
-        Logger.debug("[GUI] Opening CreateFactionStep1Page for %s (color=%s)",
-                playerRef.getUsername(), selectedColor);
-        try {
-            PageManager pageManager = player.getPageManager();
-            CreateFactionStep1Page page = new CreateFactionStep1Page(
-                playerRef,
-                factionManager.get(),
-                this,
-                selectedColor,
-                name,
-                tag
-            );
-            pageManager.openCustomPage(ref, store, page);
-            Logger.debug("[GUI] CreateFactionStep1Page opened successfully");
-        } catch (Exception e) {
-            Logger.severe("[GUI] Failed to open CreateFactionStep1Page: %s", e.getMessage());
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     * Opens the Create Faction wizard Step 2.
-     *
-     * @param player      The Player entity
-     * @param ref         The entity reference
-     * @param store       The entity store
-     * @param playerRef   The PlayerRef component
-     * @param name        The faction name from Step 1
-     * @param color       The faction color from Step 1
-     * @param tag         The faction tag from Step 1 (may be null)
-     */
-    public void openCreateFactionStep2(Player player, Ref<EntityStore> ref,
-                                       Store<EntityStore> store, PlayerRef playerRef,
-                                       String name, String color, String tag) {
-        openCreateFactionStep2(player, ref, store, playerRef, name, color, tag, false);
-    }
-
-    /**
-     * Opens the Create Faction wizard Step 2 with preserved state.
-     * Used when rebuilding the page after recruitment selection.
-     *
-     * @param player          The Player entity
-     * @param ref             The entity reference
-     * @param store           The entity store
-     * @param playerRef       The PlayerRef component
-     * @param name            The faction name from Step 1
-     * @param color           The faction color from Step 1
-     * @param tag             The faction tag from Step 1 (may be null)
-     * @param openRecruitment Whether recruitment is open (true) or invite-only (false)
-     */
-    public void openCreateFactionStep2(Player player, Ref<EntityStore> ref,
-                                       Store<EntityStore> store, PlayerRef playerRef,
-                                       String name, String color, String tag,
-                                       boolean openRecruitment) {
-        Logger.debug("[GUI] Opening CreateFactionStep2Page for %s (recruitment=%s)",
-                playerRef.getUsername(), openRecruitment ? "open" : "closed");
-        try {
-            PageManager pageManager = player.getPageManager();
-            CreateFactionStep2Page page = new CreateFactionStep2Page(
-                playerRef,
-                factionManager.get(),
-                this,
-                name,
-                color,
-                tag,
-                openRecruitment
-            );
-            pageManager.openCustomPage(ref, store, page);
-            Logger.debug("[GUI] CreateFactionStep2Page opened successfully");
-        } catch (Exception e) {
-            Logger.severe("[GUI] Failed to open CreateFactionStep2Page: %s", e.getMessage());
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     * Opens the Create Faction wizard Step 2 with preserved state including description.
-     * Used when rebuilding the page after recruitment selection to preserve user input.
-     *
-     * @param player              The Player entity
-     * @param ref                 The entity reference
-     * @param store               The entity store
-     * @param playerRef           The PlayerRef component
-     * @param name                The faction name from Step 1
-     * @param color               The faction color from Step 1
-     * @param tag                 The faction tag from Step 1 (may be null)
-     * @param openRecruitment     Whether recruitment is open (true) or invite-only (false)
-     * @param preservedDescription The description text to preserve
-     */
-    public void openCreateFactionStep2WithDescription(Player player, Ref<EntityStore> ref,
-                                                      Store<EntityStore> store, PlayerRef playerRef,
-                                                      String name, String color, String tag,
-                                                      boolean openRecruitment, String preservedDescription) {
-        Logger.debug("[GUI] Opening CreateFactionStep2Page for %s (recruitment=%s, desc preserved=%s)",
-                playerRef.getUsername(), openRecruitment ? "open" : "closed", !preservedDescription.isEmpty());
-        try {
-            PageManager pageManager = player.getPageManager();
-            CreateFactionStep2Page page = new CreateFactionStep2Page(
-                playerRef,
-                factionManager.get(),
-                this,
-                name,
-                color,
-                tag,
-                openRecruitment,
-                preservedDescription
-            );
-            pageManager.openCustomPage(ref, store, page);
-            Logger.debug("[GUI] CreateFactionStep2Page opened successfully");
-        } catch (Exception e) {
-            Logger.severe("[GUI] Failed to open CreateFactionStep2Page: %s", e.getMessage());
+            Logger.severe("[GUI] Failed to open CreateFactionPage: %s", e.getMessage());
             e.printStackTrace();
         }
     }

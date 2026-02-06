@@ -1,0 +1,410 @@
+// Create Faction - Two-column form with territory permissions
+// Left: preview, basic info, details
+// Right: faction color, territory permissions, combat, create button
+
+$C = "../../Common.ui";
+$S = "../shared/styles.ui";
+$Nav = "../nav/nav_bar.ui";
+
+$C.@PageOverlay {
+  $Nav.@HyperFactionsNavBar #HyperFactionsNavBar {}
+
+  $C.@DecoratedContainer {
+    Anchor: (Width: 950, Height: 650);
+
+    #Title {
+      $C.@Title {
+        @Text = "Create Your Faction";
+      }
+    }
+
+    #Content {
+      LayoutMode: Left;
+      Padding: (Left: 15, Right: 15, Top: 10, Bottom: 10);
+
+      // === LEFT COLUMN ===
+      Group #LeftColumn {
+        Anchor: (Width: 470);
+        LayoutMode: Top;
+        Padding: (Left: 0, Right: 10, Top: 0, Bottom: 0);
+
+        // ─── PREVIEW ──────────────────────────────────
+        Label {
+          Text: "PREVIEW";
+          Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
+          Anchor: (Height: 18, Bottom: 4);
+        }
+
+        Group {
+          Anchor: (Height: 1, Bottom: 8);
+          Background: (Color: #334455);
+        }
+
+        // Background card for preview
+        Group {
+          Background: (Color: #1a2a3a);
+          Padding: (Left: 12, Right: 12, Top: 10, Bottom: 10);
+          Anchor: (Height: 56, Bottom: 12);
+          LayoutMode: Top;
+
+          // Name preview
+          Group {
+            LayoutMode: Left;
+            Anchor: (Height: 20);
+
+            Label {
+              Text: "Name: ";
+              Style: (FontSize: 13, TextColor: #AAAAAA);
+            }
+
+            Label #PreviewName {
+              Text: "Your Faction Name";
+              Style: (FontSize: 13, TextColor: #55FFFF, RenderBold: true);
+            }
+          }
+
+          // Leader preview
+          Label #PreviewLeader {
+            Text: "Leader: PlayerName";
+            Style: (FontSize: 12, TextColor: #888888);
+            Anchor: (Height: 18);
+          }
+        }
+
+        // ─── BASIC INFO ───────────────────────────────
+        Label {
+          Text: "BASIC INFO";
+          Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
+          Anchor: (Height: 18, Bottom: 4);
+        }
+
+        Group {
+          Anchor: (Height: 1, Bottom: 8);
+          Background: (Color: #334455);
+        }
+
+        // Background card for name + tag inputs
+        Group {
+          Background: (Color: #1a2a3a);
+          Padding: (Left: 12, Right: 12, Top: 12, Bottom: 12);
+          Anchor: (Height: 142, Bottom: 12);
+          LayoutMode: Top;
+
+          // Faction Name
+          Label {
+            Text: "FACTION NAME *";
+            Style: (FontSize: 11, TextColor: #AAAAAA);
+            Anchor: (Height: 16);
+          }
+
+          $C.@TextField #NameInput {
+            Anchor: (Height: 36, Bottom: 8);
+          }
+
+          // Faction Tag
+          Label {
+            Text: "FACTION TAG (2-4 chars, auto-generated if empty)";
+            Style: (FontSize: 11, TextColor: #AAAAAA);
+            Anchor: (Height: 16);
+          }
+
+          // Left-aligned tag input (not full width)
+          Group {
+            LayoutMode: Left;
+            Anchor: (Height: 36);
+
+            $C.@TextField #TagInput {
+              Anchor: (Height: 36, Width: 120);
+            }
+          }
+        }
+
+        // ─── DETAILS ──────────────────────────────────
+        Label {
+          Text: "DETAILS";
+          Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
+          Anchor: (Height: 18, Bottom: 4);
+        }
+
+        Group {
+          Anchor: (Height: 1, Bottom: 8);
+          Background: (Color: #334455);
+        }
+
+        // Background card for description + recruitment
+        Group {
+          Background: (Color: #1a2a3a);
+          Padding: (Left: 12, Right: 12, Top: 12, Bottom: 12);
+          Anchor: (Height: 162);
+          LayoutMode: Top;
+
+          // Description
+          Label {
+            Text: "DESCRIPTION (Optional)";
+            Style: (FontSize: 11, TextColor: #AAAAAA);
+            Anchor: (Height: 16);
+          }
+
+          $C.@TextField #DescInput {
+            Anchor: (Height: 55, Bottom: 8);
+          }
+
+          // Recruitment header with status
+          Group {
+            LayoutMode: Left;
+            Anchor: (Height: 18, Bottom: 6);
+
+            Label {
+              Text: "RECRUITMENT";
+              Style: (FontSize: 11, TextColor: #AAAAAA);
+            }
+
+            Label { FlexWeight: 1; }
+
+            Label #RecruitmentStatus {
+              Text: "Invite Only";
+              Style: (FontSize: 11, TextColor: #FFAA00, RenderBold: true);
+            }
+          }
+
+          // Recruitment buttons
+          Group {
+            LayoutMode: Left;
+            Anchor: (Height: 34);
+
+            TextButton #InviteOnlyBtn {
+              Text: "INVITE ONLY";
+              Anchor: (Height: 32, Width: 180);
+              Style: $C.@DefaultTextButtonStyle;
+            }
+
+            Label { FlexWeight: 1; }
+
+            TextButton #OpenBtn {
+              Text: "OPEN";
+              Anchor: (Height: 32, Width: 180);
+              Style: $C.@DefaultTextButtonStyle;
+            }
+          }
+        }
+      }
+
+      // Vertical divider
+      Group {
+        Anchor: (Width: 1);
+        Background: (Color: #334455);
+      }
+
+      // === RIGHT COLUMN ===
+      Group #RightColumn {
+        FlexWeight: 1;
+        LayoutMode: Top;
+        Padding: (Left: 10, Right: 0, Top: 0, Bottom: 0);
+
+        // ─── FACTION COLOR ────────────────────────────
+        Label {
+          Text: "FACTION COLOR";
+          Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
+          Anchor: (Height: 18, Bottom: 4);
+        }
+
+        Group {
+          Anchor: (Height: 1, Bottom: 8);
+          Background: (Color: #334455);
+        }
+
+        ColorPicker #FactionColorPicker {
+          Anchor: (Height: 200, Bottom: 12);
+          DisplayTextField: true;
+          Style: $C.@DefaultColorPickerStyle;
+        }
+
+        // ─── TERRITORY PERMISSIONS ────────────────────
+        Label {
+          Text: "TERRITORY PERMISSIONS";
+          Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
+          Anchor: (Height: 18, Bottom: 4);
+        }
+
+        Group {
+          Anchor: (Height: 1, Bottom: 8);
+          Background: (Color: #334455);
+        }
+
+        // Column header row
+        Group #PermHeaderRow {
+          LayoutMode: Left;
+          Anchor: (Height: 26, Bottom: 4);
+
+          Label { Anchor: (Width: 90); }
+          Label {
+            Text: "BREAK";
+            Style: (FontSize: 10, TextColor: #888888, RenderBold: true, HorizontalAlignment: Center);
+            Anchor: (Width: 55);
+          }
+          Label {
+            Text: "PLACE";
+            Style: (FontSize: 10, TextColor: #888888, RenderBold: true, HorizontalAlignment: Center);
+            Anchor: (Width: 55);
+          }
+          Label {
+            Text: "INTERACT";
+            Style: (FontSize: 10, TextColor: #888888, RenderBold: true, HorizontalAlignment: Center);
+            Anchor: (Width: 70);
+          }
+        }
+
+        // Outsiders row
+        Group #OutsidersRow {
+          LayoutMode: Left;
+          Anchor: (Height: 36, Bottom: 3);
+          Background: (Color: #0d1520);
+          Padding: (Left: 6, Right: 6);
+
+          Label {
+            Text: "Outsiders";
+            Style: (FontSize: 11, TextColor: #AAAAAA, VerticalAlignment: Center);
+            Anchor: (Width: 84);
+          }
+          TextButton #OutsiderBreakToggle {
+            Text: "OFF";
+            Anchor: (Width: 45, Height: 24);
+            Style: $S.@SmallButtonStyle;
+          }
+          Group { Anchor: (Width: 10); }
+          TextButton #OutsiderPlaceToggle {
+            Text: "OFF";
+            Anchor: (Width: 45, Height: 24);
+            Style: $S.@SmallButtonStyle;
+          }
+          Group { Anchor: (Width: 10); }
+          TextButton #OutsiderInteractToggle {
+            Text: "OFF";
+            Anchor: (Width: 60, Height: 24);
+            Style: $S.@SmallButtonStyle;
+          }
+        }
+
+        // Allies row
+        Group #AlliesRow {
+          LayoutMode: Left;
+          Anchor: (Height: 36, Bottom: 3);
+          Background: (Color: #111a28);
+          Padding: (Left: 6, Right: 6);
+
+          Label {
+            Text: "Allies";
+            Style: (FontSize: 11, TextColor: #55FF55, VerticalAlignment: Center);
+            Anchor: (Width: 84);
+          }
+          TextButton #AllyBreakToggle {
+            Text: "OFF";
+            Anchor: (Width: 45, Height: 24);
+            Style: $S.@SmallButtonStyle;
+          }
+          Group { Anchor: (Width: 10); }
+          TextButton #AllyPlaceToggle {
+            Text: "OFF";
+            Anchor: (Width: 45, Height: 24);
+            Style: $S.@SmallButtonStyle;
+          }
+          Group { Anchor: (Width: 10); }
+          TextButton #AllyInteractToggle {
+            Text: "OFF";
+            Anchor: (Width: 60, Height: 24);
+            Style: $S.@SmallButtonStyle;
+          }
+        }
+
+        // Members row
+        Group #MembersRow {
+          LayoutMode: Left;
+          Anchor: (Height: 36, Bottom: 10);
+          Background: (Color: #0d1520);
+          Padding: (Left: 6, Right: 6);
+
+          Label {
+            Text: "Members";
+            Style: (FontSize: 11, TextColor: #00FFFF, VerticalAlignment: Center);
+            Anchor: (Width: 84);
+          }
+          TextButton #MemberBreakToggle {
+            Text: "ON";
+            Anchor: (Width: 45, Height: 24);
+            Style: $S.@SmallButtonStyle;
+          }
+          Group { Anchor: (Width: 10); }
+          TextButton #MemberPlaceToggle {
+            Text: "ON";
+            Anchor: (Width: 45, Height: 24);
+            Style: $S.@SmallButtonStyle;
+          }
+          Group { Anchor: (Width: 10); }
+          TextButton #MemberInteractToggle {
+            Text: "ON";
+            Anchor: (Width: 60, Height: 24);
+            Style: $S.@SmallButtonStyle;
+          }
+        }
+
+        // ─── COMBAT ───────────────────────────────────
+        Label {
+          Text: "COMBAT";
+          Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
+          Anchor: (Height: 18, Bottom: 4);
+        }
+
+        Group {
+          Anchor: (Height: 1, Bottom: 8);
+          Background: (Color: #334455);
+        }
+
+        Group #PvPRow {
+          LayoutMode: Left;
+          Anchor: (Height: 36, Bottom: 10);
+          Background: (Color: #0d1520);
+          Padding: (Left: 6, Right: 6);
+
+          Label {
+            Text: "PvP in Territory";
+            Style: (FontSize: 11, TextColor: #AAAAAA, VerticalAlignment: Center);
+            Anchor: (Width: 140);
+          }
+          TextButton #PvPToggle {
+            Text: "ON";
+            Anchor: (Width: 60, Height: 24);
+            Style: $S.@SmallButtonStyle;
+          }
+          Label #PvPStatus {
+            Text: "Enabled";
+            Style: (FontSize: 10, TextColor: #55FF55, VerticalAlignment: Center);
+            FlexWeight: 1;
+            Anchor: (Left: 8);
+          }
+        }
+
+        // Spacer
+        Label { FlexWeight: 1; }
+
+        // CREATE button
+        Group {
+          Anchor: (Height: 45);
+          LayoutMode: Left;
+
+          Label { FlexWeight: 1; }
+
+          TextButton #CreateBtn {
+            Text: "CREATE FACTION";
+            Anchor: (Height: 40, Width: 240);
+            Style: $C.@DefaultTextButtonStyle;
+          }
+
+          Label { FlexWeight: 1; }
+        }
+      }
+    }
+  }
+}
+
+// Native Hytale back button
+$C.@BackButton {}
