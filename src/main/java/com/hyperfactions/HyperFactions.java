@@ -2,6 +2,9 @@ package com.hyperfactions;
 
 import com.hyperfactions.api.events.EventBus;
 import com.hyperfactions.api.events.FactionDisbandEvent;
+import com.hyperfactions.api.events.FactionMemberEvent;
+import com.hyperfactions.gui.ActivePageTracker;
+import com.hyperfactions.gui.GuiUpdateService;
 import com.hyperfactions.backup.BackupManager;
 import com.hyperfactions.config.ConfigManager;
 import com.hyperfactions.data.Faction;
@@ -74,6 +77,8 @@ public class HyperFactions {
 
     // GUI
     private GuiManager guiManager;
+    private ActivePageTracker activePageTracker;
+    private GuiUpdateService guiUpdateService;
 
     // Backup
     private BackupManager backupManager;
@@ -235,6 +240,31 @@ public class HyperFactions {
             () -> dataDir
         );
 
+        // Initialize real-time GUI update system
+        activePageTracker = new ActivePageTracker();
+        guiUpdateService = new GuiUpdateService(activePageTracker, factionManager);
+        guiManager.setActivePageTracker(activePageTracker);
+
+        // Wire manager callbacks for GUI updates
+        inviteManager.setOnInviteCreated(guiUpdateService::onInviteCreated);
+        inviteManager.setOnInviteRemoved(guiUpdateService::onInviteRemoved);
+        joinRequestManager.setOnRequestCreated(guiUpdateService::onRequestCreated);
+        joinRequestManager.setOnRequestAccepted(guiUpdateService::onRequestAccepted);
+        joinRequestManager.setOnRequestDeclined(guiUpdateService::onRequestDeclined);
+        relationManager.setOnRelationChanged(guiUpdateService::onRelationChanged);
+        relationManager.setOnAllyRequestReceived(guiUpdateService::onAllyRequestReceived);
+        claimManager.setOnGuiChunkChangeCallback(guiUpdateService::onChunkClaimed);
+
+        // Wire EventBus for member changes → GUI updates
+        EventBus.register(FactionMemberEvent.class, event -> {
+            switch (event.type()) {
+                case JOIN -> guiUpdateService.onMemberJoined(event.faction().id(), event.playerUuid());
+                case LEAVE -> guiUpdateService.onMemberLeft(event.faction().id(), event.playerUuid());
+                case KICK -> guiUpdateService.onMemberKicked(event.faction().id(), event.playerUuid());
+                case PROMOTE, DEMOTE -> guiUpdateService.onMemberRoleChanged(event.faction().id(), event.playerUuid());
+            }
+        });
+
         // Initialize chat manager (uses deferred playerLookup)
         chatManager = new ChatManager(factionManager, relationManager,
             uuid -> playerLookup != null ? playerLookup.apply(uuid) : null);
@@ -315,6 +345,9 @@ public class HyperFactions {
         // Note: These are started after platform sets callbacks via setRepeatingTaskScheduler()
         // The platform should call startPeriodicTasks() after setting up callbacks
 
+        // Initialize PlaceholderAPI integration (after all managers are ready)
+        com.hyperfactions.integration.papi.PlaceholderAPIIntegration.init(this);
+
         Logger.info("HyperFactions enabled");
     }
 
@@ -336,6 +369,9 @@ public class HyperFactions {
      */
     public void disable() {
         Logger.info("HyperFactions disabling...");
+
+        // Unregister PlaceholderAPI expansion
+        com.hyperfactions.integration.papi.PlaceholderAPIIntegration.shutdown();
 
         // Cancel periodic tasks first
         if (autoSaveTaskId > 0) {
@@ -385,6 +421,11 @@ public class HyperFactions {
         }
         if (worldMapService != null) {
             worldMapService.shutdown();
+        }
+
+        // Clear active page tracker
+        if (activePageTracker != null) {
+            activePageTracker.clear();
         }
 
         // Cancel remaining scheduled tasks
@@ -490,6 +531,17 @@ public class HyperFactions {
         this.playerLookup = lookup;
         // Also set up the permission manager's player lookup for OP checks
         PermissionManager.get().setPlayerLookup(lookup);
+    }
+
+    /**
+     * Looks up an online player by UUID.
+     *
+     * @param uuid the player's UUID
+     * @return the PlayerRef, or null if not online or lookup unavailable
+     */
+    @Nullable
+    public com.hypixel.hytale.server.core.universe.PlayerRef lookupPlayer(@NotNull UUID uuid) {
+        return playerLookup != null ? playerLookup.apply(uuid) : null;
     }
 
     // === Task scheduling ===
@@ -707,6 +759,16 @@ public class HyperFactions {
     @NotNull
     public GuiManager getGuiManager() {
         return guiManager;
+    }
+
+    /**
+     * Gets the active page tracker for GUI real-time updates.
+     *
+     * @return the active page tracker
+     */
+    @Nullable
+    public ActivePageTracker getActivePageTracker() {
+        return activePageTracker;
     }
 
     /**

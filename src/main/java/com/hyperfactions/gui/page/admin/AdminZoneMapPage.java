@@ -1,7 +1,9 @@
 package com.hyperfactions.gui.page.admin;
 
 import com.hyperfactions.data.*;
+import com.hyperfactions.gui.ActivePageTracker;
 import com.hyperfactions.gui.GuiManager;
+import com.hyperfactions.gui.RefreshablePage;
 import com.hyperfactions.gui.admin.data.AdminZoneMapData;
 import com.hyperfactions.manager.ClaimManager;
 import com.hyperfactions.manager.ZoneManager;
@@ -28,7 +30,7 @@ import java.util.UUID;
  * Admin Zone Map page - interactive map for claiming/unclaiming chunks for a specific zone.
  * Left-click unclaimed to claim for zone, right-click zone chunk to unclaim.
  */
-public class AdminZoneMapPage extends InteractiveCustomUIPage<AdminZoneMapData> {
+public class AdminZoneMapPage extends InteractiveCustomUIPage<AdminZoneMapData> implements RefreshablePage {
 
     private static final int GRID_RADIUS_X = 14; // 29 columns (-14 to +14)
     private static final int GRID_RADIUS_Z = 8;  // 17 rows (-8 to +8)
@@ -36,9 +38,9 @@ public class AdminZoneMapPage extends InteractiveCustomUIPage<AdminZoneMapData> 
 
     // Color constants
     private static final String COLOR_CURRENT_SAFE = "#14b8a6";     // Bright teal - current zone (SafeZone)
-    private static final String COLOR_CURRENT_WAR = "#ef4444";      // Bright red - current zone (WarZone)
+    private static final String COLOR_CURRENT_WAR = "#c084fc";      // Purple - current zone (WarZone)
     private static final String COLOR_OTHER_SAFE = "#2dd4bf80";     // Light teal - other SafeZone
-    private static final String COLOR_OTHER_WAR = "#ff555580";      // Light red - other WarZone
+    private static final String COLOR_OTHER_WAR = "#c084fc80";      // Light purple - other WarZone
     private static final String COLOR_FACTION = "#6b7280";          // Gray - faction claims
     private static final String COLOR_WILDERNESS = "#1e293b";       // Dark slate - unclaimed
     private static final String COLOR_PLAYER_POS = "#ffffff";       // White - player position
@@ -125,6 +127,17 @@ public class AdminZoneMapPage extends InteractiveCustomUIPage<AdminZoneMapData> 
                 EventData.of("Button", "Confirm"),
                 false
         );
+
+        // Register with active page tracker for real-time updates
+        ActivePageTracker activeTracker = guiManager.getActivePageTracker();
+        if (activeTracker != null) {
+            activeTracker.register(playerRef.getUuid(), "admin_zone_map", null, this);
+        }
+    }
+
+    @Override
+    public void refreshContent() {
+        rebuild();
     }
 
     /**

@@ -287,12 +287,14 @@ public class ConfigManager {
     public double getStartingPower() { return coreConfig.getStartingPower(); }
     public double getPowerPerClaim() { return coreConfig.getPowerPerClaim(); }
     public double getDeathPenalty() { return coreConfig.getDeathPenalty(); }
+    public double getKillReward() { return coreConfig.getKillReward(); }
     public double getRegenPerMinute() { return coreConfig.getRegenPerMinute(); }
     public boolean isRegenWhenOffline() { return coreConfig.isRegenWhenOffline(); }
 
     // Claims
     public int getMaxClaims() { return coreConfig.getMaxClaims(); }
     public boolean isOnlyAdjacent() { return coreConfig.isOnlyAdjacent(); }
+    public boolean isPreventDisconnect() { return coreConfig.isPreventDisconnect(); }
     public boolean isDecayEnabled() { return coreConfig.isDecayEnabled(); }
     public int getDecayDaysInactive() { return coreConfig.getDecayDaysInactive(); }
     @NotNull public List<String> getWorldWhitelist() { return coreConfig.getWorldWhitelist(); }
@@ -306,6 +308,7 @@ public class ConfigManager {
     public boolean isFactionDamage() { return coreConfig.isFactionDamage(); }
     public boolean isTaggedLogoutPenalty() { return coreConfig.isTaggedLogoutPenalty(); }
     public double getLogoutPowerLoss() { return coreConfig.getLogoutPowerLoss(); }
+    public double getNeutralAttackPenalty() { return coreConfig.getNeutralAttackPenalty(); }
 
     // Spawn Protection
     public boolean isSpawnProtectionEnabled() { return coreConfig.isSpawnProtectionEnabled(); }
@@ -402,6 +405,7 @@ public class ConfigManager {
     @NotNull public String getChatTagDisplay() { return chatConfig.getTagDisplay(); }
     @NotNull public String getChatTagFormat() { return chatConfig.getTagFormat(); }
     @NotNull public String getChatNoFactionTag() { return chatConfig.getNoFactionTag(); }
+    @NotNull public String getChatNoFactionTagColor() { return chatConfig.getNoFactionTagColor(); }
     @NotNull public String getChatEventPriority() { return chatConfig.getPriority(); }
     @NotNull public String getChatRelationColorOwn() { return chatConfig.getRelationColorOwn(); }
     @NotNull public String getChatRelationColorAlly() { return chatConfig.getRelationColorAlly(); }

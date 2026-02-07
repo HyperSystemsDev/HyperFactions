@@ -43,6 +43,10 @@ public class ClaimManager {
     @Nullable
     private ChunkChangeCallback onChunkChangeCallback;
 
+    // GUI-specific chunk change callback for real-time GUI map refresh
+    @Nullable
+    private ChunkChangeCallback onGuiChunkChangeCallback;
+
     // Callback for notifying faction members (used for overclaim alerts)
     @Nullable
     private FactionNotificationCallback notificationCallback;
@@ -129,6 +133,16 @@ public class ClaimManager {
     }
 
     /**
+     * Sets a GUI-specific callback for chunk change notifications.
+     * Used for real-time GUI map refresh, separate from world map callback.
+     *
+     * @param callback the callback to run on chunk changes
+     */
+    public void setOnGuiChunkChangeCallback(@Nullable ChunkChangeCallback callback) {
+        this.onGuiChunkChangeCallback = callback;
+    }
+
+    /**
      * Notifies that claims have changed (triggers world map refresh).
      * @deprecated Use {@link #notifyChunkChange(String, int, int)} for chunk-specific updates
      */
@@ -169,6 +183,15 @@ public class ClaimManager {
                 onClaimChangeCallback.run();
             } catch (Exception e) {
                 Logger.warn("Error in claim change callback: %s", e.getMessage());
+            }
+        }
+
+        // GUI map refresh callback (separate from world map)
+        if (onGuiChunkChangeCallback != null) {
+            try {
+                onGuiChunkChangeCallback.onChunkChange(worldName, chunkX, chunkZ);
+            } catch (Exception e) {
+                Logger.warn("Error in GUI chunk change callback: %s", e.getMessage());
             }
         }
     }
@@ -218,7 +241,8 @@ public class ClaimManager {
         OVERCLAIM_NOT_ALLOWED,
         TARGET_HAS_POWER,
         ORBISGUARD_PROTECTED,
-        ZONE_PROTECTED
+        ZONE_PROTECTED,
+        WOULD_DISCONNECT
     }
 
     // === Queries ===
@@ -422,6 +446,13 @@ public class ClaimManager {
             }
         }
 
+        // Check if unclaiming would disconnect territory
+        if (ConfigManager.get().isPreventDisconnect()) {
+            if (wouldDisconnectClaims(faction.id(), key)) {
+                return ClaimResult.WOULD_DISCONNECT;
+            }
+        }
+
         // Remove claim
         Faction updated = faction.withoutClaimAt(world, chunkX, chunkZ)
             .withLog(FactionLog.create(FactionLog.LogType.UNCLAIM,
@@ -589,6 +620,51 @@ public class ClaimManager {
         }
         // Return unmodifiable view to prevent external modification
         return Collections.unmodifiableSet(claims);
+    }
+
+    /**
+     * Checks if removing a chunk would disconnect a faction's claims into islands.
+     * Uses BFS to verify all remaining claims are still connected.
+     *
+     * @param factionId the faction ID
+     * @param removing  the chunk being removed
+     * @return true if removing the chunk would disconnect claims
+     */
+    private boolean wouldDisconnectClaims(@NotNull UUID factionId, @NotNull ChunkKey removing) {
+        Set<ChunkKey> claims = factionClaimsIndex.get(factionId);
+        if (claims == null || claims.size() <= 2) {
+            // 0 or 1 remaining after removal — can't be disconnected
+            return false;
+        }
+
+        // Build the remaining set (minus the chunk being removed)
+        Set<ChunkKey> remaining = new HashSet<>(claims);
+        remaining.remove(removing);
+
+        if (remaining.isEmpty()) {
+            return false;
+        }
+
+        // BFS from any remaining claim
+        ChunkKey start = remaining.iterator().next();
+        Set<ChunkKey> visited = new HashSet<>();
+        ArrayDeque<ChunkKey> queue = new ArrayDeque<>();
+        queue.add(start);
+        visited.add(start);
+
+        while (!queue.isEmpty()) {
+            ChunkKey current = queue.poll();
+            for (ChunkKey neighbor : new ChunkKey[]{
+                current.north(), current.south(), current.east(), current.west()
+            }) {
+                if (remaining.contains(neighbor) && visited.add(neighbor)) {
+                    queue.add(neighbor);
+                }
+            }
+        }
+
+        // If BFS didn't reach all remaining claims, removal would disconnect
+        return visited.size() < remaining.size();
     }
 
     private ClaimResult forceClaimChunk(Faction faction, UUID playerUuid, String world, int chunkX, int chunkZ) {

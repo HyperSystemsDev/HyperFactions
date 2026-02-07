@@ -30,12 +30,14 @@ public class CoreConfig extends ConfigFile {
     private double startingPower = 10.0;
     private double powerPerClaim = 2.0;
     private double deathPenalty = 1.0;
+    private double killReward = 0.0;
     private double regenPerMinute = 0.1;
     private boolean regenWhenOffline = false;
 
     // Claim settings
     private int maxClaims = 100;
     private boolean onlyAdjacent = false;
+    private boolean preventDisconnect = false;
     private boolean decayEnabled = true;
     private int decayDaysInactive = 30;
     private List<String> worldWhitelist = new ArrayList<>();
@@ -47,6 +49,7 @@ public class CoreConfig extends ConfigFile {
     private boolean factionDamage = false;
     private boolean taggedLogoutPenalty = true;
     private double logoutPowerLoss = 1.0;
+    private double neutralAttackPenalty = 0.0;
 
     // Spawn protection settings
     private boolean spawnProtectionEnabled = true;
@@ -132,6 +135,7 @@ public class CoreConfig extends ConfigFile {
             startingPower = getDouble(power, "startingPower", startingPower);
             powerPerClaim = getDouble(power, "powerPerClaim", powerPerClaim);
             deathPenalty = getDouble(power, "deathPenalty", deathPenalty);
+            killReward = getDouble(power, "killReward", killReward);
             regenPerMinute = getDouble(power, "regenPerMinute", regenPerMinute);
             regenWhenOffline = getBool(power, "regenWhenOffline", regenWhenOffline);
         }
@@ -141,6 +145,7 @@ public class CoreConfig extends ConfigFile {
             JsonObject claims = root.getAsJsonObject("claims");
             maxClaims = getInt(claims, "maxClaims", maxClaims);
             onlyAdjacent = getBool(claims, "onlyAdjacent", onlyAdjacent);
+            preventDisconnect = getBool(claims, "preventDisconnect", preventDisconnect);
             decayEnabled = getBool(claims, "decayEnabled", decayEnabled);
             decayDaysInactive = getInt(claims, "decayDaysInactive", decayDaysInactive);
             worldWhitelist = getStringList(claims, "worldWhitelist");
@@ -155,6 +160,7 @@ public class CoreConfig extends ConfigFile {
             factionDamage = getBool(combat, "factionDamage", factionDamage);
             taggedLogoutPenalty = getBool(combat, "taggedLogoutPenalty", taggedLogoutPenalty);
             logoutPowerLoss = getDouble(combat, "logoutPowerLoss", logoutPowerLoss);
+            neutralAttackPenalty = getDouble(combat, "neutralAttackPenalty", neutralAttackPenalty);
 
             // Spawn protection sub-section
             if (hasSection(combat, "spawnProtection")) {
@@ -288,6 +294,7 @@ public class CoreConfig extends ConfigFile {
         power.addProperty("startingPower", startingPower);
         power.addProperty("powerPerClaim", powerPerClaim);
         power.addProperty("deathPenalty", deathPenalty);
+        power.addProperty("killReward", killReward);
         power.addProperty("regenPerMinute", regenPerMinute);
         power.addProperty("regenWhenOffline", regenWhenOffline);
         root.add("power", power);
@@ -296,6 +303,7 @@ public class CoreConfig extends ConfigFile {
         JsonObject claims = new JsonObject();
         claims.addProperty("maxClaims", maxClaims);
         claims.addProperty("onlyAdjacent", onlyAdjacent);
+        claims.addProperty("preventDisconnect", preventDisconnect);
         claims.addProperty("decayEnabled", decayEnabled);
         claims.addProperty("decayDaysInactive", decayDaysInactive);
         claims.add("worldWhitelist", toJsonArray(worldWhitelist));
@@ -309,6 +317,7 @@ public class CoreConfig extends ConfigFile {
         combat.addProperty("factionDamage", factionDamage);
         combat.addProperty("taggedLogoutPenalty", taggedLogoutPenalty);
         combat.addProperty("logoutPowerLoss", logoutPowerLoss);
+        combat.addProperty("neutralAttackPenalty", neutralAttackPenalty);
 
         JsonObject spawnProt = new JsonObject();
         spawnProt.addProperty("enabled", spawnProtectionEnabled);
@@ -403,12 +412,14 @@ public class CoreConfig extends ConfigFile {
     public double getStartingPower() { return startingPower; }
     public double getPowerPerClaim() { return powerPerClaim; }
     public double getDeathPenalty() { return deathPenalty; }
+    public double getKillReward() { return killReward; }
     public double getRegenPerMinute() { return regenPerMinute; }
     public boolean isRegenWhenOffline() { return regenWhenOffline; }
 
     // Claims
     public int getMaxClaims() { return maxClaims; }
     public boolean isOnlyAdjacent() { return onlyAdjacent; }
+    public boolean isPreventDisconnect() { return preventDisconnect; }
     public boolean isDecayEnabled() { return decayEnabled; }
     public int getDecayDaysInactive() { return decayDaysInactive; }
     @NotNull public List<String> getWorldWhitelist() { return worldWhitelist; }
@@ -420,6 +431,7 @@ public class CoreConfig extends ConfigFile {
     public boolean isFactionDamage() { return factionDamage; }
     public boolean isTaggedLogoutPenalty() { return taggedLogoutPenalty; }
     public double getLogoutPowerLoss() { return logoutPowerLoss; }
+    public double getNeutralAttackPenalty() { return neutralAttackPenalty; }
 
     // Spawn Protection
     public boolean isSpawnProtectionEnabled() { return spawnProtectionEnabled; }
@@ -528,6 +540,7 @@ public class CoreConfig extends ConfigFile {
         startingPower = validateRange(result, "power.startingPower", startingPower, 0.0, maxPlayerPower, 10.0);
         powerPerClaim = validateMin(result, "power.powerPerClaim", powerPerClaim, 0.0, 2.0);
         deathPenalty = validateMin(result, "power.deathPenalty", deathPenalty, 0.0, 1.0);
+        killReward = validateMin(result, "power.killReward", killReward, 0.0, 0.0);
         regenPerMinute = validateMin(result, "power.regenPerMinute", regenPerMinute, 0.0, 0.1);
 
         // Claim settings
@@ -537,6 +550,7 @@ public class CoreConfig extends ConfigFile {
         // Combat settings
         tagDurationSeconds = validateMin(result, "combat.tagDurationSeconds", tagDurationSeconds, 0, 15);
         logoutPowerLoss = validateMin(result, "combat.logoutPowerLoss", logoutPowerLoss, 0.0, 1.0);
+        neutralAttackPenalty = validateMin(result, "combat.neutralAttackPenalty", neutralAttackPenalty, 0.0, 0.0);
         spawnProtectionDurationSeconds = validateMin(result, "combat.spawnProtection.durationSeconds",
                 spawnProtectionDurationSeconds, 0, 5);
 

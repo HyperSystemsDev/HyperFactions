@@ -80,6 +80,7 @@ public class UnclaimSubCommand extends FactionSubCommand {
             case CHUNK_NOT_CLAIMED -> ctx.sendMessage(prefix().insert(msg("This chunk is not claimed.", COLOR_RED)));
             case NOT_YOUR_CLAIM -> ctx.sendMessage(prefix().insert(msg("Your faction doesn't own this chunk.", COLOR_RED)));
             case CANNOT_UNCLAIM_HOME -> ctx.sendMessage(prefix().insert(msg("Cannot unclaim the chunk with faction home.", COLOR_RED)));
+            case WOULD_DISCONNECT -> ctx.sendMessage(prefix().insert(msg("Cannot unclaim — it would disconnect your territory.", COLOR_RED)));
             default -> ctx.sendMessage(prefix().insert(msg("Failed to unclaim chunk.", COLOR_RED)));
         }
     }

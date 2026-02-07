@@ -19,6 +19,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
@@ -37,6 +39,12 @@ public class InviteManager {
     private final Path dataFile;
     private final Gson gson;
 
+    // GUI update callbacks
+    @Nullable
+    private Consumer<PendingInvite> onInviteCreated;
+    @Nullable
+    private BiConsumer<UUID, UUID> onInviteRemoved;
+
     /**
      * Creates a new InviteManager with persistence.
      *
@@ -48,6 +56,21 @@ public class InviteManager {
             .setPrettyPrinting()
             .disableHtmlEscaping()
             .create();
+    }
+
+    /**
+     * Sets a callback for when an invite is created.
+     */
+    public void setOnInviteCreated(@Nullable Consumer<PendingInvite> callback) {
+        this.onInviteCreated = callback;
+    }
+
+    /**
+     * Sets a callback for when an invite is removed.
+     * Params: factionId, playerUuid
+     */
+    public void setOnInviteRemoved(@Nullable BiConsumer<UUID, UUID> callback) {
+        this.onInviteRemoved = callback;
     }
 
     /**
@@ -130,6 +153,11 @@ public class InviteManager {
             .add(playerUuid);
 
         save();
+
+        if (onInviteCreated != null) {
+            try { onInviteCreated.accept(invite); } catch (Exception e) { Logger.warn("Error in invite created callback: %s", e.getMessage()); }
+        }
+
         return invite;
     }
 
@@ -288,6 +316,10 @@ public class InviteManager {
     public void removeInvite(@NotNull UUID factionId, @NotNull UUID playerUuid) {
         removeInviteInternal(factionId, playerUuid);
         save();
+
+        if (onInviteRemoved != null) {
+            try { onInviteRemoved.accept(factionId, playerUuid); } catch (Exception e) { Logger.warn("Error in invite removed callback: %s", e.getMessage()); }
+        }
     }
 
     /**

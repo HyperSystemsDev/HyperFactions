@@ -2,7 +2,9 @@ package com.hyperfactions.gui.faction.page;
 
 import com.hyperfactions.HyperFactions;
 import com.hyperfactions.data.*;
+import com.hyperfactions.gui.ActivePageTracker;
 import com.hyperfactions.gui.GuiManager;
+import com.hyperfactions.gui.RefreshablePage;
 import com.hyperfactions.gui.nav.NavBarHelper;
 import com.hyperfactions.gui.faction.data.FactionPageData;
 import com.hyperfactions.manager.FactionManager;
@@ -28,7 +30,7 @@ import java.util.*;
  * Uses tab-based filtering and expandable entries like AdminZonePage.
  * Only visible to officers and above.
  */
-public class FactionInvitesPage extends InteractiveCustomUIPage<FactionPageData> {
+public class FactionInvitesPage extends InteractiveCustomUIPage<FactionPageData> implements RefreshablePage {
 
     private static final String PAGE_ID = "invites";
     private static final int ITEMS_PER_PAGE = 8;
@@ -76,6 +78,12 @@ public class FactionInvitesPage extends InteractiveCustomUIPage<FactionPageData>
 
         // Setup navigation bar
         NavBarHelper.setupBar(playerRef, faction, PAGE_ID, cmd, events);
+
+        // Register with active page tracker for real-time updates
+        ActivePageTracker activeTracker = guiManager.getActivePageTracker();
+        if (activeTracker != null) {
+            activeTracker.register(playerRef.getUuid(), PAGE_ID, faction.id(), this);
+        }
 
         // Build the list
         buildList(cmd, events);
@@ -471,6 +479,11 @@ public class FactionInvitesPage extends InteractiveCustomUIPage<FactionPageData>
             player.sendMessage(Message.raw("Invalid player.").color("#FF5555"));
             sendUpdate();
         }
+    }
+
+    @Override
+    public void refreshContent() {
+        rebuildList();
     }
 
     private void rebuildList() {

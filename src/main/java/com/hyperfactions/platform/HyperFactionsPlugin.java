@@ -780,6 +780,11 @@ public class HyperFactionsPlugin extends JavaPlugin {
         // Clean up territory tracking
         hyperFactions.getTerritoryNotifier().onPlayerDisconnect(uuid);
 
+        // Unregister from active page tracker (GUI real-time updates)
+        if (hyperFactions.getActivePageTracker() != null) {
+            hyperFactions.getActivePageTracker().unregister(uuid);
+        }
+
         // Untrack the player
         trackedPlayers.remove(uuid);
     }

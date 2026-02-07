@@ -186,6 +186,42 @@ public class PowerManager {
     }
 
     /**
+     * Rewards power for a PvP kill (clamped at max).
+     *
+     * @param playerUuid the killer's UUID
+     * @param reward     the amount of power to add
+     * @return the new power level
+     */
+    public double applyKillReward(@NotNull UUID playerUuid, double reward) {
+        PlayerPower power = getPlayerPower(playerUuid);
+        PlayerPower updated = power.withRegen(reward);
+        powerCache.put(playerUuid, updated);
+        storage.savePlayerPower(updated);
+
+        Logger.debugPower("Kill reward: player=%s, before=%.2f, after=%.2f, reward=%.2f",
+            playerUuid, power.power(), updated.power(), reward);
+        return updated.power();
+    }
+
+    /**
+     * Penalizes power for killing a neutral player (clamped at 0).
+     *
+     * @param playerUuid the killer's UUID
+     * @param penalty    the amount of power to remove
+     * @return the new power level
+     */
+    public double applyNeutralKillPenalty(@NotNull UUID playerUuid, double penalty) {
+        PlayerPower power = getPlayerPower(playerUuid);
+        PlayerPower updated = power.withDeathPenalty(penalty);
+        powerCache.put(playerUuid, updated);
+        storage.savePlayerPower(updated);
+
+        Logger.debugPower("Neutral kill penalty: player=%s, before=%.2f, after=%.2f, penalty=%.2f",
+            playerUuid, power.power(), updated.power(), penalty);
+        return updated.power();
+    }
+
+    /**
      * Regenerates power for a player.
      *
      * @param playerUuid the player's UUID

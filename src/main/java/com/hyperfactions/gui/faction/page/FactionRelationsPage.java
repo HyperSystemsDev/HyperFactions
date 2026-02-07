@@ -1,8 +1,12 @@
 package com.hyperfactions.gui.faction.page;
 
+import com.hyperfactions.Permissions;
 import com.hyperfactions.data.*;
+import com.hyperfactions.gui.ActivePageTracker;
 import com.hyperfactions.gui.GuiManager;
+import com.hyperfactions.gui.RefreshablePage;
 import com.hyperfactions.gui.nav.NavBarHelper;
+import com.hyperfactions.integration.PermissionManager;
 import com.hyperfactions.gui.faction.data.FactionRelationsData;
 import com.hyperfactions.manager.FactionManager;
 import com.hyperfactions.manager.RelationManager;
@@ -27,7 +31,7 @@ import java.util.*;
  * Faction Relations page - displays allies, enemies, and pending requests in tabs.
  * Uses tab-based filtering and expandable entries like AdminZonePage.
  */
-public class FactionRelationsPage extends InteractiveCustomUIPage<FactionRelationsData> {
+public class FactionRelationsPage extends InteractiveCustomUIPage<FactionRelationsData> implements RefreshablePage {
 
     private static final String PAGE_ID = "relations";
     private static final int ITEMS_PER_PAGE = 8;
@@ -78,6 +82,22 @@ public class FactionRelationsPage extends InteractiveCustomUIPage<FactionRelatio
 
         // Build the list
         buildList(cmd, events, canManage);
+
+        // Register with active page tracker for real-time updates
+        ActivePageTracker activeTracker = guiManager.getActivePageTracker();
+        if (activeTracker != null) {
+            activeTracker.register(playerRef.getUuid(), PAGE_ID, faction.id(), this);
+        }
+    }
+
+    @Override
+    public void refreshContent() {
+        UUID viewerUuid = playerRef.getUuid();
+        Faction currentFaction = factionManager.getFaction(faction.id());
+        FactionMember viewer = currentFaction != null ? currentFaction.getMember(viewerUuid) : null;
+        FactionRole viewerRole = viewer != null ? viewer.role() : FactionRole.MEMBER;
+        boolean canManage = viewerRole.getLevel() >= FactionRole.OFFICER.getLevel();
+        rebuildList(canManage);
     }
 
     private void buildList(UICommandBuilder cmd, UIEventBuilder events, boolean canManage) {
@@ -310,81 +330,96 @@ public class FactionRelationsPage extends InteractiveCustomUIPage<FactionRelatio
             cmd.set(idx + " #CancelBtn.Visible", false);
 
             if (canManage) {
+                UUID viewerUuid = playerRef.getUuid();
+                boolean hasNeutral = PermissionManager.get().hasPermission(viewerUuid, Permissions.NEUTRAL);
+                boolean hasEnemy = PermissionManager.get().hasPermission(viewerUuid, Permissions.ENEMY);
+                boolean hasAlly = PermissionManager.get().hasPermission(viewerUuid, Permissions.ALLY);
+
                 if ("ALLY".equals(item.type)) {
-                    // For allies: NEUTRAL and ENEMY buttons
-                    cmd.set(idx + " #NeutralBtn.Visible", true);
-                    cmd.set(idx + " #EnemyBtn.Visible", true);
-
-                    events.addEventBinding(
-                            CustomUIEventBindingType.Activating,
-                            idx + " #NeutralBtn",
-                            EventData.of("Button", "SetNeutral")
-                                    .append("FactionId", item.factionId.toString())
-                                    .append("FactionName", item.factionName),
-                            false
-                    );
-                    events.addEventBinding(
-                            CustomUIEventBindingType.Activating,
-                            idx + " #EnemyBtn",
-                            EventData.of("Button", "SetEnemy")
-                                    .append("FactionId", item.factionId.toString())
-                                    .append("FactionName", item.factionName),
-                            false
-                    );
+                    // For allies: NEUTRAL and ENEMY buttons (permission-gated)
+                    if (hasNeutral) {
+                        cmd.set(idx + " #NeutralBtn.Visible", true);
+                        events.addEventBinding(
+                                CustomUIEventBindingType.Activating,
+                                idx + " #NeutralBtn",
+                                EventData.of("Button", "SetNeutral")
+                                        .append("FactionId", item.factionId.toString())
+                                        .append("FactionName", item.factionName),
+                                false
+                        );
+                    }
+                    if (hasEnemy) {
+                        cmd.set(idx + " #EnemyBtn.Visible", true);
+                        events.addEventBinding(
+                                CustomUIEventBindingType.Activating,
+                                idx + " #EnemyBtn",
+                                EventData.of("Button", "SetEnemy")
+                                        .append("FactionId", item.factionId.toString())
+                                        .append("FactionName", item.factionName),
+                                false
+                        );
+                    }
                 } else if ("ENEMY".equals(item.type)) {
-                    // For enemies: NEUTRAL and ALLY buttons
-                    cmd.set(idx + " #NeutralBtn.Visible", true);
-                    cmd.set(idx + " #AllyBtn.Visible", true);
-
-                    events.addEventBinding(
-                            CustomUIEventBindingType.Activating,
-                            idx + " #NeutralBtn",
-                            EventData.of("Button", "SetNeutral")
-                                    .append("FactionId", item.factionId.toString())
-                                    .append("FactionName", item.factionName),
-                            false
-                    );
-                    events.addEventBinding(
-                            CustomUIEventBindingType.Activating,
-                            idx + " #AllyBtn",
-                            EventData.of("Button", "RequestAlly")
-                                    .append("FactionId", item.factionId.toString())
-                                    .append("FactionName", item.factionName),
-                            false
-                    );
+                    // For enemies: NEUTRAL and ALLY buttons (permission-gated)
+                    if (hasNeutral) {
+                        cmd.set(idx + " #NeutralBtn.Visible", true);
+                        events.addEventBinding(
+                                CustomUIEventBindingType.Activating,
+                                idx + " #NeutralBtn",
+                                EventData.of("Button", "SetNeutral")
+                                        .append("FactionId", item.factionId.toString())
+                                        .append("FactionName", item.factionName),
+                                false
+                        );
+                    }
+                    if (hasAlly) {
+                        cmd.set(idx + " #AllyBtn.Visible", true);
+                        events.addEventBinding(
+                                CustomUIEventBindingType.Activating,
+                                idx + " #AllyBtn",
+                                EventData.of("Button", "RequestAlly")
+                                        .append("FactionId", item.factionId.toString())
+                                        .append("FactionName", item.factionName),
+                                false
+                        );
+                    }
                 } else if (item.isIncoming) {
-                    // Inbound request: ACCEPT and DECLINE buttons
-                    cmd.set(idx + " #AcceptBtn.Visible", true);
-                    cmd.set(idx + " #DeclineBtn.Visible", true);
+                    // Inbound request: ACCEPT and DECLINE buttons (requires ALLY permission)
+                    if (hasAlly) {
+                        cmd.set(idx + " #AcceptBtn.Visible", true);
+                        cmd.set(idx + " #DeclineBtn.Visible", true);
 
-                    events.addEventBinding(
-                            CustomUIEventBindingType.Activating,
-                            idx + " #AcceptBtn",
-                            EventData.of("Button", "AcceptAlly")
-                                    .append("FactionId", item.factionId.toString())
-                                    .append("FactionName", item.factionName),
-                            false
-                    );
-                    events.addEventBinding(
-                            CustomUIEventBindingType.Activating,
-                            idx + " #DeclineBtn",
-                            EventData.of("Button", "DeclineAlly")
-                                    .append("FactionId", item.factionId.toString())
-                                    .append("FactionName", item.factionName),
-                            false
-                    );
+                        events.addEventBinding(
+                                CustomUIEventBindingType.Activating,
+                                idx + " #AcceptBtn",
+                                EventData.of("Button", "AcceptAlly")
+                                        .append("FactionId", item.factionId.toString())
+                                        .append("FactionName", item.factionName),
+                                false
+                        );
+                        events.addEventBinding(
+                                CustomUIEventBindingType.Activating,
+                                idx + " #DeclineBtn",
+                                EventData.of("Button", "DeclineAlly")
+                                        .append("FactionId", item.factionId.toString())
+                                        .append("FactionName", item.factionName),
+                                false
+                        );
+                    }
                 } else if (item.isOutbound) {
-                    // Outbound request: CANCEL button
-                    cmd.set(idx + " #CancelBtn.Visible", true);
+                    // Outbound request: CANCEL button (requires ALLY permission)
+                    if (hasAlly) {
+                        cmd.set(idx + " #CancelBtn.Visible", true);
 
-                    events.addEventBinding(
-                            CustomUIEventBindingType.Activating,
-                            idx + " #CancelBtn",
-                            EventData.of("Button", "CancelRequest")
-                                    .append("FactionId", item.factionId.toString())
-                                    .append("FactionName", item.factionName),
-                            false
-                    );
+                        events.addEventBinding(
+                                CustomUIEventBindingType.Activating,
+                                idx + " #CancelBtn",
+                                EventData.of("Button", "CancelRequest")
+                                        .append("FactionId", item.factionId.toString())
+                                        .append("FactionName", item.factionName),
+                                false
+                        );
+                    }
                 }
             }
         }

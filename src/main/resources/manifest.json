@@ -7,5 +7,8 @@
   "Main": "com.hyperfactions.platform.HyperFactionsPlugin",
   "ServerVersion": "*",
   "SoftDependencies": ["HyperPerms", "OrbisGuard", "OrbisGuard-Mixins"],
+  "OptionalDependencies": {
+    "HelpChat:PlaceholderAPI": ">= 1.0.2"
+  },
   "IncludesAssetPack": true
 }

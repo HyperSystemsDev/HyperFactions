@@ -19,8 +19,9 @@ public class ChatConfig extends ModuleConfig {
     private String format = "{faction_tag}{prefix}{player}{suffix}: {message}";
     private String tagDisplay = "tag";    // "tag", "name", or "none"
     private String tagFormat = "[{tag}] ";
-    private String noFactionTag = "";     // Tag for non-faction players
-    private String priority = "LATE";     // Event priority
+    private String noFactionTag = "";           // Tag for non-faction players
+    private String noFactionTagColor = "#555555"; // Color for no-faction tag (dark gray)
+    private String priority = "LATE";             // Event priority
 
     // Relation colors
     private String relationColorOwn = "#00FF00";     // Green - same faction
@@ -50,6 +51,7 @@ public class ChatConfig extends ModuleConfig {
         tagDisplay = "tag";
         tagFormat = "[{tag}] ";
         noFactionTag = "";
+        noFactionTagColor = "#555555";
         priority = "LATE";
         relationColorOwn = "#00FF00";
         relationColorAlly = "#FF69B4";
@@ -63,6 +65,7 @@ public class ChatConfig extends ModuleConfig {
         tagDisplay = getString(root, "tagDisplay", tagDisplay);
         tagFormat = getString(root, "tagFormat", tagFormat);
         noFactionTag = getString(root, "noFactionTag", noFactionTag);
+        noFactionTagColor = getString(root, "noFactionTagColor", noFactionTagColor);
         priority = getString(root, "priority", priority);
 
         // Load relation colors
@@ -77,10 +80,12 @@ public class ChatConfig extends ModuleConfig {
 
     @Override
     protected void writeModuleSettings(@NotNull JsonObject root) {
+        root.addProperty("_formatNote", "format is only used if no permissions plugin is detected");
         root.addProperty("format", format);
         root.addProperty("tagDisplay", tagDisplay);
         root.addProperty("tagFormat", tagFormat);
         root.addProperty("noFactionTag", noFactionTag);
+        root.addProperty("noFactionTagColor", noFactionTagColor);
         root.addProperty("priority", priority);
 
         JsonObject colors = new JsonObject();
@@ -131,6 +136,11 @@ public class ChatConfig extends ModuleConfig {
     @NotNull
     public String getNoFactionTag() {
         return noFactionTag;
+    }
+
+    @NotNull
+    public String getNoFactionTagColor() {
+        return noFactionTagColor;
     }
 
     /**
@@ -199,6 +209,7 @@ public class ChatConfig extends ModuleConfig {
                 new String[]{"EARLIEST", "EARLY", "NORMAL", "LATE", "LATEST"}, "LATE");
 
         // Validate hex colors (warn but don't correct)
+        validateHexColor(result, "noFactionTagColor", noFactionTagColor);
         validateHexColor(result, "relationColors.own", relationColorOwn);
         validateHexColor(result, "relationColors.ally", relationColorAlly);
         validateHexColor(result, "relationColors.neutral", relationColorNeutral);

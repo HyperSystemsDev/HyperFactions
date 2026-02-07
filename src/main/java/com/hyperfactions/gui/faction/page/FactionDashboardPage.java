@@ -1,14 +1,18 @@
 package com.hyperfactions.gui.faction.page;
 
 import com.hyperfactions.HyperFactions;
+import com.hyperfactions.Permissions;
 import com.hyperfactions.data.Faction;
 import com.hyperfactions.data.FactionLog;
 import com.hyperfactions.data.FactionMember;
 import com.hyperfactions.data.FactionRelation;
 import com.hyperfactions.data.FactionRole;
 import com.hyperfactions.data.RelationType;
+import com.hyperfactions.gui.ActivePageTracker;
 import com.hyperfactions.gui.GuiManager;
+import com.hyperfactions.gui.RefreshablePage;
 import com.hyperfactions.gui.nav.NavBarHelper;
+import com.hyperfactions.integration.PermissionManager;
 import com.hyperfactions.gui.faction.data.FactionDashboardData;
 import com.hyperfactions.manager.ChatManager;
 import com.hyperfactions.manager.ClaimManager;
@@ -45,7 +49,7 @@ import java.util.concurrent.TimeUnit;
  * Faction Dashboard page - main view for faction members.
  * Shows faction stats, quick actions, and recent activity.
  */
-public class FactionDashboardPage extends InteractiveCustomUIPage<FactionDashboardData> {
+public class FactionDashboardPage extends InteractiveCustomUIPage<FactionDashboardData> implements RefreshablePage {
 
     private static final String PAGE_ID = "dashboard";
     private static final int ACTIVITY_ENTRIES = 5;
@@ -114,6 +118,17 @@ public class FactionDashboardPage extends InteractiveCustomUIPage<FactionDashboa
 
         // Activity feed (use fresh data)
         buildActivityFeed(cmd, events, currentFaction);
+
+        // Register with active page tracker for real-time updates
+        ActivePageTracker activeTracker = guiManager.getActivePageTracker();
+        if (activeTracker != null) {
+            activeTracker.register(playerRef.getUuid(), PAGE_ID, faction.id(), this);
+        }
+    }
+
+    @Override
+    public void refreshContent() {
+        rebuild();
     }
 
     private void setupNavBar(UICommandBuilder cmd, UIEventBuilder events) {
@@ -215,8 +230,12 @@ public class FactionDashboardPage extends InteractiveCustomUIPage<FactionDashboa
 
     private void buildQuickActions(UICommandBuilder cmd, UIEventBuilder events,
                                     boolean isOfficerPlus, boolean isLeader) {
+        UUID viewerUuid = playerRef.getUuid();
+
         // HOME button - show for anyone if home exists, or for officers+ to set home
-        if (faction.hasHome() || isOfficerPlus) {
+        // Also requires HOME permission
+        if ((faction.hasHome() || isOfficerPlus)
+                && PermissionManager.get().hasPermission(viewerUuid, Permissions.HOME)) {
             cmd.append("#HomeBtnContainer", "HyperFactions/faction/dashboard_action_btn.ui");
             if (faction.hasHome()) {
                 cmd.set("#HomeBtnContainer #ActionBtn.Text", "HOME");
@@ -231,8 +250,8 @@ public class FactionDashboardPage extends InteractiveCustomUIPage<FactionDashboa
             );
         }
 
-        // CLAIM button - only for officers+
-        if (isOfficerPlus) {
+        // CLAIM button - only for officers+ with CLAIM permission
+        if (isOfficerPlus && PermissionManager.get().hasPermission(viewerUuid, Permissions.CLAIM)) {
             cmd.append("#ClaimBtnContainer", "HyperFactions/faction/dashboard_action_btn.ui");
             cmd.set("#ClaimBtnContainer #ActionBtn.Text", "CLAIM");
             events.addEventBinding(
@@ -243,30 +262,34 @@ public class FactionDashboardPage extends InteractiveCustomUIPage<FactionDashboa
             );
         }
 
-        // F-CHAT button - faction chat toggle
-        cmd.append("#FChatBtnContainer", "HyperFactions/faction/dashboard_action_btn.ui");
-        cmd.set("#FChatBtnContainer #ActionBtn.Text", "F-CHAT");
-        events.addEventBinding(
-                CustomUIEventBindingType.Activating,
-                "#FChatBtnContainer #ActionBtn",
-                EventData.of("Button", "FChat"),
-                false
-        );
+        // F-CHAT button - faction chat toggle (requires CHAT_FACTION permission)
+        if (PermissionManager.get().hasPermission(viewerUuid, Permissions.CHAT_FACTION)) {
+            cmd.append("#FChatBtnContainer", "HyperFactions/faction/dashboard_action_btn.ui");
+            cmd.set("#FChatBtnContainer #ActionBtn.Text", "F-CHAT");
+            events.addEventBinding(
+                    CustomUIEventBindingType.Activating,
+                    "#FChatBtnContainer #ActionBtn",
+                    EventData.of("Button", "FChat"),
+                    false
+            );
+        }
 
         // A-CHAT button - grayed out, coming soon
         cmd.append("#AChatBtnContainer", "HyperFactions/faction/dashboard_action_btn_disabled.ui");
         cmd.set("#AChatBtnContainer #ActionBtn.Text", "A-CHAT");
         cmd.set("#AChatBtnContainer #ComingSoon.Text", "Coming Soon");
 
-        // LEAVE button - show for all members including leaders
-        cmd.append("#LeaveBtnContainer", "HyperFactions/faction/dashboard_action_btn.ui");
-        cmd.set("#LeaveBtnContainer #ActionBtn.Text", "LEAVE");
-        events.addEventBinding(
-                CustomUIEventBindingType.Activating,
-                "#LeaveBtnContainer #ActionBtn",
-                EventData.of("Button", "Leave"),
-                false
-        );
+        // LEAVE button - show for all members including leaders (requires LEAVE permission)
+        if (PermissionManager.get().hasPermission(viewerUuid, Permissions.LEAVE)) {
+            cmd.append("#LeaveBtnContainer", "HyperFactions/faction/dashboard_action_btn.ui");
+            cmd.set("#LeaveBtnContainer #ActionBtn.Text", "LEAVE");
+            events.addEventBinding(
+                    CustomUIEventBindingType.Activating,
+                    "#LeaveBtnContainer #ActionBtn",
+                    EventData.of("Button", "Leave"),
+                    false
+            );
+        }
     }
 
     private void buildActivityFeed(UICommandBuilder cmd, UIEventBuilder events, Faction currentFaction) {
@@ -346,6 +369,10 @@ public class FactionDashboardPage extends InteractiveCustomUIPage<FactionDashboa
 
         switch (data.button) {
             case "Home" -> {
+                if (!PermissionManager.get().hasPermission(uuid, Permissions.HOME)) {
+                    sendUpdate();
+                    return;
+                }
                 if (!currentFaction.hasHome()) {
                     // No home set - for officers+, prompt to set home
                     if (isOfficerPlus) {
@@ -360,7 +387,7 @@ public class FactionDashboardPage extends InteractiveCustomUIPage<FactionDashboa
             }
 
             case "Claim" -> {
-                if (!isOfficerPlus) {
+                if (!isOfficerPlus || !PermissionManager.get().hasPermission(uuid, Permissions.CLAIM)) {
                     player.sendMessage(Message.raw("Only officers can claim territory.").color("#FF5555"));
                     sendUpdate();
                     return;
@@ -369,6 +396,10 @@ public class FactionDashboardPage extends InteractiveCustomUIPage<FactionDashboa
             }
 
             case "FChat" -> {
+                if (!PermissionManager.get().hasPermission(uuid, Permissions.CHAT_FACTION)) {
+                    sendUpdate();
+                    return;
+                }
                 ChatManager chatManager = plugin.getChatManager();
                 ChatManager.ChatChannel newChannel = chatManager.toggleFactionChat(uuid);
                 String display = ChatManager.getChannelDisplay(newChannel);
@@ -385,6 +416,10 @@ public class FactionDashboardPage extends InteractiveCustomUIPage<FactionDashboa
             }
 
             case "Leave" -> {
+                if (!PermissionManager.get().hasPermission(uuid, Permissions.LEAVE)) {
+                    sendUpdate();
+                    return;
+                }
                 if (isLeader) {
                     // Leaders get a special confirmation page with succession info
                     guiManager.openLeaderLeaveConfirm(player, ref, store, playerRef, currentFaction);

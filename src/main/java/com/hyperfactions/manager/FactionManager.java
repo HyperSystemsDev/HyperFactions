@@ -3,6 +3,7 @@ package com.hyperfactions.manager;
 import com.hyperfactions.Permissions;
 import com.hyperfactions.api.events.EventBus;
 import com.hyperfactions.api.events.FactionDisbandEvent;
+import com.hyperfactions.api.events.FactionMemberEvent;
 import com.hyperfactions.config.ConfigManager;
 import com.hyperfactions.data.*;
 import com.hyperfactions.integration.PermissionManager;
@@ -502,6 +503,9 @@ public class FactionManager {
         // Save async
         storage.saveFaction(updated);
 
+        // Publish member join event
+        EventBus.publish(new FactionMemberEvent(updated, playerUuid, FactionMemberEvent.Type.JOIN));
+
         return FactionResult.SUCCESS;
     }
 
@@ -550,6 +554,9 @@ public class FactionManager {
             playerToFaction.remove(playerUuid);
             storage.saveFaction(updated);
 
+            // Publish member leave event
+            EventBus.publish(new FactionMemberEvent(updated, playerUuid, FactionMemberEvent.Type.LEAVE));
+
             Logger.info("Leader %s left faction '%s', %s promoted to leader",
                     target.username(), faction.name(), promoted.username());
             return FactionResult.SUCCESS;
@@ -576,6 +583,10 @@ public class FactionManager {
 
         // Save async
         storage.saveFaction(updated);
+
+        // Publish member leave/kick event
+        FactionMemberEvent.Type eventType = isKick ? FactionMemberEvent.Type.KICK : FactionMemberEvent.Type.LEAVE;
+        EventBus.publish(new FactionMemberEvent(updated, playerUuid, eventType));
 
         return FactionResult.SUCCESS;
     }
@@ -671,6 +682,9 @@ public class FactionManager {
         factions.put(factionId, updated);
         storage.saveFaction(updated);
 
+        // Publish promote event
+        EventBus.publish(new FactionMemberEvent(updated, playerUuid, FactionMemberEvent.Type.PROMOTE));
+
         return FactionResult.SUCCESS;
     }
 
@@ -717,6 +731,9 @@ public class FactionManager {
 
         factions.put(factionId, updated);
         storage.saveFaction(updated);
+
+        // Publish demote event
+        EventBus.publish(new FactionMemberEvent(updated, playerUuid, FactionMemberEvent.Type.DEMOTE));
 
         return FactionResult.SUCCESS;
     }

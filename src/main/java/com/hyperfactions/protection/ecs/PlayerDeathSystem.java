@@ -1,6 +1,9 @@
 package com.hyperfactions.protection.ecs;
 
 import com.hyperfactions.HyperFactions;
+import com.hyperfactions.config.ConfigManager;
+import com.hyperfactions.data.RelationType;
+import com.hyperfactions.manager.PowerManager;
 import com.hyperfactions.util.Logger;
 import com.hypixel.hytale.component.CommandBuffer;
 import com.hypixel.hytale.component.ComponentType;
@@ -14,6 +17,8 @@ import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.UUID;
 
 /**
  * ECS system that detects player death via DeathComponent addition.
@@ -64,9 +69,36 @@ public class PlayerDeathSystem extends RefChangeSystem<EntityStore, DeathCompone
                 return;
             }
 
-            // Apply power penalty
-            double newPower = hyperFactions.getPowerManager().applyDeathPenalty(playerRef.getUuid());
-            Logger.debugPower("Player %s died, power now %.2f", playerRef.getUuid(), newPower);
+            UUID victimUuid = playerRef.getUuid();
+
+            // Apply death power penalty
+            double newPower = hyperFactions.getPowerManager().applyDeathPenalty(victimUuid);
+            Logger.debugPower("Player %s died, power now %.2f", victimUuid, newPower);
+
+            // Kill reward / neutral kill penalty
+            UUID killerUuid = hyperFactions.getCombatTagManager().getLastAttacker(victimUuid);
+            if (killerUuid != null) {
+                ConfigManager config = ConfigManager.get();
+                PowerManager pm = hyperFactions.getPowerManager();
+
+                // Kill reward (all PvP kills)
+                double reward = config.getKillReward();
+                if (reward > 0) {
+                    double killerPower = pm.applyKillReward(killerUuid, reward);
+                    Logger.debugPower("Kill reward: killer=%s gained %.2f power (now %.2f)", killerUuid, reward, killerPower);
+                }
+
+                // Neutral kill penalty
+                double neutralPenalty = config.getNeutralAttackPenalty();
+                if (neutralPenalty > 0) {
+                    RelationType relation = hyperFactions.getRelationManager()
+                        .getPlayerRelation(killerUuid, victimUuid);
+                    if (relation == null || relation == RelationType.NEUTRAL) {
+                        double killerPower = pm.applyNeutralKillPenalty(killerUuid, neutralPenalty);
+                        Logger.debugPower("Neutral kill penalty: killer=%s lost %.2f power (now %.2f)", killerUuid, neutralPenalty, killerPower);
+                    }
+                }
+            }
         } catch (Exception e) {
             Logger.severe("Error handling player death in ECS system", e);
         }

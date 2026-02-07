@@ -25,6 +25,7 @@ java {
 
 repositories {
     mavenCentral()
+    // PlaceholderAPI for Hytale (CurseForge JAR)
 }
 
 // Helper to find the latest HyperPerms JAR dynamically
@@ -69,6 +70,9 @@ dependencies {
 
     // JSON handling
     implementation 'com.google.code.gson:gson:2.11.0'
+
+    // PlaceholderAPI Hytale (soft dependency - compileOnly)
+    compileOnly files('../resources/mods/jars/PlaceholderAPI-1.0.4-CurseForgee.jar')
 
     // Null safety annotations
     compileOnly 'org.jetbrains:annotations:24.1.0'

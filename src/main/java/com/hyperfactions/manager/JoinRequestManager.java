@@ -19,6 +19,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
@@ -51,6 +53,14 @@ public class JoinRequestManager {
     private final Path dataFile;
     private final Gson gson;
 
+    // GUI update callbacks
+    @Nullable
+    private Consumer<JoinRequest> onRequestCreated;
+    @Nullable
+    private BiConsumer<UUID, UUID> onRequestAccepted;
+    @Nullable
+    private BiConsumer<UUID, UUID> onRequestDeclined;
+
     /**
      * Creates a new JoinRequestManager with persistence.
      *
@@ -62,6 +72,29 @@ public class JoinRequestManager {
             .setPrettyPrinting()
             .disableHtmlEscaping()
             .create();
+    }
+
+    /**
+     * Sets a callback for when a request is created.
+     */
+    public void setOnRequestCreated(@Nullable Consumer<JoinRequest> callback) {
+        this.onRequestCreated = callback;
+    }
+
+    /**
+     * Sets a callback for when a request is accepted.
+     * Params: factionId, playerUuid
+     */
+    public void setOnRequestAccepted(@Nullable BiConsumer<UUID, UUID> callback) {
+        this.onRequestAccepted = callback;
+    }
+
+    /**
+     * Sets a callback for when a request is declined.
+     * Params: factionId, playerUuid
+     */
+    public void setOnRequestDeclined(@Nullable BiConsumer<UUID, UUID> callback) {
+        this.onRequestDeclined = callback;
     }
 
     /**
@@ -140,6 +173,11 @@ public class JoinRequestManager {
             .add(playerUuid);
 
         save();
+
+        if (onRequestCreated != null) {
+            try { onRequestCreated.accept(request); } catch (Exception e) { Logger.warn("Error in request created callback: %s", e.getMessage()); }
+        }
+
         return request;
     }
 
@@ -267,7 +305,12 @@ public class JoinRequestManager {
     public JoinRequest acceptRequest(@NotNull UUID factionId, @NotNull UUID playerUuid) {
         JoinRequest request = getRequest(factionId, playerUuid);
         if (request != null) {
-            removeRequest(factionId, playerUuid);
+            removeRequestInternal(factionId, playerUuid);
+            save();
+
+            if (onRequestAccepted != null) {
+                try { onRequestAccepted.accept(factionId, playerUuid); } catch (Exception e) { Logger.warn("Error in request accepted callback: %s", e.getMessage()); }
+            }
         }
         return request;
     }
@@ -279,7 +322,12 @@ public class JoinRequestManager {
      * @param playerUuid the player's UUID
      */
     public void declineRequest(@NotNull UUID factionId, @NotNull UUID playerUuid) {
-        removeRequest(factionId, playerUuid);
+        removeRequestInternal(factionId, playerUuid);
+        save();
+
+        if (onRequestDeclined != null) {
+            try { onRequestDeclined.accept(factionId, playerUuid); } catch (Exception e) { Logger.warn("Error in request declined callback: %s", e.getMessage()); }
+        }
     }
 
     /**

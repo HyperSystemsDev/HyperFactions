@@ -3,7 +3,9 @@ package com.hyperfactions.gui.page.newplayer;
 import com.hyperfactions.data.Faction;
 import com.hyperfactions.data.Zone;
 import com.hyperfactions.data.ZoneType;
+import com.hyperfactions.gui.ActivePageTracker;
 import com.hyperfactions.gui.GuiManager;
+import com.hyperfactions.gui.RefreshablePage;
 import com.hyperfactions.gui.nav.NewPlayerNavBarHelper;
 import com.hyperfactions.gui.shared.data.NewPlayerPageData;
 import com.hyperfactions.manager.*;
@@ -29,7 +31,7 @@ import java.util.UUID;
  * - No click events (read-only)
  * - Different hint text
  */
-public class NewPlayerMapPage extends InteractiveCustomUIPage<NewPlayerPageData> {
+public class NewPlayerMapPage extends InteractiveCustomUIPage<NewPlayerPageData> implements RefreshablePage {
 
     private static final String PAGE_ID = "map";
     private static final int GRID_RADIUS_X = 14; // 29 columns (-14 to +14)
@@ -101,6 +103,17 @@ public class NewPlayerMapPage extends InteractiveCustomUIPage<NewPlayerPageData>
 
         // Build the map grid (same as ChunkMapPage but without click events)
         buildChunkGrid(cmd, worldName, playerChunkX, playerChunkZ);
+
+        // Register with active page tracker for real-time updates
+        ActivePageTracker activeTracker = guiManager.getActivePageTracker();
+        if (activeTracker != null) {
+            activeTracker.register(playerRef.getUuid(), PAGE_ID, null, this);
+        }
+    }
+
+    @Override
+    public void refreshContent() {
+        rebuild();
     }
 
     /**

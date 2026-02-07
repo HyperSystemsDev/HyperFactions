@@ -2,7 +2,9 @@ package com.hyperfactions.gui.faction.page;
 
 import com.hyperfactions.command.util.CommandUtil;
 import com.hyperfactions.data.*;
+import com.hyperfactions.gui.ActivePageTracker;
 import com.hyperfactions.gui.GuiManager;
+import com.hyperfactions.gui.RefreshablePage;
 import com.hyperfactions.gui.nav.NavBarHelper;
 import com.hyperfactions.gui.faction.data.ChunkMapData;
 import com.hyperfactions.manager.*;
@@ -29,7 +31,7 @@ import java.util.UUID;
  * Interactive Chunk Map page - displays a 9x9 territory grid.
  * Left-click to claim, right-click to unclaim.
  */
-public class ChunkMapPage extends InteractiveCustomUIPage<ChunkMapData> {
+public class ChunkMapPage extends InteractiveCustomUIPage<ChunkMapData> implements RefreshablePage {
 
     private static final String PAGE_ID = "map";
     private static final int GRID_RADIUS_X = 14; // 29 columns (-14 to +14)
@@ -43,7 +45,7 @@ public class ChunkMapPage extends InteractiveCustomUIPage<ChunkMapData> {
     private static final String COLOR_OTHER = "#fbbf24";      // Yellow/gold - neutral faction
     private static final String COLOR_WILDERNESS = "#1e293b"; // Dark slate - unclaimed (darker for contrast)
     private static final String COLOR_SAFEZONE = "#2dd4bf";   // Teal - safe zone
-    private static final String COLOR_WARZONE = "#ff5555";    // Red - war zone
+    private static final String COLOR_WARZONE = "#c084fc";    // Purple - war zone
     private static final String COLOR_PLAYER_POS = "#ffffff"; // White - player position stands out
 
     private final PlayerRef playerRef;
@@ -133,6 +135,18 @@ public class ChunkMapPage extends InteractiveCustomUIPage<ChunkMapData> {
             cmd.set("#ClaimStats.Text", "Join a faction to claim");
             cmd.set("#PowerStatus.Text", "");
         }
+
+        // Register with active page tracker for real-time updates
+        ActivePageTracker activeTracker = guiManager.getActivePageTracker();
+        if (activeTracker != null) {
+            UUID factionId = viewerFaction != null ? viewerFaction.id() : null;
+            activeTracker.register(playerRef.getUuid(), PAGE_ID, factionId, this);
+        }
+    }
+
+    @Override
+    public void refreshContent() {
+        rebuild();
     }
 
     /**

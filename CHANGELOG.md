@@ -7,7 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-*No changes yet*
+### Added
+
+**Permission-Based GUI Filtering**
+- Nav bar entries now respect server permissions (e.g., removing `hyperfactions.info.members` hides Members tab)
+- Dashboard quick-action buttons check permissions (Home, Claim, F-Chat, Leave)
+- Members page action buttons check permissions (Promote, Demote, Kick, Transfer)
+- Relations page management buttons check permissions (Ally, Enemy, Neutral)
+- New player pages filter Create tab by `hyperfactions.faction.create` permission
+
+**Real-Time GUI Updates**
+- GUI pages now refresh automatically when underlying data changes
+- New `ActivePageTracker` tracks which page each player has open
+- New `GuiUpdateService` bridges manager change events to live GUI refresh
+- Invite created/removed → refreshes recipient's and faction's invites page
+- Join request created/accepted/declined → refreshes faction invites page
+- Member joined/left/kicked → refreshes faction members and dashboard pages
+- Member promoted/demoted → refreshes faction members page
+- Relation changed → refreshes both factions' relations and dashboard pages
+- Ally request received → refreshes target faction's relations page
+- Chunk claimed/unclaimed → refreshes all map viewers (faction, new player, admin zone)
+- Thread-safe: dispatches refresh on correct world thread with stale-check
+
+**PlaceholderAPI Integration**
+- Soft dependency on PlaceholderAPI for Hytale
+- Faction placeholders available for scoreboards and chat
+
+**Combat Tag Improvements**
+- Configurable combat tag duration and settings
+
+**Power System Enhancements**
+- Configurable power gain/loss settings
+
+### Changed
+
+- War zone color on GUI maps changed from red to purple (`#c084fc`) for clarity
+- Admin zone map war zone colors updated to purple (bright and transparent variants)
+
+### Fixed
+
+- Faction member events now properly published for promote/demote actions
+- Unclaim command improvements
 
 ## [0.6.2] - 2026-02-04
 

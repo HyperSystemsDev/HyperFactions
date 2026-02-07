@@ -46,6 +46,7 @@ public class GuiManager {
     private final Supplier<InviteManager> inviteManager;
     private final Supplier<JoinRequestManager> joinRequestManager;
     private final Supplier<Path> dataDir;
+    private ActivePageTracker activePageTracker;
 
     public GuiManager(Supplier<HyperFactions> plugin,
                       Supplier<FactionManager> factionManager,
@@ -104,7 +105,7 @@ public class GuiManager {
         registry.registerEntry(new Entry(
                 "members",
                 "Members",
-                null,
+                Permissions.MEMBERS,
                 (player, ref, store, playerRef, faction, guiManager) -> {
                     if (faction == null) return null;
                     return new FactionMembersPage(playerRef, factionManager.get(), powerManager.get(), guiManager, faction);
@@ -118,7 +119,7 @@ public class GuiManager {
         registry.registerEntry(new Entry(
                 "invites",
                 "Invites",
-                null,
+                Permissions.INVITE,
                 (player, ref, store, playerRef, faction, guiManager) -> {
                     if (faction == null) return null;
                     return new FactionInvitesPage(playerRef, factionManager.get(), inviteManager.get(),
@@ -146,7 +147,7 @@ public class GuiManager {
         registry.registerEntry(new Entry(
                 "map",
                 "Map",
-                null,
+                Permissions.MAP,
                 (player, ref, store, playerRef, faction, guiManager) ->
                         new ChunkMapPage(playerRef, factionManager.get(), claimManager.get(),
                                 relationManager.get(), zoneManager.get(), guiManager),
@@ -159,7 +160,7 @@ public class GuiManager {
         registry.registerEntry(new Entry(
                 "relations",
                 "Relations",
-                null,
+                Permissions.RELATIONS,
                 (player, ref, store, playerRef, faction, guiManager) -> {
                     if (faction == null) return null;
                     return new FactionRelationsPage(playerRef, factionManager.get(),
@@ -236,7 +237,7 @@ public class GuiManager {
         registry.registerEntry(new NewPlayerPageRegistry.Entry(
                 "create",
                 "Create",
-                null,
+                Permissions.CREATE,
                 (player, ref, store, playerRef, guiManager) ->
                         new CreateFactionPage(playerRef, factionManager.get(), guiManager),
                 true,
@@ -259,7 +260,7 @@ public class GuiManager {
         registry.registerEntry(new NewPlayerPageRegistry.Entry(
                 "map",
                 "Map",
-                null,
+                Permissions.MAP,
                 (player, ref, store, playerRef, guiManager) ->
                         new NewPlayerMapPage(playerRef, factionManager.get(), claimManager.get(),
                                 zoneManager.get(), guiManager),
@@ -2144,6 +2145,24 @@ public class GuiManager {
 
     public Supplier<Path> getDataDir() {
         return dataDir;
+    }
+
+    /**
+     * Gets the active page tracker for real-time GUI updates.
+     *
+     * @return The active page tracker, or null if not initialized
+     */
+    public ActivePageTracker getActivePageTracker() {
+        return activePageTracker;
+    }
+
+    /**
+     * Sets the active page tracker.
+     *
+     * @param tracker The active page tracker
+     */
+    public void setActivePageTracker(ActivePageTracker tracker) {
+        this.activePageTracker = tracker;
     }
 
     /**

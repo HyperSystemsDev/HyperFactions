@@ -3,7 +3,9 @@ package com.hyperfactions.gui.page.newplayer;
 import com.hyperfactions.data.Faction;
 import com.hyperfactions.data.JoinRequest;
 import com.hyperfactions.data.PendingInvite;
+import com.hyperfactions.gui.ActivePageTracker;
 import com.hyperfactions.gui.GuiManager;
+import com.hyperfactions.gui.RefreshablePage;
 import com.hyperfactions.gui.nav.NewPlayerNavBarHelper;
 import com.hyperfactions.gui.shared.data.NewPlayerPageData;
 import com.hyperfactions.manager.FactionManager;
@@ -31,7 +33,7 @@ import java.util.concurrent.TimeUnit;
  * Invites & Requests Page - shows pending faction invitations and outgoing join requests.
  * Allows players to accept/decline invites and cancel their own requests.
  */
-public class InvitesPage extends InteractiveCustomUIPage<NewPlayerPageData> {
+public class InvitesPage extends InteractiveCustomUIPage<NewPlayerPageData> implements RefreshablePage {
 
     private static final String PAGE_ID = "invites";
     private static final int MAX_INVITES_DISPLAYED = 5;
@@ -68,6 +70,12 @@ public class InvitesPage extends InteractiveCustomUIPage<NewPlayerPageData> {
 
         // Setup navigation bar for new players
         NewPlayerNavBarHelper.setupBar(playerRef, PAGE_ID, cmd, events);
+
+        // Register with active page tracker for real-time updates
+        ActivePageTracker activeTracker = guiManager.getActivePageTracker();
+        if (activeTracker != null) {
+            activeTracker.register(playerRef.getUuid(), PAGE_ID, null, this);
+        }
 
         // Get pending invites and outgoing requests
         List<PendingInvite> invites = inviteManager.getPlayerInvites(playerRef.getUuid());
@@ -217,6 +225,11 @@ public class InvitesPage extends InteractiveCustomUIPage<NewPlayerPageData> {
             long days = TimeUnit.MILLISECONDS.toDays(diff);
             return days + "d ago";
         }
+    }
+
+    @Override
+    public void refreshContent() {
+        rebuild();
     }
 
     @Override

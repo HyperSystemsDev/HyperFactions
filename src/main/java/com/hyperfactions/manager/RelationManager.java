@@ -10,6 +10,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiConsumer;
 
 /**
  * Manages faction relations (ally, enemy, neutral).
@@ -21,8 +22,30 @@ public class RelationManager {
     // Pending ally requests: target faction -> (requesting faction -> requester player UUID)
     private final Map<UUID, Map<UUID, UUID>> pendingAllyRequests = new ConcurrentHashMap<>();
 
+    // GUI update callbacks
+    @Nullable
+    private BiConsumer<UUID, UUID> onRelationChanged;
+    @Nullable
+    private BiConsumer<UUID, UUID> onAllyRequestReceived;
+
     public RelationManager(@NotNull FactionManager factionManager) {
         this.factionManager = factionManager;
+    }
+
+    /**
+     * Sets a callback for when a relation changes between two factions.
+     * Params: factionId, targetFactionId
+     */
+    public void setOnRelationChanged(@Nullable BiConsumer<UUID, UUID> callback) {
+        this.onRelationChanged = callback;
+    }
+
+    /**
+     * Sets a callback for when an ally request is received.
+     * Params: targetFactionId, fromFactionId
+     */
+    public void setOnAllyRequestReceived(@Nullable BiConsumer<UUID, UUID> callback) {
+        this.onAllyRequestReceived = callback;
     }
 
     /**
@@ -272,6 +295,11 @@ public class RelationManager {
             .put(actorFaction.id(), actorUuid);
 
         Logger.info("Faction '%s' sent ally request to '%s'", actorFaction.name(), targetFaction.name());
+
+        if (onAllyRequestReceived != null) {
+            try { onAllyRequestReceived.accept(targetFactionId, actorFaction.id()); } catch (Exception e) { Logger.warn("Error in ally request callback: %s", e.getMessage()); }
+        }
+
         return RelationResult.REQUEST_SENT;
     }
 
@@ -489,6 +517,10 @@ public class RelationManager {
             .withLog(FactionLog.create(logType, "Set " + targetName + " as " + type.getDisplayName(), actorUuid));
 
         factionManager.updateFaction(updated);
+
+        if (onRelationChanged != null) {
+            try { onRelationChanged.accept(factionId, targetId); } catch (Exception e) { Logger.warn("Error in relation changed callback: %s", e.getMessage()); }
+        }
     }
 
     // === Admin Methods ===

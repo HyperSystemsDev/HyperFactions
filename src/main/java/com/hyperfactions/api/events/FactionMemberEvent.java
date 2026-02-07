@@ -16,6 +16,8 @@ public record FactionMemberEvent(
     public enum Type {
         JOIN,
         LEAVE,
-        KICK
+        KICK,
+        PROMOTE,
+        DEMOTE
     }
 }

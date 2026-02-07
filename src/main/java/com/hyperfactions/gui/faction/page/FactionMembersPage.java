@@ -1,8 +1,12 @@
 package com.hyperfactions.gui.faction.page;
 
+import com.hyperfactions.Permissions;
 import com.hyperfactions.data.*;
+import com.hyperfactions.gui.ActivePageTracker;
 import com.hyperfactions.gui.GuiManager;
+import com.hyperfactions.gui.RefreshablePage;
 import com.hyperfactions.gui.nav.NavBarHelper;
+import com.hyperfactions.integration.PermissionManager;
 import com.hyperfactions.gui.faction.data.FactionMembersData;
 import com.hyperfactions.manager.FactionManager;
 import com.hyperfactions.manager.PowerManager;
@@ -30,7 +34,7 @@ import java.util.*;
  * Faction Members page - displays member list with expandable entries.
  * Uses AdminUI pattern exactly.
  */
-public class FactionMembersPage extends InteractiveCustomUIPage<FactionMembersData> {
+public class FactionMembersPage extends InteractiveCustomUIPage<FactionMembersData> implements RefreshablePage {
 
     private static final String PAGE_ID = "members";
     private static final int ITEMS_PER_PAGE = 8;
@@ -46,6 +50,8 @@ public class FactionMembersPage extends InteractiveCustomUIPage<FactionMembersDa
     private Set<UUID> expandedMembers = new HashSet<>();
     private SortMode sortMode = SortMode.ROLE;
     private int currentPage = 0;
+    private Ref<EntityStore> lastRef;
+    private Store<EntityStore> lastStore;
 
     private enum SortMode {
         ROLE,
@@ -68,6 +74,8 @@ public class FactionMembersPage extends InteractiveCustomUIPage<FactionMembersDa
     @Override
     public void build(Ref<EntityStore> ref, UICommandBuilder cmd,
                       UIEventBuilder events, Store<EntityStore> store) {
+        this.lastRef = ref;
+        this.lastStore = store;
 
         // Load the main template
         cmd.append("HyperFactions/faction/faction_members.ui");
@@ -77,6 +85,19 @@ public class FactionMembersPage extends InteractiveCustomUIPage<FactionMembersDa
 
         // Build member list
         buildMemberList(cmd, events);
+
+        // Register with active page tracker for real-time updates
+        ActivePageTracker activeTracker = guiManager.getActivePageTracker();
+        if (activeTracker != null) {
+            activeTracker.register(playerRef.getUuid(), PAGE_ID, faction.id(), this);
+        }
+    }
+
+    @Override
+    public void refreshContent() {
+        if (lastRef != null && lastStore != null) {
+            rebuildList(lastRef, lastStore);
+        }
     }
 
     private void buildMemberList(UICommandBuilder cmd, UIEventBuilder events) {
@@ -233,8 +254,9 @@ public class FactionMembersPage extends InteractiveCustomUIPage<FactionMembersDa
             // Show "(You)" label for self
             cmd.set(idx + " #SelfLabel.Visible", isSelf);
 
-            // Promote: Leader can promote Members to Officer
-            boolean canPromote = viewerIsLeader && targetIsMember && !isSelf;
+            // Promote: Leader can promote Members to Officer (requires PROMOTE permission)
+            boolean canPromote = viewerIsLeader && targetIsMember && !isSelf
+                    && PermissionManager.get().hasPermission(playerRef.getUuid(), Permissions.PROMOTE);
             cmd.set(idx + " #PromoteBtn.Visible", canPromote);
             cmd.set(idx + " #PromoteSpacer.Visible", canPromote);
             if (canPromote) {
@@ -247,8 +269,9 @@ public class FactionMembersPage extends InteractiveCustomUIPage<FactionMembersDa
                 );
             }
 
-            // Demote: Leader can demote Officers to Member
-            boolean canDemote = viewerIsLeader && targetIsOfficer && !isSelf;
+            // Demote: Leader can demote Officers to Member (requires DEMOTE permission)
+            boolean canDemote = viewerIsLeader && targetIsOfficer && !isSelf
+                    && PermissionManager.get().hasPermission(playerRef.getUuid(), Permissions.DEMOTE);
             cmd.set(idx + " #DemoteBtn.Visible", canDemote);
             cmd.set(idx + " #DemoteSpacer.Visible", canDemote);
             if (canDemote) {
@@ -261,8 +284,9 @@ public class FactionMembersPage extends InteractiveCustomUIPage<FactionMembersDa
                 );
             }
 
-            // Kick: Leader can kick anyone, Officer can kick Members
-            boolean canKick = !isSelf && (viewerIsLeader || (viewerIsOfficer && targetIsMember));
+            // Kick: Leader can kick anyone, Officer can kick Members (requires KICK permission)
+            boolean canKick = !isSelf && (viewerIsLeader || (viewerIsOfficer && targetIsMember))
+                    && PermissionManager.get().hasPermission(playerRef.getUuid(), Permissions.KICK);
             cmd.set(idx + " #KickBtn.Visible", canKick);
             cmd.set(idx + " #KickSpacer.Visible", canKick);
             if (canKick) {
@@ -275,8 +299,9 @@ public class FactionMembersPage extends InteractiveCustomUIPage<FactionMembersDa
                 );
             }
 
-            // Transfer: Leader can transfer leadership to anyone else
-            boolean canTransfer = viewerIsLeader && !isSelf;
+            // Transfer: Leader can transfer leadership to anyone else (requires TRANSFER permission)
+            boolean canTransfer = viewerIsLeader && !isSelf
+                    && PermissionManager.get().hasPermission(playerRef.getUuid(), Permissions.TRANSFER);
             cmd.set(idx + " #TransferBtn.Visible", canTransfer);
             if (canTransfer) {
                 events.addEventBinding(

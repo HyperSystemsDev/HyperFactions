@@ -19,6 +19,9 @@ public class CombatTagManager {
     // Active combat tags: player UUID -> CombatTag
     private final Map<UUID, CombatTag> tags = new ConcurrentHashMap<>();
 
+    // Last attacker tracking: defender UUID -> attacker UUID (for kill rewards)
+    private final Map<UUID, UUID> lastAttacker = new ConcurrentHashMap<>();
+
     // Active spawn protections: player UUID -> SpawnProtection
     private final Map<UUID, SpawnProtection> spawnProtections = new ConcurrentHashMap<>();
 
@@ -160,8 +163,21 @@ public class CombatTagManager {
         int duration = ConfigManager.get().getTagDurationSeconds();
         tagPlayer(attacker);
         tagPlayer(defender);
+        lastAttacker.put(defender, attacker);
         Logger.debugCombat("Combat tag: attacker=%s, defender=%s, duration=%ds",
             attacker, defender, duration);
+    }
+
+    /**
+     * Gets and removes the last attacker for a player (consume-on-read).
+     * Used to determine killer for power rewards on death.
+     *
+     * @param defenderUuid the defender's UUID
+     * @return the attacker's UUID, or null if no attacker tracked
+     */
+    @Nullable
+    public UUID getLastAttacker(@NotNull UUID defenderUuid) {
+        return lastAttacker.remove(defenderUuid);
     }
 
     /**
@@ -171,6 +187,7 @@ public class CombatTagManager {
      */
     public void clearTag(@NotNull UUID playerUuid) {
         tags.remove(playerUuid);
+        lastAttacker.remove(playerUuid);
     }
 
     /**
@@ -182,6 +199,7 @@ public class CombatTagManager {
      */
     public boolean handleDisconnect(@NotNull UUID playerUuid) {
         CombatTag tag = tags.remove(playerUuid);
+        lastAttacker.remove(playerUuid);
         if (tag != null && !tag.isExpired()) {
             Logger.debugCombat("Combat logout: player=%s, remainingSeconds=%d, penaltyEnabled=%b",
                 playerUuid, tag.getRemainingSeconds(), ConfigManager.get().isTaggedLogoutPenalty());
