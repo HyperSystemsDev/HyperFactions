@@ -3,6 +3,7 @@ package com.hyperfactions.gui.faction.page;
 import com.hyperfactions.data.*;
 import com.hyperfactions.gui.GuiManager;
 import com.hyperfactions.gui.nav.NavBarHelper;
+import com.hyperfactions.gui.nav.NewPlayerNavBarHelper;
 import com.hyperfactions.gui.faction.data.FactionPageData;
 import com.hyperfactions.manager.FactionManager;
 import com.hyperfactions.manager.PowerManager;
@@ -73,8 +74,12 @@ public class FactionBrowserPage extends InteractiveCustomUIPage<FactionPageData>
         // Load the main template
         cmd.append("HyperFactions/faction/faction_browser.ui");
 
-        // Setup navigation bar (AdminUI pattern with indexed selectors)
-        NavBarHelper.setupBar(playerRef, viewerFaction, PAGE_ID, cmd, events);
+        // Setup navigation bar - use new player nav when no faction
+        if (viewerFaction != null) {
+            NavBarHelper.setupBar(playerRef, viewerFaction, PAGE_ID, cmd, events);
+        } else {
+            NewPlayerNavBarHelper.setupBar(playerRef, PAGE_ID, cmd, events);
+        }
 
         // Build faction list
         buildFactionList(cmd, events, viewerFaction);
@@ -320,9 +325,15 @@ public class FactionBrowserPage extends InteractiveCustomUIPage<FactionPageData>
 
         Faction viewerFaction = factionManager.getPlayerFaction(playerRef.getUuid());
 
-        // Handle navigation
-        if (NavBarHelper.handleNavEvent(data, player, ref, store, playerRef, viewerFaction, guiManager)) {
-            return;
+        // Handle navigation - use new player nav when no faction
+        if (viewerFaction != null) {
+            if (NavBarHelper.handleNavEvent(data, player, ref, store, playerRef, viewerFaction, guiManager)) {
+                return;
+            }
+        } else {
+            if (NewPlayerNavBarHelper.handleNavEvent(data, player, ref, store, playerRef, guiManager)) {
+                return;
+            }
         }
 
         switch (data.button) {

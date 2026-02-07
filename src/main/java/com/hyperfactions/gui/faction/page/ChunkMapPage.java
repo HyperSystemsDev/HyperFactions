@@ -6,6 +6,7 @@ import com.hyperfactions.gui.ActivePageTracker;
 import com.hyperfactions.gui.GuiManager;
 import com.hyperfactions.gui.RefreshablePage;
 import com.hyperfactions.gui.nav.NavBarHelper;
+import com.hyperfactions.gui.nav.NewPlayerNavBarHelper;
 import com.hyperfactions.gui.faction.data.ChunkMapData;
 import com.hyperfactions.manager.*;
 import com.hyperfactions.util.ChunkUtil;
@@ -46,7 +47,7 @@ public class ChunkMapPage extends InteractiveCustomUIPage<ChunkMapData> implemen
     private static final String COLOR_WILDERNESS = "#1e293b"; // Dark slate - unclaimed (darker for contrast)
     private static final String COLOR_SAFEZONE = "#2dd4bf";   // Teal - safe zone
     private static final String COLOR_WARZONE = "#c084fc";    // Purple - war zone
-    private static final String COLOR_PLAYER_POS = "#ffffff"; // White - player position stands out
+    // Player marker: white "+" overlay defined in chunk_marker.ui
 
     private final PlayerRef playerRef;
     private final FactionManager factionManager;
@@ -99,8 +100,12 @@ public class ChunkMapPage extends InteractiveCustomUIPage<ChunkMapData> implemen
         // Load the main template
         cmd.append("HyperFactions/faction/chunk_map.ui");
 
-        // Setup navigation bar
-        NavBarHelper.setupBar(playerRef, viewerFaction, PAGE_ID, cmd, events);
+        // Setup navigation bar - use new player nav when no faction
+        if (viewerFaction != null) {
+            NavBarHelper.setupBar(playerRef, viewerFaction, PAGE_ID, cmd, events);
+        } else {
+            NewPlayerNavBarHelper.setupBar(playerRef, PAGE_ID, cmd, events);
+        }
 
         // Current position info
         cmd.set("#PositionInfo.Text", String.format("Your Position: Chunk (%d, %d)", playerChunkX, playerChunkZ));
@@ -176,15 +181,20 @@ public class ChunkMapPage extends InteractiveCustomUIPage<ChunkMapData> implemen
                 int colIndex = xOffset + GRID_RADIUS_X; // 0-14
                 int chunkX = centerX + xOffset;
 
-                // Get chunk info and color (use actual territory color, not special player color)
+                // Get chunk info and color
                 ChunkInfo info = getChunkInfo(worldName, chunkX, chunkZ, viewerFactionId);
                 boolean isPlayerPos = (xOffset == 0 && zOffset == 0);
 
-                // Create flat cell - white for player position, territory color otherwise
-                String cellColor = isPlayerPos ? COLOR_PLAYER_POS : info.color;
+                // Create cell with territory color (always show real chunk color)
                 cmd.appendInline("#ChunkGrid[" + rowIndex + "]",
                         "Group { Anchor: (Width: " + CELL_SIZE + ", Height: " + CELL_SIZE + "); " +
-                        "Background: (Color: " + cellColor + "); }");
+                        "Background: (Color: " + info.color + "); }");
+
+                // Add "+" marker for player position (overlaid on chunk color)
+                if (isPlayerPos) {
+                    String cellSelector = "#ChunkGrid[" + rowIndex + "][" + colIndex + "]";
+                    cmd.append(cellSelector, "HyperFactions/faction/chunk_marker.ui");
+                }
 
                 // Add button overlay for click events
                 String cellSelector = "#ChunkGrid[" + rowIndex + "][" + colIndex + "]";
@@ -315,9 +325,15 @@ public class ChunkMapPage extends InteractiveCustomUIPage<ChunkMapData> implemen
         World world = player.getWorld();
         String worldName = world != null ? world.getName() : "world";
 
-        // Handle navigation
-        if (NavBarHelper.handleNavEvent(data, player, ref, store, playerRef, viewerFaction, guiManager)) {
-            return;
+        // Handle navigation - use new player nav when no faction
+        if (viewerFaction != null) {
+            if (NavBarHelper.handleNavEvent(data, player, ref, store, playerRef, viewerFaction, guiManager)) {
+                return;
+            }
+        } else {
+            if (NewPlayerNavBarHelper.handleNavEvent(data, player, ref, store, playerRef, guiManager)) {
+                return;
+            }
         }
 
         switch (data.button) {

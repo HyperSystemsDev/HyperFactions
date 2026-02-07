@@ -1,0 +1,11 @@
+// Player position "+" marker - overlaid on chunk cell
+// Uses named LabelStyle because HorizontalAlignment crashes in inline Style
+
+@MarkerStyle = LabelStyle(FontSize: 14, TextColor: #ffffff, RenderBold: true, VerticalAlignment: Center, HorizontalAlignment: Center);
+
+Label {
+  Text: "+";
+  Style: @MarkerStyle;
+  Anchor: (Left: 0, Right: 0, Top: 0, Bottom: 0);
+  HitTestVisible: false;
+}

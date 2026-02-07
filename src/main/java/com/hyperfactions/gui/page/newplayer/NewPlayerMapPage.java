@@ -43,7 +43,7 @@ public class NewPlayerMapPage extends InteractiveCustomUIPage<NewPlayerPageData>
     private static final String COLOR_WILDERNESS = "#1e293b"; // Dark slate - unclaimed
     private static final String COLOR_SAFEZONE = "#2dd4bf";   // Teal - safe zone
     private static final String COLOR_WARZONE = "#c084fc";    // Light purple - war zone
-    private static final String COLOR_PLAYER_POS = "#ffffff"; // White - player position
+    // Player marker: white "+" overlay defined in chunk_marker.ui
 
     private final PlayerRef playerRef;
     private final FactionManager factionManager;
@@ -134,17 +134,23 @@ public class NewPlayerMapPage extends InteractiveCustomUIPage<NewPlayerPageData>
                 int colIndex = xOffset + GRID_RADIUS_X;
                 int chunkX = centerX + xOffset;
 
-                // Get cell color
+                // Get cell color (always use territory color)
                 boolean isPlayerPos = (xOffset == 0 && zOffset == 0);
-                String cellColor = isPlayerPos ? COLOR_PLAYER_POS : getCellColor(worldName, chunkX, chunkZ);
+                String cellColor = getCellColor(worldName, chunkX, chunkZ);
 
-                // Create cell with color (same as ChunkMapPage)
+                // Create cell with territory color
                 cmd.appendInline("#ChunkGrid[" + rowIndex + "]",
                         "Group { Anchor: (Width: " + CELL_SIZE + ", Height: " + CELL_SIZE + "); " +
                         "Background: (Color: " + cellColor + "); }");
 
-                // Add button overlay for visual consistency (but no events bound)
                 String cellSelector = "#ChunkGrid[" + rowIndex + "][" + colIndex + "]";
+
+                // Add "+" marker for player position (overlaid on chunk color)
+                if (isPlayerPos) {
+                    cmd.append(cellSelector, "HyperFactions/faction/chunk_marker.ui");
+                }
+
+                // Add button overlay for visual consistency (but no events bound)
                 cmd.append(cellSelector, "HyperFactions/faction/chunk_btn.ui");
             }
         }

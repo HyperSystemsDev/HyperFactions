@@ -233,11 +233,11 @@ public class GuiManager {
                 0
         ));
 
-        // Create Faction
+        // Create Faction (permission checked on actual create action, not nav visibility)
         registry.registerEntry(new NewPlayerPageRegistry.Entry(
                 "create",
                 "Create",
-                Permissions.CREATE,
+                null,
                 (player, ref, store, playerRef, guiManager) ->
                         new CreateFactionPage(playerRef, factionManager.get(), guiManager),
                 true,
@@ -256,11 +256,11 @@ public class GuiManager {
                 2
         ));
 
-        // Territory Map (read-only for new players)
+        // Territory Map (read-only for new players, always accessible)
         registry.registerEntry(new NewPlayerPageRegistry.Entry(
                 "map",
                 "Map",
-                Permissions.MAP,
+                null,
                 (player, ref, store, playerRef, guiManager) ->
                         new NewPlayerMapPage(playerRef, factionManager.get(), claimManager.get(),
                                 zoneManager.get(), guiManager),

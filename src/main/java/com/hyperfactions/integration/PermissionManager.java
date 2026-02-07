@@ -218,20 +218,14 @@ public class PermissionManager {
     private boolean handleFallback(@NotNull UUID playerUuid, @NotNull String permission) {
         ConfigManager config = ConfigManager.get();
 
-        // Admin permissions require OP when no permission plugin is handling them
+        // Admin permissions always require OP (regardless of allowWithoutPermissionMod)
         if (permission.startsWith("hyperfactions.admin")) {
-            if (config.isAdminRequiresOp()) {
-                boolean isOp = isPlayerOp(playerUuid);
-                Logger.debug("[PermissionManager] Admin fallback for %s: isOp=%s", playerUuid, isOp);
-                return isOp;
-            }
-            // OP check disabled - deny admin perms
-            Logger.debug("[PermissionManager] Admin fallback for %s: denied (OP check disabled)", playerUuid);
-            return false;
+            boolean isOp = isPlayerOp(playerUuid);
+            Logger.debug("[PermissionManager] Admin fallback for %s: isOp=%s", playerUuid, isOp);
+            return isOp;
         }
 
         // Bypass permissions should always be denied unless explicitly granted
-        // These are powerful permissions that skip protection checks
         if (permission.startsWith("hyperfactions.bypass")) {
             Logger.debug("[PermissionManager] Bypass fallback for %s: denied (requires explicit grant)", playerUuid);
             return false;
@@ -243,11 +237,10 @@ public class PermissionManager {
             return false;
         }
 
-        // Normal user permissions: use configured fallback behavior
-        String fallbackBehavior = config.getPermissionFallbackBehavior();
-        boolean allow = "allow".equalsIgnoreCase(fallbackBehavior);
-        Logger.debug("[PermissionManager] Normal fallback for %s: %s (config: %s)",
-            playerUuid, allow ? "allow" : "deny", fallbackBehavior);
+        // Normal user permissions: allow if configured (no permission mod installed)
+        boolean allow = config.isAllowWithoutPermissionMod();
+        Logger.debug("[PermissionManager] Normal fallback for %s: %s (allowWithoutPermissionMod: %s)",
+            playerUuid, allow ? "allow" : "deny", allow);
         return allow;
     }
 
@@ -393,8 +386,8 @@ public class PermissionManager {
             sb.append("  - ").append(provider.getName())
                     .append(" (available: ").append(provider.isAvailable()).append(")\n");
         }
-        sb.append("Fallback Behavior: ").append(ConfigManager.get().getPermissionFallbackBehavior()).append("\n");
-        sb.append("Admin Requires OP: ").append(ConfigManager.get().isAdminRequiresOp()).append("\n");
+        sb.append("Allow Without Permission Mod: ").append(ConfigManager.get().isAllowWithoutPermissionMod()).append("\n");
+        sb.append("Admin Requires OP: always (OP group)\n");
         return sb.toString();
     }
 }

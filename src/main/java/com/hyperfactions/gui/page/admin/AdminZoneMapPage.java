@@ -43,7 +43,7 @@ public class AdminZoneMapPage extends InteractiveCustomUIPage<AdminZoneMapData> 
     private static final String COLOR_OTHER_WAR = "#c084fc80";      // Light purple - other WarZone
     private static final String COLOR_FACTION = "#6b7280";          // Gray - faction claims
     private static final String COLOR_WILDERNESS = "#1e293b";       // Dark slate - unclaimed
-    private static final String COLOR_PLAYER_POS = "#ffffff";       // White - player position
+    // Player marker: white "+" overlay defined in chunk_marker.ui
 
     private final PlayerRef playerRef;
     private final UUID zoneId;
@@ -158,18 +158,23 @@ public class AdminZoneMapPage extends InteractiveCustomUIPage<AdminZoneMapData> 
                 int colIndex = xOffset + GRID_RADIUS_X;
                 int chunkX = centerX + xOffset;
 
-                // Get chunk info
+                // Get chunk info (always use territory color)
                 ChunkInfo info = getChunkInfo(zone, worldName, chunkX, chunkZ);
                 boolean isPlayerPos = (xOffset == 0 && zOffset == 0);
 
-                // Cell color - white for player position, otherwise chunk color
-                String cellColor = isPlayerPos ? COLOR_PLAYER_POS : info.color;
+                // Create cell with territory color
                 cmd.appendInline("#ChunkGrid[" + rowIndex + "]",
                         "Group { Anchor: (Width: " + CELL_SIZE + ", Height: " + CELL_SIZE + "); " +
-                        "Background: (Color: " + cellColor + "); }");
+                        "Background: (Color: " + info.color + "); }");
+
+                String cellSelector = "#ChunkGrid[" + rowIndex + "][" + colIndex + "]";
+
+                // Add "+" marker for player position (overlaid on chunk color)
+                if (isPlayerPos) {
+                    cmd.append(cellSelector, "HyperFactions/faction/chunk_marker.ui");
+                }
 
                 // Add button overlay
-                String cellSelector = "#ChunkGrid[" + rowIndex + "][" + colIndex + "]";
                 cmd.append(cellSelector, "HyperFactions/faction/chunk_btn.ui");
 
                 // Bind click events based on chunk state

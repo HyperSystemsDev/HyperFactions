@@ -201,7 +201,7 @@ public class HyperFactionsConfig {
 
     // Permission settings
     public boolean isAdminRequiresOp() { return ConfigManager.get().isAdminRequiresOp(); }
-    public String getPermissionFallbackBehavior() { return ConfigManager.get().getPermissionFallbackBehavior(); }
+    public boolean isAllowWithoutPermissionMod() { return ConfigManager.get().isAllowWithoutPermissionMod(); }
 
     // Faction permission methods
     @NotNull

@@ -414,7 +414,7 @@ public class ConfigManager {
 
     // Permissions
     public boolean isAdminRequiresOp() { return coreConfig.isAdminRequiresOp(); }
-    @NotNull public String getPermissionFallbackBehavior() { return coreConfig.getPermissionFallbackBehavior(); }
+    public boolean isAllowWithoutPermissionMod() { return coreConfig.isAllowWithoutPermissionMod(); }
 
     // Faction Permissions (from module)
     @NotNull public FactionPermissions getDefaultFactionPermissions() {

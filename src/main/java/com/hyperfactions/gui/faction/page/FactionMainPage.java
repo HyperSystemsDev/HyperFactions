@@ -3,6 +3,7 @@ package com.hyperfactions.gui.faction.page;
 import com.hyperfactions.data.*;
 import com.hyperfactions.gui.GuiManager;
 import com.hyperfactions.gui.nav.NavBarHelper;
+import com.hyperfactions.gui.nav.NewPlayerNavBarHelper;
 import com.hyperfactions.gui.faction.data.FactionPageData;
 import com.hyperfactions.manager.*;
 import com.hypixel.hytale.component.Ref;
@@ -70,8 +71,12 @@ public class FactionMainPage extends InteractiveCustomUIPage<FactionPageData> {
         // Load the main template
         cmd.append("HyperFactions/faction/faction_main.ui");
 
-        // Setup navigation bar (AdminUI pattern with indexed selectors)
-        NavBarHelper.setupBar(playerRef, faction, PAGE_ID, cmd, events);
+        // Setup navigation bar - use new player nav when no faction
+        if (hasFaction) {
+            NavBarHelper.setupBar(playerRef, faction, PAGE_ID, cmd, events);
+        } else {
+            NewPlayerNavBarHelper.setupBar(playerRef, PAGE_ID, cmd, events);
+        }
 
         // Check for pending invites
         buildInviteNotification(cmd, events, uuid);
@@ -218,9 +223,15 @@ public class FactionMainPage extends InteractiveCustomUIPage<FactionPageData> {
         UUID uuid = playerRef.getUuid();
         Faction faction = factionManager.getPlayerFaction(uuid);
 
-        // Handle navigation
-        if (NavBarHelper.handleNavEvent(data, player, ref, store, playerRef, faction, guiManager)) {
-            return;
+        // Handle navigation - use new player nav when no faction
+        if (faction != null) {
+            if (NavBarHelper.handleNavEvent(data, player, ref, store, playerRef, faction, guiManager)) {
+                return;
+            }
+        } else {
+            if (NewPlayerNavBarHelper.handleNavEvent(data, player, ref, store, playerRef, guiManager)) {
+                return;
+            }
         }
 
         // Handle page-specific actions

@@ -9,44 +9,63 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+**Create Faction Page Redesign**
+- Merged the two-step create wizard into a single two-column page (950x650)
+- Left column: preview card, name/tag inputs, description, recruitment toggle
+- Right column: color picker, territory permission toggles (break/place/interact for outsiders/allies/members), PvP toggle, create button
+- Players can now configure territory permissions at faction creation time instead of getting only defaults
+
 **Permission-Based GUI Filtering**
 - Nav bar entries now respect server permissions (e.g., removing `hyperfactions.info.members` hides Members tab)
 - Dashboard quick-action buttons check permissions (Home, Claim, F-Chat, Leave)
 - Members page action buttons check permissions (Promote, Demote, Kick, Transfer)
 - Relations page management buttons check permissions (Ally, Enemy, Neutral)
-- New player pages filter Create tab by `hyperfactions.faction.create` permission
 
 **Real-Time GUI Updates**
 - GUI pages now refresh automatically when underlying data changes
 - New `ActivePageTracker` tracks which page each player has open
 - New `GuiUpdateService` bridges manager change events to live GUI refresh
-- Invite created/removed → refreshes recipient's and faction's invites page
-- Join request created/accepted/declined → refreshes faction invites page
-- Member joined/left/kicked → refreshes faction members and dashboard pages
-- Member promoted/demoted → refreshes faction members page
-- Relation changed → refreshes both factions' relations and dashboard pages
-- Ally request received → refreshes target faction's relations page
-- Chunk claimed/unclaimed → refreshes all map viewers (faction, new player, admin zone)
+- Invite created/removed refreshes recipient's and faction's invites page
+- Join request created/accepted/declined refreshes faction invites page
+- Member joined/left/kicked refreshes faction members and dashboard pages
+- Member promoted/demoted refreshes faction members page
+- Relation changed refreshes both factions' relations and dashboard pages
+- Ally request received refreshes target faction's relations page
+- Chunk claimed/unclaimed refreshes all map viewers (faction, new player, admin zone)
 - Thread-safe: dispatches refresh on correct world thread with stale-check
 
 **PlaceholderAPI Integration**
 - Soft dependency on PlaceholderAPI for Hytale
 - Faction placeholders available for scoreboards and chat
 
-**Combat Tag Improvements**
+**Configuration**
+- New `allowWithoutPermissionMod` boolean in config.json permissions section (default: false)
+  - When true, all non-admin user permissions are allowed when no permission mod is installed
+  - Admin permissions always require Hytale OP as a fallback when no permission mod handles them
+  - Bypass and limit permissions always require explicit grants regardless of this setting
 - Configurable combat tag duration and settings
-
-**Power System Enhancements**
 - Configurable power gain/loss settings
+
+**GUI Map Improvements**
+- Player position on all GUI maps now shows a white "+" marker overlaid on the chunk color instead of a solid white cell
+- Chunk color is visible behind the marker so you can see what territory type you're standing in
+- Legend updated to show "+" symbol for "You are here" entry
+
+**Debug Tools**
+- New element test page (`/f admin testgui`) for CustomUI research and verification
 
 ### Changed
 
-- War zone color on GUI maps changed from red to purple (`#c084fc`) for clarity
+- War zone color on all GUI maps changed from red to purple (`#c084fc`) for visual clarity
 - Admin zone map war zone colors updated to purple (bright and transparent variants)
+- Pages accessible to non-faction players (Dashboard, Map, Browse) now show the new player nav bar (Browse, Create, Invites, Map, Help) instead of the faction nav bar
+- Replaced `permissions.fallbackBehavior` string config ("allow"/"deny") with `permissions.allowWithoutPermissionMod` boolean (default: false)
 
 ### Fixed
 
 - Faction member events now properly published for promote/demote actions
+- Non-faction players seeing wrong nav bar (faction nav instead of new player nav) on Dashboard, Map, and Browse pages
+- Nav event handling for non-faction players now correctly routes through new player page registry
 - Unclaim command improvements
 
 ## [0.6.2] - 2026-02-04

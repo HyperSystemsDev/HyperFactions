@@ -98,7 +98,7 @@ public class CoreConfig extends ConfigFile {
 
     // Permission settings
     private boolean adminRequiresOp = true;
-    private String permissionFallbackBehavior = "deny";
+    private boolean allowWithoutPermissionMod = false;
 
     /**
      * Creates a new core config.
@@ -269,7 +269,7 @@ public class CoreConfig extends ConfigFile {
         if (hasSection(root, "permissions")) {
             JsonObject permissions = root.getAsJsonObject("permissions");
             adminRequiresOp = getBool(permissions, "adminRequiresOp", adminRequiresOp);
-            permissionFallbackBehavior = getString(permissions, "fallbackBehavior", permissionFallbackBehavior);
+            allowWithoutPermissionMod = getBool(permissions, "allowWithoutPermissionMod", allowWithoutPermissionMod);
         }
     }
 
@@ -391,7 +391,7 @@ public class CoreConfig extends ConfigFile {
         // Permission settings
         JsonObject permissions = new JsonObject();
         permissions.addProperty("adminRequiresOp", adminRequiresOp);
-        permissions.addProperty("fallbackBehavior", permissionFallbackBehavior);
+        permissions.addProperty("allowWithoutPermissionMod", allowWithoutPermissionMod);
         root.add("permissions", permissions);
 
         return root;
@@ -483,7 +483,7 @@ public class CoreConfig extends ConfigFile {
 
     // Permissions
     public boolean isAdminRequiresOp() { return adminRequiresOp; }
-    @NotNull public String getPermissionFallbackBehavior() { return permissionFallbackBehavior; }
+    public boolean isAllowWithoutPermissionMod() { return allowWithoutPermissionMod; }
 
     // === Utility Methods ===
 
@@ -590,9 +590,7 @@ public class CoreConfig extends ConfigFile {
         autoSaveIntervalMinutes = validateMin(result, "autoSave.intervalMinutes",
                 autoSaveIntervalMinutes, 1, 5);
 
-        // Permission settings
-        permissionFallbackBehavior = validateEnum(result, "permissions.fallbackBehavior",
-                permissionFallbackBehavior, new String[]{"deny", "allow"}, "deny");
+        // Permission settings - no validation needed for boolean
 
         // Message settings - validate hex color
         validateHexColor(result, "messages.primaryColor", primaryColor);
