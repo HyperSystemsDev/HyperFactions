@@ -21,6 +21,7 @@ public class BackupConfig extends ModuleConfig {
     private int weeklyRetention = 4;    // Keep last 4 weekly backups
     private int manualRetention = 10;   // Keep last 10 manual backups (0 = keep all)
     private boolean onShutdown = true;  // Create backup on server shutdown
+    private int shutdownRetention = 5;  // Keep last 5 shutdown backups
 
     /**
      * Creates a new backup config.
@@ -45,6 +46,7 @@ public class BackupConfig extends ModuleConfig {
         weeklyRetention = 4;
         manualRetention = 10;
         onShutdown = true;
+        shutdownRetention = 5;
     }
 
     @Override
@@ -54,6 +56,7 @@ public class BackupConfig extends ModuleConfig {
         weeklyRetention = getInt(root, "weeklyRetention", weeklyRetention);
         manualRetention = getInt(root, "manualRetention", manualRetention);
         onShutdown = getBool(root, "onShutdown", onShutdown);
+        shutdownRetention = getInt(root, "shutdownRetention", shutdownRetention);
     }
 
     @Override
@@ -63,6 +66,7 @@ public class BackupConfig extends ModuleConfig {
         root.addProperty("weeklyRetention", weeklyRetention);
         root.addProperty("manualRetention", manualRetention);
         root.addProperty("onShutdown", onShutdown);
+        root.addProperty("shutdownRetention", shutdownRetention);
     }
 
     // === Getters ===
@@ -113,6 +117,16 @@ public class BackupConfig extends ModuleConfig {
         return onShutdown;
     }
 
+    /**
+     * Gets the number of shutdown backups to retain.
+     * 0 means keep all shutdown backups.
+     *
+     * @return shutdown retention count
+     */
+    public int getShutdownRetention() {
+        return shutdownRetention;
+    }
+
     // === Validation ===
 
     @Override
@@ -125,6 +139,7 @@ public class BackupConfig extends ModuleConfig {
         dailyRetention = validateMin(result, "dailyRetention", dailyRetention, 0, 7);
         weeklyRetention = validateMin(result, "weeklyRetention", weeklyRetention, 0, 4);
         manualRetention = validateMin(result, "manualRetention", manualRetention, 0, 10);
+        shutdownRetention = validateMin(result, "shutdownRetention", shutdownRetention, 0, 5);
 
         return result;
     }

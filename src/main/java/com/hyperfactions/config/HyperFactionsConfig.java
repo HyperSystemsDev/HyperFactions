@@ -154,6 +154,7 @@ public class HyperFactionsConfig {
     public int getBackupWeeklyRetention() { return ConfigManager.get().getBackupWeeklyRetention(); }
     public int getBackupManualRetention() { return ConfigManager.get().getBackupManualRetention(); }
     public boolean isBackupOnShutdown() { return ConfigManager.get().isBackupOnShutdown(); }
+    public int getBackupShutdownRetention() { return ConfigManager.get().getBackupShutdownRetention(); }
 
     // Economy settings
     public boolean isEconomyEnabled() { return ConfigManager.get().isEconomyEnabled(); }

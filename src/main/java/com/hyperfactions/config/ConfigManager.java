@@ -353,6 +353,7 @@ public class ConfigManager {
     public int getBackupWeeklyRetention() { return backupConfig.getWeeklyRetention(); }
     public int getBackupManualRetention() { return backupConfig.getManualRetention(); }
     public boolean isBackupOnShutdown() { return backupConfig.isOnShutdown(); }
+    public int getBackupShutdownRetention() { return backupConfig.getShutdownRetention(); }
 
     // Economy (from module)
     public boolean isEconomyEnabled() { return economyConfig.isEnabled(); }

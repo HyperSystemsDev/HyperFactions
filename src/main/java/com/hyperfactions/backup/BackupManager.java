@@ -159,6 +159,7 @@ public class BackupManager {
         if (ConfigManager.get().isBackupOnShutdown()) {
             Logger.info("[BackupManager] Creating shutdown backup...");
             createBackup(BackupType.MANUAL, "shutdown", null).join();
+            rotateShutdownBackups();
         }
     }
 
@@ -471,6 +472,57 @@ public class BackupManager {
                     Logger.debug("[BackupManager] Rotated out old backup: %s", toDelete.name());
                 }
             });
+        }
+    }
+
+    /**
+     * Rotates shutdown backups, keeping only the most recent N.
+     * Shutdown backups are manual backups with "shutdown" in the name.
+     */
+    private void rotateShutdownBackups() {
+        int retention = ConfigManager.get().getBackupShutdownRetention();
+        if (retention <= 0) {
+            return; // 0 = keep all
+        }
+
+        try {
+            // Find all shutdown backup files
+            List<Path> shutdownBackups = new ArrayList<>();
+            try (DirectoryStream<Path> stream = Files.newDirectoryStream(backupsDir, "backup_manual_shutdown_*.zip")) {
+                for (Path file : stream) {
+                    shutdownBackups.add(file);
+                }
+            }
+
+            if (shutdownBackups.size() <= retention) {
+                return;
+            }
+
+            // Sort by last modified time, newest first
+            shutdownBackups.sort((a, b) -> {
+                try {
+                    return Files.getLastModifiedTime(b).compareTo(Files.getLastModifiedTime(a));
+                } catch (IOException e) {
+                    return 0;
+                }
+            });
+
+            // Delete backups beyond the retention count
+            for (int i = retention; i < shutdownBackups.size(); i++) {
+                Path toDelete = shutdownBackups.get(i);
+                try {
+                    Files.delete(toDelete);
+                    Logger.debug("[BackupManager] Rotated out old shutdown backup: %s", toDelete.getFileName());
+                } catch (IOException e) {
+                    Logger.warn("[BackupManager] Failed to delete old shutdown backup %s: %s",
+                        toDelete.getFileName(), e.getMessage());
+                }
+            }
+
+            int deleted = shutdownBackups.size() - retention;
+            Logger.info("[BackupManager] Cleaned up %d old shutdown backup(s), keeping %d", deleted, retention);
+        } catch (IOException e) {
+            Logger.warn("[BackupManager] Failed to rotate shutdown backups: %s", e.getMessage());
         }
     }
 
