@@ -1,5 +1,6 @@
 // New Player Faction Entry - Expandable
 // For new player browse page - similar to faction_browse_entry.ui but with JOIN/REQUEST buttons
+$C = "../../Common.ui";
 $S = "../shared/styles.ui";
 
 Group {
@@ -28,7 +29,7 @@ Group {
           Anchor: (Height: 18);
         }
         Label #RecruitmentBadge {
-          Text: "OPEN";
+          Text: "Open";
           Style: (FontSize: 9, TextColor: #44CC44, RenderBold: true, VerticalAlignment: Center);
           Anchor: (Height: 14);
         }
@@ -149,17 +150,17 @@ Group {
 
       // Primary action button (JOIN, REQUEST, ACCEPT, or PENDING)
       TextButton #ActionBtn {
-        Text: "JOIN";
+        Text: "Join";
         Anchor: (Height: 28, Width: 80);
-        Style: $S.@SmallGreenButtonStyle;
+        Style: $S.@ButtonStyle;
       }
 
       Group { Anchor: (Width: 8); }
 
       TextButton #ViewInfoBtn {
-        Text: "VIEW INFO";
+        Text: "View Info";
         Anchor: (Height: 28, Width: 90);
-        Style: $S.@SmallButtonStyle;
+        Style: $S.@ButtonStyle;
       }
 
       Group { FlexWeight: 1; }

@@ -45,11 +45,9 @@ $C.@PageOverlay {
         Anchor: (Height: 24, Bottom: 4);
       }
 
-      TextField #NameInput {
+      $C.@TextField #NameInput {
         FlexWeight: 1;
         Anchor: (Height: 36, Bottom: 8);
-        Style: $C.@DefaultInputFieldStyle;
-        Background: $C.@InputBoxBackground;
       }
 
       // Error message area
@@ -65,7 +63,7 @@ $C.@PageOverlay {
         LayoutMode: Left;
 
         TextButton #CancelBtn {
-          Text: "CANCEL";
+          Text: "Cancel";
           Anchor: (Height: 32, Width: 100);
           Style: $S.@ButtonStyle;
         }
@@ -73,9 +71,9 @@ $C.@PageOverlay {
         Label { FlexWeight: 1; }
 
         TextButton #SaveBtn {
-          Text: "SAVE";
+          Text: "Save";
           Anchor: (Height: 32, Width: 100);
-          Style: $S.@CyanButtonStyle;
+          Style: $S.@ButtonStyle;
         }
       }
     }

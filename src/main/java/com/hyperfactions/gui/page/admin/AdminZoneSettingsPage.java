@@ -151,7 +151,7 @@ public class AdminZoneSettingsPage extends InteractiveCustomUIPage<AdminZoneSett
         if (mixinUnavailable) {
             cmd.set(idx + "Toggle.Text", "N/A");
         } else {
-            cmd.set(idx + "Toggle.Text", currentValue ? "ON" : "OFF");
+            cmd.set(idx + "Toggle.Text", currentValue ? "On" : "Off");
         }
 
         // Disable child toggles when parent is OFF, or when mixin not available

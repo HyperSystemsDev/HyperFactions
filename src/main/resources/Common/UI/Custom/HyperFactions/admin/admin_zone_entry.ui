@@ -1,4 +1,5 @@
 // Admin Zone Entry - Expandable
+$C = "../../Common.ui";
 $S = "../shared/styles.ui";
 
 Group {
@@ -150,41 +151,41 @@ Group {
       Anchor: (Height: 32);
 
       TextButton #EditMapBtn {
-        Text: "EDIT MAP";
+        Text: "Edit Map";
         Anchor: (Height: 28, Width: 80);
-        Style: $S.@SmallCyanButtonStyle;
+        Style: $S.@ButtonStyle;
       }
 
       Group { Anchor: (Width: 6); }
 
       TextButton #SettingsBtn {
-        Text: "FLAGS";
+        Text: "Flags";
         Anchor: (Height: 28, Width: 60);
-        Style: $S.@SmallButtonStyle;
+        Style: $S.@ButtonStyle;
       }
 
       Group { Anchor: (Width: 6); }
 
       TextButton #RenameBtn {
-        Text: "RENAME";
+        Text: "Rename";
         Anchor: (Height: 28, Width: 70);
-        Style: $S.@SmallButtonStyle;
+        Style: $S.@ButtonStyle;
       }
 
       Group { FlexWeight: 1; }
 
       TextButton #TypeBtn {
-        Text: "TYPE";
+        Text: "Type";
         Anchor: (Height: 28, Width: 55);
-        Style: $S.@SmallButtonStyle;
+        Style: $S.@ButtonStyle;
       }
 
       Group { Anchor: (Width: 6); }
 
       TextButton #DeleteBtn {
-        Text: "DELETE";
+        Text: "Delete";
         Anchor: (Height: 28, Width: 70);
-        Style: $S.@SmallRedButtonStyle;
+        Style: $S.@RedButtonStyle;
       }
     }
   }

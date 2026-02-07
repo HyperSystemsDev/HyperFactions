@@ -14,7 +14,7 @@ $C.@PageOverlay {
     #Title {
       Group {
         $C.@Title {
-          @Text = "PAGE TITLE";
+          @Text = "Page Title";
         }
       }
     }
@@ -39,7 +39,7 @@ $C.@PageOverlay {
         LayoutMode: Top;
 
         Label #StatusLabel {
-          Text: "COMING SOON";
+          Text: "Coming Soon";
           Style: (FontSize: 24, TextColor: #f59e0b, RenderBold: true, HorizontalAlignment: Center);
           Anchor: (Height: 35);
         }

@@ -25,19 +25,17 @@ $C.@PageOverlay {
         Anchor: (Height: 38, Bottom: 8);
         LayoutMode: Left;
 
-        TextField #SearchInput {
+        $C.@TextField #SearchInput {
           FlexWeight: 1;
           Anchor: (Height: 32);
-          Style: $C.@DefaultInputFieldStyle;
-          Background: $C.@InputBoxBackground;
         }
 
         Label { Anchor: (Width: 8); }
 
         TextButton #SearchBtn {
-          Text: "SEARCH";
+          Text: "Search";
           Anchor: (Height: 30, Width: 80);
-          Style: $S.@SmallCyanButtonStyle;
+          Style: $S.@ButtonStyle;
         }
       }
 
@@ -75,7 +73,7 @@ $C.@PageOverlay {
         LayoutMode: Left;
 
         TextButton #CancelBtn {
-          Text: "CANCEL";
+          Text: "Cancel";
           Anchor: (Height: 30, Width: 100);
           Style: $S.@ButtonStyle;
         }
@@ -86,7 +84,7 @@ $C.@PageOverlay {
         TextButton #PrevBtn {
           Text: "<";
           Anchor: (Height: 30, Width: 40);
-          Style: $S.@SmallButtonStyle;
+          Style: $S.@ButtonStyle;
         }
 
         Label { Anchor: (Width: 5); }
@@ -102,7 +100,7 @@ $C.@PageOverlay {
         TextButton #NextBtn {
           Text: ">";
           Anchor: (Height: 30, Width: 40);
-          Style: $S.@SmallButtonStyle;
+          Style: $S.@ButtonStyle;
         }
       }
     }

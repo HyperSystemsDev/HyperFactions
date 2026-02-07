@@ -51,17 +51,17 @@ $C.@PageOverlay {
         LayoutMode: Left;
 
         TextButton #OpenBtn {
-          Text: "OPEN";
+          Text: "Open";
           Anchor: (Height: 36, Width: 160);
-          Style: $S.@GreenButtonStyle;
+          Style: $S.@ButtonStyle;
         }
 
         Label { FlexWeight: 1; }
 
         TextButton #InviteOnlyBtn {
-          Text: "INVITE ONLY";
+          Text: "Invite Only";
           Anchor: (Height: 36, Width: 160);
-          Style: $S.@GoldButtonStyle;
+          Style: $S.@ButtonStyle;
         }
       }
 
@@ -73,7 +73,7 @@ $C.@PageOverlay {
         Group { FlexWeight: 1; }
 
         TextButton #CancelBtn {
-          Text: "CANCEL";
+          Text: "Cancel";
           Anchor: (Height: 32, Width: 100);
           Style: $S.@ButtonStyle;
         }

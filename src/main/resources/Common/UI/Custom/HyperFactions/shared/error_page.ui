@@ -36,7 +36,7 @@ $C.@PageOverlay {
         Group { FlexWeight: 1; }
 
         TextButton #CloseBtn {
-          Text: "CLOSE";
+          Text: "Close";
           Anchor: (Height: 30, Width: 100);
           Style: $S.@ButtonStyle;
         }

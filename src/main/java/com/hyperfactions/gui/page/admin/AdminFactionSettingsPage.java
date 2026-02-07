@@ -226,14 +226,14 @@ public class AdminFactionSettingsPage extends InteractiveCustomUIPage<AdminFacti
 
         if (locked) {
             // Locked by server - show lock indicator but admin can still see value
-            cmd.set(selector + ".Text", currentValue ? "ON (LOCKED)" : "OFF (LOCKED)");
+            cmd.set(selector + ".Text", currentValue ? "On (Locked)" : "Off (Locked)");
             cmd.set(selector + ".Disabled", true);
             // Gray out for locked
             cmd.set(selector + ".Style.Default.LabelStyle.TextColor", "#666666");
             cmd.set(selector + ".Style.Disabled.LabelStyle.TextColor", "#666666");
         } else {
             // Admin can toggle - show current value
-            cmd.set(selector + ".Text", currentValue ? "ON" : "OFF");
+            cmd.set(selector + ".Text", currentValue ? "On" : "Off");
             cmd.set(selector + ".Disabled", false);
 
             // Set text color based on value

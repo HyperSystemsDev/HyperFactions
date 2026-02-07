@@ -94,9 +94,9 @@ public class AdminDashboardPage extends InteractiveCustomUIPage<AdminDashboardDa
 
         // Setup bypass toggle
         boolean bypassEnabled = plugin.isAdminBypassEnabled(playerRef.getUuid());
-        cmd.set("#BypassState.Text", bypassEnabled ? "ON" : "OFF");
+        cmd.set("#BypassState.Text", bypassEnabled ? "On" : "Off");
         cmd.set("#BypassState.Style.TextColor", bypassEnabled ? "#55FF55" : "#FF5555");
-        cmd.set("#ToggleBypassBtn.Text", bypassEnabled ? "DISABLE" : "ENABLE");
+        cmd.set("#ToggleBypassBtn.Text", bypassEnabled ? "Disable" : "Enable");
 
         events.addEventBinding(
                 CustomUIEventBindingType.Activating,
@@ -139,9 +139,9 @@ public class AdminDashboardPage extends InteractiveCustomUIPage<AdminDashboardDa
         UIEventBuilder events = new UIEventBuilder();
 
         // Update bypass state display
-        cmd.set("#BypassState.Text", bypassEnabled ? "ON" : "OFF");
+        cmd.set("#BypassState.Text", bypassEnabled ? "On" : "Off");
         cmd.set("#BypassState.Style.TextColor", bypassEnabled ? "#55FF55" : "#FF5555");
-        cmd.set("#ToggleBypassBtn.Text", bypassEnabled ? "DISABLE" : "ENABLE");
+        cmd.set("#ToggleBypassBtn.Text", bypassEnabled ? "Disable" : "Enable");
 
         // Re-bind the toggle button event
         events.addEventBinding(

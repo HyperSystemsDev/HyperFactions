@@ -39,7 +39,7 @@ $C.@PageOverlay {
         Anchor: (Height: 24, Bottom: 6);
 
         Label #InvitesHeader {
-          Text: "RECEIVED INVITES (0)";
+          Text: "Received Invites (0)";
           Style: (FontSize: 12, TextColor: #55FF55, RenderBold: true, VerticalAlignment: Center);
         }
       }
@@ -54,7 +54,7 @@ $C.@PageOverlay {
         Anchor: (Height: 24, Bottom: 6);
 
         Label #RequestsHeader {
-          Text: "YOUR REQUESTS (0)";
+          Text: "Your Requests (0)";
           Style: (FontSize: 12, TextColor: #FFAA00, RenderBold: true, VerticalAlignment: Center);
         }
       }

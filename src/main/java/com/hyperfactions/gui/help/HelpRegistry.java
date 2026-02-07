@@ -99,15 +99,15 @@ public final class HelpRegistry {
         register(HelpTopic.of("gs_joining", "How to Join a Faction", List.of(
                 "There are three ways to join a faction:",
                 "",
-                "BROWSE OPEN FACTIONS",
+                "Browse Open Factions",
                 "Type /f and click Browse to see factions",
                 "accepting new members. Click Join to hop in!",
                 "",
-                "ACCEPT AN INVITATION",
+                "Accept an Invitation",
                 "If someone invited you, check the Invites",
                 "tab and click Accept to join their faction.",
                 "",
-                "REQUEST TO JOIN",
+                "Request to Join",
                 "Found an invite-only faction you like?",
                 "Click Request and wait for them to accept."
         ), HelpCategory.GETTING_STARTED));
@@ -129,19 +129,19 @@ public final class HelpRegistry {
         ), HelpCategory.GETTING_STARTED));
 
         register(HelpTopic.of("gs_basics", "Quick Tips", List.of(
-                "CLAIMING LAND",
+                "Claiming Land",
                 "Use /f claim to protect the area you're in.",
                 "Only faction members can build there.",
                 "",
-                "FACTION HOME",
+                "Faction Home",
                 "Set a home with /f sethome, then use",
                 "/f home to teleport back anytime.",
                 "",
-                "FACTION CHAT",
+                "Faction Chat",
                 "Use /f c <message> to chat privately",
                 "with only your faction members.",
                 "",
-                "POWER",
+                "Power",
                 "Your faction needs power to hold land.",
                 "Stay online to regenerate. Dying loses power!"
         ), HelpCategory.GETTING_STARTED));
@@ -253,19 +253,19 @@ public final class HelpRegistry {
         ), List.of("kick"), HelpCategory.FACTION_BASICS));
 
         register(HelpTopic.of("fb_roles", "Faction Roles", List.of(
-                "LEADER (1 per faction)",
+                "Leader (1 per faction)",
                 "- Full control over faction",
                 "- Disband, transfer leadership",
                 "- Promote and demote members",
                 "- All officer permissions",
                 "",
-                "OFFICER",
+                "Officer",
                 "- Invite and kick members",
                 "- Claim and unclaim territory",
                 "- Set faction home, description",
                 "- Manage diplomatic relations",
                 "",
-                "MEMBER",
+                "Member",
                 "- Use faction home and chat",
                 "- Build in faction territory"
         ), HelpCategory.FACTION_BASICS));
@@ -539,15 +539,15 @@ public final class HelpRegistry {
         register(HelpTopic.of("cb_territory", "Territory Protection", List.of(
                 "Claimed land provides protection:",
                 "",
-                "BLOCK PROTECTION",
+                "Block Protection",
                 "- Only members can build/break",
                 "- Outsiders cannot modify terrain",
                 "",
-                "CONTAINER PROTECTION",
+                "Container Protection",
                 "- Chests, barrels are secured",
                 "- Only members can access",
                 "",
-                "ENTRY ALERTS",
+                "Entry Alerts",
                 "- Notified when others enter",
                 "",
                 "NOTE: Claims protect BLOCKS.",
@@ -557,30 +557,30 @@ public final class HelpRegistry {
         register(HelpTopic.of("cb_pvp", "PvP Rules", List.of(
                 "PvP depends on location & relations:",
                 "",
-                "YOUR TERRITORY",
+                "Your Territory",
                 "- Allies: No damage",
                 "- Enemies: CAN attack you",
                 "- Neutral: Server rules apply",
                 "",
-                "ENEMY TERRITORY",
+                "Enemy Territory",
                 "- Full PvP enabled both ways",
                 "",
-                "ALLY TERRITORY",
+                "Ally Territory",
                 "- Friendly fire disabled",
                 "",
-                "WILDERNESS",
+                "Wilderness",
                 "- Server PvP rules apply"
         ), HelpCategory.COMBAT));
 
         register(HelpTopic.of("cb_zones", "Special Zones", List.of(
                 "Admin-created zones with special rules:",
                 "",
-                "SAFEZONE",
+                "SafeZone",
                 "- No PvP damage",
                 "- No block breaking",
                 "- Spawn areas, trading posts",
                 "",
-                "WARZONE",
+                "WarZone",
                 "- PvP always enabled",
                 "- No territorial protection",
                 "- Designated battle areas",

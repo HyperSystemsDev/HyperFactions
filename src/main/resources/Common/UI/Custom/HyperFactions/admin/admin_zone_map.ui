@@ -150,9 +150,9 @@ $C.@Container {
       Label { FlexWeight: 1; }
 
       TextButton #ConfirmBtn {
-        Text: "DONE";
+        Text: "Done";
         Anchor: (Height: 36, Width: 120);
-        Style: $S.@GreenButtonStyle;
+        Style: $S.@ButtonStyle;
       }
 
       Label { FlexWeight: 1; }

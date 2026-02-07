@@ -1,4 +1,5 @@
 // Admin Faction Entry - Expandable
+$C = "../../Common.ui";
 $S = "../shared/styles.ui";
 
 Group {
@@ -147,33 +148,33 @@ Group {
       Anchor: (Height: 32);
 
       TextButton #TpHomeBtn {
-        Text: "TP HOME";
+        Text: "TP Home";
         Anchor: (Height: 28, Width: 85);
-        Style: $S.@SmallCyanButtonStyle;
+        Style: $S.@ButtonStyle;
       }
 
       Group { Anchor: (Width: 8); }
 
       TextButton #ViewInfoBtn {
-        Text: "VIEW INFO";
+        Text: "View Info";
         Anchor: (Height: 28, Width: 90);
-        Style: $S.@SmallButtonStyle;
+        Style: $S.@ButtonStyle;
       }
 
       Group { Anchor: (Width: 8); }
 
       TextButton #UnclaimAllBtn {
-        Text: "UNCLAIM ALL";
+        Text: "Unclaim All";
         Anchor: (Height: 28, Width: 100);
-        Style: $S.@SmallButtonStyle;
+        Style: $S.@ButtonStyle;
       }
 
       Group { FlexWeight: 1; }
 
       TextButton #DisbandBtn {
-        Text: "DISBAND";
+        Text: "Disband";
         Anchor: (Height: 28, Width: 85);
-        Style: $S.@SmallRedButtonStyle;
+        Style: $S.@RedButtonStyle;
       }
     }
   }

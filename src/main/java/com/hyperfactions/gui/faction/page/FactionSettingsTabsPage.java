@@ -226,9 +226,9 @@ public class FactionSettingsTabsPage extends InteractiveCustomUIPage<FactionSett
         events.addEventBinding(CustomUIEventBindingType.Activating, "#ModulesBtn",
                 EventData.of("Button", "OpenModules"), false);
 
-        // Danger zone for leaders
+        // Danger zone for leaders - toggle visibility (always in template)
         if (isLeader) {
-            cmd.append("#DangerZoneContainer", "HyperFactions/faction/settings_danger_zone.ui");
+            cmd.set("#DangerZone.Visible", true);
             events.addEventBinding(
                     CustomUIEventBindingType.Activating,
                     "#DisbandBtn",
@@ -292,15 +292,15 @@ public class FactionSettingsTabsPage extends InteractiveCustomUIPage<FactionSett
 
         if (locked) {
             // Locked by server - show lock icon
-            cmd.set(selector + ".Text", "LOCKED");
+            cmd.set(selector + ".Text", "Locked");
             cmd.set(selector + ".Disabled", true);
         } else if (!canEdit) {
             // User cannot edit - show current value but disabled
-            cmd.set(selector + ".Text", currentValue ? "ON" : "OFF");
+            cmd.set(selector + ".Text", currentValue ? "On" : "Off");
             cmd.set(selector + ".Disabled", true);
         } else {
             // Editable - show current value with event binding
-            cmd.set(selector + ".Text", currentValue ? "ON" : "OFF");
+            cmd.set(selector + ".Text", currentValue ? "On" : "Off");
             cmd.set(selector + ".Disabled", false);
 
             // Set text color based on value

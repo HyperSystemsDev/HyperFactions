@@ -2,6 +2,7 @@
 // Basic faction settings: name, tag, description, color, recruitment, home
 // This file is appended directly to #GeneralContent container
 
+$C = "../../Common.ui";
 $S = "../shared/styles.ui";
 
 Group {
@@ -13,7 +14,7 @@ Group {
     Anchor: (Bottom: 12);
 
     Label {
-      Text: "GENERAL";
+      Text: "General";
       Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
       Anchor: (Height: 18, Bottom: 4);
     }
@@ -39,9 +40,9 @@ Group {
         FlexWeight: 1;
       }
       TextButton #NameEditBtn {
-        Text: "EDIT";
+        Text: "Edit";
         Anchor: (Height: 26, Width: 60);
-        Style: $S.@SmallCyanButtonStyle;
+        Style: $S.@ButtonStyle;
       }
     }
 
@@ -61,9 +62,9 @@ Group {
         FlexWeight: 1;
       }
       TextButton #TagEditBtn {
-        Text: "EDIT";
+        Text: "Edit";
         Anchor: (Height: 26, Width: 60);
-        Style: $S.@SmallCyanButtonStyle;
+        Style: $S.@ButtonStyle;
       }
     }
 
@@ -83,9 +84,9 @@ Group {
         FlexWeight: 1;
       }
       TextButton #DescEditBtn {
-        Text: "EDIT";
+        Text: "Edit";
         Anchor: (Height: 26, Width: 60);
-        Style: $S.@SmallCyanButtonStyle;
+        Style: $S.@ButtonStyle;
       }
     }
   }
@@ -96,7 +97,7 @@ Group {
     Anchor: (Bottom: 12);
 
     Label {
-      Text: "APPEARANCE";
+      Text: "Appearance";
       Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
       Anchor: (Height: 18, Bottom: 4);
     }
@@ -131,9 +132,9 @@ Group {
       }
 
       TextButton #ColorBtn {
-        Text: "CHANGE";
+        Text: "Change";
         Anchor: (Height: 26, Width: 80);
-        Style: $S.@SmallCyanButtonStyle;
+        Style: $S.@ButtonStyle;
       }
     }
   }
@@ -144,7 +145,7 @@ Group {
     Anchor: (Bottom: 12);
 
     Label {
-      Text: "RECRUITMENT";
+      Text: "Recruitment";
       Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
       Anchor: (Height: 18, Bottom: 4);
     }
@@ -171,9 +172,9 @@ Group {
       }
 
       TextButton #RecruitmentBtn {
-        Text: "CHANGE";
+        Text: "Change";
         Anchor: (Height: 26, Width: 80);
-        Style: $S.@SmallCyanButtonStyle;
+        Style: $S.@ButtonStyle;
       }
     }
   }
@@ -184,7 +185,7 @@ Group {
     Anchor: (Bottom: 12);
 
     Label {
-      Text: "HOME LOCATION";
+      Text: "Home Location";
       Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
       Anchor: (Height: 18, Bottom: 4);
     }
@@ -217,25 +218,25 @@ Group {
       Label { Anchor: (Width: 80); }
 
       TextButton #SetHomeBtn {
-        Text: "SET HOME HERE";
+        Text: "Set Home Here";
         Anchor: (Height: 28, Width: 130);
-        Style: $S.@SmallCyanButtonStyle;
+        Style: $S.@ButtonStyle;
       }
 
       Label { Anchor: (Width: 10); }
 
       TextButton #TeleportHomeBtn {
-        Text: "TELEPORT";
+        Text: "Teleport";
         Anchor: (Height: 28, Width: 90);
-        Style: $S.@SmallGreenButtonStyle;
+        Style: $S.@ButtonStyle;
       }
 
       Label { Anchor: (Width: 10); }
 
       TextButton #DeleteHomeBtn {
-        Text: "DELETE";
+        Text: "Delete";
         Anchor: (Height: 28, Width: 70);
-        Style: $S.@SmallRedButtonStyle;
+        Style: $S.@RedButtonStyle;
       }
     }
   }
@@ -246,7 +247,7 @@ Group {
     Anchor: (Bottom: 12);
 
     Label {
-      Text: "MODULES";
+      Text: "Modules";
       Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
       Anchor: (Height: 18, Bottom: 4);
     }
@@ -267,15 +268,56 @@ Group {
       }
 
       TextButton #ModulesBtn {
-        Text: "VIEW MODULES";
+        Text: "View Modules";
         Anchor: (Height: 28, Width: 120);
-        Style: $S.@SmallCyanButtonStyle;
+        Style: $S.@ButtonStyle;
       }
     }
   }
 
-  // Container for danger zone (appended conditionally for leaders)
-  Group #DangerZoneContainer {
+  // Danger zone (hidden by default, shown for leaders via Java)
+  Group #DangerZone {
+    Visible: false;
     LayoutMode: Top;
+
+    Label {
+      Text: "Danger Zone";
+      Style: (FontSize: 11, TextColor: #FF5555, RenderBold: true);
+      Anchor: (Height: 18, Bottom: 4);
+    }
+
+    Group {
+      Anchor: (Height: 1, Bottom: 6);
+      Background: (Color: #553333);
+    }
+
+    Group {
+      Anchor: (Height: 50);
+      Background: (Color: #331111);
+      Padding: (Left: 10, Right: 10, Top: 8, Bottom: 8);
+      LayoutMode: Left;
+
+      Group {
+        LayoutMode: Top;
+        FlexWeight: 1;
+
+        Label {
+          Text: "Disband Faction";
+          Style: (FontSize: 12, TextColor: #FF5555, RenderBold: true, VerticalAlignment: Center);
+          Anchor: (Height: 16);
+        }
+        Label {
+          Text: "This action cannot be undone!";
+          Style: (FontSize: 10, TextColor: #AA5555, VerticalAlignment: Center);
+          Anchor: (Height: 14);
+        }
+      }
+
+      TextButton #DisbandBtn {
+        Text: "Disband";
+        Anchor: (Height: 32, Width: 100);
+        Style: $S.@RedButtonStyle;
+      }
+    }
   }
 }

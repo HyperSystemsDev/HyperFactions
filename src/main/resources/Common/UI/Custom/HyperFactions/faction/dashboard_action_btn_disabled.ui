@@ -7,7 +7,7 @@ Group {
   LayoutMode: Top;
 
   TextButton #ActionBtn {
-    Text: "ACTION";
+    Text: "Action";
     Anchor: (Height: 32, Width: 80);
     Style: $S.@DisabledButtonStyle;
     Disabled: true;

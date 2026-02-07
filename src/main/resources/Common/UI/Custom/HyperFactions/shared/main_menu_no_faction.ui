@@ -20,9 +20,9 @@ Group {
     Label { FlexWeight: 1; }
 
     TextButton #CreateFactionBtn {
-      Text: "CREATE FACTION";
+      Text: "Create Faction";
       Anchor: (Height: 32, Width: 180);
-      Style: $S.@CyanButtonStyle;
+      Style: $S.@ButtonStyle;
     }
 
     Label { FlexWeight: 1; }

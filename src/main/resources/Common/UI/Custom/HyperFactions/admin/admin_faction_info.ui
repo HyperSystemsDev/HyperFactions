@@ -72,7 +72,7 @@ $C.@PageOverlay {
       Group {
         Anchor: (Height: 20, Bottom: 5);
         Label {
-          Text: "FACTION STATS";
+          Text: "Faction Stats";
           Style: (FontSize: 11, TextColor: #666666, RenderBold: true);
         }
       }
@@ -244,7 +244,7 @@ $C.@PageOverlay {
       Group {
         Anchor: (Height: 20, Bottom: 5);
         Label {
-          Text: "LEADERSHIP";
+          Text: "Leadership";
           Style: (FontSize: 11, TextColor: #666666, RenderBold: true);
         }
       }
@@ -310,33 +310,33 @@ $C.@PageOverlay {
         LayoutMode: Left;
 
         TextButton #ViewMembersBtn {
-          Text: "MEMBERS";
+          Text: "Members";
           Anchor: (Height: 30, Width: 90);
-          Style: $S.@SmallCyanButtonStyle;
+          Style: $S.@ButtonStyle;
         }
 
         Label { Anchor: (Width: 8); }
 
         TextButton #ViewRelationsBtn {
-          Text: "RELATIONS";
+          Text: "Relations";
           Anchor: (Height: 30, Width: 95);
-          Style: $S.@SmallButtonStyle;
+          Style: $S.@ButtonStyle;
         }
 
         Label { Anchor: (Width: 8); }
 
         TextButton #ViewSettingsBtn {
-          Text: "SETTINGS";
+          Text: "Settings";
           Anchor: (Height: 30, Width: 90);
-          Style: $S.@SmallButtonStyle;
+          Style: $S.@ButtonStyle;
         }
 
         Label { FlexWeight: 1; }
 
         TextButton #BackBtn {
-          Text: "BACK";
+          Text: "Back";
           Anchor: (Height: 30, Width: 70);
-          Style: $S.@SmallButtonStyle;
+          Style: $S.@ButtonStyle;
         }
       }
     }

@@ -2,6 +2,7 @@
 // Redirect to the full Members page
 // This file is appended directly to #MembersContent container
 
+$C = "../../Common.ui";
 $S = "../shared/styles.ui";
 
 Group {
@@ -26,7 +27,7 @@ Group {
       FlexWeight: 1;
 
       Label {
-        Text: "TOTAL MEMBERS";
+        Text: "Total Members";
         Style: (FontSize: 10, TextColor: #888888, RenderBold: true);
         Anchor: (Height: 16);
       }
@@ -44,7 +45,7 @@ Group {
       FlexWeight: 1;
 
       Label {
-        Text: "ONLINE";
+        Text: "Online";
         Style: (FontSize: 10, TextColor: #888888, RenderBold: true);
         Anchor: (Height: 16);
       }
@@ -64,9 +65,9 @@ Group {
     Group { FlexWeight: 1; }
 
     TextButton #ViewMembersBtn {
-      Text: "VIEW MEMBERS";
+      Text: "View Members";
       Anchor: (Height: 36, Width: 160);
-      Style: $S.@CyanButtonStyle;
+      Style: $S.@ButtonStyle;
     }
 
     Group { FlexWeight: 1; }

@@ -31,15 +31,15 @@ Group {
     LayoutMode: Left;
 
     TextButton #ViewFactionBtn {
-      Text: "VIEW";
+      Text: "View";
       Anchor: (Height: 32, Width: 110);
-      Style: $S.@CyanButtonStyle;
+      Style: $S.@ButtonStyle;
     }
 
     Label { Anchor: (Width: 10); }
 
     TextButton #MembersBtn {
-      Text: "MEMBERS";
+      Text: "Members";
       Anchor: (Height: 32, Width: 110);
       Style: $S.@ButtonStyle;
     }
@@ -47,7 +47,7 @@ Group {
     Label { Anchor: (Width: 10); }
 
     TextButton #RelationsBtn {
-      Text: "RELATIONS";
+      Text: "Relations";
       Anchor: (Height: 32, Width: 110);
       Style: $S.@ButtonStyle;
     }

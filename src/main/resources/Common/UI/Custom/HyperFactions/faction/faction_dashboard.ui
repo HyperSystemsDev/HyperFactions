@@ -65,7 +65,7 @@ $C.@PageOverlay {
           Anchor: (Right: 5);
 
           Label {
-            Text: "POWER";
+            Text: "Power";
             Style: (FontSize: 10, TextColor: #666666, HorizontalAlignment: Center, VerticalAlignment: Center);
             Anchor: (Height: 16);
           }
@@ -90,7 +90,7 @@ $C.@PageOverlay {
           Anchor: (Left: 5, Right: 5);
 
           Label {
-            Text: "CLAIMS";
+            Text: "Claims";
             Style: (FontSize: 10, TextColor: #666666, HorizontalAlignment: Center, VerticalAlignment: Center);
             Anchor: (Height: 16);
           }
@@ -115,7 +115,7 @@ $C.@PageOverlay {
           Anchor: (Left: 5);
 
           Label {
-            Text: "MEMBERS";
+            Text: "Members";
             Style: (FontSize: 10, TextColor: #666666, HorizontalAlignment: Center, VerticalAlignment: Center);
             Anchor: (Height: 16);
           }
@@ -146,7 +146,7 @@ $C.@PageOverlay {
           Anchor: (Right: 5);
 
           Label {
-            Text: "RELATIONS";
+            Text: "Relations";
             Style: (FontSize: 10, TextColor: #666666, HorizontalAlignment: Center, VerticalAlignment: Center);
             Anchor: (Height: 16);
           }
@@ -186,12 +186,12 @@ $C.@PageOverlay {
           Anchor: (Left: 5, Right: 5);
 
           Label {
-            Text: "STATUS";
+            Text: "Status";
             Style: (FontSize: 10, TextColor: #666666, HorizontalAlignment: Center, VerticalAlignment: Center);
             Anchor: (Height: 16);
           }
           Label #StatusValue {
-            Text: "OPEN";
+            Text: "Open";
             Style: (FontSize: 18, TextColor: #55FF55, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center);
             FlexWeight: 1;
           }
@@ -211,7 +211,7 @@ $C.@PageOverlay {
           Anchor: (Left: 5);
 
           Label {
-            Text: "INVITES";
+            Text: "Invites";
             Style: (FontSize: 10, TextColor: #666666, HorizontalAlignment: Center, VerticalAlignment: Center);
             Anchor: (Height: 16);
           }
@@ -248,7 +248,7 @@ $C.@PageOverlay {
         Anchor: (Height: 25, Bottom: 5);
 
         Label {
-          Text: "QUICK ACTIONS";
+          Text: "Quick Actions";
           Style: (FontSize: 11, TextColor: #666666, RenderBold: true);
         }
       }
@@ -292,16 +292,16 @@ $C.@PageOverlay {
         LayoutMode: Left;
 
         Label {
-          Text: "RECENT ACTIVITY";
+          Text: "Recent Activity";
           Style: (FontSize: 11, TextColor: #666666, RenderBold: true);
         }
 
         Label { FlexWeight: 1; }
 
         TextButton #ViewLogsBtn {
-          Text: "VIEW ALL";
+          Text: "View All";
           Anchor: (Height: 22, Width: 70);
-          Style: $S.@SmallButtonStyle;
+          Style: $S.@ButtonStyle;
         }
       }
 

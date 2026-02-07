@@ -1,5 +1,6 @@
 // Admin Member Entry - Read-only expandable
 // No action buttons, shows UUID for admin reference
+$C = "../../Common.ui";
 $S = "../shared/styles.ui";
 
 Group {
@@ -150,24 +151,24 @@ Group {
       Anchor: (Height: 28);
 
       TextButton #TeleportBtn {
-        Text: "TELEPORT";
+        Text: "Teleport";
         Anchor: (Height: 24, Width: 80, Right: 6);
-        Style: $S.@SmallButtonStyle;
+        Style: $S.@ButtonStyle;
       }
       TextButton #PromoteBtn {
-        Text: "PROMOTE";
+        Text: "Promote";
         Anchor: (Height: 24, Width: 80, Right: 6);
-        Style: $S.@SmallButtonStyle;
+        Style: $S.@ButtonStyle;
       }
       TextButton #DemoteBtn {
-        Text: "DEMOTE";
+        Text: "Demote";
         Anchor: (Height: 24, Width: 80, Right: 6);
-        Style: $S.@SmallButtonStyle;
+        Style: $S.@ButtonStyle;
       }
       TextButton #KickBtn {
-        Text: "KICK";
+        Text: "Kick";
         Anchor: (Height: 24, Width: 60);
-        Style: $S.@SmallRedButtonStyle;
+        Style: $S.@RedButtonStyle;
       }
       Group { FlexWeight: 1; }
     }

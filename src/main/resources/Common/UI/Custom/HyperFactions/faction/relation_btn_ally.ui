@@ -1,7 +1,8 @@
+$C = "../../Common.ui";
 $S = "../shared/styles.ui";
 
 TextButton #AllyBtn {
-  Text: "ALLY";
+  Text: "Ally";
   Anchor: (Height: 26, Width: 70);
-  Style: $S.@SmallGreenButtonStyle;
+  Style: $S.@ButtonStyle;
 }

@@ -8,9 +8,9 @@ Group {
   Anchor: (Right: 5);
 
   TextButton #NavBtn {
-    Text: "NAV";
+    Text: "Nav";
     Anchor: (Height: 28, Width: 85);
     Padding: (Left: 8, Right: 8, Top: 5, Bottom: 5);
-    Style: $S.@SmallCyanButtonStyle;
+    Style: $S.@ButtonStyle;
   }
 }

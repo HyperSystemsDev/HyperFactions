@@ -43,7 +43,7 @@ $C.@PageOverlay {
           TextButton #BtnSecondary {
             Text: "SECONDARY (MUTED GRAY)";
             Anchor: (Height: 36, Bottom: 8);
-            Style: $C.@SecondaryTextButtonStyle;
+            Style: $S.@ButtonStyle;
           }
 
           Label {

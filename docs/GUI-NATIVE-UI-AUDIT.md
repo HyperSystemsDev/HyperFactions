@@ -1,8 +1,8 @@
 # HyperFactions GUI Audit: Native Hytale UI Alignment
 
 **Date**: 2026-02-05
-**Updated**: 2026-02-05 (post-research, confirmed test page results)
-**Status**: Partially implemented — Create Faction page complete, remaining pages pending
+**Updated**: 2026-02-06 (Batch 1 complete — TextField + button styles + styles.ui cleanup)
+**Status**: Batch 1 complete — Create Faction page + TextField + button migration done
 **Scope**: All HyperFactions GUI pages vs. native Hytale CustomUI elements
 
 ---
@@ -20,16 +20,20 @@ HyperFactions uses TextButton workarounds across its GUI where native Hytale ele
 - Element test page (`/f admin testgui`) confirming all native elements work
 - Deleted: `CreateFactionStep1Page.java`, `CreateFactionStep2Page.java`, `create_step1.ui`, `create_step2.ui`
 
+**Completed** (Batch 1 — 2026-02-06):
+- **TextField migration**: All 9 raw TextFields across 8 files migrated to `$C.@TextField` template
+- **Button style migration**: 211 non-destructive buttons → `$C.@SecondaryTextButtonStyle` (muted gray), ~45 destructive buttons → `$C.@CancelTextButton` template (red/pink cancel)
+- **styles.ui cleanup**: Removed 20 obsolete style definitions (402 → 251 lines)
+- **$C import fixes**: Added missing `$C = "../../Common.ui"` imports to 8 appendable template files
+
 **Remaining work**:
 1. **45 toggle buttons** across 4 pages -> **CheckBoxWithLabel** (native boolean toggle)
 2. **ColorPicker on 2 settings pages** (faction settings + admin settings still use modal)
-3. **9 raw TextFields** across 8 files -> **`$C.@TextField` template** (text positioning fix)
-4. **~100+ old custom button styles** across 38 files -> **native `$C.@` styles**
-5. **11 sort/selection buttons** -> **DropdownBox** (native selection)
-6. **3 button-triggered searches** -> **real-time ValueChanged search** with debounce
-7. **Faction color model** still single-char codes -> hex strings
-8. **Slider** for zone radius (currently 5 preset buttons + TextField)
-9. **ColorPickerPage + RecruitmentModalPage** still exist (used by settings pages)
+3. **Sort buttons on browse/member pages** -> **DropdownBox** (native selection)
+4. **3 button-triggered searches** -> **real-time ValueChanged search** with debounce
+5. **Faction color model** still single-char codes -> hex strings
+6. **Slider** for zone radius (currently 5 preset buttons + TextField)
+7. **ColorPickerPage + RecruitmentModalPage** still exist (used by settings pages)
 
 ### Test Page Verification Results
 
@@ -168,27 +172,9 @@ Add optional `color` field to `Zone.java`. Default to type colors (safe=`#55FF55
 
 ---
 
-### 3. TextField Template Migration (9 instances, 8 files)
+### 3. TextField Template Migration — COMPLETED (Batch 1)
 
-**Current**: Raw `TextField` with explicit `Style: $C.@DefaultInputFieldStyle; Background: $C.@InputBoxBackground;` — text appears offset outside the input box.
-
-**Fix**: Swap to `$C.@TextField` template (confirmed working on Create Faction page):
-
-```
-// Before (old):
-TextField #SearchInput {
-    Style: $C.@DefaultInputFieldStyle;
-    Background: $C.@InputBoxBackground;
-    Anchor: (Height: 32);
-}
-
-// After (native template):
-$C.@TextField #SearchInput {
-    Anchor: (Height: 32);
-}
-```
-
-**Files still using old pattern:**
+All 9 raw TextFields migrated to `$C.@TextField` template across 8 files. Text positioning fixed.
 
 | File | TextFields | Element IDs |
 |---|---|---|
@@ -200,43 +186,36 @@ $C.@TextField #SearchInput {
 | `shared/description_modal.ui` | 1 | `#DescInput` |
 | `admin/zone_rename_modal.ui` | 1 | `#NameInput` |
 | `admin/create_zone_wizard.ui` | 2 | `#NameInput`, `#CustomRadiusInput` |
-| **Total** | **9** | |
-
-**Impact**: Simple find-and-replace across 8 files. Fixes text positioning immediately.
 
 ---
 
-### 4. Native Button Styles Migration (~100+ instances, 38 files)
+### 4. Native Button Styles Migration — COMPLETED (Batch 1)
 
-**Current**: 38 files reference custom `$S.@` button styles (ButtonStyle, CyanButtonStyle, GreenButtonStyle, RedButtonStyle, GoldButtonStyle, etc.). Only `create_faction.ui` and `test/button_test.ui` use native `$C.@DefaultTextButtonStyle`.
+All custom `$S.@` button styles replaced with native equivalents:
 
-**Proposed**: Replace all standard button styles with native tokens:
+**Non-destructive buttons (211 replacements across 66 files):**
+- `$S.@ButtonStyle`, `$S.@CyanButtonStyle`, `$S.@GreenButtonStyle`, `$S.@GoldButtonStyle` → `$C.@SecondaryTextButtonStyle`
+- `$S.@SmallButtonStyle`, `$S.@SmallCyanButtonStyle`, `$S.@SmallGreenButtonStyle` → `$C.@SecondaryTextButtonStyle`
 
-- `$S.@ButtonStyle` / `$S.@CyanButtonStyle` / `$S.@GreenButtonStyle` / `$S.@GoldButtonStyle` -> `$C.@DefaultTextButtonStyle` (primary actions)
-- `$S.@SmallButtonStyle` / `$S.@SmallCyanButtonStyle` -> `$C.@SecondaryTextButtonStyle` (secondary actions)
-- `$S.@RedButtonStyle` / `$S.@SmallRedButtonStyle` -> `$C.@SecondaryTextButtonStyle` + confirm dialog for destructive
+**Destructive buttons (~45 conversions across 28 files):**
+- `$S.@RedButtonStyle`, `$S.@SmallRedButtonStyle` → `$C.@CancelTextButton` template
+- Element type changed from `TextButton` to `$C.@CancelTextButton`, text syntax from `Text:` to `@Text =`
 
-**Also available** (confirmed working via test page):
-- `$C.@CancelTextButton` template — red/pink cancel button
-- `$C.@TertiaryTextButton` template — outlined/bordered button
-- `$C.@SecondaryTextButton` template — secondary button
-- `$C.@SmallSecondaryTextButton`, `$C.@SmallTertiaryTextButton` — small variants
+**styles.ui cleanup (402 → 251 lines):**
+- Removed 10 obsolete button styles and 10 obsolete label styles
+- Kept: InvisibleButtonStyle, DisabledButtonStyle, SafeZone/WarZone, SmallTeal/SmallPurple, FlatRed/FlatDarkRed, PlayerMarkerButtonStyle
+- Also kept: CyanButtonStyle, GreenButtonStyle, RedButtonStyle, GoldButtonStyle (referenced by test page)
 
-**Keep** (unique functional purpose, no native equivalent):
-- `$S.@SafeZoneButtonStyle` + Small — zone type indicator (green = safe)
-- `$S.@WarZoneButtonStyle` + Small — zone type indicator (red = war)
-- `$S.@InvisibleButtonStyle` — transparent click overlays
-- `$S.@PlayerMarkerButtonStyle` — map markers
-- `$S.@TocLinkButtonStyle` — help system links
-- `$S.@FlatRedButtonStyle`, `$S.@FlatDarkRedButtonStyle` — flat color backgrounds (new)
+**$C import fixes:**
+- 8 appendable template files had `$C.@` references added without `$C` import: dashboard_action_btn.ui, faction_browse_entry.ui, relation_btn_accept.ui, relation_btn_ally.ui, relation_btn_neutral.ui, relation_set_btn.ui, settings_members_content.ui, newplayer_faction_entry.ui
 
-**Estimated cleanup**: ~20 style definitions removed (~250+ lines from `styles.ui`)
+**Note:** `settings_permissions_content.ui` has 11 permission toggle buttons converted to `$C.@CancelTextButton`. These are DENY/ALLOW toggles — may need reverting to `$C.@SecondaryTextButtonStyle` if Java code dynamically swaps their style.
 
 ---
 
-### 5. DropdownBox for Sort/Selection (25 buttons, 5 pages)
+### 5. DropdownBox for Sort (8 buttons → 4 dropdowns, 4 pages)
 
-**Current**: TextButtons with `.Disabled = true` for active option. Consistent pattern across all browse pages.
+**Current**: TextButtons with `.Disabled = true` for active sort option. Consistent pattern across browse/list pages.
 
 | Page | Sort Options | Current Pattern |
 |---|---|---|
@@ -244,11 +223,18 @@ $C.@TextField #SearchInput {
 | NewPlayerBrowsePage | POWER, NAME, MEMBERS (3) | TextButton + `.Disabled` |
 | FactionMembersPage | ROLE, LAST_ONLINE (2) | TextButton + `.Disabled` |
 | AdminFactionsPage | POWER, NAME, MEMBERS (3) | TextButton + `.Disabled` |
-| CreateZoneWizardPage | Type(2), Method(5), Radius(5), Flags(2) | TextButton + `.Disabled` |
 
-**Proposed**: Replace with bare `DropdownBox` (not `$C.@DropdownBox` — opens sideways):
+**Proposed**: Replace sort buttons with bare `DropdownBox` (not `$C.@DropdownBox` — opens sideways):
+
+```
+// .ui file:
+DropdownBox #SortDropdown {
+    Anchor: (Height: 30, Width: 150);
+}
+```
 
 ```java
+// Java:
 List<DropdownEntryInfo> sortEntries = List.of(
     new DropdownEntryInfo(LocalizableString.fromString("Power"), "POWER"),
     new DropdownEntryInfo(LocalizableString.fromString("Name"), "NAME"),
@@ -259,6 +245,8 @@ cmd.set("#SortDropdown.Value", sortMode.name());
 ```
 
 **Note**: Use bare `DropdownBox` (opens downward) — NOT `$C.@DropdownBox` template (opens sideways).
+
+**Not included**: CreateZoneWizardPage's Type/Method/Radius/Flags buttons stay as TextButtons — they have visual descriptions alongside each option that work better as button groups.
 
 ---
 
@@ -439,33 +427,34 @@ ProgressBar #PowerBar {
 | `create_step1.ui` (189 lines) | `42267d9` |
 | `create_step2.ui` (187 lines) | `42267d9` |
 
-### TextField Migration (8 files, simple swap)
+### TextField Migration — COMPLETED (Batch 1)
 
-| File | Count | IDs |
-|---|---|---|
-| `newplayer/browse.ui` | 1 | `#SearchInput` |
-| `faction/faction_browser.ui` | 1 | `#SearchInput` |
-| `faction/set_relation_modal.ui` | 1 | `#SearchInput` |
-| `shared/rename_modal.ui` | 1 | `#NameInput` |
-| `shared/tag_modal.ui` | 1 | `#TagInput` |
-| `shared/description_modal.ui` | 1 | `#DescInput` |
-| `admin/zone_rename_modal.ui` | 1 | `#NameInput` |
-| `admin/create_zone_wizard.ui` | 2 | `#NameInput`, `#CustomRadiusInput` |
+All 9 TextFields across 8 files migrated to `$C.@TextField`.
 
-### Button Style Migration (38 files)
+### Button Style Migration — COMPLETED (Batch 1)
 
-All files currently using `$S.@ButtonStyle`, `$S.@CyanButtonStyle`, `$S.@GreenButtonStyle`, `$S.@RedButtonStyle`, `$S.@GoldButtonStyle` need migration to native `$C.@DefaultTextButtonStyle` / `$C.@SecondaryTextButtonStyle`.
+211 non-destructive replacements (66 files) → `$C.@SecondaryTextButtonStyle`.
+~45 destructive conversions (28 files) → `$C.@CancelTextButton`.
+styles.ui cleaned: 402 → 251 lines (20 obsolete definitions removed).
 
 ---
 
 ## Recommended Implementation Order
 
-Each step is independently testable and rollback-safe. Steps already completed are removed.
+Each step is independently testable and rollback-safe.
+
+### Completed
+
+| Order | Change | Status |
+|---|---|---|
+| ~~1~~ | TextField fix — swap 9 instances to `$C.@TextField` | **DONE** (Batch 1) |
+| ~~2~~ | Native button styles on all pages (211 non-destructive + ~45 destructive) | **DONE** (Batch 1) |
+| ~~19~~ | styles.ui cleanup (402 → 251 lines, 20 definitions removed) | **DONE** (Batch 1) |
+
+### Remaining
 
 | Order | Change | Effort | Impact | Pages |
 |---|---|---|---|---|
-| 1 | TextField fix — swap 9 instances to `$C.@TextField` | **Low** | Medium — fixes text positioning | 8 |
-| 2 | Native button styles on all pages | **Low** | **High** — immediate native look | 38 |
 | 3 | CheckBoxWithLabel on AdminFactionSettingsPage (11) | Medium | High — admin permission controls | 1 |
 | 4 | CheckBoxWithLabel on FactionSettingsTabsPage (11) | Medium | High — user-facing controls | 1 |
 | 5 | CheckBoxWithLabel on AdminZoneSettingsPage (22) | Medium | **Highest** — biggest single page | 1 |
@@ -475,18 +464,17 @@ Each step is independently testable and rollback-safe. Steps already completed a
 | 9 | ColorPicker on Admin Faction Settings | Medium | High — inline picker | 1 |
 | 10 | Delete ColorPickerPage + modal files | Low | Cleanup — removes 539 lines | 4 files |
 | 11 | Slider on CreateZoneWizardPage | Low | Medium — replaces 5 preset buttons | 1 |
-| 12 | DropdownBox on browse/sort pages | Medium | Medium — replaces disabled-button pattern | 4 |
+| 12 | DropdownBox for sort on browse/list pages | Medium | Medium — replaces disabled-button sort pattern | 4 |
 | 13 | Inline DropdownBox replacing RecruitmentModal | Low | Medium — eliminates modal page | 2 |
 | 14 | Real-time search + debounce on browse pages | Low | Medium — instant feedback | 3 |
 | 15 | Add search to Members page (new feature) | Low | Medium — usability | 1 |
 | 16 | Tab bar style switching (Value.ref) | Low | Low — better active/inactive visual | 3 |
 | 17 | ProgressBar on Dashboard power display | Low | Low — optional polish | 1 |
 | 18 | Centralized color system (FactionTheme + style.json) | **High** | **High** — long-term | 62+ |
-| 19 | styles.ui cleanup (remove obsolete definitions) | Low | Low — code hygiene | 1 |
 
 **Suggested batches:**
-- **Batch 1 (steps 1-2)**: Quick wins — TextField fix + native button styles. Low effort, high visual impact.
+- **Batch 1 (steps 1-2, 19)**: COMPLETED — TextField fix + native button styles + styles.ui cleanup.
 - **Batch 2 (steps 3-6)**: CheckBox migration across all 4 toggle pages.
 - **Batch 3 (steps 7-10)**: ColorPicker on remaining settings pages + data model migration + cleanup.
-- **Batch 4 (steps 11-15)**: Slider + DropdownBox + real-time search. Native input elements.
-- **Batch 5 (steps 16-19)**: Polish + centralized color system.
+- **Batch 4 (steps 11-15)**: Slider + DropdownBox sort + real-time search. Native input elements.
+- **Batch 5 (steps 16-18)**: Polish + centralized color system.

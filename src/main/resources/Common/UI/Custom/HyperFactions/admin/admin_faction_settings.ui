@@ -69,7 +69,7 @@ $C.@PageOverlay {
 
           // GENERAL SECTION
           Label {
-            Text: "GENERAL";
+            Text: "General";
             Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
             Anchor: (Height: 18, Bottom: 4);
           }
@@ -95,9 +95,9 @@ $C.@PageOverlay {
               FlexWeight: 1;
             }
             TextButton #NameEditBtn {
-              Text: "EDIT";
+              Text: "Edit";
               Anchor: (Height: 26, Width: 55);
-              Style: $S.@SmallCyanButtonStyle;
+              Style: $S.@ButtonStyle;
             }
           }
 
@@ -112,14 +112,14 @@ $C.@PageOverlay {
               Anchor: (Width: 70);
             }
             Label #TagValue {
-              Text: "[TAG]";
+              Text: "[Tag]";
               Style: (FontSize: 12, TextColor: #FFAA00, RenderBold: true, VerticalAlignment: Center);
               FlexWeight: 1;
             }
             TextButton #TagEditBtn {
-              Text: "EDIT";
+              Text: "Edit";
               Anchor: (Height: 26, Width: 55);
-              Style: $S.@SmallCyanButtonStyle;
+              Style: $S.@ButtonStyle;
             }
           }
 
@@ -139,15 +139,15 @@ $C.@PageOverlay {
               FlexWeight: 1;
             }
             TextButton #DescEditBtn {
-              Text: "EDIT";
+              Text: "Edit";
               Anchor: (Height: 26, Width: 55);
-              Style: $S.@SmallCyanButtonStyle;
+              Style: $S.@ButtonStyle;
             }
           }
 
           // APPEARANCE SECTION
           Label {
-            Text: "APPEARANCE";
+            Text: "Appearance";
             Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
             Anchor: (Height: 18, Bottom: 4);
           }
@@ -182,15 +182,15 @@ $C.@PageOverlay {
             }
 
             TextButton #ColorBtn {
-              Text: "CHANGE";
+              Text: "Change";
               Anchor: (Height: 26, Width: 70);
-              Style: $S.@SmallCyanButtonStyle;
+              Style: $S.@ButtonStyle;
             }
           }
 
           // RECRUITMENT SECTION
           Label {
-            Text: "RECRUITMENT";
+            Text: "Recruitment";
             Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
             Anchor: (Height: 18, Bottom: 4);
           }
@@ -217,15 +217,15 @@ $C.@PageOverlay {
             }
 
             TextButton #RecruitmentBtn {
-              Text: "CHANGE";
+              Text: "Change";
               Anchor: (Height: 26, Width: 70);
-              Style: $S.@SmallCyanButtonStyle;
+              Style: $S.@ButtonStyle;
             }
           }
 
           // HOME LOCATION SECTION
           Label {
-            Text: "HOME LOCATION";
+            Text: "Home Location";
             Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
             Anchor: (Height: 18, Bottom: 4);
           }
@@ -258,15 +258,15 @@ $C.@PageOverlay {
             Label { Anchor: (Width: 70); }
 
             TextButton #ClearHomeBtn {
-              Text: "CLEAR HOME";
+              Text: "Clear Home";
               Anchor: (Height: 26, Width: 100);
-              Style: $S.@SmallRedButtonStyle;
+              Style: $S.@RedButtonStyle;
             }
           }
 
           // DANGER ZONE
           Label {
-            Text: "DANGER ZONE";
+            Text: "Danger Zone";
             Style: (FontSize: 11, TextColor: #FF5555, RenderBold: true);
             Anchor: (Height: 18, Bottom: 4);
           }
@@ -281,9 +281,9 @@ $C.@PageOverlay {
             LayoutMode: Left;
 
             TextButton #DisbandBtn {
-              Text: "DISBAND FACTION";
+              Text: "Disband Faction";
               Anchor: (Height: 28, Width: 140);
-              Style: $S.@SmallRedButtonStyle;
+              Style: $S.@RedButtonStyle;
             }
           }
         }
@@ -303,7 +303,7 @@ $C.@PageOverlay {
 
           // === TERRITORY PERMISSIONS SECTION ===
           Label {
-            Text: "TERRITORY PERMISSIONS";
+            Text: "Territory Permissions";
             Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
             Anchor: (Height: 18, Bottom: 4);
           }
@@ -320,17 +320,17 @@ $C.@PageOverlay {
 
             Label { Anchor: (Width: 90); }
             Label {
-              Text: "BREAK";
+              Text: "Break";
               Style: (FontSize: 10, TextColor: #888888, RenderBold: true, HorizontalAlignment: Center);
               Anchor: (Width: 55);
             }
             Label {
-              Text: "PLACE";
+              Text: "Place";
               Style: (FontSize: 10, TextColor: #888888, RenderBold: true, HorizontalAlignment: Center);
               Anchor: (Width: 55);
             }
             Label {
-              Text: "INTERACT";
+              Text: "Interact";
               Style: (FontSize: 10, TextColor: #888888, RenderBold: true, HorizontalAlignment: Center);
               Anchor: (Width: 70);
             }
@@ -349,21 +349,21 @@ $C.@PageOverlay {
               Anchor: (Width: 84);
             }
             TextButton #OutsiderBreakToggle {
-              Text: "OFF";
+              Text: "Off";
               Anchor: (Width: 45, Height: 24);
-              Style: $S.@SmallButtonStyle;
+              Style: $S.@ButtonStyle;
             }
             Group { Anchor: (Width: 10); }
             TextButton #OutsiderPlaceToggle {
-              Text: "OFF";
+              Text: "Off";
               Anchor: (Width: 45, Height: 24);
-              Style: $S.@SmallButtonStyle;
+              Style: $S.@ButtonStyle;
             }
             Group { Anchor: (Width: 10); }
             TextButton #OutsiderInteractToggle {
-              Text: "OFF";
+              Text: "Off";
               Anchor: (Width: 60, Height: 24);
-              Style: $S.@SmallButtonStyle;
+              Style: $S.@ButtonStyle;
             }
           }
 
@@ -380,21 +380,21 @@ $C.@PageOverlay {
               Anchor: (Width: 84);
             }
             TextButton #AllyBreakToggle {
-              Text: "OFF";
+              Text: "Off";
               Anchor: (Width: 45, Height: 24);
-              Style: $S.@SmallButtonStyle;
+              Style: $S.@ButtonStyle;
             }
             Group { Anchor: (Width: 10); }
             TextButton #AllyPlaceToggle {
-              Text: "OFF";
+              Text: "Off";
               Anchor: (Width: 45, Height: 24);
-              Style: $S.@SmallButtonStyle;
+              Style: $S.@ButtonStyle;
             }
             Group { Anchor: (Width: 10); }
             TextButton #AllyInteractToggle {
-              Text: "OFF";
+              Text: "Off";
               Anchor: (Width: 60, Height: 24);
-              Style: $S.@SmallButtonStyle;
+              Style: $S.@ButtonStyle;
             }
           }
 
@@ -411,27 +411,27 @@ $C.@PageOverlay {
               Anchor: (Width: 84);
             }
             TextButton #MemberBreakToggle {
-              Text: "ON";
+              Text: "On";
               Anchor: (Width: 45, Height: 24);
-              Style: $S.@SmallButtonStyle;
+              Style: $S.@ButtonStyle;
             }
             Group { Anchor: (Width: 10); }
             TextButton #MemberPlaceToggle {
-              Text: "ON";
+              Text: "On";
               Anchor: (Width: 45, Height: 24);
-              Style: $S.@SmallButtonStyle;
+              Style: $S.@ButtonStyle;
             }
             Group { Anchor: (Width: 10); }
             TextButton #MemberInteractToggle {
-              Text: "ON";
+              Text: "On";
               Anchor: (Width: 60, Height: 24);
-              Style: $S.@SmallButtonStyle;
+              Style: $S.@ButtonStyle;
             }
           }
 
           // === COMBAT SECTION ===
           Label {
-            Text: "COMBAT";
+            Text: "Combat";
             Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
             Anchor: (Height: 18, Bottom: 4);
           }
@@ -453,9 +453,9 @@ $C.@PageOverlay {
               Anchor: (Width: 140);
             }
             TextButton #PvPToggle {
-              Text: "ON";
+              Text: "On";
               Anchor: (Width: 60, Height: 24);
-              Style: $S.@SmallButtonStyle;
+              Style: $S.@ButtonStyle;
             }
             Label #PvPStatus {
               Text: "Enabled";
@@ -467,7 +467,7 @@ $C.@PageOverlay {
 
           // === ACCESS CONTROL SECTION ===
           Label {
-            Text: "ACCESS CONTROL";
+            Text: "Access Control";
             Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
             Anchor: (Height: 18, Bottom: 4);
           }
@@ -489,9 +489,9 @@ $C.@PageOverlay {
               Anchor: (Width: 140);
             }
             TextButton #OfficersCanEditToggle {
-              Text: "OFF";
+              Text: "Off";
               Anchor: (Width: 60, Height: 24);
-              Style: $S.@SmallButtonStyle;
+              Style: $S.@ButtonStyle;
             }
           }
         }
@@ -505,9 +505,9 @@ $C.@PageOverlay {
         Label { FlexWeight: 1; }
 
         TextButton #BackBtn {
-          Text: "BACK TO INFO";
+          Text: "Back to Info";
           Anchor: (Height: 32, Width: 130);
-          Style: $S.@SmallButtonStyle;
+          Style: $S.@ButtonStyle;
         }
       }
     }

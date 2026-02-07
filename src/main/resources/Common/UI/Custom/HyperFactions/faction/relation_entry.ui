@@ -36,7 +36,7 @@ Group {
 
     Label { Anchor: (Height: 10); }
     Label #RelationType {
-      Text: "ALLY";
+      Text: "Ally";
       Style: (FontSize: 11, TextColor: #888888, VerticalAlignment: Center, HorizontalAlignment: Center);
       Anchor: (Height: 20);
     }

@@ -71,17 +71,17 @@ Group {
     Anchor: (Height: 32, Top: 8);
 
     TextButton #AcceptBtn {
-      Text: "ACCEPT";
+      Text: "Accept";
       Anchor: (Height: 28, Width: 100);
-      Style: $S.@SmallGreenButtonStyle;
+      Style: $S.@ButtonStyle;
     }
 
     Label { Anchor: (Width: 10); }
 
     TextButton #DeclineBtn {
-      Text: "DECLINE";
+      Text: "Decline";
       Anchor: (Height: 28, Width: 100);
-      Style: $S.@SmallRedButtonStyle;
+      Style: $S.@RedButtonStyle;
     }
   }
 }

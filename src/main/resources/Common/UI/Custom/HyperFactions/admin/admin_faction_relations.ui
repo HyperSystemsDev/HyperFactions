@@ -48,9 +48,9 @@ $C.@PageOverlay {
         Group { FlexWeight: 1; }
 
         TextButton #BackBtn {
-          Text: "BACK";
+          Text: "Back";
           Anchor: (Height: 24, Width: 60);
-          Style: $S.@SmallButtonStyle;
+          Style: $S.@ButtonStyle;
         }
       }
 
@@ -70,7 +70,7 @@ $C.@PageOverlay {
           }
 
           Label #AlliesHeader {
-            Text: "ALLIES (0)";
+            Text: "Allies (0)";
             Style: (FontSize: 12, TextColor: #00AAFF, RenderBold: true);
             Anchor: (Height: 22, Bottom: 6);
           }
@@ -87,7 +87,7 @@ $C.@PageOverlay {
           }
 
           Label #EnemiesHeader {
-            Text: "ENEMIES (0)";
+            Text: "Enemies (0)";
             Style: (FontSize: 12, TextColor: #FF5555, RenderBold: true);
             Anchor: (Height: 22, Bottom: 6);
           }
@@ -108,7 +108,7 @@ $C.@PageOverlay {
             LayoutMode: Left;
 
             Label {
-              Text: "SET NEW RELATION";
+              Text: "Set New Relation";
               Style: (FontSize: 12, TextColor: #888888, RenderBold: true, VerticalAlignment: Center);
             }
 

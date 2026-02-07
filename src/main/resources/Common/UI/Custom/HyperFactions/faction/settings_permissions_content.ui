@@ -2,6 +2,7 @@
 // Permission matrix for territory access control
 // This file is appended directly to #PermissionsContent container
 
+$C = "../../Common.ui";
 $S = "../shared/styles.ui";
 
 Group {
@@ -9,7 +10,7 @@ Group {
 
   // === TERRITORY PERMISSIONS SECTION ===
   Label {
-    Text: "TERRITORY PERMISSIONS";
+    Text: "Territory Permissions";
     Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
     Anchor: (Height: 18, Bottom: 8);
   }
@@ -26,17 +27,17 @@ Group {
 
     Label { Anchor: (Width: 120); }
     Label {
-      Text: "BREAK";
+      Text: "Break";
       Style: (FontSize: 11, TextColor: #888888, RenderBold: true, HorizontalAlignment: Center);
       Anchor: (Width: 70);
     }
     Label {
-      Text: "PLACE";
+      Text: "Place";
       Style: (FontSize: 11, TextColor: #888888, RenderBold: true, HorizontalAlignment: Center);
       Anchor: (Width: 70);
     }
     Label {
-      Text: "INTERACT";
+      Text: "Interact";
       Style: (FontSize: 11, TextColor: #888888, RenderBold: true, HorizontalAlignment: Center);
       Anchor: (Width: 90);
     }
@@ -57,19 +58,19 @@ Group {
     TextButton #OutsiderBreakToggle {
       Text: "X";
       Anchor: (Width: 50, Height: 28);
-      Style: $S.@SmallRedButtonStyle;
+      Style: $S.@RedButtonStyle;
     }
     Group { Anchor: (Width: 20); }
     TextButton #OutsiderPlaceToggle {
       Text: "X";
       Anchor: (Width: 50, Height: 28);
-      Style: $S.@SmallRedButtonStyle;
+      Style: $S.@RedButtonStyle;
     }
     Group { Anchor: (Width: 20); }
     TextButton #OutsiderInteractToggle {
       Text: "X";
       Anchor: (Width: 70, Height: 28);
-      Style: $S.@SmallRedButtonStyle;
+      Style: $S.@RedButtonStyle;
     }
   }
 
@@ -88,19 +89,19 @@ Group {
     TextButton #AllyBreakToggle {
       Text: "X";
       Anchor: (Width: 50, Height: 28);
-      Style: $S.@SmallRedButtonStyle;
+      Style: $S.@RedButtonStyle;
     }
     Group { Anchor: (Width: 20); }
     TextButton #AllyPlaceToggle {
       Text: "X";
       Anchor: (Width: 50, Height: 28);
-      Style: $S.@SmallRedButtonStyle;
+      Style: $S.@RedButtonStyle;
     }
     Group { Anchor: (Width: 20); }
     TextButton #AllyInteractToggle {
       Text: "X";
       Anchor: (Width: 70, Height: 28);
-      Style: $S.@SmallRedButtonStyle;
+      Style: $S.@RedButtonStyle;
     }
   }
 
@@ -119,25 +120,25 @@ Group {
     TextButton #MemberBreakToggle {
       Text: "X";
       Anchor: (Width: 50, Height: 28);
-      Style: $S.@SmallRedButtonStyle;
+      Style: $S.@RedButtonStyle;
     }
     Group { Anchor: (Width: 20); }
     TextButton #MemberPlaceToggle {
       Text: "X";
       Anchor: (Width: 50, Height: 28);
-      Style: $S.@SmallRedButtonStyle;
+      Style: $S.@RedButtonStyle;
     }
     Group { Anchor: (Width: 20); }
     TextButton #MemberInteractToggle {
       Text: "X";
       Anchor: (Width: 70, Height: 28);
-      Style: $S.@SmallRedButtonStyle;
+      Style: $S.@RedButtonStyle;
     }
   }
 
   // === COMBAT SECTION ===
   Label {
-    Text: "COMBAT";
+    Text: "Combat";
     Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
     Anchor: (Height: 18, Bottom: 8);
   }
@@ -162,7 +163,7 @@ Group {
     TextButton #PvPToggle {
       Text: "X";
       Anchor: (Width: 80, Height: 28);
-      Style: $S.@SmallRedButtonStyle;
+      Style: $S.@RedButtonStyle;
     }
     Label #PvPStatus {
       Text: "Enabled";
@@ -177,7 +178,7 @@ Group {
     LayoutMode: Top;
 
     Label {
-      Text: "ACCESS CONTROL";
+      Text: "Access Control";
       Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
       Anchor: (Height: 18, Bottom: 8);
     }
@@ -208,7 +209,7 @@ Group {
       TextButton #OfficersCanEditToggle {
         Text: "X";
         Anchor: (Width: 80, Height: 28);
-        Style: $S.@SmallRedButtonStyle;
+        Style: $S.@RedButtonStyle;
       }
     }
   }

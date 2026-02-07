@@ -1,4 +1,5 @@
 // Member Entry - Expandable
+$C = "../../Common.ui";
 $S = "../shared/styles.ui";
 
 Group {
@@ -132,33 +133,33 @@ Group {
       Anchor: (Height: 32);
 
       TextButton #PromoteBtn {
-        Text: "PROMOTE";
+        Text: "Promote";
         Anchor: (Height: 28, Width: 80);
-        Style: $S.@SmallGreenButtonStyle;
+        Style: $S.@ButtonStyle;
       }
 
       Group #PromoteSpacer { Anchor: (Width: 6); }
 
       TextButton #DemoteBtn {
-        Text: "DEMOTE";
+        Text: "Demote";
         Anchor: (Height: 28, Width: 75);
-        Style: $S.@SmallButtonStyle;
+        Style: $S.@ButtonStyle;
       }
 
       Group #DemoteSpacer { Anchor: (Width: 6); }
 
       TextButton #KickBtn {
-        Text: "KICK";
+        Text: "Kick";
         Anchor: (Height: 28, Width: 55);
-        Style: $S.@SmallRedButtonStyle;
+        Style: $S.@RedButtonStyle;
       }
 
       Group #KickSpacer { Anchor: (Width: 6); }
 
       TextButton #TransferBtn {
-        Text: "MAKE LEADER";
+        Text: "Make Leader";
         Anchor: (Height: 28, Width: 105);
-        Style: $S.@SmallCyanButtonStyle;
+        Style: $S.@ButtonStyle;
       }
 
       Group { FlexWeight: 1; }

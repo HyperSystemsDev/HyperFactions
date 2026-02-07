@@ -76,10 +76,10 @@ public class FactionModulesPage extends InteractiveCustomUIPage<FactionModulesDa
 
             // Set status badge
             if (module.available) {
-                cmd.set(cardSelector + " #StatusBadge.Text", "AVAILABLE");
+                cmd.set(cardSelector + " #StatusBadge.Text", "Available");
                 cmd.set(cardSelector + " #StatusBadge.Style.TextColor", "#22c55e");
             } else {
-                cmd.set(cardSelector + " #StatusBadge.Text", "COMING SOON");
+                cmd.set(cardSelector + " #StatusBadge.Text", "Coming Soon");
                 cmd.set(cardSelector + " #StatusBadge.Style.TextColor", "#888888");
             }
 

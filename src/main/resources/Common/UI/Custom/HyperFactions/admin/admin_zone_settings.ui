@@ -38,7 +38,7 @@ $C.@PageOverlay {
         Label { Anchor: (Width: 12); }
 
         Label #ZoneType {
-          Text: "SAFE";
+          Text: "Safe";
           Style: (FontSize: 12, TextColor: #2dd4bf, RenderBold: true, VerticalAlignment: Center);
         }
 
@@ -77,7 +77,7 @@ $C.@PageOverlay {
             Group {
               Anchor: (Height: 18, Bottom: 4);
               Label {
-                Text: "COMBAT";
+                Text: "Combat";
                 Style: (FontSize: 11, TextColor: #00AAAA, RenderBold: true);
               }
             }
@@ -98,9 +98,9 @@ $C.@PageOverlay {
                 Anchor: (Width: 55);
               }
               TextButton #Flag0Toggle {
-                Text: "OFF";
+                Text: "Off";
                 Anchor: (Height: 20, Width: 44);
-                Style: $S.@SmallButtonStyle;
+                Style: $S.@ButtonStyle;
               }
             }
 
@@ -120,9 +120,9 @@ $C.@PageOverlay {
                 Anchor: (Width: 55);
               }
               TextButton #Flag1Toggle {
-                Text: "OFF";
+                Text: "Off";
                 Anchor: (Height: 20, Width: 44);
-                Style: $S.@SmallButtonStyle;
+                Style: $S.@ButtonStyle;
               }
             }
 
@@ -142,9 +142,9 @@ $C.@PageOverlay {
                 Anchor: (Width: 55);
               }
               TextButton #Flag2Toggle {
-                Text: "OFF";
+                Text: "Off";
                 Anchor: (Height: 20, Width: 44);
-                Style: $S.@SmallButtonStyle;
+                Style: $S.@ButtonStyle;
               }
             }
 
@@ -164,9 +164,9 @@ $C.@PageOverlay {
                 Anchor: (Width: 55);
               }
               TextButton #Flag3Toggle {
-                Text: "OFF";
+                Text: "Off";
                 Anchor: (Height: 20, Width: 44);
-                Style: $S.@SmallButtonStyle;
+                Style: $S.@ButtonStyle;
               }
             }
           }
@@ -181,7 +181,7 @@ $C.@PageOverlay {
             Group {
               Anchor: (Height: 18, Bottom: 4);
               Label {
-                Text: "DAMAGE";
+                Text: "Damage";
                 Style: (FontSize: 11, TextColor: #00AAAA, RenderBold: true);
               }
             }
@@ -202,9 +202,9 @@ $C.@PageOverlay {
                 Anchor: (Width: 55);
               }
               TextButton #Flag4Toggle {
-                Text: "OFF";
+                Text: "Off";
                 Anchor: (Height: 20, Width: 44);
-                Style: $S.@SmallButtonStyle;
+                Style: $S.@ButtonStyle;
               }
             }
 
@@ -224,9 +224,9 @@ $C.@PageOverlay {
                 Anchor: (Width: 55);
               }
               TextButton #Flag5Toggle {
-                Text: "OFF";
+                Text: "Off";
                 Anchor: (Height: 20, Width: 44);
-                Style: $S.@SmallButtonStyle;
+                Style: $S.@ButtonStyle;
               }
             }
           }
@@ -241,7 +241,7 @@ $C.@PageOverlay {
             Group {
               Anchor: (Height: 18, Bottom: 4);
               Label {
-                Text: "DEATH";
+                Text: "Death";
                 Style: (FontSize: 11, TextColor: #00AAAA, RenderBold: true);
               }
             }
@@ -262,9 +262,9 @@ $C.@PageOverlay {
                 Anchor: (Width: 55);
               }
               TextButton #Flag6Toggle {
-                Text: "OFF";
+                Text: "Off";
                 Anchor: (Height: 20, Width: 44);
-                Style: $S.@SmallButtonStyle;
+                Style: $S.@ButtonStyle;
               }
             }
           }
@@ -279,7 +279,7 @@ $C.@PageOverlay {
             Group {
               Anchor: (Height: 18, Bottom: 4);
               Label {
-                Text: "BUILDING";
+                Text: "Building";
                 Style: (FontSize: 11, TextColor: #00AAAA, RenderBold: true);
               }
             }
@@ -300,9 +300,9 @@ $C.@PageOverlay {
                 Anchor: (Width: 55);
               }
               TextButton #Flag7Toggle {
-                Text: "OFF";
+                Text: "Off";
                 Anchor: (Height: 20, Width: 44);
-                Style: $S.@SmallButtonStyle;
+                Style: $S.@ButtonStyle;
               }
             }
           }
@@ -317,7 +317,7 @@ $C.@PageOverlay {
             Group {
               Anchor: (Height: 18, Bottom: 4);
               Label {
-                Text: "ITEMS";
+                Text: "Items";
                 Style: (FontSize: 11, TextColor: #00AAAA, RenderBold: true);
               }
             }
@@ -338,9 +338,9 @@ $C.@PageOverlay {
                 Anchor: (Width: 55);
               }
               TextButton #Flag8Toggle {
-                Text: "ON";
+                Text: "On";
                 Anchor: (Height: 20, Width: 44);
-                Style: $S.@SmallButtonStyle;
+                Style: $S.@ButtonStyle;
               }
             }
 
@@ -360,9 +360,9 @@ $C.@PageOverlay {
                 Anchor: (Width: 55);
               }
               TextButton #Flag9Toggle {
-                Text: "ON";
+                Text: "On";
                 Anchor: (Height: 20, Width: 44);
-                Style: $S.@SmallButtonStyle;
+                Style: $S.@ButtonStyle;
               }
             }
 
@@ -382,9 +382,9 @@ $C.@PageOverlay {
                 Anchor: (Width: 55);
               }
               TextButton #Flag10Toggle {
-                Text: "ON";
+                Text: "On";
                 Anchor: (Height: 20, Width: 44);
-                Style: $S.@SmallButtonStyle;
+                Style: $S.@ButtonStyle;
               }
             }
 
@@ -404,9 +404,9 @@ $C.@PageOverlay {
                 Anchor: (Width: 55);
               }
               TextButton #Flag11Toggle {
-                Text: "OFF";
+                Text: "Off";
                 Anchor: (Height: 20, Width: 44);
-                Style: $S.@SmallButtonStyle;
+                Style: $S.@ButtonStyle;
               }
             }
           }
@@ -428,7 +428,7 @@ $C.@PageOverlay {
             Group {
               Anchor: (Height: 18, Bottom: 0);
               Label {
-                Text: "INTERACTION";
+                Text: "Interaction";
                 Style: (FontSize: 11, TextColor: #00AAAA, RenderBold: true);
               }
             }
@@ -456,9 +456,9 @@ $C.@PageOverlay {
                 Anchor: (Width: 55);
               }
               TextButton #Flag12Toggle {
-                Text: "ON";
+                Text: "On";
                 Anchor: (Height: 20, Width: 44);
-                Style: $S.@SmallButtonStyle;
+                Style: $S.@ButtonStyle;
               }
             }
 
@@ -479,9 +479,9 @@ $C.@PageOverlay {
                 Anchor: (Width: 55);
               }
               TextButton #Flag13Toggle {
-                Text: "ON";
+                Text: "On";
                 Anchor: (Height: 20, Width: 44);
-                Style: $S.@SmallButtonStyle;
+                Style: $S.@ButtonStyle;
               }
             }
 
@@ -502,9 +502,9 @@ $C.@PageOverlay {
                 Anchor: (Width: 55);
               }
               TextButton #Flag14Toggle {
-                Text: "ON";
+                Text: "On";
                 Anchor: (Height: 20, Width: 44);
-                Style: $S.@SmallButtonStyle;
+                Style: $S.@ButtonStyle;
               }
             }
 
@@ -525,9 +525,9 @@ $C.@PageOverlay {
                 Anchor: (Width: 55);
               }
               TextButton #Flag15Toggle {
-                Text: "ON";
+                Text: "On";
                 Anchor: (Height: 20, Width: 44);
-                Style: $S.@SmallButtonStyle;
+                Style: $S.@ButtonStyle;
               }
             }
 
@@ -548,9 +548,9 @@ $C.@PageOverlay {
                 Anchor: (Width: 55);
               }
               TextButton #Flag16Toggle {
-                Text: "ON";
+                Text: "On";
                 Anchor: (Height: 20, Width: 44);
-                Style: $S.@SmallButtonStyle;
+                Style: $S.@ButtonStyle;
               }
             }
 
@@ -571,9 +571,9 @@ $C.@PageOverlay {
                 Anchor: (Width: 55);
               }
               TextButton #Flag17Toggle {
-                Text: "ON";
+                Text: "On";
                 Anchor: (Height: 20, Width: 44);
-                Style: $S.@SmallButtonStyle;
+                Style: $S.@ButtonStyle;
               }
             }
           }
@@ -588,7 +588,7 @@ $C.@PageOverlay {
             Group {
               Anchor: (Height: 18, Bottom: 0);
               Label {
-                Text: "MOB SPAWNING";
+                Text: "Mob Spawning";
                 Style: (FontSize: 11, TextColor: #00AAAA, RenderBold: true);
               }
             }
@@ -616,9 +616,9 @@ $C.@PageOverlay {
                 Anchor: (Width: 55);
               }
               TextButton #Flag18Toggle {
-                Text: "ON";
+                Text: "On";
                 Anchor: (Height: 20, Width: 44);
-                Style: $S.@SmallButtonStyle;
+                Style: $S.@ButtonStyle;
               }
             }
 
@@ -639,9 +639,9 @@ $C.@PageOverlay {
                 Anchor: (Width: 55);
               }
               TextButton #Flag19Toggle {
-                Text: "ON";
+                Text: "On";
                 Anchor: (Height: 20, Width: 44);
-                Style: $S.@SmallButtonStyle;
+                Style: $S.@ButtonStyle;
               }
             }
 
@@ -662,9 +662,9 @@ $C.@PageOverlay {
                 Anchor: (Width: 55);
               }
               TextButton #Flag20Toggle {
-                Text: "ON";
+                Text: "On";
                 Anchor: (Height: 20, Width: 44);
-                Style: $S.@SmallButtonStyle;
+                Style: $S.@ButtonStyle;
               }
             }
 
@@ -685,9 +685,9 @@ $C.@PageOverlay {
                 Anchor: (Width: 55);
               }
               TextButton #Flag21Toggle {
-                Text: "ON";
+                Text: "On";
                 Anchor: (Height: 20, Width: 44);
-                Style: $S.@SmallButtonStyle;
+                Style: $S.@ButtonStyle;
               }
             }
 
@@ -708,9 +708,9 @@ $C.@PageOverlay {
                 Anchor: (Width: 55);
               }
               TextButton #Flag22Toggle {
-                Text: "ON";
+                Text: "On";
                 Anchor: (Height: 20, Width: 44);
-                Style: $S.@SmallButtonStyle;
+                Style: $S.@ButtonStyle;
               }
             }
           }
@@ -723,17 +723,17 @@ $C.@PageOverlay {
         LayoutMode: Left;
 
         TextButton #ResetBtn {
-          Text: "RESET TO DEFAULTS";
+          Text: "Reset to Defaults";
           Anchor: (Height: 32, Width: 150);
-          Style: $S.@SmallRedButtonStyle;
+          Style: $S.@RedButtonStyle;
         }
 
         Label { FlexWeight: 1; }
 
         TextButton #BackBtn {
-          Text: "BACK TO ZONES";
+          Text: "Back to Zones";
           Anchor: (Height: 32, Width: 130);
-          Style: $S.@SmallButtonStyle;
+          Style: $S.@ButtonStyle;
         }
       }
     }

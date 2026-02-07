@@ -234,10 +234,10 @@ public class FactionInvitesPage extends InteractiveCustomUIPage<FactionPageData>
 
         // Type badge
         if (item.isOutgoing) {
-            cmd.set(idx + " #TypeLabel.Text", "OUTGOING");
+            cmd.set(idx + " #TypeLabel.Text", "Outgoing");
             cmd.set(idx + " #TypeLabel.Style.TextColor", "#55FFFF");
         } else {
-            cmd.set(idx + " #TypeLabel.Text", "REQUEST");
+            cmd.set(idx + " #TypeLabel.Text", "Request");
             cmd.set(idx + " #TypeLabel.Style.TextColor", "#FFAA00");
         }
 

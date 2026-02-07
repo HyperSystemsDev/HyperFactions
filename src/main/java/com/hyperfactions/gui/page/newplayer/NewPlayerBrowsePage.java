@@ -266,10 +266,10 @@ public class NewPlayerBrowsePage extends InteractiveCustomUIPage<NewPlayerPageDa
 
         // Recruitment badge
         if (entry.isOpen) {
-            cmd.set(idx + " #RecruitmentBadge.Text", "OPEN");
+            cmd.set(idx + " #RecruitmentBadge.Text", "Open");
             cmd.set(idx + " #RecruitmentBadge.Style.TextColor", "#44CC44");
         } else {
-            cmd.set(idx + " #RecruitmentBadge.Text", "INVITE ONLY");
+            cmd.set(idx + " #RecruitmentBadge.Text", "Invite Only");
             cmd.set(idx + " #RecruitmentBadge.Style.TextColor", "#FFAA00");
         }
 
@@ -309,7 +309,7 @@ public class NewPlayerBrowsePage extends InteractiveCustomUIPage<NewPlayerPageDa
             // Note: TextButtons can't have Style.TextColor changed dynamically - use button text to convey state
             if (hasInvite) {
                 // Player has pending invite - show ACCEPT button
-                cmd.set(idx + " #ActionBtn.Text", "ACCEPT");
+                cmd.set(idx + " #ActionBtn.Text", "Accept");
                 events.addEventBinding(
                         CustomUIEventBindingType.Activating,
                         idx + " #ActionBtn",
@@ -320,7 +320,7 @@ public class NewPlayerBrowsePage extends InteractiveCustomUIPage<NewPlayerPageDa
                 );
             } else if (hasRequest) {
                 // Player already requested - show PENDING button (goes to invites page)
-                cmd.set(idx + " #ActionBtn.Text", "PENDING");
+                cmd.set(idx + " #ActionBtn.Text", "Pending");
                 events.addEventBinding(
                         CustomUIEventBindingType.Activating,
                         idx + " #ActionBtn",
@@ -329,7 +329,7 @@ public class NewPlayerBrowsePage extends InteractiveCustomUIPage<NewPlayerPageDa
                 );
             } else if (entry.isOpen) {
                 // Open faction - JOIN button
-                cmd.set(idx + " #ActionBtn.Text", "JOIN");
+                cmd.set(idx + " #ActionBtn.Text", "Join");
                 events.addEventBinding(
                         CustomUIEventBindingType.Activating,
                         idx + " #ActionBtn",
@@ -340,7 +340,7 @@ public class NewPlayerBrowsePage extends InteractiveCustomUIPage<NewPlayerPageDa
                 );
             } else {
                 // Invite-only faction - REQUEST button
-                cmd.set(idx + " #ActionBtn.Text", "REQUEST");
+                cmd.set(idx + " #ActionBtn.Text", "Request");
                 events.addEventBinding(
                         CustomUIEventBindingType.Activating,
                         idx + " #ActionBtn",

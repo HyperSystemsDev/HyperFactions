@@ -1,10 +1,11 @@
+$C = "../../Common.ui";
 $S = "../shared/styles.ui";
 
 Group #DangerZone {
   LayoutMode: Top;
 
   Label {
-    Text: "DANGER ZONE";
+    Text: "Danger Zone";
     Style: (FontSize: 11, TextColor: #FF5555, RenderBold: true);
     Anchor: (Height: 18, Bottom: 4);
   }
@@ -37,9 +38,9 @@ Group #DangerZone {
     }
 
     TextButton #DisbandBtn {
-      Text: "DISBAND";
+      Text: "Disband";
       Anchor: (Height: 32, Width: 100);
-      Style: $S.@SmallRedButtonStyle;
+      Style: $S.@RedButtonStyle;
     }
   }
 }

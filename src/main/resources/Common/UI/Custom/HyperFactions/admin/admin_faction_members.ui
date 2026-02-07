@@ -50,25 +50,25 @@ $C.@PageOverlay {
         Group { FlexWeight: 1; }
 
         TextButton #SortByRole {
-          Text: "ROLE";
+          Text: "Role";
           Anchor: (Height: 24, Width: 60);
-          Style: $S.@SmallCyanButtonStyle;
+          Style: $S.@ButtonStyle;
         }
 
         Group { Anchor: (Width: 4); }
 
         TextButton #SortByOnline {
-          Text: "ONLINE";
+          Text: "Online";
           Anchor: (Height: 24, Width: 70);
-          Style: $S.@SmallButtonStyle;
+          Style: $S.@ButtonStyle;
         }
 
         Group { Anchor: (Width: 10); }
 
         TextButton #BackBtn {
-          Text: "BACK";
+          Text: "Back";
           Anchor: (Height: 24, Width: 60);
-          Style: $S.@SmallButtonStyle;
+          Style: $S.@ButtonStyle;
         }
       }
 

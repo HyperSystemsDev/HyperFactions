@@ -1,5 +1,6 @@
 // Faction Relation Entry - Expandable
 // Unified entry for allies, enemies, and pending requests
+$C = "../../Common.ui";
 $S = "../shared/styles.ui";
 
 Group {
@@ -40,7 +41,7 @@ Group {
         LayoutMode: Left;
 
         Label #RelationType {
-          Text: "ALLY";
+          Text: "Ally";
           Style: (FontSize: 10, TextColor: #00AAFF, RenderBold: true, VerticalAlignment: Center, HorizontalAlignment: Center);
         }
       }
@@ -98,43 +99,43 @@ Group {
 
       // For allies: NEUTRAL and ENEMY buttons
       TextButton #NeutralBtn {
-        Text: "NEUTRAL";
+        Text: "Neutral";
         Anchor: (Height: 28, Width: 80);
-        Style: $S.@SmallButtonStyle;
+        Style: $S.@ButtonStyle;
       }
 
       Group { Anchor: (Width: 8); }
 
       TextButton #EnemyBtn {
-        Text: "ENEMY";
+        Text: "Enemy";
         Anchor: (Height: 28, Width: 70);
-        Style: $S.@SmallRedButtonStyle;
+        Style: $S.@RedButtonStyle;
       }
 
       // For enemies: NEUTRAL and ALLY buttons
       TextButton #AllyBtn {
-        Text: "ALLY";
+        Text: "Ally";
         Anchor: (Height: 28, Width: 60);
-        Style: $S.@SmallCyanButtonStyle;
+        Style: $S.@ButtonStyle;
       }
 
       // For pending requests
       TextButton #AcceptBtn {
-        Text: "ACCEPT";
+        Text: "Accept";
         Anchor: (Height: 28, Width: 75);
-        Style: $S.@SmallGreenButtonStyle;
+        Style: $S.@ButtonStyle;
       }
 
       TextButton #DeclineBtn {
-        Text: "DECLINE";
+        Text: "Decline";
         Anchor: (Height: 28, Width: 80);
-        Style: $S.@SmallRedButtonStyle;
+        Style: $S.@RedButtonStyle;
       }
 
       TextButton #CancelBtn {
-        Text: "CANCEL";
+        Text: "Cancel";
         Anchor: (Height: 28, Width: 75);
-        Style: $S.@SmallRedButtonStyle;
+        Style: $S.@RedButtonStyle;
       }
 
       Group { FlexWeight: 1; }

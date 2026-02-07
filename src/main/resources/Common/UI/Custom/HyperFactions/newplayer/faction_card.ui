@@ -32,7 +32,7 @@ Group {
     }
 
     Label #RecruitmentBadge {
-      Text: "OPEN RECRUITMENT";
+      Text: "Open Recruitment";
       Style: (FontSize: 10, TextColor: #44CC44, RenderBold: true, VerticalAlignment: Center);
       Anchor: (Height: 14);
     }
@@ -65,9 +65,9 @@ Group {
     Padding: (Left: 0, Right: 0, Top: 8, Bottom: 0);
 
     TextButton #ActionBtn {
-      Text: "JOIN";
+      Text: "Join";
       Anchor: (Height: 32, Width: 75);
-      Style: $S.@SmallGreenButtonStyle;
+      Style: $S.@ButtonStyle;
     }
   }
 }

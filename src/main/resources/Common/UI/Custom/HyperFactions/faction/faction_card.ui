@@ -58,8 +58,8 @@ Group {
   Label { FlexWeight: 1; }
 
   TextButton #ViewBtn {
-    Text: "VIEW";
+    Text: "View";
     Anchor: (Height: 28, Width: 60);
-    Style: $S.@CyanButtonStyle;
+    Style: $S.@ButtonStyle;
   }
 }

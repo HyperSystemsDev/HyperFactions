@@ -169,7 +169,7 @@ public class CreateFactionPage extends InteractiveCustomUIPage<NewPlayerPageData
     private void buildPermissionToggle(UICommandBuilder cmd, UIEventBuilder events,
                                        String elementId, String permName, boolean value) {
         String selector = "#" + elementId;
-        cmd.set(selector + ".Text", value ? "ON" : "OFF");
+        cmd.set(selector + ".Text", value ? "On" : "Off");
         String color = value ? "#55FF55" : "#FF5555";
         cmd.set(selector + ".Style.Default.LabelStyle.TextColor", color);
         cmd.set(selector + ".Style.Hovered.LabelStyle.TextColor", color);
@@ -252,7 +252,7 @@ public class CreateFactionPage extends InteractiveCustomUIPage<NewPlayerPageData
         String elementId = permToElementId(permName);
         String selector = "#" + elementId;
         UICommandBuilder updateCmd = new UICommandBuilder();
-        updateCmd.set(selector + ".Text", newValue ? "ON" : "OFF");
+        updateCmd.set(selector + ".Text", newValue ? "On" : "Off");
         String color = newValue ? "#55FF55" : "#FF5555";
         updateCmd.set(selector + ".Style.Default.LabelStyle.TextColor", color);
         updateCmd.set(selector + ".Style.Hovered.LabelStyle.TextColor", color);

@@ -10,9 +10,9 @@ Group {
     LayoutMode: Left;
 
     TextButton #HomeBtn {
-      Text: "HOME";
+      Text: "Home";
       Anchor: (Height: 32, Width: 100);
-      Style: $S.@CyanButtonStyle;
+      Style: $S.@ButtonStyle;
     }
   }
 
@@ -22,7 +22,7 @@ Group {
     LayoutMode: Left;
 
     TextButton #LeaveBtn {
-      Text: "LEAVE";
+      Text: "Leave";
       Anchor: (Height: 32, Width: 100);
       Style: $S.@RedButtonStyle;
     }
@@ -30,7 +30,7 @@ Group {
     Label { FlexWeight: 1; }
 
     TextButton #DisbandBtn {
-      Text: "DISBAND";
+      Text: "Disband";
       Anchor: (Height: 32, Width: 100);
       Style: $S.@RedButtonStyle;
     }

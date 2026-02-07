@@ -12,7 +12,7 @@ Group {
     LayoutMode: Left;
 
     TextButton #BrowseFactionsBtn {
-      Text: "BROWSE FACTIONS";
+      Text: "Browse Factions";
       Anchor: (Height: 32, Width: 160);
       Style: $S.@ButtonStyle;
     }

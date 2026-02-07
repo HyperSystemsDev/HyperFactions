@@ -30,7 +30,7 @@ $C.@PageOverlay {
         Anchor: (Height: 120, Bottom: 20);
 
         Label {
-          Text: "WHAT ARE FACTIONS?";
+          Text: "What Are Factions?";
           Style: (FontSize: 13, TextColor: #00FFFF, RenderBold: true);
           Anchor: (Height: 22);
         }
@@ -72,7 +72,7 @@ $C.@PageOverlay {
         Anchor: (Height: 95, Bottom: 20);
 
         Label {
-          Text: "JOINING A FACTION";
+          Text: "Joining a Faction";
           Style: (FontSize: 13, TextColor: #00FFFF, RenderBold: true);
           Anchor: (Height: 22);
         }
@@ -108,7 +108,7 @@ $C.@PageOverlay {
         Anchor: (Height: 80, Bottom: 20);
 
         Label {
-          Text: "CREATING A FACTION";
+          Text: "Creating a Faction";
           Style: (FontSize: 13, TextColor: #00FFFF, RenderBold: true);
           Anchor: (Height: 22);
         }
@@ -138,7 +138,7 @@ $C.@PageOverlay {
         Anchor: (Height: 130, Bottom: 10);
 
         Label {
-          Text: "QUICK COMMANDS";
+          Text: "Quick Commands";
           Style: (FontSize: 13, TextColor: #00FFFF, RenderBold: true);
           Anchor: (Height: 22);
         }

@@ -8,7 +8,7 @@ Group {
   LayoutMode: Top;
 
   Label #StatTitle {
-    Text: "STAT";
+    Text: "Stat";
     Style: (FontSize: 11, TextColor: #666666, RenderBold: true);
     Anchor: (Height: 16);
   }

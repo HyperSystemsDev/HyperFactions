@@ -12,7 +12,7 @@ Group {
     LayoutMode: Left;
 
     TextButton #MapBtn {
-      Text: "VIEW MAP";
+      Text: "View Map";
       Anchor: (Height: 32, Width: 130);
       Style: $S.@ButtonStyle;
     }
@@ -20,9 +20,9 @@ Group {
     Label { Anchor: (Width: 10); }
 
     TextButton #ClaimBtn {
-      Text: "CLAIM CHUNK";
+      Text: "Claim Chunk";
       Anchor: (Height: 32, Width: 130);
-      Style: $S.@GreenButtonStyle;
+      Style: $S.@ButtonStyle;
     }
 
     Label { FlexWeight: 1; }

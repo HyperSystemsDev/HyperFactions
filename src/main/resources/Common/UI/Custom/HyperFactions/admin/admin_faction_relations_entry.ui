@@ -1,4 +1,5 @@
 // Admin Relation Entry - shows faction with action buttons
+$C = "../../Common.ui";
 $S = "../shared/styles.ui";
 
 Group {
@@ -35,24 +36,24 @@ Group {
 
   // Action buttons
   TextButton #SetAllyBtn {
-    Text: "ALLY";
+    Text: "Ally";
     Anchor: (Height: 22, Width: 50);
-    Style: $S.@SmallCyanButtonStyle;
+    Style: $S.@ButtonStyle;
   }
 
   Group { Anchor: (Width: 4); }
 
   TextButton #SetNeutralBtn {
-    Text: "NEUTRAL";
+    Text: "Neutral";
     Anchor: (Height: 22, Width: 65);
-    Style: $S.@SmallButtonStyle;
+    Style: $S.@ButtonStyle;
   }
 
   Group { Anchor: (Width: 4); }
 
   TextButton #SetEnemyBtn {
-    Text: "ENEMY";
+    Text: "Enemy";
     Anchor: (Height: 22, Width: 55);
-    Style: $S.@SmallRedButtonStyle;
+    Style: $S.@RedButtonStyle;
   }
 }

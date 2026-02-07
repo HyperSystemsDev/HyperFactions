@@ -30,7 +30,7 @@ $C.@PageOverlay {
 
         // ─── PREVIEW ──────────────────────────────────
         Label {
-          Text: "PREVIEW";
+          Text: "Preview";
           Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
           Anchor: (Height: 18, Bottom: 4);
         }
@@ -73,7 +73,7 @@ $C.@PageOverlay {
 
         // ─── BASIC INFO ───────────────────────────────
         Label {
-          Text: "BASIC INFO";
+          Text: "Basic Info";
           Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
           Anchor: (Height: 18, Bottom: 4);
         }
@@ -92,7 +92,7 @@ $C.@PageOverlay {
 
           // Faction Name
           Label {
-            Text: "FACTION NAME *";
+            Text: "Faction Name *";
             Style: (FontSize: 11, TextColor: #AAAAAA);
             Anchor: (Height: 16);
           }
@@ -121,7 +121,7 @@ $C.@PageOverlay {
 
         // ─── DETAILS ──────────────────────────────────
         Label {
-          Text: "DETAILS";
+          Text: "Details";
           Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
           Anchor: (Height: 18, Bottom: 4);
         }
@@ -155,7 +155,7 @@ $C.@PageOverlay {
             Anchor: (Height: 18, Bottom: 6);
 
             Label {
-              Text: "RECRUITMENT";
+              Text: "Recruitment";
               Style: (FontSize: 11, TextColor: #AAAAAA);
             }
 
@@ -173,7 +173,7 @@ $C.@PageOverlay {
             Anchor: (Height: 34);
 
             TextButton #InviteOnlyBtn {
-              Text: "INVITE ONLY";
+              Text: "Invite Only";
               Anchor: (Height: 32, Width: 180);
               Style: $C.@DefaultTextButtonStyle;
             }
@@ -181,7 +181,7 @@ $C.@PageOverlay {
             Label { FlexWeight: 1; }
 
             TextButton #OpenBtn {
-              Text: "OPEN";
+              Text: "Open";
               Anchor: (Height: 32, Width: 180);
               Style: $C.@DefaultTextButtonStyle;
             }
@@ -203,7 +203,7 @@ $C.@PageOverlay {
 
         // ─── FACTION COLOR ────────────────────────────
         Label {
-          Text: "FACTION COLOR";
+          Text: "Faction Color";
           Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
           Anchor: (Height: 18, Bottom: 4);
         }
@@ -221,7 +221,7 @@ $C.@PageOverlay {
 
         // ─── TERRITORY PERMISSIONS ────────────────────
         Label {
-          Text: "TERRITORY PERMISSIONS";
+          Text: "Territory Permissions";
           Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
           Anchor: (Height: 18, Bottom: 4);
         }
@@ -238,17 +238,17 @@ $C.@PageOverlay {
 
           Label { Anchor: (Width: 90); }
           Label {
-            Text: "BREAK";
+            Text: "Break";
             Style: (FontSize: 10, TextColor: #888888, RenderBold: true, HorizontalAlignment: Center);
             Anchor: (Width: 55);
           }
           Label {
-            Text: "PLACE";
+            Text: "Place";
             Style: (FontSize: 10, TextColor: #888888, RenderBold: true, HorizontalAlignment: Center);
             Anchor: (Width: 55);
           }
           Label {
-            Text: "INTERACT";
+            Text: "Interact";
             Style: (FontSize: 10, TextColor: #888888, RenderBold: true, HorizontalAlignment: Center);
             Anchor: (Width: 70);
           }
@@ -267,21 +267,21 @@ $C.@PageOverlay {
             Anchor: (Width: 84);
           }
           TextButton #OutsiderBreakToggle {
-            Text: "OFF";
+            Text: "Off";
             Anchor: (Width: 45, Height: 24);
-            Style: $S.@SmallButtonStyle;
+            Style: $S.@ButtonStyle;
           }
           Group { Anchor: (Width: 10); }
           TextButton #OutsiderPlaceToggle {
-            Text: "OFF";
+            Text: "Off";
             Anchor: (Width: 45, Height: 24);
-            Style: $S.@SmallButtonStyle;
+            Style: $S.@ButtonStyle;
           }
           Group { Anchor: (Width: 10); }
           TextButton #OutsiderInteractToggle {
-            Text: "OFF";
+            Text: "Off";
             Anchor: (Width: 60, Height: 24);
-            Style: $S.@SmallButtonStyle;
+            Style: $S.@ButtonStyle;
           }
         }
 
@@ -298,21 +298,21 @@ $C.@PageOverlay {
             Anchor: (Width: 84);
           }
           TextButton #AllyBreakToggle {
-            Text: "OFF";
+            Text: "Off";
             Anchor: (Width: 45, Height: 24);
-            Style: $S.@SmallButtonStyle;
+            Style: $S.@ButtonStyle;
           }
           Group { Anchor: (Width: 10); }
           TextButton #AllyPlaceToggle {
-            Text: "OFF";
+            Text: "Off";
             Anchor: (Width: 45, Height: 24);
-            Style: $S.@SmallButtonStyle;
+            Style: $S.@ButtonStyle;
           }
           Group { Anchor: (Width: 10); }
           TextButton #AllyInteractToggle {
-            Text: "OFF";
+            Text: "Off";
             Anchor: (Width: 60, Height: 24);
-            Style: $S.@SmallButtonStyle;
+            Style: $S.@ButtonStyle;
           }
         }
 
@@ -329,27 +329,27 @@ $C.@PageOverlay {
             Anchor: (Width: 84);
           }
           TextButton #MemberBreakToggle {
-            Text: "ON";
+            Text: "On";
             Anchor: (Width: 45, Height: 24);
-            Style: $S.@SmallButtonStyle;
+            Style: $S.@ButtonStyle;
           }
           Group { Anchor: (Width: 10); }
           TextButton #MemberPlaceToggle {
-            Text: "ON";
+            Text: "On";
             Anchor: (Width: 45, Height: 24);
-            Style: $S.@SmallButtonStyle;
+            Style: $S.@ButtonStyle;
           }
           Group { Anchor: (Width: 10); }
           TextButton #MemberInteractToggle {
-            Text: "ON";
+            Text: "On";
             Anchor: (Width: 60, Height: 24);
-            Style: $S.@SmallButtonStyle;
+            Style: $S.@ButtonStyle;
           }
         }
 
         // ─── COMBAT ───────────────────────────────────
         Label {
-          Text: "COMBAT";
+          Text: "Combat";
           Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
           Anchor: (Height: 18, Bottom: 4);
         }
@@ -371,9 +371,9 @@ $C.@PageOverlay {
             Anchor: (Width: 140);
           }
           TextButton #PvPToggle {
-            Text: "ON";
+            Text: "On";
             Anchor: (Width: 60, Height: 24);
-            Style: $S.@SmallButtonStyle;
+            Style: $S.@ButtonStyle;
           }
           Label #PvPStatus {
             Text: "Enabled";
@@ -394,7 +394,7 @@ $C.@PageOverlay {
           Label { FlexWeight: 1; }
 
           TextButton #CreateBtn {
-            Text: "CREATE FACTION";
+            Text: "Create Faction";
             Anchor: (Height: 40, Width: 240);
             Style: $C.@DefaultTextButtonStyle;
           }

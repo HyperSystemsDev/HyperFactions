@@ -28,33 +28,33 @@ $C.@PageOverlay {
         LayoutMode: Left;
 
         TextButton #TabAllies {
-          Text: "ALLIES";
+          Text: "Allies";
           Anchor: (Height: 26, Width: 65);
-          Style: $S.@SmallCyanButtonStyle;
+          Style: $S.@ButtonStyle;
         }
 
         Label { Anchor: (Width: 5); }
 
         TextButton #TabEnemies {
-          Text: "ENEMIES";
+          Text: "Enemies";
           Anchor: (Height: 26, Width: 75);
-          Style: $S.@SmallRedButtonStyle;
+          Style: $S.@RedButtonStyle;
         }
 
         Label { Anchor: (Width: 5); }
 
         TextButton #TabPending {
-          Text: "PENDING";
+          Text: "Pending";
           Anchor: (Height: 26, Width: 75);
-          Style: $S.@SmallButtonStyle;
+          Style: $S.@ButtonStyle;
         }
 
         Label { FlexWeight: 1; }
 
         TextButton #SetRelationBtn {
-          Text: "+ SET RELATION";
+          Text: "+ Set Relation";
           Anchor: (Height: 26, Width: 110);
-          Style: $S.@SmallGreenButtonStyle;
+          Style: $S.@ButtonStyle;
         }
       }
 
@@ -98,7 +98,7 @@ $C.@PageOverlay {
         LayoutMode: Left;
 
         TextButton #PrevBtn {
-          Text: "< PREV";
+          Text: "< Prev";
           Anchor: (Height: 26, Width: 80);
           Style: $S.@ButtonStyle;
         }
@@ -114,7 +114,7 @@ $C.@PageOverlay {
         Label { FlexWeight: 1; }
 
         TextButton #NextBtn {
-          Text: "NEXT >";
+          Text: "Next >";
           Anchor: (Height: 26, Width: 80);
           Style: $S.@ButtonStyle;
         }

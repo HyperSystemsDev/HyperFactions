@@ -51,10 +51,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Chunk color is visible behind the marker so you can see what territory type you're standing in
 - Legend updated to show "+" symbol for "You are here" entry
 
+**Backup Retention**
+- Configurable `backupRetentionDays` in backup config (default: 7)
+- Shutdown backups now automatically clean up backups older than the retention period
+- Setting to 0 disables automatic cleanup
+
 **Debug Tools**
 - New element test page (`/f admin testgui`) for CustomUI research and verification
 
 ### Changed
+
+**GUI Native UI Audit (Batch 1)**
+- Migrated all button styles from native `$C.@SecondaryTextButtonStyle` to custom `$S.@ButtonStyle` with controlled FontSize 13 across 90+ .ui files
+- Migrated destructive action buttons from `$C.@CancelTextButton` template to `TextButton` with `$S.@RedButtonStyle` across 28 files
+- Converted ALL CAPS button and label text to Title Case across all .ui templates and Java files
+- Cleaned up `styles.ui` — removed unused styles, consolidated definitions (260→260 lines, focused)
+- Settings danger zone now inlined in template (visibility toggle) instead of dynamic append
+- Settings container height increased from 620 to 680 for better content visibility
 
 - War zone color on all GUI maps changed from red to purple (`#c084fc`) for visual clarity
 - Admin zone map war zone colors updated to purple (bright and transparent variants)

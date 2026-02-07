@@ -9,7 +9,7 @@ $C.@PageOverlay {
   $Nav.@HyperFactionsNavBar #HyperFactionsNavBar {}
 
   $C.@DecoratedContainer {
-    Anchor: (Width: 600, Height: 620);
+    Anchor: (Width: 600, Height: 680);
 
     #Title {
       Group {
@@ -31,25 +31,25 @@ $C.@PageOverlay {
         Padding: (Left: 10, Right: 10, Top: 2, Bottom: 2);
 
         TextButton #TabGeneral {
-          Text: "GENERAL";
+          Text: "General";
           Anchor: (Width: 120, Height: 36);
-          Style: $S.@SmallCyanButtonStyle;
+          Style: $S.@ButtonStyle;
         }
 
         Group { Anchor: (Width: 4); }
 
         TextButton #TabPermissions {
-          Text: "PERMISSIONS";
+          Text: "Permissions";
           Anchor: (Width: 140, Height: 36);
-          Style: $S.@SmallCyanButtonStyle;
+          Style: $S.@ButtonStyle;
         }
 
         Group { Anchor: (Width: 4); }
 
         TextButton #TabMembers {
-          Text: "MEMBERS";
+          Text: "Members";
           Anchor: (Width: 120, Height: 36);
-          Style: $S.@SmallCyanButtonStyle;
+          Style: $S.@ButtonStyle;
         }
       }
 

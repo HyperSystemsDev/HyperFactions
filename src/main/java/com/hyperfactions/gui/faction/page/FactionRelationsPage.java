@@ -212,7 +212,7 @@ public class FactionRelationsPage extends InteractiveCustomUIPage<FactionRelatio
                 if (other != null) {
                     FactionMember leader = other.getLeader();
                     String leaderName = leader != null ? leader.username() : "Unknown";
-                    String typeText = targetType == RelationType.ALLY ? "ALLY" : "ENEMY";
+                    String typeText = targetType == RelationType.ALLY ? "Ally" : "Enemy";
                     items.add(new RelationItem(
                             other.id(),
                             other.name(),
@@ -245,7 +245,7 @@ public class FactionRelationsPage extends InteractiveCustomUIPage<FactionRelatio
                         requester.id(),
                         requester.name(),
                         leaderName,
-                        "INCOMING",
+                        "Incoming",
                         System.currentTimeMillis(),
                         true,
                         false
@@ -264,7 +264,7 @@ public class FactionRelationsPage extends InteractiveCustomUIPage<FactionRelatio
                         target.id(),
                         target.name(),
                         leaderName,
-                        "OUTGOING",
+                        "Outgoing",
                         System.currentTimeMillis(),
                         false,
                         true
@@ -293,10 +293,10 @@ public class FactionRelationsPage extends InteractiveCustomUIPage<FactionRelatio
         // Relation type badge with appropriate color
         cmd.set(idx + " #RelationType.Text", item.type);
         String typeColor = switch (item.type) {
-            case "ALLY" -> "#00AAFF";
-            case "ENEMY" -> "#FF5555";
-            case "INCOMING" -> "#FFAA00";
-            case "OUTGOING" -> "#88AAFF";
+            case "Ally" -> "#00AAFF";
+            case "Enemy" -> "#FF5555";
+            case "Incoming" -> "#FFAA00";
+            case "Outgoing" -> "#88AAFF";
             default -> "#888888";
         };
         cmd.set(idx + " #RelationType.Style.TextColor", typeColor);
@@ -335,7 +335,7 @@ public class FactionRelationsPage extends InteractiveCustomUIPage<FactionRelatio
                 boolean hasEnemy = PermissionManager.get().hasPermission(viewerUuid, Permissions.ENEMY);
                 boolean hasAlly = PermissionManager.get().hasPermission(viewerUuid, Permissions.ALLY);
 
-                if ("ALLY".equals(item.type)) {
+                if ("Ally".equals(item.type)) {
                     // For allies: NEUTRAL and ENEMY buttons (permission-gated)
                     if (hasNeutral) {
                         cmd.set(idx + " #NeutralBtn.Visible", true);
@@ -359,7 +359,7 @@ public class FactionRelationsPage extends InteractiveCustomUIPage<FactionRelatio
                                 false
                         );
                     }
-                } else if ("ENEMY".equals(item.type)) {
+                } else if ("Enemy".equals(item.type)) {
                     // For enemies: NEUTRAL and ALLY buttons (permission-gated)
                     if (hasNeutral) {
                         cmd.set(idx + " #NeutralBtn.Visible", true);

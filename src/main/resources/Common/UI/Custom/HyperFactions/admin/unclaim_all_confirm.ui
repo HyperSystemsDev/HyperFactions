@@ -55,7 +55,7 @@ $C.@PageOverlay {
         LayoutMode: Left;
 
         TextButton #CancelBtn {
-          Text: "CANCEL";
+          Text: "Cancel";
           Anchor: (Height: 32, Width: 120);
           Style: $S.@ButtonStyle;
         }
@@ -63,7 +63,7 @@ $C.@PageOverlay {
         Label { FlexWeight: 1; }
 
         TextButton #ConfirmBtn {
-          Text: "UNCLAIM ALL";
+          Text: "Unclaim All";
           Anchor: (Height: 32, Width: 130);
           Style: $S.@RedButtonStyle;
         }

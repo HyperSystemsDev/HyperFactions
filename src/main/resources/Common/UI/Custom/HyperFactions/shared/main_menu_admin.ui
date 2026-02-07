@@ -12,15 +12,15 @@ Group {
     LayoutMode: Left;
 
     TextButton #AdminPanelBtn {
-      Text: "ADMIN PANEL";
+      Text: "Admin Panel";
       Anchor: (Height: 32, Width: 130);
-      Style: $S.@GoldButtonStyle;
+      Style: $S.@ButtonStyle;
     }
 
     Label { Anchor: (Width: 10); }
 
     TextButton #ZonesBtn {
-      Text: "MANAGE ZONES";
+      Text: "Manage Zones";
       Anchor: (Height: 32, Width: 130);
       Style: $S.@ButtonStyle;
     }

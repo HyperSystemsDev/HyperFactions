@@ -74,15 +74,15 @@ $C.@PageOverlay {
               }
 
               Label #StatusBadge {
-                Text: "COMING SOON";
+                Text: "Coming Soon";
                 Style: (FontSize: 10, TextColor: #888888, RenderBold: true);
                 Anchor: (Height: 16, Bottom: 8);
               }
 
               TextButton #ModuleBtn {
-                Text: "CONFIGURE";
+                Text: "Configure";
                 Anchor: (Height: 26, Width: 100);
-                Style: $S.@SmallButtonStyle;
+                Style: $S.@ButtonStyle;
                 Visible: false;
               }
             }
@@ -121,15 +121,15 @@ $C.@PageOverlay {
               }
 
               Label #StatusBadge {
-                Text: "COMING SOON";
+                Text: "Coming Soon";
                 Style: (FontSize: 10, TextColor: #888888, RenderBold: true);
                 Anchor: (Height: 16, Bottom: 8);
               }
 
               TextButton #ModuleBtn {
-                Text: "CONFIGURE";
+                Text: "Configure";
                 Anchor: (Height: 26, Width: 100);
-                Style: $S.@SmallButtonStyle;
+                Style: $S.@ButtonStyle;
                 Visible: false;
               }
             }
@@ -172,15 +172,15 @@ $C.@PageOverlay {
               }
 
               Label #StatusBadge {
-                Text: "COMING SOON";
+                Text: "Coming Soon";
                 Style: (FontSize: 10, TextColor: #888888, RenderBold: true);
                 Anchor: (Height: 16, Bottom: 8);
               }
 
               TextButton #ModuleBtn {
-                Text: "CONFIGURE";
+                Text: "Configure";
                 Anchor: (Height: 26, Width: 100);
-                Style: $S.@SmallButtonStyle;
+                Style: $S.@ButtonStyle;
                 Visible: false;
               }
             }
@@ -219,15 +219,15 @@ $C.@PageOverlay {
               }
 
               Label #StatusBadge {
-                Text: "COMING SOON";
+                Text: "Coming Soon";
                 Style: (FontSize: 10, TextColor: #888888, RenderBold: true);
                 Anchor: (Height: 16, Bottom: 8);
               }
 
               TextButton #ModuleBtn {
-                Text: "CONFIGURE";
+                Text: "Configure";
                 Anchor: (Height: 26, Width: 100);
-                Style: $S.@SmallButtonStyle;
+                Style: $S.@ButtonStyle;
                 Visible: false;
               }
             }
@@ -241,7 +241,7 @@ $C.@PageOverlay {
         LayoutMode: Left;
 
         TextButton #BackBtn {
-          Text: "< BACK TO SETTINGS";
+          Text: "< Back to Settings";
           Anchor: (Height: 30, Width: 160);
           Style: $S.@ButtonStyle;
         }

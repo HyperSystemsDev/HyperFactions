@@ -1,5 +1,6 @@
 // Faction Invite/Request Entry - Expandable
 // Unified entry for both outgoing invites and incoming join requests
+$C = "../../Common.ui";
 $S = "../shared/styles.ui";
 
 Group {
@@ -40,7 +41,7 @@ Group {
         LayoutMode: Left;
 
         Label #TypeLabel {
-          Text: "OUTGOING";
+          Text: "Outgoing";
           Style: (FontSize: 10, TextColor: #55FFFF, RenderBold: true, VerticalAlignment: Center, HorizontalAlignment: Center);
         }
       }
@@ -115,24 +116,24 @@ Group {
 
       // For outgoing invites: Cancel button
       TextButton #CancelBtn {
-        Text: "CANCEL";
+        Text: "Cancel";
         Anchor: (Height: 28, Width: 75);
-        Style: $S.@SmallRedButtonStyle;
+        Style: $S.@RedButtonStyle;
       }
 
       // For requests: Accept and Decline buttons
       TextButton #AcceptBtn {
-        Text: "ACCEPT";
+        Text: "Accept";
         Anchor: (Height: 28, Width: 75);
-        Style: $S.@SmallGreenButtonStyle;
+        Style: $S.@ButtonStyle;
       }
 
       Group { Anchor: (Width: 8); }
 
       TextButton #DeclineBtn {
-        Text: "DECLINE";
+        Text: "Decline";
         Anchor: (Height: 28, Width: 80);
-        Style: $S.@SmallRedButtonStyle;
+        Style: $S.@RedButtonStyle;
       }
 
       Group { FlexWeight: 1; }

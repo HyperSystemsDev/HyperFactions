@@ -3,7 +3,7 @@
 
 Group {
   Label #RelationIndicator {
-    Text: "[ENEMY]";
+    Text: "[Enemy]";
     Style: (FontSize: 10, TextColor: #FF5555, RenderBold: true, VerticalAlignment: Center);
     Anchor: (Left: 5);
   }

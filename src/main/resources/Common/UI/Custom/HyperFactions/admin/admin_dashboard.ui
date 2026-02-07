@@ -43,7 +43,7 @@ $C.@PageOverlay {
           Anchor: (Right: 5);
 
           Label {
-            Text: "FACTIONS";
+            Text: "Factions";
             Style: (FontSize: 10, TextColor: #666666, HorizontalAlignment: Center, VerticalAlignment: Center);
             Anchor: (Height: 16);
           }
@@ -63,7 +63,7 @@ $C.@PageOverlay {
           Anchor: (Left: 5, Right: 5);
 
           Label {
-            Text: "TOTAL MEMBERS";
+            Text: "Total Members";
             Style: (FontSize: 10, TextColor: #666666, HorizontalAlignment: Center, VerticalAlignment: Center);
             Anchor: (Height: 16);
           }
@@ -83,7 +83,7 @@ $C.@PageOverlay {
           Anchor: (Left: 5);
 
           Label {
-            Text: "TOTAL CLAIMS";
+            Text: "Total Claims";
             Style: (FontSize: 10, TextColor: #666666, HorizontalAlignment: Center, VerticalAlignment: Center);
             Anchor: (Height: 16);
           }
@@ -109,7 +109,7 @@ $C.@PageOverlay {
           Anchor: (Right: 5);
 
           Label {
-            Text: "ZONES";
+            Text: "Zones";
             Style: (FontSize: 10, TextColor: #666666, HorizontalAlignment: Center, VerticalAlignment: Center);
             Anchor: (Height: 16);
           }
@@ -149,7 +149,7 @@ $C.@PageOverlay {
           Anchor: (Left: 5, Right: 5);
 
           Label {
-            Text: "TOTAL POWER";
+            Text: "Total Power";
             Style: (FontSize: 10, TextColor: #666666, HorizontalAlignment: Center, VerticalAlignment: Center);
             Anchor: (Height: 16);
           }
@@ -169,7 +169,7 @@ $C.@PageOverlay {
           Anchor: (Left: 5);
 
           Label {
-            Text: "AVG POWER/FACTION";
+            Text: "Avg Power/Faction";
             Style: (FontSize: 10, TextColor: #666666, HorizontalAlignment: Center, VerticalAlignment: Center);
             Anchor: (Height: 16);
           }
@@ -194,13 +194,13 @@ $C.@PageOverlay {
           Anchor: (Width: 130);
         }
         Label #BypassState {
-          Text: "OFF";
+          Text: "Off";
           Style: (FontSize: 14, TextColor: #FF5555, RenderBold: true, VerticalAlignment: Center);
           Anchor: (Width: 50);
         }
         Label { FlexWeight: 1; }
         TextButton #ToggleBypassBtn {
-          Text: "ENABLE";
+          Text: "Enable";
           Anchor: (Height: 30, Width: 100);
           Style: $S.@ButtonStyle;
         }

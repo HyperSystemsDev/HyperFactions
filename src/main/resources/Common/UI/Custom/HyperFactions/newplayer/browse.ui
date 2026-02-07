@@ -47,19 +47,17 @@ $C.@PageOverlay {
         Anchor: (Height: 38, Bottom: 8);
         LayoutMode: Left;
 
-        TextField #SearchInput {
+        $C.@TextField #SearchInput {
           FlexWeight: 1;
           Anchor: (Height: 32);
-          Style: $C.@DefaultInputFieldStyle;
-          Background: $C.@InputBoxBackground;
         }
 
         Label { Anchor: (Width: 8); }
 
         TextButton #SearchBtn {
-          Text: "SEARCH";
+          Text: "Search";
           Anchor: (Height: 30, Width: 80);
-          Style: $S.@SmallCyanButtonStyle;
+          Style: $S.@ButtonStyle;
         }
 
         Label { Anchor: (Width: 5); }
@@ -67,7 +65,7 @@ $C.@PageOverlay {
         TextButton #ClearSearchBtn {
           Text: "X";
           Anchor: (Height: 30, Width: 30);
-          Style: $S.@SmallRedButtonStyle;
+          Style: $S.@ButtonStyle;
           Visible: false;
         }
       }
@@ -80,25 +78,25 @@ $C.@PageOverlay {
         Group { FlexWeight: 1; }
 
         TextButton #SortByPower {
-          Text: "POWER";
+          Text: "Power";
           Anchor: (Height: 26, Width: 70);
-          Style: $S.@SmallCyanButtonStyle;
+          Style: $S.@ButtonStyle;
         }
 
         Label { Anchor: (Width: 5); }
 
         TextButton #SortByName {
-          Text: "NAME";
+          Text: "Name";
           Anchor: (Height: 26, Width: 65);
-          Style: $S.@SmallButtonStyle;
+          Style: $S.@ButtonStyle;
         }
 
         Label { Anchor: (Width: 5); }
 
         TextButton #SortByMembers {
-          Text: "MEMBERS";
+          Text: "Members";
           Anchor: (Height: 26, Width: 80);
-          Style: $S.@SmallButtonStyle;
+          Style: $S.@ButtonStyle;
         }
       }
 
@@ -131,7 +129,7 @@ $C.@PageOverlay {
         LayoutMode: Left;
 
         TextButton #PrevBtn {
-          Text: "< PREV";
+          Text: "< Prev";
           Anchor: (Height: 26, Width: 80);
           Style: $S.@ButtonStyle;
         }
@@ -147,7 +145,7 @@ $C.@PageOverlay {
         Label { FlexWeight: 1; }
 
         TextButton #NextBtn {
-          Text: "NEXT >";
+          Text: "Next >";
           Anchor: (Height: 26, Width: 80);
           Style: $S.@ButtonStyle;
         }

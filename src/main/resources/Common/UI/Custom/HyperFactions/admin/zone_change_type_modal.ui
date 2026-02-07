@@ -130,9 +130,9 @@ $C.@PageOverlay {
           }
 
           TextButton #KeepFlagsBtn {
-            Text: "KEEP FLAGS";
+            Text: "Keep Flags";
             Anchor: (Height: 32);
-            Style: $S.@GreenButtonStyle;
+            Style: $S.@ButtonStyle;
           }
         }
 
@@ -150,7 +150,7 @@ $C.@PageOverlay {
           }
 
           TextButton #ResetFlagsBtn {
-            Text: "RESET FLAGS";
+            Text: "Reset Flags";
             Anchor: (Height: 32);
             Style: $S.@ButtonStyle;
           }
@@ -168,7 +168,7 @@ $C.@PageOverlay {
         Label { FlexWeight: 1; }
 
         TextButton #CancelBtn {
-          Text: "CANCEL";
+          Text: "Cancel";
           Anchor: (Height: 32, Width: 100);
           Style: $S.@RedButtonStyle;
         }

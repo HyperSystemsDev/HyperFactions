@@ -41,17 +41,17 @@ Group {
     LayoutMode: Left;
 
     TextButton #AcceptBtn {
-      Text: "ACCEPT";
+      Text: "Accept";
       Anchor: (Width: 70, Height: 28);
-      Style: $S.@SmallGreenButtonStyle;
+      Style: $S.@ButtonStyle;
     }
 
     Label { Anchor: (Width: 5); }
 
     TextButton #DeclineBtn {
-      Text: "DECLINE";
+      Text: "Decline";
       Anchor: (Width: 70, Height: 28);
-      Style: $S.@SmallRedButtonStyle;
+      Style: $S.@RedButtonStyle;
     }
   }
 }

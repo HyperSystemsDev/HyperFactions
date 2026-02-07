@@ -173,7 +173,7 @@ public class FactionDashboardPage extends InteractiveCustomUIPage<FactionDashboa
         if (isRaidable) {
             // Show warning - claims exceed power limit
             cmd.set("#ClaimsValue.Style.TextColor", "#FF5555");
-            cmd.set("#ClaimsAvailable.Text", "AT RISK!");
+            cmd.set("#ClaimsAvailable.Text", "At Risk!");
             cmd.set("#ClaimsAvailable.Style.TextColor", "#FF5555");
         }
 
@@ -200,10 +200,10 @@ public class FactionDashboardPage extends InteractiveCustomUIPage<FactionDashboa
 
         // Status stat - Open/Invite Only
         if (currentFaction.open()) {
-            cmd.set("#StatusValue.Text", "OPEN");
+            cmd.set("#StatusValue.Text", "Open");
             cmd.set("#StatusValue.Style.TextColor", "#55FF55");
         } else {
-            cmd.set("#StatusValue.Text", "INVITE");
+            cmd.set("#StatusValue.Text", "Invite");
             cmd.set("#StatusValue.Style.TextColor", "#FFAA00");
         }
         cmd.set("#StatusDesc.Text", "");
@@ -238,9 +238,9 @@ public class FactionDashboardPage extends InteractiveCustomUIPage<FactionDashboa
                 && PermissionManager.get().hasPermission(viewerUuid, Permissions.HOME)) {
             cmd.append("#HomeBtnContainer", "HyperFactions/faction/dashboard_action_btn.ui");
             if (faction.hasHome()) {
-                cmd.set("#HomeBtnContainer #ActionBtn.Text", "HOME");
+                cmd.set("#HomeBtnContainer #ActionBtn.Text", "Home");
             } else {
-                cmd.set("#HomeBtnContainer #ActionBtn.Text", "SET HOME");
+                cmd.set("#HomeBtnContainer #ActionBtn.Text", "Set Home");
             }
             events.addEventBinding(
                     CustomUIEventBindingType.Activating,
@@ -253,7 +253,7 @@ public class FactionDashboardPage extends InteractiveCustomUIPage<FactionDashboa
         // CLAIM button - only for officers+ with CLAIM permission
         if (isOfficerPlus && PermissionManager.get().hasPermission(viewerUuid, Permissions.CLAIM)) {
             cmd.append("#ClaimBtnContainer", "HyperFactions/faction/dashboard_action_btn.ui");
-            cmd.set("#ClaimBtnContainer #ActionBtn.Text", "CLAIM");
+            cmd.set("#ClaimBtnContainer #ActionBtn.Text", "Claim");
             events.addEventBinding(
                     CustomUIEventBindingType.Activating,
                     "#ClaimBtnContainer #ActionBtn",
@@ -265,7 +265,7 @@ public class FactionDashboardPage extends InteractiveCustomUIPage<FactionDashboa
         // F-CHAT button - faction chat toggle (requires CHAT_FACTION permission)
         if (PermissionManager.get().hasPermission(viewerUuid, Permissions.CHAT_FACTION)) {
             cmd.append("#FChatBtnContainer", "HyperFactions/faction/dashboard_action_btn.ui");
-            cmd.set("#FChatBtnContainer #ActionBtn.Text", "F-CHAT");
+            cmd.set("#FChatBtnContainer #ActionBtn.Text", "F-Chat");
             events.addEventBinding(
                     CustomUIEventBindingType.Activating,
                     "#FChatBtnContainer #ActionBtn",
@@ -276,13 +276,13 @@ public class FactionDashboardPage extends InteractiveCustomUIPage<FactionDashboa
 
         // A-CHAT button - grayed out, coming soon
         cmd.append("#AChatBtnContainer", "HyperFactions/faction/dashboard_action_btn_disabled.ui");
-        cmd.set("#AChatBtnContainer #ActionBtn.Text", "A-CHAT");
+        cmd.set("#AChatBtnContainer #ActionBtn.Text", "A-Chat");
         cmd.set("#AChatBtnContainer #ComingSoon.Text", "Coming Soon");
 
         // LEAVE button - show for all members including leaders (requires LEAVE permission)
         if (PermissionManager.get().hasPermission(viewerUuid, Permissions.LEAVE)) {
             cmd.append("#LeaveBtnContainer", "HyperFactions/faction/dashboard_action_btn.ui");
-            cmd.set("#LeaveBtnContainer #ActionBtn.Text", "LEAVE");
+            cmd.set("#LeaveBtnContainer #ActionBtn.Text", "Leave");
             events.addEventBinding(
                     CustomUIEventBindingType.Activating,
                     "#LeaveBtnContainer #ActionBtn",

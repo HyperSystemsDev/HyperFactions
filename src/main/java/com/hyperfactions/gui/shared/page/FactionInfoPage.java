@@ -104,7 +104,7 @@ public class FactionInfoPage extends InteractiveCustomUIPage<FactionPageData> {
                 description != null && !description.isEmpty() ? description : "No description set.");
 
         // Open/Closed status indicator
-        cmd.set("#StatusIndicator.Text", targetFaction.open() ? "OPEN" : "INVITE ONLY");
+        cmd.set("#StatusIndicator.Text", targetFaction.open() ? "Open" : "Invite Only");
         // Note: Cannot dynamically set text color via cmd.set()
 
         // === Stats Section ===
@@ -136,7 +136,7 @@ public class FactionInfoPage extends InteractiveCustomUIPage<FactionPageData> {
 
         // Raidable status
         if (powerStats.isRaidable()) {
-            cmd.set("#RaidableValue.Text", "RAIDABLE");
+            cmd.set("#RaidableValue.Text", "Raidable");
             // Note: Cannot dynamically set text color via cmd.set()
         } else {
             cmd.set("#RaidableValue.Text", "Protected");

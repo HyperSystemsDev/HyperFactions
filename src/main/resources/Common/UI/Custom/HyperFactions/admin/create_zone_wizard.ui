@@ -27,7 +27,7 @@ $C.@Container {
       LayoutMode: Left;
 
       TextButton #BackBtn {
-        Text: "< BACK";
+        Text: "< Back";
         Anchor: (Height: 36, Width: 100);
         Style: $S.@ButtonStyle;
       }
@@ -35,9 +35,9 @@ $C.@Container {
       Label { FlexWeight: 1; }
 
       TextButton #CreateBtn {
-        Text: "CREATE ZONE";
+        Text: "Create Zone";
         Anchor: (Height: 36, Width: 150);
-        Style: $S.@GreenButtonStyle;
+        Style: $S.@ButtonStyle;
       }
     }
 
@@ -62,7 +62,7 @@ $C.@Container {
         Padding: (Left: 12, Right: 12, Top: 10, Bottom: 10);
 
         Label {
-          Text: "ZONE TYPE";
+          Text: "Zone Type";
           Style: (FontSize: 11, TextColor: #00FFFF, RenderBold: true);
           Anchor: (Height: 14, Bottom: 8);
         }
@@ -83,7 +83,7 @@ $C.@Container {
             }
 
             TextButton #SafeZoneBtn {
-              Text: "SAFEZONE";
+              Text: "SafeZone";
               Anchor: (Height: 30);
               Style: $S.@SafeZoneButtonStyle;
             }
@@ -102,7 +102,7 @@ $C.@Container {
             }
 
             TextButton #WarZoneBtn {
-              Text: "WARZONE";
+              Text: "WarZone";
               Anchor: (Height: 30);
               Style: $S.@WarZoneButtonStyle;
             }
@@ -120,7 +120,7 @@ $C.@Container {
         Padding: (Left: 12, Right: 12, Top: 10, Bottom: 10);
 
         Label {
-          Text: "ZONE NAME";
+          Text: "Zone Name";
           Style: (FontSize: 11, TextColor: #00FFFF, RenderBold: true);
           Anchor: (Height: 14, Bottom: 6);
         }
@@ -131,10 +131,8 @@ $C.@Container {
           Anchor: (Height: 16, Bottom: 6);
         }
 
-        TextField #NameInput {
+        $C.@TextField #NameInput {
           Anchor: (Height: 34);
-          Style: $C.@DefaultInputFieldStyle;
-          Background: $C.@InputBoxBackground;
         }
       }
     }
@@ -154,7 +152,7 @@ $C.@Container {
         Padding: (Left: 12, Right: 12, Top: 10, Bottom: 10);
 
         Label {
-          Text: "CLAIMING METHOD";
+          Text: "Claiming Method";
           Style: (FontSize: 11, TextColor: #00FFFF, RenderBold: true);
           Anchor: (Height: 14, Bottom: 8);
         }
@@ -176,7 +174,7 @@ $C.@Container {
             TextButton #MethodNone {
               Text: "No claims";
               Anchor: (Height: 26);
-              Style: $S.@SmallButtonStyle;
+              Style: $S.@ButtonStyle;
             }
           }
 
@@ -194,7 +192,7 @@ $C.@Container {
             TextButton #MethodSingle {
               Text: "Single chunk";
               Anchor: (Height: 26);
-              Style: $S.@SmallButtonStyle;
+              Style: $S.@ButtonStyle;
             }
           }
         }
@@ -216,7 +214,7 @@ $C.@Container {
             TextButton #MethodCircle {
               Text: "Circle radius";
               Anchor: (Height: 26);
-              Style: $S.@SmallButtonStyle;
+              Style: $S.@ButtonStyle;
             }
           }
 
@@ -234,7 +232,7 @@ $C.@Container {
             TextButton #MethodSquare {
               Text: "Square radius";
               Anchor: (Height: 26);
-              Style: $S.@SmallButtonStyle;
+              Style: $S.@ButtonStyle;
             }
           }
         }
@@ -252,7 +250,7 @@ $C.@Container {
           TextButton #MethodMap {
             Text: "Use claim map";
             Anchor: (Height: 26);
-            Style: $S.@SmallButtonStyle;
+            Style: $S.@ButtonStyle;
           }
         }
       }
@@ -276,7 +274,7 @@ $C.@Container {
             Anchor: (Height: 14, Bottom: 8);
 
             Label {
-              Text: "RADIUS";
+              Text: "Radius";
               Style: (FontSize: 11, TextColor: #00FFFF, RenderBold: true);
             }
             Label { FlexWeight: 1; }
@@ -294,31 +292,31 @@ $C.@Container {
             TextButton #Radius3 {
               Text: "3";
               Anchor: (Height: 26, Width: 38);
-              Style: $S.@SmallButtonStyle;
+              Style: $S.@ButtonStyle;
             }
             Group { Anchor: (Width: 4); }
             TextButton #Radius5 {
               Text: "5";
               Anchor: (Height: 26, Width: 38);
-              Style: $S.@SmallButtonStyle;
+              Style: $S.@ButtonStyle;
             }
             Group { Anchor: (Width: 4); }
             TextButton #Radius10 {
               Text: "10";
               Anchor: (Height: 26, Width: 38);
-              Style: $S.@SmallButtonStyle;
+              Style: $S.@ButtonStyle;
             }
             Group { Anchor: (Width: 4); }
             TextButton #Radius15 {
               Text: "15";
               Anchor: (Height: 26, Width: 38);
-              Style: $S.@SmallButtonStyle;
+              Style: $S.@ButtonStyle;
             }
             Group { Anchor: (Width: 4); }
             TextButton #Radius20 {
               Text: "20";
               Anchor: (Height: 26, Width: 38);
-              Style: $S.@SmallButtonStyle;
+              Style: $S.@ButtonStyle;
             }
           }
 
@@ -332,16 +330,14 @@ $C.@Container {
               Style: (FontSize: 10, TextColor: #AAAAAA, VerticalAlignment: Center);
               Anchor: (Width: 85);
             }
-            TextField #CustomRadiusInput {
+            $C.@TextField #CustomRadiusInput {
               Anchor: (Height: 26, Width: 55);
-              Style: $C.@DefaultInputFieldStyle;
-              Background: $C.@InputBoxBackground;
             }
             Group { Anchor: (Width: 6); }
             TextButton #ApplyCustomRadius {
-              Text: "APPLY";
+              Text: "Apply";
               Anchor: (Height: 26, Width: 60);
-              Style: $S.@SmallCyanButtonStyle;
+              Style: $S.@ButtonStyle;
             }
           }
         }
@@ -354,7 +350,7 @@ $C.@Container {
           Padding: (Left: 12, Right: 12, Top: 10, Bottom: 10);
 
           Label {
-            Text: "FLAGS";
+            Text: "Flags";
             Style: (FontSize: 11, TextColor: #00FFFF, RenderBold: true);
             Anchor: (Height: 14, Bottom: 8);
           }
@@ -375,7 +371,7 @@ $C.@Container {
               TextButton #FlagsDefaults {
                 Text: "Use defaults";
                 Anchor: (Height: 26);
-                Style: $S.@SmallButtonStyle;
+                Style: $S.@ButtonStyle;
               }
             }
 
@@ -393,7 +389,7 @@ $C.@Container {
               TextButton #FlagsCustomize {
                 Text: "Customize";
                 Anchor: (Height: 26);
-                Style: $S.@SmallButtonStyle;
+                Style: $S.@ButtonStyle;
               }
             }
           }

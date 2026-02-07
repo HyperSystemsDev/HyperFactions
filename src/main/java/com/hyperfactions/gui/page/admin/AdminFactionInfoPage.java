@@ -91,7 +91,7 @@ public class AdminFactionInfoPage extends InteractiveCustomUIPage<AdminFactionIn
                 description != null && !description.isEmpty() ? description : "No description set.");
 
         // Open/Closed status indicator
-        cmd.set("#StatusIndicator.Text", faction.open() ? "OPEN" : "INVITE ONLY");
+        cmd.set("#StatusIndicator.Text", faction.open() ? "Open" : "Invite Only");
 
         // === Stats Section ===
         PowerManager.FactionPowerStats powerStats = powerManager.getFactionPowerStats(faction.id());
@@ -121,7 +121,7 @@ public class AdminFactionInfoPage extends InteractiveCustomUIPage<AdminFactionIn
 
         // Raidable status
         if (powerStats.isRaidable()) {
-            cmd.set("#RaidableValue.Text", "RAIDABLE");
+            cmd.set("#RaidableValue.Text", "Raidable");
         } else {
             cmd.set("#RaidableValue.Text", "Protected");
         }

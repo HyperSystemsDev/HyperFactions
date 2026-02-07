@@ -63,9 +63,9 @@ Group {
     LayoutMode: Left;
 
     TextButton #CancelBtn {
-      Text: "CANCEL";
+      Text: "Cancel";
       Anchor: (Width: 70, Height: 28);
-      Style: $S.@SmallRedButtonStyle;
+      Style: $S.@RedButtonStyle;
     }
   }
 }

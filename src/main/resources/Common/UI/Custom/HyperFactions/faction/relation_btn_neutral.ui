@@ -1,7 +1,8 @@
+$C = "../../Common.ui";
 $S = "../shared/styles.ui";
 
 TextButton #NeutralBtn {
-  Text: "NEUTRAL";
+  Text: "Neutral";
   Anchor: (Height: 26, Width: 70);
-  Style: $S.@SmallButtonStyle;
+  Style: $S.@ButtonStyle;
 }

@@ -62,7 +62,7 @@ $C.@PageOverlay {
         LayoutMode: Left;
 
         TextButton #CancelBtn {
-          Text: "CANCEL";
+          Text: "Cancel";
           Anchor: (Height: 32, Width: 100);
           Style: $S.@ButtonStyle;
         }
@@ -71,18 +71,18 @@ $C.@PageOverlay {
 
         // Leave button (when successor exists)
         TextButton #LeaveBtn {
-          Text: "LEAVE";
+          Text: "Leave";
           Anchor: (Height: 32, Width: 100);
-          Style: $S.@RedButtonStyle;
           Visible: true;
+          Style: $S.@RedButtonStyle;
         }
 
         // Disband button (when no successor)
         TextButton #DisbandBtn {
-          Text: "DISBAND";
+          Text: "Disband";
           Anchor: (Height: 32, Width: 100);
-          Style: $S.@RedButtonStyle;
           Visible: false;
+          Style: $S.@RedButtonStyle;
         }
       }
     }

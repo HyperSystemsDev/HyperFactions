@@ -17,15 +17,15 @@ Group {
     Label { FlexWeight: 1; }
 
     TextButton #CreateFactionBtn {
-      Text: "CREATE FACTION";
+      Text: "Create Faction";
       Anchor: (Height: 36, Width: 160);
-      Style: $S.@CyanButtonStyle;
+      Style: $S.@ButtonStyle;
     }
 
     Label { Anchor: (Width: 20); }
 
     TextButton #BrowseFactionsBtn {
-      Text: "BROWSE FACTIONS";
+      Text: "Browse Factions";
       Anchor: (Height: 36, Width: 160);
       Style: $S.@ButtonStyle;
     }

@@ -36,9 +36,9 @@ Group {
     Label { FlexWeight: 1; }
 
     TextButton #BrowseBtn {
-      Text: "BROWSE FACTIONS";
+      Text: "Browse Factions";
       Anchor: (Height: 36, Width: 180);
-      Style: $S.@CyanButtonStyle;
+      Style: $S.@ButtonStyle;
     }
 
     Label { FlexWeight: 1; }
