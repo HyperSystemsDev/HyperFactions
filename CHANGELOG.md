@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+*No changes yet*
+
+## [0.7.0] - 2026-02-07
+
 **Closes issues:**
 - [#7](https://github.com/HyperSystemsDev/HyperFactions/issues/7) — Announcement system for major faction events
 - [#16](https://github.com/HyperSystemsDev/HyperFactions/issues/16) — Add data import from ElbaphFactions
