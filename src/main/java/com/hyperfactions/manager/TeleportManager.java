@@ -521,9 +521,10 @@ public class TeleportManager {
      * @return the prefix message
      */
     private static Message prefix() {
-        return Message.raw("[").color(COLOR_GRAY)
-            .insert(Message.raw("HyperFactions").color(COLOR_CYAN))
-            .insert(Message.raw("] ").color(COLOR_GRAY));
+        ConfigManager config = ConfigManager.get();
+        return Message.raw("[").color(config.getPrefixBracketColor())
+            .insert(Message.raw(config.getPrefixText()).color(config.getPrefixColor()))
+            .insert(Message.raw("] ").color(config.getPrefixBracketColor()));
     }
 
     /**

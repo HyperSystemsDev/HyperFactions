@@ -30,6 +30,7 @@ public class ConfigManager {
     private EconomyConfig economyConfig;
     private FactionPermissionsConfig factionPermissionsConfig;
     private WorldMapConfig worldMapConfig;
+    private AnnouncementConfig announcementConfig;
 
     private ConfigManager() {}
 
@@ -90,6 +91,9 @@ public class ConfigManager {
         worldMapConfig = new WorldMapConfig(configDir.resolve("worldmap.json"));
         worldMapConfig.load();
 
+        announcementConfig = new AnnouncementConfig(configDir.resolve("announcements.json"));
+        announcementConfig.load();
+
         // Step 4: Validate all configs and log any issues
         validateAll();
 
@@ -141,6 +145,11 @@ public class ConfigManager {
             combined.merge(worldMapConfig.getLastValidationResult());
         }
 
+        announcementConfig.validateAndLog();
+        if (announcementConfig.getLastValidationResult() != null) {
+            combined.merge(announcementConfig.getLastValidationResult());
+        }
+
         // Log summary
         if (combined.hasIssues()) {
             int warnings = combined.getWarnings().size();
@@ -182,6 +191,7 @@ public class ConfigManager {
         economyConfig.reload();
         factionPermissionsConfig.reload();
         worldMapConfig.reload();
+        announcementConfig.reload();
 
         // Re-validate after reload
         validateAll();
@@ -200,6 +210,7 @@ public class ConfigManager {
         economyConfig.save();
         factionPermissionsConfig.save();
         worldMapConfig.save();
+        announcementConfig.save();
     }
 
     // === Config Accessors ===
@@ -272,6 +283,16 @@ public class ConfigManager {
     @NotNull
     public WorldMapConfig worldMap() {
         return worldMapConfig;
+    }
+
+    /**
+     * Gets the announcement module configuration.
+     *
+     * @return announcement config
+     */
+    @NotNull
+    public AnnouncementConfig announcements() {
+        return announcementConfig;
     }
 
     // === Convenience Methods (for backward compatibility) ===

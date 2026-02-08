@@ -32,11 +32,14 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.nio.file.Path;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * Main HyperFactions core class.
@@ -68,6 +71,7 @@ public class HyperFactions {
     private ChatManager chatManager;
     private ConfirmationManager confirmationManager;
     private SpawnSuppressionManager spawnSuppressionManager;
+    private AnnouncementManager announcementManager;
 
     // Protection
     private ProtectionChecker protectionChecker;
@@ -107,6 +111,7 @@ public class HyperFactions {
     private TaskCancelCallback taskCanceller;
     private RepeatingTaskSchedulerCallback repeatingTaskScheduler;
     private java.util.function.Function<UUID, com.hypixel.hytale.server.core.universe.PlayerRef> playerLookup;
+    private Supplier<Collection<com.hypixel.hytale.server.core.universe.PlayerRef>> onlinePlayersSupplier;
 
     /**
      * Functional interface for scheduling delayed tasks.
@@ -187,7 +192,7 @@ public class HyperFactions {
         combatTagManager = new CombatTagManager();
         zoneManager = new ZoneManager(zoneStorage, claimManager);
         claimManager.setZoneManager(zoneManager); // Wire zone manager for zone protection checks
-        spawnSuppressionManager = new SpawnSuppressionManager(zoneManager);
+        spawnSuppressionManager = new SpawnSuppressionManager(zoneManager, claimManager, factionManager);
         teleportManager = new TeleportManager(factionManager);
         inviteManager = new InviteManager(dataDir);
         joinRequestManager = new JoinRequestManager(dataDir);
@@ -300,15 +305,37 @@ public class HyperFactions {
         // Keep legacy callback for bulk operations (unclaimAll, etc.) - respects refresh mode
         claimManager.setOnClaimChangeCallback(worldMapService::triggerFactionWideRefresh);
 
+        // Initialize announcement manager (uses deferred onlinePlayersSupplier)
+        announcementManager = new AnnouncementManager(
+            () -> onlinePlayersSupplier != null ? onlinePlayersSupplier.get() : Collections.emptyList()
+        );
+
+        // Wire announcement callbacks
+        factionManager.setOnFactionCreated((name, leader) ->
+            announcementManager.announceFactionCreated(name, leader));
+        factionManager.setOnFactionDisbanded(name ->
+            announcementManager.announceFactionDisbanded(name));
+        factionManager.setOnLeadershipTransferred((faction, oldLeader, newLeader) ->
+            announcementManager.announceLeadershipTransfer(faction, oldLeader, newLeader));
+        claimManager.setOnOverclaimCallback((attacker, defender) ->
+            announcementManager.announceOverclaim(attacker, defender));
+        relationManager.setOnWarDeclared((declaring, target) ->
+            announcementManager.announceWarDeclared(declaring, target));
+        relationManager.setOnAllianceFormed((f1, f2) ->
+            announcementManager.announceAllianceFormed(f1, f2));
+        relationManager.setOnAllianceBroken((f1, f2) ->
+            announcementManager.announceAllianceBroken(f1, f2));
+
         // Wire up notification callback for overclaim alerts (uses deferred playerLookup)
         claimManager.setNotificationCallback((factionId, message, hexColor) -> {
             Faction faction = factionManager.getFaction(factionId);
             if (faction == null || playerLookup == null) return;
 
+            ConfigManager cfg = ConfigManager.get();
             com.hypixel.hytale.server.core.Message formatted =
-                com.hypixel.hytale.server.core.Message.raw("[").color("#AAAAAA")
-                    .insert(com.hypixel.hytale.server.core.Message.raw("HyperFactions").color("#55FFFF"))
-                    .insert(com.hypixel.hytale.server.core.Message.raw("] ").color("#AAAAAA"))
+                com.hypixel.hytale.server.core.Message.raw("[").color(cfg.getPrefixBracketColor())
+                    .insert(com.hypixel.hytale.server.core.Message.raw(cfg.getPrefixText()).color(cfg.getPrefixColor()))
+                    .insert(com.hypixel.hytale.server.core.Message.raw("] ").color(cfg.getPrefixBracketColor()))
                     .insert(com.hypixel.hytale.server.core.Message.raw(message).color(hexColor));
 
             for (UUID memberUuid : faction.members().keySet()) {
@@ -348,6 +375,14 @@ public class HyperFactions {
         // Initialize PlaceholderAPI integration (after all managers are ready)
         com.hyperfactions.integration.papi.PlaceholderAPIIntegration.init(this);
 
+        // Initialize WiFlow PlaceholderAPI integration (guard before class loading)
+        try {
+            Class.forName("com.wiflow.placeholderapi.WiFlowPlaceholderAPI");
+            com.hyperfactions.integration.wiflow.WiFlowPlaceholderIntegration.init(this);
+        } catch (ClassNotFoundException e) {
+            Logger.info("WiFlow PlaceholderAPI not found - WiFlow placeholders disabled");
+        }
+
         Logger.info("HyperFactions enabled");
     }
 
@@ -370,7 +405,13 @@ public class HyperFactions {
     public void disable() {
         Logger.info("HyperFactions disabling...");
 
-        // Unregister PlaceholderAPI expansion
+        // Unregister PlaceholderAPI expansions
+        try {
+            Class.forName("com.wiflow.placeholderapi.WiFlowPlaceholderAPI");
+            com.hyperfactions.integration.wiflow.WiFlowPlaceholderIntegration.shutdown();
+        } catch (ClassNotFoundException ignored) {
+            // WiFlow not present, nothing to shut down
+        }
         com.hyperfactions.integration.papi.PlaceholderAPIIntegration.shutdown();
 
         // Cancel periodic tasks first
@@ -531,6 +572,10 @@ public class HyperFactions {
         this.playerLookup = lookup;
         // Also set up the permission manager's player lookup for OP checks
         PermissionManager.get().setPlayerLookup(lookup);
+    }
+
+    public void setOnlinePlayersSupplier(@NotNull Supplier<Collection<com.hypixel.hytale.server.core.universe.PlayerRef>> supplier) {
+        this.onlinePlayersSupplier = supplier;
     }
 
     /**
@@ -849,6 +894,16 @@ public class HyperFactions {
     @NotNull
     public SpawnSuppressionManager getSpawnSuppressionManager() {
         return spawnSuppressionManager;
+    }
+
+    /**
+     * Gets the announcement manager.
+     *
+     * @return the announcement manager
+     */
+    @NotNull
+    public AnnouncementManager getAnnouncementManager() {
+        return announcementManager;
     }
 
     // === Admin Bypass Toggle ===

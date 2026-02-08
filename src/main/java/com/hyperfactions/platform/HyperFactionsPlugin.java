@@ -241,6 +241,9 @@ public class HyperFactionsPlugin extends JavaPlugin {
 
         // Player lookup (for chat manager)
         hyperFactions.setPlayerLookup(this::getTrackedPlayer);
+
+        // Online players supplier (for announcements)
+        hyperFactions.setOnlinePlayersSupplier(() -> trackedPlayers.values());
     }
 
     /**

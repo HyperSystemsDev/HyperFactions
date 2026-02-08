@@ -16,6 +16,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiConsumer;
 
 /**
  * Manages territory claims with O(1) chunk lookups.
@@ -50,6 +51,10 @@ public class ClaimManager {
     // Callback for notifying faction members (used for overclaim alerts)
     @Nullable
     private FactionNotificationCallback notificationCallback;
+
+    // Callback for overclaim announcements
+    @Nullable
+    private BiConsumer<String, String> onOverclaimCallback;
 
     /**
      * Functional interface for sending notifications to faction members.
@@ -91,6 +96,14 @@ public class ClaimManager {
      */
     public void setNotificationCallback(@Nullable FactionNotificationCallback callback) {
         this.notificationCallback = callback;
+    }
+
+    /**
+     * Sets a callback for when a faction overclaims territory from another.
+     * Params: attackerFactionName, defenderFactionName
+     */
+    public void setOnOverclaimCallback(@Nullable BiConsumer<String, String> callback) {
+        this.onOverclaimCallback = callback;
     }
 
     /**
@@ -572,6 +585,10 @@ public class ClaimManager {
         notifyFactionMembers(defenderId,
             String.format("Territory lost! %s overclaimed chunk at %d, %d", attackerFaction.name(), chunkX, chunkZ),
             "#FF5555");
+
+        if (onOverclaimCallback != null) {
+            try { onOverclaimCallback.accept(attackerFaction.name(), defenderFaction.name()); } catch (Exception e) { Logger.warn("Error in overclaim callback: %s", e.getMessage()); }
+        }
 
         notifyChunkChange(world, chunkX, chunkZ);
         return ClaimResult.SUCCESS;

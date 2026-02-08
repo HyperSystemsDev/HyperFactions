@@ -28,6 +28,14 @@ public class RelationManager {
     @Nullable
     private BiConsumer<UUID, UUID> onAllyRequestReceived;
 
+    // Announcement callbacks
+    @Nullable
+    private BiConsumer<String, String> onWarDeclared;
+    @Nullable
+    private BiConsumer<String, String> onAllianceFormed;
+    @Nullable
+    private BiConsumer<String, String> onAllianceBroken;
+
     public RelationManager(@NotNull FactionManager factionManager) {
         this.factionManager = factionManager;
     }
@@ -46,6 +54,30 @@ public class RelationManager {
      */
     public void setOnAllyRequestReceived(@Nullable BiConsumer<UUID, UUID> callback) {
         this.onAllyRequestReceived = callback;
+    }
+
+    /**
+     * Sets a callback for when war is declared.
+     * Params: declaringFactionName, targetFactionName
+     */
+    public void setOnWarDeclared(@Nullable BiConsumer<String, String> callback) {
+        this.onWarDeclared = callback;
+    }
+
+    /**
+     * Sets a callback for when an alliance is formed.
+     * Params: faction1Name, faction2Name
+     */
+    public void setOnAllianceFormed(@Nullable BiConsumer<String, String> callback) {
+        this.onAllianceFormed = callback;
+    }
+
+    /**
+     * Sets a callback for when an alliance is broken.
+     * Params: faction1Name, faction2Name
+     */
+    public void setOnAllianceBroken(@Nullable BiConsumer<String, String> callback) {
+        this.onAllianceBroken = callback;
     }
 
     /**
@@ -345,6 +377,11 @@ public class RelationManager {
         Logger.debugRelation("Alliance accepted: faction1=%s, faction2=%s, accepter=%s, requester=%s",
             actorFaction.name(), fromFaction.name(), actorUuid, requesterUuid);
         Logger.info("Factions '%s' and '%s' are now allies", actorFaction.name(), fromFaction.name());
+
+        if (onAllianceFormed != null) {
+            try { onAllianceFormed.accept(actorFaction.name(), fromFaction.name()); } catch (Exception e) { Logger.warn("Error in alliance formed callback: %s", e.getMessage()); }
+        }
+
         return RelationResult.REQUEST_ACCEPTED;
     }
 
@@ -438,11 +475,23 @@ public class RelationManager {
             pending.remove(actorFaction.id());
         }
 
+        // Check if breaking an alliance before overwriting
+        boolean wasAlly = actorFaction.isAlly(targetFactionId);
+
         setRelation(actorFaction.id(), targetFactionId, RelationType.ENEMY, actorUuid);
 
         Logger.debugRelation("Enemy declared: faction=%s, target=%s, actor=%s",
             actorFaction.name(), targetFaction.name(), actorUuid);
         Logger.info("Faction '%s' declared '%s' as enemy", actorFaction.name(), targetFaction.name());
+
+        if (wasAlly && onAllianceBroken != null) {
+            try { onAllianceBroken.accept(actorFaction.name(), targetFaction.name()); } catch (Exception e) { Logger.warn("Error in alliance broken callback: %s", e.getMessage()); }
+        }
+
+        if (onWarDeclared != null) {
+            try { onWarDeclared.accept(actorFaction.name(), targetFaction.name()); } catch (Exception e) { Logger.warn("Error in war declared callback: %s", e.getMessage()); }
+        }
+
         return RelationResult.SUCCESS;
     }
 
@@ -484,13 +533,19 @@ public class RelationManager {
         }
 
         // If breaking alliance, update both sides
-        if (currentRelation == RelationType.ALLY) {
+        boolean wasAlly = currentRelation == RelationType.ALLY;
+        if (wasAlly) {
             setRelation(targetFactionId, actorFaction.id(), RelationType.NEUTRAL, null);
         }
 
         setRelation(actorFaction.id(), targetFactionId, RelationType.NEUTRAL, actorUuid);
 
         Logger.info("Faction '%s' set '%s' as neutral", actorFaction.name(), targetFaction.name());
+
+        if (wasAlly && onAllianceBroken != null) {
+            try { onAllianceBroken.accept(actorFaction.name(), targetFaction.name()); } catch (Exception e) { Logger.warn("Error in alliance broken callback: %s", e.getMessage()); }
+        }
+
         return RelationResult.SUCCESS;
     }
 

@@ -15,6 +15,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 /**
@@ -33,8 +34,49 @@ public class FactionManager {
     // Index: name (lowercase) -> faction ID
     private final Map<String, UUID> nameToFaction = new ConcurrentHashMap<>();
 
+    // Announcement callbacks
+    @Nullable
+    private BiConsumer<String, String> onFactionCreated;
+    @Nullable
+    private TriConsumer<String, String, String> onLeadershipTransferred;
+    @Nullable
+    private java.util.function.Consumer<String> onFactionDisbanded;
+
+    /**
+     * Functional interface for callbacks with three parameters.
+     */
+    @FunctionalInterface
+    public interface TriConsumer<A, B, C> {
+        void accept(A a, B b, C c);
+    }
+
     public FactionManager(@NotNull FactionStorage storage) {
         this.storage = storage;
+    }
+
+    /**
+     * Sets a callback for when a new faction is created.
+     * Params: factionName, leaderName
+     */
+    public void setOnFactionCreated(@Nullable BiConsumer<String, String> callback) {
+        this.onFactionCreated = callback;
+    }
+
+    /**
+     * Sets a callback for when leadership is transferred.
+     * Params: factionName, oldLeaderName, newLeaderName
+     */
+    public void setOnLeadershipTransferred(@Nullable TriConsumer<String, String, String> callback) {
+        this.onLeadershipTransferred = callback;
+    }
+
+    /**
+     * Sets a callback for when a faction is disbanded by its leader.
+     * Not called for admin force-disbands or auto-disbands.
+     * Param: factionName
+     */
+    public void setOnFactionDisbanded(@Nullable java.util.function.Consumer<String> callback) {
+        this.onFactionDisbanded = callback;
     }
 
     /**
@@ -376,6 +418,11 @@ public class FactionManager {
         storage.saveFaction(faction);
 
         Logger.info("Faction '%s' [%s] created by %s", name, generatedTag, leaderName);
+
+        if (onFactionCreated != null) {
+            try { onFactionCreated.accept(name, leaderName); } catch (Exception e) { Logger.warn("Error in faction created callback: %s", e.getMessage()); }
+        }
+
         return FactionResult.SUCCESS;
     }
 
@@ -466,6 +513,11 @@ public class FactionManager {
         EventBus.publish(new FactionDisbandEvent(faction, actorUuid));
 
         Logger.info("Faction '%s' disbanded", faction.name());
+
+        if (onFactionDisbanded != null) {
+            try { onFactionDisbanded.accept(faction.name()); } catch (Exception e) { Logger.warn("Error in faction disbanded callback: %s", e.getMessage()); }
+        }
+
         return FactionResult.SUCCESS;
     }
 
@@ -559,6 +611,11 @@ public class FactionManager {
 
             Logger.info("Leader %s left faction '%s', %s promoted to leader",
                     target.username(), faction.name(), promoted.username());
+
+            if (onLeadershipTransferred != null) {
+                try { onLeadershipTransferred.accept(faction.name(), target.username(), promoted.username()); } catch (Exception e) { Logger.warn("Error in leadership transferred callback: %s", e.getMessage()); }
+            }
+
             return FactionResult.SUCCESS;
         }
 
@@ -781,6 +838,11 @@ public class FactionManager {
         storage.saveFaction(updated);
 
         Logger.info("Faction '%s' leadership transferred to %s", faction.name(), target.username());
+
+        if (onLeadershipTransferred != null) {
+            try { onLeadershipTransferred.accept(faction.name(), actor.username(), target.username()); } catch (Exception e) { Logger.warn("Error in leadership transferred callback: %s", e.getMessage()); }
+        }
+
         return FactionResult.SUCCESS;
     }
 

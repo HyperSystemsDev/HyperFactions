@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+**Server-Wide Faction Announcements**
+- New `announcements.json` module config with master toggle and per-event toggles
+- Broadcasts to all online players when significant faction events occur:
+  - Faction created, faction disbanded, leadership transferred
+  - Territory overclaimed, war declared, alliance formed, alliance broken
+- Admin actions (force disband, admin set relation) do not trigger announcements
+- Auto-disbands (leader leaves with no members) do not trigger announcements
+
 **Admin Faction List Quick Actions**
 - Added "Members" and "Settings" quick buttons to expanded faction entries in admin faction list
 - Navigate directly to a faction's members or settings page without going through View Info first
@@ -87,6 +95,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Overclaim notification and teleport messages now use the configured prefix from `config.json` instead of hardcoded "HyperFactions"
 - Faction member events now properly published for promote/demote actions
 - Non-faction players seeing wrong nav bar (faction nav instead of new player nav) on Dashboard, Map, and Browse pages
 - Nav event handling for non-faction players now correctly routes through new player page registry
