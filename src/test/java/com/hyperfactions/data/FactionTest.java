@@ -348,19 +348,19 @@ class FactionTest {
             Faction faction = Faction.create("Test", UUID.randomUUID(), "Leader");
             Faction updated = faction.withColor("a");
 
-            assertEquals("a", updated.color());
+            assertEquals("#55FF55", updated.color());
         }
 
         @Test
-        @DisplayName("getColoredName returns formatted name")
-        void getColoredName_formatsCorrectly() {
+        @DisplayName("getColoredName returns faction name")
+        void getColoredName_returnsName() {
             Faction faction = TestFactionFactory.builder()
                     .name("TestFaction")
-                    .color("a")
+                    .color("#55FF55")
                     .addLeader(UUID.randomUUID(), "Leader")
                     .build();
 
-            assertEquals("\u00A7aTestFaction\u00A7r", faction.getColoredName());
+            assertEquals("TestFaction", faction.getColoredName());
         }
 
         @Test

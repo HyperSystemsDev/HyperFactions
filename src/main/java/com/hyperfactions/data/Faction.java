@@ -1,5 +1,6 @@
 package com.hyperfactions.data;
 
+import com.hyperfactions.util.LegacyColorParser;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -12,7 +13,7 @@ import java.util.*;
  * @param name        the faction's display name
  * @param description optional faction description
  * @param tag         optional short tag (1-5 chars, alphanumeric)
- * @param color       the faction's color code (e.g., "a" for green)
+ * @param color       the faction's color as hex string (e.g., "#55FFFF")
  * @param createdAt   when the faction was created (epoch millis)
  * @param home        the faction home location, if set
  * @param members     map of member UUID to FactionMember
@@ -51,7 +52,10 @@ public record Faction(
         relations = relations != null ? Map.copyOf(relations) : Map.of();
         logs = logs != null ? List.copyOf(logs) : List.of();
         if (color == null || color.isEmpty()) {
-            color = "f"; // Default white
+            color = "#FFFFFF"; // Default white
+        } else if (!color.startsWith("#") && color.length() == 1) {
+            // Auto-migrate legacy single-char color codes to hex
+            color = LegacyColorParser.codeToHex(color.charAt(0));
         }
     }
 
@@ -76,7 +80,7 @@ public record Faction(
             name,
             null,
             null, // No tag by default
-            "b", // Default cyan
+            "#55FFFF", // Default cyan
             System.currentTimeMillis(),
             null,
             members,
@@ -431,13 +435,25 @@ public record Faction(
     }
 
     /**
-     * Gets the colored faction name.
+     * Gets the faction's hex color string.
+     * Convenience for using in UI contexts where the raw hex is needed.
      *
-     * @return the name with color code prefix
+     * @return the hex color string (e.g., "#55FFFF")
+     */
+    @NotNull
+    public String getColorHex() {
+        return color;
+    }
+
+    /**
+     * Gets the colored faction name as a string.
+     * Note: Since color is now hex, this returns the name without legacy formatting.
+     *
+     * @return the name (color should be applied via Message API in rendering contexts)
      */
     @NotNull
     public String getColoredName() {
-        return "\u00A7" + color + name + "\u00A7r";
+        return name;
     }
 
     /**

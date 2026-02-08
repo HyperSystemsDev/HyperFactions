@@ -76,10 +76,10 @@ public class SetRelationModalPage extends InteractiveCustomUIPage<SetRelationMod
         // Load the modal template
         cmd.append("HyperFactions/faction/set_relation_modal.ui");
 
-        // Search button
+        // Search - real-time filtering via ValueChanged
         events.addEventBinding(
-                CustomUIEventBindingType.Activating,
-                "#SearchBtn",
+                CustomUIEventBindingType.ValueChanged,
+                "#SearchInput",
                 EventData.of("Button", "Search").append("@SearchQuery", "#SearchInput.Value"),
                 false
         );

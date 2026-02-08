@@ -17,6 +17,7 @@ import com.hypixel.hytale.protocol.packets.interface_.CustomUIEventBindingType;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.entity.entities.player.pages.InteractiveCustomUIPage;
+import com.hypixel.hytale.server.core.ui.Value;
 import com.hypixel.hytale.server.core.ui.builder.EventData;
 import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder;
 import com.hypixel.hytale.server.core.ui.builder.UIEventBuilder;
@@ -90,9 +91,11 @@ public class FactionInvitesPage extends InteractiveCustomUIPage<FactionPageData>
     }
 
     private void buildList(UICommandBuilder cmd, UIEventBuilder events) {
-        // Tab buttons - highlight active tab using Disabled property
-        cmd.set("#TabOutgoing.Disabled", currentTab == Tab.OUTGOING);
-        cmd.set("#TabRequests.Disabled", currentTab == Tab.REQUESTS);
+        // Tab buttons - active tab gets cyan text style
+        cmd.set("#TabOutgoing.Style", Value.ref("HyperFactions/shared/styles.ui",
+                currentTab == Tab.OUTGOING ? "CyanButtonStyle" : "ButtonStyle"));
+        cmd.set("#TabRequests.Style", Value.ref("HyperFactions/shared/styles.ui",
+                currentTab == Tab.REQUESTS ? "CyanButtonStyle" : "ButtonStyle"));
 
         events.addEventBinding(
                 CustomUIEventBindingType.Activating,

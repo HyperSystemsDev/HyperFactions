@@ -171,14 +171,14 @@ public class GuiManager {
                 5
         ));
 
-        // Settings page (officers+) - now using tabbed page
+        // Settings page (officers+) - unified two-column layout
         registry.registerEntry(new Entry(
                 "settings",
                 "Settings",
                 null,
                 (player, ref, store, playerRef, faction, guiManager) -> {
                     if (faction == null) return null;
-                    return new FactionSettingsTabsPage(playerRef, factionManager.get(), claimManager.get(), guiManager, plugin.get(), faction, "general");
+                    return new FactionSettingsPage(playerRef, factionManager.get(), claimManager.get(), guiManager, plugin.get(), faction);
                 },
                 true, // Show in nav bar
                 true, // Requires faction
@@ -621,39 +621,21 @@ public class GuiManager {
     public void openFactionSettings(Player player, Ref<EntityStore> ref,
                                     Store<EntityStore> store, PlayerRef playerRef,
                                     Faction faction) {
-        openSettingsWithTab(player, ref, store, playerRef, faction, "general");
-    }
-
-    /**
-     * Opens the Faction Settings page with a specific tab selected.
-     * Requires officer or leader role.
-     *
-     * @param player    The Player entity
-     * @param ref       The entity reference
-     * @param store     The entity store
-     * @param playerRef The PlayerRef component
-     * @param faction   The faction to edit settings for
-     * @param tab       The tab to open (general, permissions, members)
-     */
-    public void openSettingsWithTab(Player player, Ref<EntityStore> ref,
-                                    Store<EntityStore> store, PlayerRef playerRef,
-                                    Faction faction, String tab) {
-        Logger.debug("[GUI] Opening FactionSettingsTabsPage for %s (tab: %s)", playerRef.getUsername(), tab);
+        Logger.debug("[GUI] Opening FactionSettingsPage for %s", playerRef.getUsername());
         try {
             PageManager pageManager = player.getPageManager();
-            FactionSettingsTabsPage page = new FactionSettingsTabsPage(
+            FactionSettingsPage page = new FactionSettingsPage(
                 playerRef,
                 factionManager.get(),
                 claimManager.get(),
                 this,
                 plugin.get(),
-                faction,
-                tab
+                faction
             );
             pageManager.openCustomPage(ref, store, page);
-            Logger.debug("[GUI] FactionSettingsTabsPage opened successfully");
+            Logger.debug("[GUI] FactionSettingsPage opened successfully");
         } catch (Exception e) {
-            Logger.severe("[GUI] Failed to open FactionSettingsTabsPage: %s", e.getMessage());
+            Logger.severe("[GUI] Failed to open FactionSettingsPage: %s", e.getMessage());
             e.printStackTrace();
         }
     }
@@ -797,65 +779,6 @@ public class GuiManager {
         }
     }
 
-    /**
-     * Opens the Recruitment Status modal.
-     *
-     * @param player    The Player entity
-     * @param ref       The entity reference
-     * @param store     The entity store
-     * @param playerRef The PlayerRef component
-     * @param faction   The faction to edit recruitment for
-     */
-    public void openRecruitmentModal(Player player, Ref<EntityStore> ref,
-                                     Store<EntityStore> store, PlayerRef playerRef,
-                                     Faction faction) {
-        Logger.debug("[GUI] Opening RecruitmentModalPage for %s", playerRef.getUsername());
-        try {
-            PageManager pageManager = player.getPageManager();
-            RecruitmentModalPage page = new RecruitmentModalPage(
-                playerRef,
-                factionManager.get(),
-                this,
-                faction
-            );
-            pageManager.openCustomPage(ref, store, page);
-            Logger.debug("[GUI] RecruitmentModalPage opened successfully");
-        } catch (Exception e) {
-            Logger.severe("[GUI] Failed to open RecruitmentModalPage: %s", e.getMessage());
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     * Opens the Color Picker page.
-     *
-     * @param player    The Player entity
-     * @param ref       The entity reference
-     * @param store     The entity store
-     * @param playerRef The PlayerRef component
-     * @param faction   The faction to edit color for
-     */
-    public void openColorPicker(Player player, Ref<EntityStore> ref,
-                                Store<EntityStore> store, PlayerRef playerRef,
-                                Faction faction) {
-        Logger.debug("[GUI] Opening ColorPickerPage for %s", playerRef.getUsername());
-        try {
-            PageManager pageManager = player.getPageManager();
-            ColorPickerPage page = new ColorPickerPage(
-                playerRef,
-                factionManager.get(),
-                this,
-                faction,
-                plugin.get().getWorldMapService()
-            );
-            pageManager.openCustomPage(ref, store, page);
-            Logger.debug("[GUI] ColorPickerPage opened successfully");
-        } catch (Exception e) {
-            Logger.severe("[GUI] Failed to open ColorPickerPage: %s", e.getMessage());
-            e.printStackTrace();
-        }
-    }
-
     // ============================================================
     // Admin Modal Methods (bypass permission checks)
     // ============================================================
@@ -930,55 +853,6 @@ public class GuiManager {
             Logger.debug("[GUI] Admin RenameModalPage opened successfully");
         } catch (Exception e) {
             Logger.severe("[GUI] Failed to open admin RenameModalPage: %s", e.getMessage());
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     * Opens the Recruitment Status modal in admin mode (bypasses permission checks).
-     */
-    public void openAdminRecruitmentModal(Player player, Ref<EntityStore> ref,
-                                          Store<EntityStore> store, PlayerRef playerRef,
-                                          Faction faction) {
-        Logger.debug("[GUI] Opening admin RecruitmentModalPage for %s", playerRef.getUsername());
-        try {
-            PageManager pageManager = player.getPageManager();
-            RecruitmentModalPage page = new RecruitmentModalPage(
-                playerRef,
-                factionManager.get(),
-                this,
-                faction,
-                true  // adminMode
-            );
-            pageManager.openCustomPage(ref, store, page);
-            Logger.debug("[GUI] Admin RecruitmentModalPage opened successfully");
-        } catch (Exception e) {
-            Logger.severe("[GUI] Failed to open admin RecruitmentModalPage: %s", e.getMessage());
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     * Opens the Color Picker page in admin mode (bypasses permission checks).
-     */
-    public void openAdminColorPicker(Player player, Ref<EntityStore> ref,
-                                     Store<EntityStore> store, PlayerRef playerRef,
-                                     Faction faction) {
-        Logger.debug("[GUI] Opening admin ColorPickerPage for %s", playerRef.getUsername());
-        try {
-            PageManager pageManager = player.getPageManager();
-            ColorPickerPage page = new ColorPickerPage(
-                playerRef,
-                factionManager.get(),
-                this,
-                faction,
-                plugin.get().getWorldMapService(),
-                true  // adminMode
-            );
-            pageManager.openCustomPage(ref, store, page);
-            Logger.debug("[GUI] Admin ColorPickerPage opened successfully");
-        } catch (Exception e) {
-            Logger.severe("[GUI] Failed to open admin ColorPickerPage: %s", e.getMessage());
             e.printStackTrace();
         }
     }

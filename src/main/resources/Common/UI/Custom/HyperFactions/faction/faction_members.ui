@@ -36,18 +36,31 @@ $C.@PageOverlay {
 
         Group { FlexWeight: 1; }
 
-        TextButton #SortByRole {
-          Text: "Role";
-          Anchor: (Height: 24, Width: 60);
-          Style: $S.@ButtonStyle;
+        Label {
+          Text: "Sort:";
+          Style: (FontSize: 11, TextColor: #888888, VerticalAlignment: Center);
+          Anchor: (Width: 35);
+        }
+        DropdownBox #SortDropdown {
+          Style: $C.@DefaultDropdownBoxStyle;
+          Anchor: (Height: 28, Width: 140);
+        }
+      }
+
+      // Search row
+      Group {
+        Anchor: (Height: 38, Bottom: 8);
+        LayoutMode: Left;
+
+        Label {
+          Text: "Search:";
+          Style: (FontSize: 11, TextColor: #888888, VerticalAlignment: Center);
+          Anchor: (Width: 55);
         }
 
-        Group { Anchor: (Width: 4); }
-
-        TextButton #SortByOnline {
-          Text: "Online";
-          Anchor: (Height: 24, Width: 70);
-          Style: $S.@ButtonStyle;
+        $C.@TextField #SearchInput {
+          FlexWeight: 1;
+          Anchor: (Height: 32);
         }
       }
 

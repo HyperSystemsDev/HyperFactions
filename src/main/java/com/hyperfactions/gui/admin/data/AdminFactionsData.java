@@ -74,7 +74,7 @@ public class AdminFactionsData implements AdminNavAwareData {
                     data -> String.valueOf(data.page)
             )
             .addField(
-                    new KeyedCodec<>("SortMode", Codec.STRING),
+                    new KeyedCodec<>("@SortMode", Codec.STRING),
                     (data, value) -> data.sortMode = value,
                     data -> data.sortMode
             )

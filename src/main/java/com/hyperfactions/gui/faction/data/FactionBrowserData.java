@@ -24,6 +24,9 @@ public class FactionBrowserData {
     /** Current page number (for pagination) */
     public int page;
 
+    /** Sort mode from dropdown */
+    public String sortMode;
+
     /** Codec for serialization/deserialization */
     public static final BuilderCodec<FactionBrowserData> CODEC = BuilderCodec
             .builder(FactionBrowserData.class, FactionBrowserData::new)
@@ -57,6 +60,11 @@ public class FactionBrowserData {
                         }
                     },
                     data -> String.valueOf(data.page)
+            )
+            .addField(
+                    new KeyedCodec<>("@SortMode", Codec.STRING),
+                    (data, value) -> data.sortMode = value,
+                    data -> data.sortMode
             )
             .build();
 

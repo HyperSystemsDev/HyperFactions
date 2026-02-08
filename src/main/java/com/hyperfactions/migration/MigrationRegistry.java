@@ -2,6 +2,7 @@ package com.hyperfactions.migration;
 
 import com.hyperfactions.migration.migrations.config.ConfigV1ToV2Migration;
 import com.hyperfactions.migration.migrations.config.ConfigV2ToV3Migration;
+import com.hyperfactions.migration.migrations.config.ConfigV3ToV4Migration;
 import org.jetbrains.annotations.NotNull;
 
 import java.nio.file.Path;
@@ -45,6 +46,7 @@ public class MigrationRegistry {
         // Config migrations
         register(new ConfigV1ToV2Migration());
         register(new ConfigV2ToV3Migration());
+        register(new ConfigV3ToV4Migration());
     }
 
     /**

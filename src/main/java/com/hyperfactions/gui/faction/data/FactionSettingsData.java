@@ -1,55 +1,48 @@
-package com.hyperfactions.gui.admin.data;
+package com.hyperfactions.gui.faction.data;
 
+import com.hyperfactions.gui.shared.data.NavAwareData;
 import com.hypixel.hytale.codec.Codec;
 import com.hypixel.hytale.codec.KeyedCodec;
 import com.hypixel.hytale.codec.builder.BuilderCodec;
-import org.jetbrains.annotations.Nullable;
 
 /**
- * Event data for the Admin Faction Settings page.
+ * Data for the unified Faction Settings page (two-column layout).
+ * Handles permission toggles, general settings, and standard page events.
  */
-public class AdminFactionSettingsData implements AdminNavAwareData {
+public class FactionSettingsData implements NavAwareData {
 
     /** The button/action that triggered the event */
     public String button;
 
-    /** Target faction ID */
-    public String factionId;
+    /** Navigation target from NavBar button */
+    public String navBar;
 
-    /** Permission name to toggle */
+    /** Permission name for toggle actions (e.g., "outsiderBreak", "pvpEnabled") */
     public String perm;
 
-    /** Admin nav bar target (for navigation) */
-    public String adminNavBar;
-
-    /** Selected color hex code from ColorPicker */
+    /** Selected color hex code */
     public String color;
 
     /** Recruitment dropdown value (OPEN or INVITE_ONLY) */
     public String recruitment;
 
     /** Codec for serialization/deserialization */
-    public static final BuilderCodec<AdminFactionSettingsData> CODEC = BuilderCodec
-            .builder(AdminFactionSettingsData.class, AdminFactionSettingsData::new)
+    public static final BuilderCodec<FactionSettingsData> CODEC = BuilderCodec
+            .builder(FactionSettingsData.class, FactionSettingsData::new)
             .addField(
                     new KeyedCodec<>("Button", Codec.STRING),
                     (data, value) -> data.button = value,
                     data -> data.button
             )
             .addField(
-                    new KeyedCodec<>("FactionId", Codec.STRING),
-                    (data, value) -> data.factionId = value,
-                    data -> data.factionId
+                    new KeyedCodec<>("NavBar", Codec.STRING),
+                    (data, value) -> data.navBar = value,
+                    data -> data.navBar
             )
             .addField(
                     new KeyedCodec<>("Perm", Codec.STRING),
                     (data, value) -> data.perm = value,
                     data -> data.perm
-            )
-            .addField(
-                    new KeyedCodec<>("AdminNavBar", Codec.STRING),
-                    (data, value) -> data.adminNavBar = value,
-                    data -> data.adminNavBar
             )
             .addField(
                     new KeyedCodec<>("@Color", Codec.STRING),
@@ -63,12 +56,11 @@ public class AdminFactionSettingsData implements AdminNavAwareData {
             )
             .build();
 
-    public AdminFactionSettingsData() {
+    public FactionSettingsData() {
     }
 
     @Override
-    @Nullable
-    public String getAdminNavBar() {
-        return adminNavBar;
+    public String getNavBar() {
+        return navBar;
     }
 }

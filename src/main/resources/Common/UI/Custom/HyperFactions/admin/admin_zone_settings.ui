@@ -97,10 +97,9 @@ $C.@PageOverlay {
                 Style: (FontSize: 9, TextColor: #555555, VerticalAlignment: Center);
                 Anchor: (Width: 55);
               }
-              TextButton #Flag0Toggle {
-                Text: "Off";
+              $C.@CheckBoxWithLabel #Flag0Toggle {
+                @Text = ""; @Checked = false;
                 Anchor: (Height: 20, Width: 44);
-                Style: $S.@ButtonStyle;
               }
             }
 
@@ -119,10 +118,9 @@ $C.@PageOverlay {
                 Style: (FontSize: 9, TextColor: #555555, VerticalAlignment: Center);
                 Anchor: (Width: 55);
               }
-              TextButton #Flag1Toggle {
-                Text: "Off";
+              $C.@CheckBoxWithLabel #Flag1Toggle {
+                @Text = ""; @Checked = false;
                 Anchor: (Height: 20, Width: 44);
-                Style: $S.@ButtonStyle;
               }
             }
 
@@ -141,10 +139,9 @@ $C.@PageOverlay {
                 Style: (FontSize: 9, TextColor: #555555, VerticalAlignment: Center);
                 Anchor: (Width: 55);
               }
-              TextButton #Flag2Toggle {
-                Text: "Off";
+              $C.@CheckBoxWithLabel #Flag2Toggle {
+                @Text = ""; @Checked = false;
                 Anchor: (Height: 20, Width: 44);
-                Style: $S.@ButtonStyle;
               }
             }
 
@@ -163,10 +160,9 @@ $C.@PageOverlay {
                 Style: (FontSize: 9, TextColor: #555555, VerticalAlignment: Center);
                 Anchor: (Width: 55);
               }
-              TextButton #Flag3Toggle {
-                Text: "Off";
+              $C.@CheckBoxWithLabel #Flag3Toggle {
+                @Text = ""; @Checked = false;
                 Anchor: (Height: 20, Width: 44);
-                Style: $S.@ButtonStyle;
               }
             }
           }
@@ -201,10 +197,9 @@ $C.@PageOverlay {
                 Style: (FontSize: 9, TextColor: #555555, VerticalAlignment: Center);
                 Anchor: (Width: 55);
               }
-              TextButton #Flag4Toggle {
-                Text: "Off";
+              $C.@CheckBoxWithLabel #Flag4Toggle {
+                @Text = ""; @Checked = false;
                 Anchor: (Height: 20, Width: 44);
-                Style: $S.@ButtonStyle;
               }
             }
 
@@ -223,10 +218,9 @@ $C.@PageOverlay {
                 Style: (FontSize: 9, TextColor: #555555, VerticalAlignment: Center);
                 Anchor: (Width: 55);
               }
-              TextButton #Flag5Toggle {
-                Text: "Off";
+              $C.@CheckBoxWithLabel #Flag5Toggle {
+                @Text = ""; @Checked = false;
                 Anchor: (Height: 20, Width: 44);
-                Style: $S.@ButtonStyle;
               }
             }
           }
@@ -261,10 +255,9 @@ $C.@PageOverlay {
                 Style: (FontSize: 9, TextColor: #555555, VerticalAlignment: Center);
                 Anchor: (Width: 55);
               }
-              TextButton #Flag6Toggle {
-                Text: "Off";
+              $C.@CheckBoxWithLabel #Flag6Toggle {
+                @Text = ""; @Checked = false;
                 Anchor: (Height: 20, Width: 44);
-                Style: $S.@ButtonStyle;
               }
             }
           }
@@ -299,10 +292,9 @@ $C.@PageOverlay {
                 Style: (FontSize: 9, TextColor: #555555, VerticalAlignment: Center);
                 Anchor: (Width: 55);
               }
-              TextButton #Flag7Toggle {
-                Text: "Off";
+              $C.@CheckBoxWithLabel #Flag7Toggle {
+                @Text = ""; @Checked = false;
                 Anchor: (Height: 20, Width: 44);
-                Style: $S.@ButtonStyle;
               }
             }
           }
@@ -337,10 +329,9 @@ $C.@PageOverlay {
                 Style: (FontSize: 9, TextColor: #555555, VerticalAlignment: Center);
                 Anchor: (Width: 55);
               }
-              TextButton #Flag8Toggle {
-                Text: "On";
+              $C.@CheckBoxWithLabel #Flag8Toggle {
+                @Text = ""; @Checked = true;
                 Anchor: (Height: 20, Width: 44);
-                Style: $S.@ButtonStyle;
               }
             }
 
@@ -359,10 +350,9 @@ $C.@PageOverlay {
                 Style: (FontSize: 9, TextColor: #555555, VerticalAlignment: Center);
                 Anchor: (Width: 55);
               }
-              TextButton #Flag9Toggle {
-                Text: "On";
+              $C.@CheckBoxWithLabel #Flag9Toggle {
+                @Text = ""; @Checked = true;
                 Anchor: (Height: 20, Width: 44);
-                Style: $S.@ButtonStyle;
               }
             }
 
@@ -381,10 +371,9 @@ $C.@PageOverlay {
                 Style: (FontSize: 9, TextColor: #555555, VerticalAlignment: Center);
                 Anchor: (Width: 55);
               }
-              TextButton #Flag10Toggle {
-                Text: "On";
+              $C.@CheckBoxWithLabel #Flag10Toggle {
+                @Text = ""; @Checked = true;
                 Anchor: (Height: 20, Width: 44);
-                Style: $S.@ButtonStyle;
               }
             }
 
@@ -403,10 +392,9 @@ $C.@PageOverlay {
                 Style: (FontSize: 9, TextColor: #555555, VerticalAlignment: Center);
                 Anchor: (Width: 55);
               }
-              TextButton #Flag11Toggle {
-                Text: "Off";
+              $C.@CheckBoxWithLabel #Flag11Toggle {
+                @Text = ""; @Checked = false;
                 Anchor: (Height: 20, Width: 44);
-                Style: $S.@ButtonStyle;
               }
             }
           }
@@ -455,10 +443,9 @@ $C.@PageOverlay {
                 Style: (FontSize: 9, TextColor: #555555, VerticalAlignment: Center);
                 Anchor: (Width: 55);
               }
-              TextButton #Flag12Toggle {
-                Text: "On";
+              $C.@CheckBoxWithLabel #Flag12Toggle {
+                @Text = ""; @Checked = true;
                 Anchor: (Height: 20, Width: 44);
-                Style: $S.@ButtonStyle;
               }
             }
 
@@ -478,10 +465,9 @@ $C.@PageOverlay {
                 Style: (FontSize: 9, TextColor: #555555, VerticalAlignment: Center);
                 Anchor: (Width: 55);
               }
-              TextButton #Flag13Toggle {
-                Text: "On";
+              $C.@CheckBoxWithLabel #Flag13Toggle {
+                @Text = ""; @Checked = true;
                 Anchor: (Height: 20, Width: 44);
-                Style: $S.@ButtonStyle;
               }
             }
 
@@ -501,10 +487,9 @@ $C.@PageOverlay {
                 Style: (FontSize: 9, TextColor: #555555, VerticalAlignment: Center);
                 Anchor: (Width: 55);
               }
-              TextButton #Flag14Toggle {
-                Text: "On";
+              $C.@CheckBoxWithLabel #Flag14Toggle {
+                @Text = ""; @Checked = true;
                 Anchor: (Height: 20, Width: 44);
-                Style: $S.@ButtonStyle;
               }
             }
 
@@ -524,10 +509,9 @@ $C.@PageOverlay {
                 Style: (FontSize: 9, TextColor: #555555, VerticalAlignment: Center);
                 Anchor: (Width: 55);
               }
-              TextButton #Flag15Toggle {
-                Text: "On";
+              $C.@CheckBoxWithLabel #Flag15Toggle {
+                @Text = ""; @Checked = true;
                 Anchor: (Height: 20, Width: 44);
-                Style: $S.@ButtonStyle;
               }
             }
 
@@ -547,10 +531,9 @@ $C.@PageOverlay {
                 Style: (FontSize: 9, TextColor: #555555, VerticalAlignment: Center);
                 Anchor: (Width: 55);
               }
-              TextButton #Flag16Toggle {
-                Text: "On";
+              $C.@CheckBoxWithLabel #Flag16Toggle {
+                @Text = ""; @Checked = true;
                 Anchor: (Height: 20, Width: 44);
-                Style: $S.@ButtonStyle;
               }
             }
 
@@ -570,10 +553,9 @@ $C.@PageOverlay {
                 Style: (FontSize: 9, TextColor: #555555, VerticalAlignment: Center);
                 Anchor: (Width: 55);
               }
-              TextButton #Flag17Toggle {
-                Text: "On";
+              $C.@CheckBoxWithLabel #Flag17Toggle {
+                @Text = ""; @Checked = true;
                 Anchor: (Height: 20, Width: 44);
-                Style: $S.@ButtonStyle;
               }
             }
           }
@@ -615,10 +597,9 @@ $C.@PageOverlay {
                 Style: (FontSize: 9, TextColor: #555555, VerticalAlignment: Center);
                 Anchor: (Width: 55);
               }
-              TextButton #Flag18Toggle {
-                Text: "On";
+              $C.@CheckBoxWithLabel #Flag18Toggle {
+                @Text = ""; @Checked = true;
                 Anchor: (Height: 20, Width: 44);
-                Style: $S.@ButtonStyle;
               }
             }
 
@@ -638,10 +619,9 @@ $C.@PageOverlay {
                 Style: (FontSize: 9, TextColor: #555555, VerticalAlignment: Center);
                 Anchor: (Width: 55);
               }
-              TextButton #Flag19Toggle {
-                Text: "On";
+              $C.@CheckBoxWithLabel #Flag19Toggle {
+                @Text = ""; @Checked = true;
                 Anchor: (Height: 20, Width: 44);
-                Style: $S.@ButtonStyle;
               }
             }
 
@@ -661,10 +641,9 @@ $C.@PageOverlay {
                 Style: (FontSize: 9, TextColor: #555555, VerticalAlignment: Center);
                 Anchor: (Width: 55);
               }
-              TextButton #Flag20Toggle {
-                Text: "On";
+              $C.@CheckBoxWithLabel #Flag20Toggle {
+                @Text = ""; @Checked = true;
                 Anchor: (Height: 20, Width: 44);
-                Style: $S.@ButtonStyle;
               }
             }
 
@@ -684,10 +663,9 @@ $C.@PageOverlay {
                 Style: (FontSize: 9, TextColor: #555555, VerticalAlignment: Center);
                 Anchor: (Width: 55);
               }
-              TextButton #Flag21Toggle {
-                Text: "On";
+              $C.@CheckBoxWithLabel #Flag21Toggle {
+                @Text = ""; @Checked = true;
                 Anchor: (Height: 20, Width: 44);
-                Style: $S.@ButtonStyle;
               }
             }
 
@@ -707,10 +685,9 @@ $C.@PageOverlay {
                 Style: (FontSize: 9, TextColor: #555555, VerticalAlignment: Center);
                 Anchor: (Width: 55);
               }
-              TextButton #Flag22Toggle {
-                Text: "On";
+              $C.@CheckBoxWithLabel #Flag22Toggle {
+                @Text = ""; @Checked = true;
                 Anchor: (Height: 20, Width: 44);
-                Style: $S.@ButtonStyle;
               }
             }
           }

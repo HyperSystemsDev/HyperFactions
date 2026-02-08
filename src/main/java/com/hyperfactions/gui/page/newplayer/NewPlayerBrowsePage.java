@@ -17,6 +17,8 @@ import com.hypixel.hytale.server.core.entity.entities.player.pages.InteractiveCu
 import com.hypixel.hytale.server.core.ui.builder.EventData;
 import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder;
 import com.hypixel.hytale.server.core.ui.builder.UIEventBuilder;
+import com.hypixel.hytale.server.core.ui.DropdownEntryInfo;
+import com.hypixel.hytale.server.core.ui.LocalizableString;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 
@@ -121,48 +123,29 @@ public class NewPlayerBrowsePage extends InteractiveCustomUIPage<NewPlayerPageDa
         cmd.set("#FactionCount.Text", entries.size() + " factions");
         cmd.set("#Subtitle.Text", "Find your new home!");
 
-        // Sort buttons - highlight the active one using Disabled property
-        cmd.set("#SortByPower.Disabled", sortMode == SortMode.POWER);
-        cmd.set("#SortByName.Disabled", sortMode == SortMode.NAME);
-        cmd.set("#SortByMembers.Disabled", sortMode == SortMode.MEMBERS);
-
+        // Sort dropdown
+        cmd.set("#SortDropdown.Entries", List.of(
+                new DropdownEntryInfo(LocalizableString.fromString("Power"), "POWER"),
+                new DropdownEntryInfo(LocalizableString.fromString("Name"), "NAME"),
+                new DropdownEntryInfo(LocalizableString.fromString("Members"), "MEMBERS")
+        ));
+        cmd.set("#SortDropdown.Value", sortMode.name());
         events.addEventBinding(
-                CustomUIEventBindingType.Activating,
-                "#SortByPower",
-                EventData.of("Button", "SortByPower"),
-                false
-        );
-        events.addEventBinding(
-                CustomUIEventBindingType.Activating,
-                "#SortByName",
-                EventData.of("Button", "SortByName"),
-                false
-        );
-        events.addEventBinding(
-                CustomUIEventBindingType.Activating,
-                "#SortByMembers",
-                EventData.of("Button", "SortByMembers"),
+                CustomUIEventBindingType.ValueChanged,
+                "#SortDropdown",
+                EventData.of("Button", "SortChanged")
+                        .append("@SortMode", "#SortDropdown.Value"),
                 false
         );
 
-        // Search bindings
+        // Search binding - real-time filtering via ValueChanged
         if (!searchQuery.isEmpty()) {
             cmd.set("#SearchInput.Value", searchQuery);
-            cmd.set("#ClearSearchBtn.Visible", true);
-        } else {
-            cmd.set("#ClearSearchBtn.Visible", false);
         }
-
         events.addEventBinding(
-                CustomUIEventBindingType.Activating,
-                "#SearchBtn",
+                CustomUIEventBindingType.ValueChanged,
+                "#SearchInput",
                 EventData.of("Button", "Search").append("@SearchQuery", "#SearchInput.Value"),
-                false
-        );
-        events.addEventBinding(
-                CustomUIEventBindingType.Activating,
-                "#ClearSearchBtn",
-                EventData.of("Button", "ClearSearch"),
                 false
         );
 
@@ -410,22 +393,12 @@ public class NewPlayerBrowsePage extends InteractiveCustomUIPage<NewPlayerPageDa
                 }
             }
 
-            case "SortByPower" -> {
-                sortMode = SortMode.POWER;
-                currentPage = 0;
-                expandedFactions.clear();
-                rebuildList();
-            }
-
-            case "SortByName" -> {
-                sortMode = SortMode.NAME;
-                currentPage = 0;
-                expandedFactions.clear();
-                rebuildList();
-            }
-
-            case "SortByMembers" -> {
-                sortMode = SortMode.MEMBERS;
+            case "SortChanged" -> {
+                try {
+                    if (data.sortMode != null) {
+                        sortMode = SortMode.valueOf(data.sortMode);
+                    }
+                } catch (IllegalArgumentException ignored) {}
                 currentPage = 0;
                 expandedFactions.clear();
                 rebuildList();
@@ -444,18 +417,7 @@ public class NewPlayerBrowsePage extends InteractiveCustomUIPage<NewPlayerPageDa
             }
 
             case "Search" -> {
-                if (data.searchQuery != null) {
-                    searchQuery = data.searchQuery;
-                    currentPage = 0;
-                    expandedFactions.clear();
-                    rebuildList();
-                } else {
-                    sendUpdate();
-                }
-            }
-
-            case "ClearSearch" -> {
-                searchQuery = "";
+                searchQuery = data.searchQuery != null ? data.searchQuery : "";
                 currentPage = 0;
                 expandedFactions.clear();
                 rebuildList();

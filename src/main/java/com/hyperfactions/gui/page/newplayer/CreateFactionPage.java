@@ -1,5 +1,6 @@
 package com.hyperfactions.gui.page.newplayer;
 
+import com.hyperfactions.config.ConfigManager;
 import com.hyperfactions.data.Faction;
 import com.hyperfactions.data.FactionPermissions;
 import com.hyperfactions.gui.GuiManager;
@@ -13,11 +14,15 @@ import com.hypixel.hytale.protocol.packets.interface_.CustomUIEventBindingType;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.entity.entities.player.pages.InteractiveCustomUIPage;
+import com.hypixel.hytale.server.core.ui.DropdownEntryInfo;
+import com.hypixel.hytale.server.core.ui.LocalizableString;
 import com.hypixel.hytale.server.core.ui.builder.EventData;
 import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder;
 import com.hypixel.hytale.server.core.ui.builder.UIEventBuilder;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+
+import java.util.List;
 
 /**
  * Create Faction page — two-column form combining name, tag, color,
@@ -33,29 +38,7 @@ public class CreateFactionPage extends InteractiveCustomUIPage<NewPlayerPageData
     private static final int MAX_TAG_LENGTH = 4;
     private static final int MAX_DESCRIPTION_LENGTH = 200;
 
-    // Minecraft-style color codes
-    private static final String[] COLOR_CODES = {
-            "0", "1", "2", "3", "4", "5", "6", "7",
-            "8", "9", "a", "b", "c", "d", "e", "f"
-    };
-
-    private static final String[] COLOR_HEX = {
-            "#000000", "#0000AA", "#00AA00", "#00AAAA",
-            "#AA0000", "#AA00AA", "#FFAA00", "#AAAAAA",
-            "#555555", "#5555FF", "#55FF55", "#55FFFF",
-            "#FF5555", "#FF55FF", "#FFFF55", "#FFFFFF"
-    };
-
-    // Pre-computed RGB values for color distance calculation
-    private static final int[][] COLOR_RGB = new int[16][3];
-
-    static {
-        for (int i = 0; i < COLOR_HEX.length; i++) {
-            COLOR_RGB[i][0] = Integer.parseInt(COLOR_HEX[i].substring(1, 3), 16);
-            COLOR_RGB[i][1] = Integer.parseInt(COLOR_HEX[i].substring(3, 5), 16);
-            COLOR_RGB[i][2] = Integer.parseInt(COLOR_HEX[i].substring(5, 7), 16);
-        }
-    }
+    private static final String DEFAULT_COLOR = "#55FFFF";
 
     private final PlayerRef playerRef;
     private final FactionManager factionManager;
@@ -85,20 +68,18 @@ public class CreateFactionPage extends InteractiveCustomUIPage<NewPlayerPageData
         NewPlayerNavBarHelper.setupBar(playerRef, PAGE_ID, cmd, events);
 
         // Set default ColorPicker value (cyan)
-        cmd.set("#FactionColorPicker.Value", COLOR_HEX[11]);
+        cmd.set("#FactionColorPicker.Value", DEFAULT_COLOR);
 
         // Set preview defaults
-        cmd.set("#PreviewName.TextSpans", Message.raw("Your Faction Name").color(COLOR_HEX[11]));
+        cmd.set("#PreviewName.TextSpans", Message.raw("Your Faction Name").color(DEFAULT_COLOR));
         cmd.set("#PreviewLeader.Text", "Leader: " + playerRef.getUsername());
 
-        // Recruitment button active state (disabled = selected)
-        cmd.set("#InviteOnlyBtn.Disabled", !openRecruitment);
-        cmd.set("#OpenBtn.Disabled", openRecruitment);
-        if (openRecruitment) {
-            cmd.set("#RecruitmentStatus.TextSpans", Message.raw("Open").color("#55FF55"));
-        } else {
-            cmd.set("#RecruitmentStatus.TextSpans", Message.raw("Invite Only").color("#FFAA00"));
-        }
+        // Recruitment dropdown
+        cmd.set("#RecruitmentDropdown.Entries", List.of(
+                new DropdownEntryInfo(LocalizableString.fromString("Invite Only"), "INVITE_ONLY"),
+                new DropdownEntryInfo(LocalizableString.fromString("Open"), "OPEN")
+        ));
+        cmd.set("#RecruitmentDropdown.Value", openRecruitment ? "OPEN" : "INVITE_ONLY");
 
         // Bind ColorPicker ValueChanged for real-time preview
         events.addEventBinding(
@@ -111,20 +92,12 @@ public class CreateFactionPage extends InteractiveCustomUIPage<NewPlayerPageData
                 false
         );
 
-        // Bind recruitment buttons
+        // Bind recruitment dropdown
         events.addEventBinding(
-                CustomUIEventBindingType.Activating,
-                "#InviteOnlyBtn",
+                CustomUIEventBindingType.ValueChanged,
+                "#RecruitmentDropdown",
                 EventData.of("Button", "SetRecruitment")
-                        .append("Recruitment", "closed"),
-                false
-        );
-
-        events.addEventBinding(
-                CustomUIEventBindingType.Activating,
-                "#OpenBtn",
-                EventData.of("Button", "SetRecruitment")
-                        .append("Recruitment", "open"),
+                        .append("@Recruitment", "#RecruitmentDropdown.Value"),
                 false
         );
 
@@ -145,42 +118,69 @@ public class CreateFactionPage extends InteractiveCustomUIPage<NewPlayerPageData
     }
 
     private void buildPermissionToggles(UICommandBuilder cmd, UIEventBuilder events) {
-        // Outsider permissions
-        buildPermissionToggle(cmd, events, "OutsiderBreakToggle", "outsiderBreak", permissions.outsiderBreak());
-        buildPermissionToggle(cmd, events, "OutsiderPlaceToggle", "outsiderPlace", permissions.outsiderPlace());
-        buildPermissionToggle(cmd, events, "OutsiderInteractToggle", "outsiderInteract", permissions.outsiderInteract());
+        ConfigManager config = ConfigManager.get();
 
-        // Ally permissions
-        buildPermissionToggle(cmd, events, "AllyBreakToggle", "allyBreak", permissions.allyBreak());
-        buildPermissionToggle(cmd, events, "AllyPlaceToggle", "allyPlace", permissions.allyPlace());
-        buildPermissionToggle(cmd, events, "AllyInteractToggle", "allyInteract", permissions.allyInteract());
+        // Apply server locks to get effective values for display
+        FactionPermissions perms = config.getEffectiveFactionPermissions(permissions);
 
-        // Member permissions
-        buildPermissionToggle(cmd, events, "MemberBreakToggle", "memberBreak", permissions.memberBreak());
-        buildPermissionToggle(cmd, events, "MemberPlaceToggle", "memberPlace", permissions.memberPlace());
-        buildPermissionToggle(cmd, events, "MemberInteractToggle", "memberInteract", permissions.memberInteract());
+        // Build toggles for all 4 levels
+        for (String level : FactionPermissions.ALL_LEVELS) {
+            String cap = capitalize(level);
+            buildPermissionToggle(cmd, events, cap + "BreakToggle", level + "Break", perms.get(level + "Break"), config, false);
+            buildPermissionToggle(cmd, events, cap + "PlaceToggle", level + "Place", perms.get(level + "Place"), config, false);
+            buildPermissionToggle(cmd, events, cap + "InteractToggle", level + "Interact", perms.get(level + "Interact"), config, false);
+
+            // Interaction sub-flags — disabled when parent interact is off
+            boolean interactOff = !perms.get(level + "Interact");
+            buildPermissionToggle(cmd, events, cap + "DoorToggle", level + "DoorUse", perms.get(level + "DoorUse"), config, interactOff);
+            buildPermissionToggle(cmd, events, cap + "ContainerToggle", level + "ContainerUse", perms.get(level + "ContainerUse"), config, interactOff);
+            buildPermissionToggle(cmd, events, cap + "BenchToggle", level + "BenchUse", perms.get(level + "BenchUse"), config, interactOff);
+            buildPermissionToggle(cmd, events, cap + "ProcessingToggle", level + "ProcessingUse", perms.get(level + "ProcessingUse"), config, interactOff);
+            buildPermissionToggle(cmd, events, cap + "SeatToggle", level + "SeatUse", perms.get(level + "SeatUse"), config, interactOff);
+        }
+
+        // Mob spawning toggles — children disabled when master is off
+        boolean mobSpawning = perms.get(FactionPermissions.MOB_SPAWNING);
+        boolean mobParentOff = !mobSpawning;
+        buildPermissionToggle(cmd, events, "MobSpawningToggle", "mobSpawning", mobSpawning, config, false);
+        buildPermissionToggle(cmd, events, "HostileMobToggle", "hostileMobSpawning", perms.get(FactionPermissions.HOSTILE_MOB_SPAWNING), config, mobParentOff);
+        buildPermissionToggle(cmd, events, "PassiveMobToggle", "passiveMobSpawning", perms.get(FactionPermissions.PASSIVE_MOB_SPAWNING), config, mobParentOff);
+        buildPermissionToggle(cmd, events, "NeutralMobToggle", "neutralMobSpawning", perms.get(FactionPermissions.NEUTRAL_MOB_SPAWNING), config, mobParentOff);
 
         // PvP toggle
-        buildPermissionToggle(cmd, events, "PvPToggle", "pvpEnabled", permissions.pvpEnabled());
-        cmd.set("#PvPStatus.Text", permissions.pvpEnabled() ? "Enabled" : "Disabled");
-        cmd.set("#PvPStatus.Style.TextColor", permissions.pvpEnabled() ? "#55FF55" : "#FF5555");
+        buildPermissionToggle(cmd, events, "PvPToggle", "pvpEnabled", perms.pvpEnabled(), config, false);
+        cmd.set("#PvPStatus.Text", perms.pvpEnabled() ? "Enabled" : "Disabled");
+        cmd.set("#PvPStatus.Style.TextColor", perms.pvpEnabled() ? "#55FF55" : "#FF5555");
+    }
+
+    private static String capitalize(String s) {
+        if (s == null || s.isEmpty()) return s;
+        return Character.toUpperCase(s.charAt(0)) + s.substring(1);
     }
 
     private void buildPermissionToggle(UICommandBuilder cmd, UIEventBuilder events,
-                                       String elementId, String permName, boolean value) {
+                                       String elementId, String permName, boolean value,
+                                       ConfigManager config, boolean parentDisabled) {
+        boolean locked = config.isPermissionLocked(permName);
         String selector = "#" + elementId;
-        cmd.set(selector + ".Text", value ? "On" : "Off");
-        String color = value ? "#55FF55" : "#FF5555";
-        cmd.set(selector + ".Style.Default.LabelStyle.TextColor", color);
-        cmd.set(selector + ".Style.Hovered.LabelStyle.TextColor", color);
 
-        events.addEventBinding(
-                CustomUIEventBindingType.Activating,
-                selector,
-                EventData.of("Button", "TogglePerm")
-                        .append("Perm", permName),
-                false
-        );
+        // When parent is disabled, show unchecked and disable the checkbox
+        boolean displayValue = parentDisabled ? false : value;
+        boolean shouldDisable = parentDisabled || locked;
+
+        cmd.set(selector + " #CheckBox.Value", displayValue);
+
+        if (shouldDisable) {
+            cmd.set(selector + " #CheckBox.Disabled", true);
+        } else {
+            events.addEventBinding(
+                    CustomUIEventBindingType.ValueChanged,
+                    selector + " #CheckBox",
+                    EventData.of("Button", "TogglePerm")
+                            .append("Perm", permName),
+                    false
+            );
+        }
     }
 
     @Override
@@ -225,16 +225,13 @@ public class CreateFactionPage extends InteractiveCustomUIPage<NewPlayerPageData
     }
 
     private void handleRecruitmentToggle(NewPlayerPageData data) {
-        boolean newOpen = "open".equals(data.inputRecruitment);
-        this.openRecruitment = newOpen;
-
-        UICommandBuilder updateCmd = new UICommandBuilder();
-        updateCmd.set("#InviteOnlyBtn.Disabled", !newOpen);
-        updateCmd.set("#OpenBtn.Disabled", newOpen);
-        updateCmd.set("#RecruitmentStatus.TextSpans",
-                newOpen ? Message.raw("Open").color("#55FF55")
-                        : Message.raw("Invite Only").color("#FFAA00"));
-        sendUpdate(updateCmd);
+        String value = data.inputRecruitment;
+        if (value == null) {
+            sendUpdate();
+            return;
+        }
+        this.openRecruitment = "OPEN".equals(value);
+        sendUpdate();
     }
 
     private void handleTogglePerm(NewPlayerPageData data) {
@@ -244,26 +241,15 @@ public class CreateFactionPage extends InteractiveCustomUIPage<NewPlayerPageData
             return;
         }
 
-        // Toggle in-memory (no database — faction doesn't exist yet)
-        this.permissions = this.permissions.toggle(permName);
-        boolean newValue = this.permissions.get(permName);
-
-        // Update just the toggled button via sendUpdate
-        String elementId = permToElementId(permName);
-        String selector = "#" + elementId;
-        UICommandBuilder updateCmd = new UICommandBuilder();
-        updateCmd.set(selector + ".Text", newValue ? "On" : "Off");
-        String color = newValue ? "#55FF55" : "#FF5555";
-        updateCmd.set(selector + ".Style.Default.LabelStyle.TextColor", color);
-        updateCmd.set(selector + ".Style.Hovered.LabelStyle.TextColor", color);
-
-        // Update PvP status label if toggling pvpEnabled
-        if ("pvpEnabled".equals(permName)) {
-            updateCmd.set("#PvPStatus.Text", newValue ? "Enabled" : "Disabled");
-            updateCmd.set("#PvPStatus.Style.TextColor", newValue ? "#55FF55" : "#FF5555");
+        // Don't allow toggling locked permissions
+        if (ConfigManager.get().isPermissionLocked(permName)) {
+            sendUpdate();
+            return;
         }
 
-        sendUpdate(updateCmd);
+        // Toggle in-memory (no database — faction doesn't exist yet)
+        this.permissions = this.permissions.toggle(permName);
+        sendUpdate();
     }
 
     private void handleCreate(Player player, Ref<EntityStore> ref, Store<EntityStore> store,
@@ -272,9 +258,8 @@ public class CreateFactionPage extends InteractiveCustomUIPage<NewPlayerPageData
         String tag = data.inputTag != null ? data.inputTag.trim() : "";
         String description = data.inputDescription != null ? data.inputDescription.trim() : "";
 
-        // Snap ColorPicker hex to nearest Minecraft color code
-        String hex = extractHex(data.inputColor);
-        String color = hexToNearestColorCode(hex);
+        // Extract hex color from ColorPicker value
+        String color = extractHex(data.inputColor);
 
         // Validate faction name
         if (name.isEmpty()) {
@@ -410,54 +395,6 @@ public class CreateFactionPage extends InteractiveCustomUIPage<NewPlayerPageData
 
     // ── Utility methods ──────────────────────────────────────────────
 
-    private static String permToElementId(String permName) {
-        return switch (permName) {
-            case "outsiderBreak" -> "OutsiderBreakToggle";
-            case "outsiderPlace" -> "OutsiderPlaceToggle";
-            case "outsiderInteract" -> "OutsiderInteractToggle";
-            case "allyBreak" -> "AllyBreakToggle";
-            case "allyPlace" -> "AllyPlaceToggle";
-            case "allyInteract" -> "AllyInteractToggle";
-            case "memberBreak" -> "MemberBreakToggle";
-            case "memberPlace" -> "MemberPlaceToggle";
-            case "memberInteract" -> "MemberInteractToggle";
-            case "pvpEnabled" -> "PvPToggle";
-            default -> permName;
-        };
-    }
-
-    /**
-     * Snaps an arbitrary hex color (#RRGGBB) to the nearest of the 16 Minecraft color codes.
-     * Uses Euclidean distance in RGB color space.
-     */
-    private String hexToNearestColorCode(String hex) {
-        int r, g, b;
-        try {
-            r = Integer.parseInt(hex.substring(1, 3), 16);
-            g = Integer.parseInt(hex.substring(3, 5), 16);
-            b = Integer.parseInt(hex.substring(5, 7), 16);
-        } catch (NumberFormatException | StringIndexOutOfBoundsException e) {
-            return "b"; // default cyan
-        }
-
-        int bestIndex = 11; // default cyan
-        int bestDistance = Integer.MAX_VALUE;
-
-        for (int i = 0; i < COLOR_RGB.length; i++) {
-            int dr = r - COLOR_RGB[i][0];
-            int dg = g - COLOR_RGB[i][1];
-            int db = b - COLOR_RGB[i][2];
-            int distance = dr * dr + dg * dg + db * db;
-
-            if (distance < bestDistance) {
-                bestDistance = distance;
-                bestIndex = i;
-            }
-        }
-
-        return COLOR_CODES[bestIndex];
-    }
-
     /**
      * Extracts a #RRGGBB hex string from the ColorPicker value.
      * The ColorPicker returns #RRGGBBAA (hex with alpha), so we strip the alpha suffix.
@@ -466,7 +403,7 @@ public class CreateFactionPage extends InteractiveCustomUIPage<NewPlayerPageData
         if (pickerValue != null && pickerValue.length() >= 7) {
             return pickerValue.substring(0, 7);
         }
-        return COLOR_HEX[11]; // default cyan
+        return DEFAULT_COLOR;
     }
 
     /**

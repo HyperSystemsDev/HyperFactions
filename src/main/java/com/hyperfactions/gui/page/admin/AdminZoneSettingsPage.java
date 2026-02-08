@@ -146,16 +146,12 @@ public class AdminZoneSettingsPage extends InteractiveCustomUIPage<AdminZoneSett
         String displayName = ZoneFlags.getDisplayName(flagName);
         cmd.set(idx + "Name.Text", displayName);
 
-        // Current value toggle - convey state through text only
-        // Note: Cannot set TextButton styles dynamically (crashes CustomUI)
-        if (mixinUnavailable) {
-            cmd.set(idx + "Toggle.Text", "N/A");
-        } else {
-            cmd.set(idx + "Toggle.Text", currentValue ? "On" : "Off");
-        }
-
-        // Disable child toggles when parent is OFF, or when mixin not available
-        cmd.set(idx + "Toggle.Disabled", parentDisabled || mixinUnavailable);
+        // Set checkbox value via child selector
+        // When parent is off, show children as unchecked for clearer visual state
+        boolean shouldDisable = parentDisabled || mixinUnavailable;
+        boolean displayValue = parentDisabled ? false : currentValue;
+        cmd.set(idx + "Toggle #CheckBox.Value", displayValue);
+        cmd.set(idx + "Toggle #CheckBox.Disabled", shouldDisable);
 
         // Default indicator (shows "(default)" or "(custom)" or "(mixin)")
         if (mixinUnavailable) {
@@ -169,10 +165,10 @@ public class AdminZoneSettingsPage extends InteractiveCustomUIPage<AdminZoneSett
             cmd.set(idx + "Default.Style.TextColor", "#FFAA00");
         }
 
-        // Toggle event (disabled buttons won't fire anyway)
+        // ValueChanged event (disabled checkboxes won't fire)
         events.addEventBinding(
-                CustomUIEventBindingType.Activating,
-                idx + "Toggle",
+                CustomUIEventBindingType.ValueChanged,
+                idx + "Toggle #CheckBox",
                 EventData.of("Button", "ToggleFlag")
                         .append("Flag", flagName)
                         .append("ZoneId", zoneId.toString()),

@@ -24,7 +24,7 @@ public final class LegacyColorParser {
     private LegacyColorParser() {}
 
     /** Legacy color code to hex color mapping */
-    private static final Map<Character, String> LEGACY_COLORS = Map.ofEntries(
+    public static final Map<Character, String> LEGACY_COLORS = Map.ofEntries(
         Map.entry('0', "#000000"),  // Black
         Map.entry('1', "#0000AA"),  // Dark Blue
         Map.entry('2', "#00AA00"),  // Dark Green
@@ -42,6 +42,32 @@ public final class LegacyColorParser {
         Map.entry('e', "#FFFF55"),  // Yellow
         Map.entry('f', "#FFFFFF")   // White
     );
+
+    /**
+     * Converts a single-character legacy color code to a hex string.
+     *
+     * @param code the color code character (0-9, a-f)
+     * @return hex string like "#55FFFF", defaults to "#FFFFFF" if unknown
+     */
+    @NotNull
+    public static String codeToHex(char code) {
+        return LEGACY_COLORS.getOrDefault(Character.toLowerCase(code), "#FFFFFF");
+    }
+
+    /**
+     * Converts a hex color string (#RRGGBB) to an RGB int.
+     *
+     * @param hex the hex string (e.g., "#55FFFF")
+     * @return the RGB int value, defaults to 0xFFFFFF if invalid
+     */
+    public static int hexToRgbInt(@NotNull String hex) {
+        try {
+            if (hex.startsWith("#") && hex.length() >= 7) {
+                return Integer.parseInt(hex.substring(1, 7), 16);
+            }
+        } catch (NumberFormatException ignored) {}
+        return 0xFFFFFF;
+    }
 
     /** Pattern for legacy color codes: & or section symbol followed by 0-9, a-f, or format codes */
     private static final Pattern LEGACY_CODE_PATTERN = Pattern.compile("[&\u00A7]([0-9a-fA-FklmnorKLMNOR])");

@@ -111,7 +111,7 @@ public class CoreConfig extends ConfigFile {
 
     @Override
     protected void createDefaults() {
-        configVersion = 3;
+        configVersion = 4;
         // Defaults are already set in field declarations
     }
 

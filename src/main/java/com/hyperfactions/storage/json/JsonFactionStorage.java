@@ -241,17 +241,9 @@ public class JsonFactionStorage implements FactionStorage {
 
     private JsonObject serializePermissions(FactionPermissions perms) {
         JsonObject obj = new JsonObject();
-        obj.addProperty("outsiderBreak", perms.outsiderBreak());
-        obj.addProperty("outsiderPlace", perms.outsiderPlace());
-        obj.addProperty("outsiderInteract", perms.outsiderInteract());
-        obj.addProperty("allyBreak", perms.allyBreak());
-        obj.addProperty("allyPlace", perms.allyPlace());
-        obj.addProperty("allyInteract", perms.allyInteract());
-        obj.addProperty("memberBreak", perms.memberBreak());
-        obj.addProperty("memberPlace", perms.memberPlace());
-        obj.addProperty("memberInteract", perms.memberInteract());
-        obj.addProperty("pvpEnabled", perms.pvpEnabled());
-        obj.addProperty("officersCanEdit", perms.officersCanEdit());
+        for (Map.Entry<String, Boolean> entry : perms.toMap().entrySet()) {
+            obj.addProperty(entry.getKey(), entry.getValue());
+        }
         return obj;
     }
 
@@ -314,7 +306,16 @@ public class JsonFactionStorage implements FactionStorage {
         String name = obj.get("name").getAsString();
         String description = obj.has("description") ? obj.get("description").getAsString() : null;
         String tag = obj.has("tag") ? obj.get("tag").getAsString() : null;
-        String color = obj.has("color") ? obj.get("color").getAsString() : "f";
+        String rawColor = obj.has("color") ? obj.get("color").getAsString() : "#FFFFFF";
+        // Auto-migrate legacy single-char color codes to hex
+        String color;
+        if (rawColor.startsWith("#")) {
+            color = rawColor;
+        } else if (rawColor.length() == 1) {
+            color = com.hyperfactions.util.LegacyColorParser.codeToHex(rawColor.charAt(0));
+        } else {
+            color = "#FFFFFF";
+        }
         long createdAt = obj.get("createdAt").getAsLong();
         boolean open = obj.has("open") && obj.get("open").getAsBoolean();
 
@@ -368,19 +369,51 @@ public class JsonFactionStorage implements FactionStorage {
     }
 
     private FactionPermissions deserializePermissions(JsonObject obj) {
-        return new FactionPermissions(
-            obj.has("outsiderBreak") && obj.get("outsiderBreak").getAsBoolean(),
-            obj.has("outsiderPlace") && obj.get("outsiderPlace").getAsBoolean(),
-            obj.has("outsiderInteract") && obj.get("outsiderInteract").getAsBoolean(),
-            obj.has("allyBreak") && obj.get("allyBreak").getAsBoolean(),
-            obj.has("allyPlace") && obj.get("allyPlace").getAsBoolean(),
-            !obj.has("allyInteract") || obj.get("allyInteract").getAsBoolean(), // Default true
-            !obj.has("memberBreak") || obj.get("memberBreak").getAsBoolean(),   // Default true
-            !obj.has("memberPlace") || obj.get("memberPlace").getAsBoolean(),   // Default true
-            !obj.has("memberInteract") || obj.get("memberInteract").getAsBoolean(), // Default true
-            !obj.has("pvpEnabled") || obj.get("pvpEnabled").getAsBoolean(),     // Default true
-            obj.has("officersCanEdit") && obj.get("officersCanEdit").getAsBoolean()
-        );
+        Map<String, Boolean> flags = new HashMap<>();
+
+        // Read all boolean flags from JSON
+        for (Map.Entry<String, JsonElement> entry : obj.entrySet()) {
+            if (entry.getValue().isJsonPrimitive() && entry.getValue().getAsJsonPrimitive().isBoolean()) {
+                flags.put(entry.getKey(), entry.getValue().getAsBoolean());
+            }
+        }
+
+        // Backward compatibility: if no officer flags, derive from member flags
+        if (!flags.containsKey("officerBreak") && flags.containsKey("memberBreak")) {
+            flags.put("officerBreak", flags.get("memberBreak"));
+            flags.put("officerPlace", flags.getOrDefault("memberPlace", true));
+            flags.put("officerInteract", flags.getOrDefault("memberInteract", true));
+            boolean interact = flags.getOrDefault("memberInteract", true);
+            flags.put("officerDoorUse", interact);
+            flags.put("officerContainerUse", interact);
+            flags.put("officerBenchUse", interact);
+            flags.put("officerProcessingUse", interact);
+            flags.put("officerSeatUse", interact);
+        }
+
+        // If no sub-type flags, derive from parent interact flag
+        for (String level : FactionPermissions.ALL_LEVELS) {
+            String interactKey = level + "Interact";
+            if (!flags.containsKey(level + "DoorUse") && flags.containsKey(interactKey)) {
+                boolean interact = flags.get(interactKey);
+                flags.put(level + "DoorUse", interact);
+                flags.put(level + "ContainerUse", interact);
+                flags.put(level + "BenchUse", interact);
+                flags.put(level + "ProcessingUse", interact);
+                flags.put(level + "SeatUse", interact);
+            }
+        }
+
+        // If no mob spawning flags, default to blocking all in claims
+        if (!flags.containsKey("mobSpawning")) {
+            flags.put("mobSpawning", false);
+            flags.put("hostileMobSpawning", false);
+            flags.put("passiveMobSpawning", true);
+            flags.put("neutralMobSpawning", true);
+        }
+
+        // Constructor fills remaining missing flags from defaults
+        return new FactionPermissions(flags);
     }
 
     private Faction.FactionHome deserializeHome(JsonObject obj) {

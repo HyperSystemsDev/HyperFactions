@@ -29,14 +29,6 @@ $C.@PageOverlay {
           FlexWeight: 1;
           Anchor: (Height: 32);
         }
-
-        Label { Anchor: (Width: 8); }
-
-        TextButton #SearchBtn {
-          Text: "Search";
-          Anchor: (Height: 30, Width: 80);
-          Style: $S.@ButtonStyle;
-        }
       }
 
       // Divider

@@ -46,6 +46,10 @@ public class InvitesPage extends InteractiveCustomUIPage<NewPlayerPageData> impl
     private final JoinRequestManager joinRequestManager;
     private final GuiManager guiManager;
 
+    // Saved from build() for use in refreshContent() redirect
+    private Ref<EntityStore> savedRef;
+    private Store<EntityStore> savedStore;
+
     public InvitesPage(PlayerRef playerRef,
                        FactionManager factionManager,
                        PowerManager powerManager,
@@ -64,6 +68,10 @@ public class InvitesPage extends InteractiveCustomUIPage<NewPlayerPageData> impl
     @Override
     public void build(Ref<EntityStore> ref, UICommandBuilder cmd,
                       UIEventBuilder events, Store<EntityStore> store) {
+
+        // Save ref/store for refreshContent() redirect
+        this.savedRef = ref;
+        this.savedStore = store;
 
         // Load the main template
         cmd.append("HyperFactions/newplayer/invites.ui");
@@ -229,6 +237,21 @@ public class InvitesPage extends InteractiveCustomUIPage<NewPlayerPageData> impl
 
     @Override
     public void refreshContent() {
+        // If player joined a faction (e.g., request accepted by someone else), redirect to dashboard
+        if (factionManager.isInFaction(playerRef.getUuid())) {
+            Faction faction = factionManager.getPlayerFaction(playerRef.getUuid());
+            if (faction != null && savedRef != null && savedStore != null) {
+                Player player = savedStore.getComponent(savedRef, Player.getComponentType());
+                if (player != null) {
+                    ActivePageTracker activeTracker = guiManager.getActivePageTracker();
+                    if (activeTracker != null) {
+                        activeTracker.unregister(playerRef.getUuid());
+                    }
+                    guiManager.openFactionDashboard(player, savedRef, savedStore, playerRef, faction);
+                    return;
+                }
+            }
+        }
         rebuild();
     }
 

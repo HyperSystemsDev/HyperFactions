@@ -519,33 +519,19 @@ public class ClaimImageBuilder {
     }
 
     /**
-     * Converts a single-character color code to RGB hex.
+     * Converts a hex color string (#RRGGBB) to RGB int.
+     * Falls back to legacy single-char codes for backwards compatibility.
      */
-    private int colorCodeToHex(@Nullable String colorCode) {
-        if (colorCode == null || colorCode.isEmpty()) {
+    private int colorCodeToHex(@Nullable String color) {
+        if (color == null || color.isEmpty()) {
             return COLOR_FACTION_DEFAULT;
         }
-
-        char c = colorCode.toLowerCase().charAt(0);
-        return switch (c) {
-            case '0' -> 0x000000; // Black
-            case '1' -> 0x0000AA; // Dark Blue
-            case '2' -> 0x00AA00; // Dark Green
-            case '3' -> 0x00AAAA; // Dark Aqua
-            case '4' -> 0xAA0000; // Dark Red
-            case '5' -> 0xAA00AA; // Dark Purple
-            case '6' -> 0xFFAA00; // Gold
-            case '7' -> 0xAAAAAA; // Gray
-            case '8' -> 0x555555; // Dark Gray
-            case '9' -> 0x5555FF; // Blue
-            case 'a' -> 0x55FF55; // Green
-            case 'b' -> 0x55FFFF; // Aqua
-            case 'c' -> 0xFF5555; // Red
-            case 'd' -> 0xFF55FF; // Light Purple
-            case 'e' -> 0xFFFF55; // Yellow
-            case 'f' -> 0xFFFFFF; // White
-            default -> COLOR_FACTION_DEFAULT;
-        };
+        if (color.startsWith("#") && color.length() >= 7) {
+            return com.hyperfactions.util.LegacyColorParser.hexToRgbInt(color);
+        }
+        // Fallback: legacy single-char code
+        String hex = com.hyperfactions.util.LegacyColorParser.codeToHex(color.charAt(0));
+        return com.hyperfactions.util.LegacyColorParser.hexToRgbInt(hex);
     }
 
     private static float shadeFromHeights(int blockPixelX, int blockPixelZ, int blockPixelWidth, int blockPixelHeight,

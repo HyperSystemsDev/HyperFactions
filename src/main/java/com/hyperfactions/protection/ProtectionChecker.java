@@ -3,7 +3,9 @@ package com.hyperfactions.protection;
 import com.hyperfactions.HyperFactions;
 import com.hyperfactions.config.ConfigManager;
 import com.hyperfactions.data.Faction;
+import com.hyperfactions.data.FactionMember;
 import com.hyperfactions.data.FactionPermissions;
+import com.hyperfactions.data.FactionRole;
 import com.hyperfactions.data.RelationType;
 import com.hyperfactions.data.Zone;
 import com.hyperfactions.data.ZoneFlags;
@@ -90,11 +92,15 @@ public class ProtectionChecker {
      * Types of interactions to check.
      */
     public enum InteractionType {
-        BUILD,      // Place/break blocks
-        INTERACT,   // Use doors, buttons, etc.
-        CONTAINER,  // Open chests, etc.
-        DAMAGE,     // Damage entities (not players)
-        USE         // Use items
+        BUILD,       // Place/break blocks
+        INTERACT,    // General block interaction (fallback)
+        CONTAINER,   // Open chests, etc.
+        DOOR,        // Use doors/gates
+        BENCH,       // Crafting tables
+        PROCESSING,  // Furnaces/smelters
+        SEAT,        // Seats/mounts
+        DAMAGE,      // Damage entities (not players)
+        USE          // Use items (fallback)
     }
 
     // === Interaction Protection ===
@@ -146,7 +152,7 @@ public class ProtectionChecker {
             // 3. Non-admin: Check standard bypass permissions
             String bypassPerm = switch (type) {
                 case BUILD -> "hyperfactions.bypass.build";
-                case INTERACT -> "hyperfactions.bypass.interact";
+                case INTERACT, DOOR, BENCH, PROCESSING, SEAT -> "hyperfactions.bypass.interact";
                 case CONTAINER -> "hyperfactions.bypass.container";
                 case DAMAGE -> "hyperfactions.bypass.damage";
                 case USE -> "hyperfactions.bypass.use";
@@ -162,13 +168,15 @@ public class ProtectionChecker {
         Zone zone = zoneManager.getZone(world, chunkX, chunkZ);
         if (zone != null) {
             // Get the appropriate flag for the interaction type
-            // Note: INTERACT, CONTAINER, and USE all map to BLOCK_INTERACT now
             String flagName = switch (type) {
                 case BUILD -> ZoneFlags.BUILD_ALLOWED;
-                case INTERACT -> ZoneFlags.BLOCK_INTERACT;
-                case CONTAINER -> ZoneFlags.BLOCK_INTERACT;
-                case DAMAGE -> ZoneFlags.PVP_ENABLED; // For entity damage
-                case USE -> ZoneFlags.BLOCK_INTERACT;
+                case INTERACT, USE -> ZoneFlags.BLOCK_INTERACT;
+                case DOOR -> ZoneFlags.DOOR_USE;
+                case CONTAINER -> ZoneFlags.CONTAINER_USE;
+                case BENCH -> ZoneFlags.BENCH_USE;
+                case PROCESSING -> ZoneFlags.PROCESSING_USE;
+                case SEAT -> ZoneFlags.SEAT_USE;
+                case DAMAGE -> ZoneFlags.PVP_ENABLED;
             };
 
             boolean allowed = zone.getEffectiveFlag(flagName);
@@ -210,13 +218,25 @@ public class ProtectionChecker {
             );
         }
 
-        // 6. Check if same faction (member)
+        // 6. Check if same faction (member or officer)
         if (playerFactionId != null && playerFactionId.equals(claimOwner)) {
-            // Check member permissions
-            if (perms != null && !checkMemberPermission(perms, type)) {
-                Logger.debugProtection("Interaction denied: player=%s, chunk=%s/%d/%d, type=%s, result=MEMBER_NO_PERM, claimOwner=%s",
-                    playerUuid, world, chunkX, chunkZ, type, claimOwner);
-                return ProtectionResult.DENIED_NO_PERMISSION;
+            // Determine if officer/leader or regular member
+            FactionMember factionMember = ownerFaction != null ? ownerFaction.getMember(playerUuid) : null;
+            boolean isOfficerOrLeader = factionMember != null &&
+                factionMember.role().getLevel() >= FactionRole.OFFICER.getLevel();
+
+            if (isOfficerOrLeader) {
+                if (perms != null && !checkPermission(perms, "officer", type)) {
+                    Logger.debugProtection("Interaction denied: player=%s, chunk=%s/%d/%d, type=%s, result=OFFICER_NO_PERM, claimOwner=%s",
+                        playerUuid, world, chunkX, chunkZ, type, claimOwner);
+                    return ProtectionResult.DENIED_NO_PERMISSION;
+                }
+            } else {
+                if (perms != null && !checkMemberPermission(perms, type)) {
+                    Logger.debugProtection("Interaction denied: player=%s, chunk=%s/%d/%d, type=%s, result=MEMBER_NO_PERM, claimOwner=%s",
+                        playerUuid, world, chunkX, chunkZ, type, claimOwner);
+                    return ProtectionResult.DENIED_NO_PERMISSION;
+                }
             }
             return ProtectionResult.ALLOWED_OWN_CLAIM;
         }
@@ -257,39 +277,37 @@ public class ProtectionChecker {
     }
 
     /**
-     * Checks if the interaction type is allowed for outsiders based on faction permissions.
+     * Unified permission check for any level and interaction type.
+     * Uses parent-child logic built into FactionPermissions.get().
+     *
+     * @param perms the faction permissions
+     * @param level the level (outsider, ally, member, officer)
+     * @param type  the interaction type
+     * @return true if allowed
      */
+    private boolean checkPermission(FactionPermissions perms, String level, InteractionType type) {
+        return switch (type) {
+            case BUILD -> perms.get(level + "Break") || perms.get(level + "Place");
+            case INTERACT, USE -> perms.get(level + "Interact");
+            case DOOR -> perms.get(level + "DoorUse");
+            case CONTAINER -> perms.get(level + "ContainerUse");
+            case BENCH -> perms.get(level + "BenchUse");
+            case PROCESSING -> perms.get(level + "ProcessingUse");
+            case SEAT -> perms.get(level + "SeatUse");
+            case DAMAGE -> !"outsider".equals(level); // outsiders can't damage
+        };
+    }
+
     private boolean checkOutsiderPermission(FactionPermissions perms, InteractionType type) {
-        return switch (type) {
-            case BUILD -> perms.outsiderBreak() || perms.outsiderPlace();
-            case INTERACT, USE -> perms.outsiderInteract();
-            case CONTAINER -> perms.outsiderInteract();  // Containers = interact
-            case DAMAGE -> false;  // Entity damage handled separately
-        };
+        return checkPermission(perms, "outsider", type);
     }
 
-    /**
-     * Checks if the interaction type is allowed for allies based on faction permissions.
-     */
     private boolean checkAllyPermission(FactionPermissions perms, InteractionType type) {
-        return switch (type) {
-            case BUILD -> perms.allyBreak() || perms.allyPlace();
-            case INTERACT, USE -> perms.allyInteract();
-            case CONTAINER -> perms.allyInteract();  // Containers = interact
-            case DAMAGE -> true;  // Allies can damage entities in ally territory
-        };
+        return checkPermission(perms, "ally", type);
     }
 
-    /**
-     * Checks if the interaction type is allowed for members based on faction permissions.
-     */
     private boolean checkMemberPermission(FactionPermissions perms, InteractionType type) {
-        return switch (type) {
-            case BUILD -> perms.memberBreak() || perms.memberPlace();
-            case INTERACT, USE -> perms.memberInteract();
-            case CONTAINER -> perms.memberInteract();  // Containers = interact
-            case DAMAGE -> true;  // Members can damage entities in own territory
-        };
+        return checkPermission(perms, "member", type);
     }
 
     // === PvP Protection ===
@@ -774,10 +792,24 @@ public class ProtectionChecker {
             return false;
         }
 
-        // Check faction claims (block spawns in faction territory by default)
+        // Check faction claims — use faction permissions for mob spawning
         UUID claimOwner = claimManager.getClaimOwner(worldName, chunkX, chunkZ);
         if (claimOwner != null) {
-            Logger.debugSpawning("[Protection] Spawn BLOCKED in faction claim at chunk (%d,%d)",
+            Faction ownerFaction = factionManager.getFaction(claimOwner);
+            if (ownerFaction != null) {
+                FactionPermissions perms = ConfigManager.get().getEffectiveFactionPermissions(
+                    ownerFaction.getEffectivePermissions()
+                );
+                if (!perms.get(FactionPermissions.MOB_SPAWNING)) {
+                    Logger.debugSpawning("[Protection] Spawn BLOCKED in faction claim at chunk (%d,%d) (mobSpawning=false)",
+                        chunkX, chunkZ);
+                    return true;
+                }
+                // mobSpawning is true — sub-type control handled by SpawnSuppressionManager
+                return false;
+            }
+            // No faction data — block by default
+            Logger.debugSpawning("[Protection] Spawn BLOCKED in faction claim at chunk (%d,%d) (no faction data)",
                 chunkX, chunkZ);
             return true;
         }

@@ -17,6 +17,7 @@ import com.hypixel.hytale.protocol.packets.interface_.CustomUIEventBindingType;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.entity.entities.player.pages.InteractiveCustomUIPage;
+import com.hypixel.hytale.server.core.ui.Value;
 import com.hypixel.hytale.server.core.ui.builder.EventData;
 import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder;
 import com.hypixel.hytale.server.core.ui.builder.UIEventBuilder;
@@ -101,10 +102,13 @@ public class FactionRelationsPage extends InteractiveCustomUIPage<FactionRelatio
     }
 
     private void buildList(UICommandBuilder cmd, UIEventBuilder events, boolean canManage) {
-        // Tab buttons - highlight active tab using Disabled property
-        cmd.set("#TabAllies.Disabled", currentTab == Tab.ALLIES);
-        cmd.set("#TabEnemies.Disabled", currentTab == Tab.ENEMIES);
-        cmd.set("#TabPending.Disabled", currentTab == Tab.PENDING);
+        // Tab buttons - active tab gets cyan text style
+        cmd.set("#TabAllies.Style", Value.ref("HyperFactions/shared/styles.ui",
+                currentTab == Tab.ALLIES ? "CyanButtonStyle" : "ButtonStyle"));
+        cmd.set("#TabEnemies.Style", Value.ref("HyperFactions/shared/styles.ui",
+                currentTab == Tab.ENEMIES ? "CyanButtonStyle" : "ButtonStyle"));
+        cmd.set("#TabPending.Style", Value.ref("HyperFactions/shared/styles.ui",
+                currentTab == Tab.PENDING ? "CyanButtonStyle" : "ButtonStyle"));
 
         events.addEventBinding(
                 CustomUIEventBindingType.Activating,

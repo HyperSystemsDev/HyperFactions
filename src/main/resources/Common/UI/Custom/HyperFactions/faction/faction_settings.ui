@@ -1,7 +1,7 @@
-// Create Faction - Three-column layout
-// Left: preview, basic info, details
-// Middle: building permissions, interaction permissions
-// Right: faction color, mob spawning, combat, create button
+// Faction Settings Page - Three-Column Layout with Boxed Sections
+// Left: General, Recruitment, Home, Modules, Disband
+// Middle: Territory Permissions (Building grid + Interaction grid)
+// Right: Color, Mob Spawning, Faction Settings (PvP + Officers)
 
 $C = "../../Common.ui";
 $S = "../shared/styles.ui";
@@ -11,11 +11,13 @@ $C.@PageOverlay {
   $Nav.@HyperFactionsNavBar #HyperFactionsNavBar {}
 
   $C.@DecoratedContainer {
-    Anchor: (Width: 1000, Height: 700);
+    Anchor: (Width: 1000, Height: 720);
 
     #Title {
-      $C.@Title {
-        @Text = "Create Your Faction";
+      Group {
+        $C.@Title {
+          @Text = "Faction Settings";
+        }
       }
     }
 
@@ -31,12 +33,13 @@ $C.@PageOverlay {
         // === LEFT COLUMN ===
         Group #LeftColumn {
           Anchor: (Width: 280);
-          LayoutMode: Top;
+          LayoutMode: TopScrolling;
+          ScrollbarStyle: $C.@DefaultScrollbarStyle;
           Padding: (Left: 0, Right: 8, Top: 0, Bottom: 0);
 
-          // --- PREVIEW ---
+          // --- General ---
           Label {
-            Text: "Preview";
+            Text: "General";
             Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
             Anchor: (Height: 18, Bottom: 4);
           }
@@ -45,36 +48,82 @@ $C.@PageOverlay {
             Background: (Color: #334455);
           }
 
-          Group {
+          Group #GeneralBox {
             Background: (Color: #1a2a3a);
-            Padding: (Left: 12, Right: 12, Top: 10, Bottom: 10);
-            Anchor: (Height: 56, Bottom: 12);
+            Padding: (Left: 12, Right: 12, Top: 8, Bottom: 8);
             LayoutMode: Top;
+            Anchor: (Bottom: 8);
 
+            // Name row
             Group {
+              Anchor: (Height: 32, Bottom: 4);
               LayoutMode: Left;
-              Anchor: (Height: 20);
 
               Label {
-                Text: "Name: ";
-                Style: (FontSize: 13, TextColor: #AAAAAA);
+                Text: "Name:";
+                Style: (FontSize: 12, TextColor: #888888, VerticalAlignment: Center);
+                Anchor: (Width: 60);
               }
-              Label #PreviewName {
-                Text: "Your Faction Name";
-                Style: (FontSize: 13, TextColor: #55FFFF, RenderBold: true);
+              Label #NameValue {
+                Text: "Faction Name";
+                Style: (FontSize: 12, TextColor: #00FFFF, RenderBold: true, VerticalAlignment: Center);
+                FlexWeight: 1;
+              }
+              TextButton #NameEditBtn {
+                Text: "Edit";
+                Anchor: (Height: 26, Width: 50);
+                Style: $S.@ButtonStyle;
               }
             }
 
-            Label #PreviewLeader {
-              Text: "Leader: PlayerName";
-              Style: (FontSize: 12, TextColor: #888888);
-              Anchor: (Height: 18);
+            // Tag row
+            Group {
+              Anchor: (Height: 32, Bottom: 4);
+              LayoutMode: Left;
+
+              Label {
+                Text: "Tag:";
+                Style: (FontSize: 12, TextColor: #888888, VerticalAlignment: Center);
+                Anchor: (Width: 60);
+              }
+              Label #TagValue {
+                Text: "[Tag]";
+                Style: (FontSize: 12, TextColor: #FFAA00, RenderBold: true, VerticalAlignment: Center);
+                FlexWeight: 1;
+              }
+              TextButton #TagEditBtn {
+                Text: "Edit";
+                Anchor: (Height: 26, Width: 50);
+                Style: $S.@ButtonStyle;
+              }
+            }
+
+            // Description row
+            Group {
+              Anchor: (Height: 32);
+              LayoutMode: Left;
+
+              Label {
+                Text: "Desc:";
+                Style: (FontSize: 12, TextColor: #888888, VerticalAlignment: Center);
+                Anchor: (Width: 60);
+              }
+              Label #DescValue {
+                Text: "(None)";
+                Style: (FontSize: 11, TextColor: #AAAAAA, VerticalAlignment: Center);
+                FlexWeight: 1;
+              }
+              TextButton #DescEditBtn {
+                Text: "Edit";
+                Anchor: (Height: 26, Width: 50);
+                Style: $S.@ButtonStyle;
+              }
             }
           }
 
-          // --- BASIC INFO ---
+          // --- Recruitment ---
           Label {
-            Text: "Basic Info";
+            Text: "Recruitment";
             Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
             Anchor: (Height: 18, Bottom: 4);
           }
@@ -83,73 +132,156 @@ $C.@PageOverlay {
             Background: (Color: #334455);
           }
 
-          Group {
+          Group #RecruitmentBox {
             Background: (Color: #1a2a3a);
-            Padding: (Left: 12, Right: 12, Top: 10, Bottom: 10);
-            Anchor: (Height: 130, Bottom: 12);
+            Padding: (Left: 12, Right: 12, Top: 8, Bottom: 8);
             LayoutMode: Top;
+            Anchor: (Bottom: 8);
 
-            Label {
-              Text: "Faction Name *";
-              Style: (FontSize: 11, TextColor: #AAAAAA);
-              Anchor: (Height: 16);
-            }
-            $C.@TextField #NameInput {
-              Anchor: (Height: 32, Bottom: 6);
-            }
-
-            Label {
-              Text: "TAG (2-4 chars, auto if empty)";
-              Style: (FontSize: 11, TextColor: #AAAAAA);
-              Anchor: (Height: 16);
-            }
             Group {
-              LayoutMode: Left;
               Anchor: (Height: 32);
+              LayoutMode: Left;
 
-              $C.@TextField #TagInput {
-                Anchor: (Height: 32, Width: 100);
+              Label {
+                Text: "Status:";
+                Style: (FontSize: 12, TextColor: #888888, VerticalAlignment: Center);
+                Anchor: (Width: 60);
               }
-            }
-          }
-
-          // --- DETAILS ---
-          Label {
-            Text: "Details";
-            Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
-            Anchor: (Height: 18, Bottom: 4);
-          }
-          Group {
-            Anchor: (Height: 1, Bottom: 8);
-            Background: (Color: #334455);
-          }
-
-          Group {
-            Background: (Color: #1a2a3a);
-            Padding: (Left: 12, Right: 12, Top: 10, Bottom: 10);
-            LayoutMode: Top;
-
-            Label {
-              Text: "Description (Optional)";
-              Style: (FontSize: 11, TextColor: #AAAAAA);
-              Anchor: (Height: 16);
-            }
-            $C.@TextField #DescInput {
-              Anchor: (Height: 50, Bottom: 6);
-            }
-
-            Label {
-              Text: "Recruitment";
-              Style: (FontSize: 11, TextColor: #AAAAAA);
-              Anchor: (Height: 16, Bottom: 4);
-            }
-            Group {
-              LayoutMode: Left;
-              Anchor: (Height: 32);
 
               DropdownBox #RecruitmentDropdown {
                 Style: $C.@DefaultDropdownBoxStyle;
-                Anchor: (Height: 28, Width: 180);
+                Anchor: (Height: 28, Width: 150);
+              }
+            }
+          }
+
+          // --- Home Location ---
+          Label {
+            Text: "Home Location";
+            Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
+            Anchor: (Height: 18, Bottom: 4);
+          }
+          Group {
+            Anchor: (Height: 1, Bottom: 8);
+            Background: (Color: #334455);
+          }
+
+          Group #HomeBox {
+            Background: (Color: #1a2a3a);
+            Padding: (Left: 12, Right: 12, Top: 8, Bottom: 8);
+            LayoutMode: Top;
+            Anchor: (Bottom: 8);
+
+            Group {
+              Anchor: (Height: 28, Bottom: 4);
+              LayoutMode: Left;
+
+              Label {
+                Text: "Location:";
+                Style: (FontSize: 12, TextColor: #888888, VerticalAlignment: Center);
+                Anchor: (Width: 60);
+              }
+              Label #HomeLocation {
+                Text: "Not set";
+                Style: (FontSize: 11, TextColor: #AAAAAA, VerticalAlignment: Center);
+                FlexWeight: 1;
+              }
+            }
+
+            Group {
+              Anchor: (Height: 32);
+              LayoutMode: Left;
+
+              TextButton #SetHomeBtn {
+                Text: "Set Home";
+                Anchor: (Height: 26, Width: 80);
+                Style: $S.@ButtonStyle;
+              }
+
+              Label { Anchor: (Width: 4); }
+
+              TextButton #TeleportHomeBtn {
+                Text: "Teleport";
+                Anchor: (Height: 26, Width: 70);
+                Style: $S.@ButtonStyle;
+              }
+
+              Label { Anchor: (Width: 4); }
+
+              TextButton #DeleteHomeBtn {
+                Text: "Delete";
+                Anchor: (Height: 26, Width: 60);
+                Style: $S.@RedButtonStyle;
+              }
+            }
+          }
+
+          // --- Optional Features ---
+          Label {
+            Text: "Optional Features";
+            Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
+            Anchor: (Height: 18, Bottom: 4);
+          }
+          Group {
+            Anchor: (Height: 1, Bottom: 8);
+            Background: (Color: #334455);
+          }
+
+          Group #ModulesBox {
+            Background: (Color: #1a2a3a);
+            Padding: (Left: 12, Right: 12, Top: 8, Bottom: 8);
+            LayoutMode: Top;
+            Anchor: (Bottom: 8);
+
+            Group {
+              Anchor: (Height: 32);
+              LayoutMode: Left;
+
+              Label {
+                Text: "Configure optional modules.";
+                Style: (FontSize: 10, TextColor: #666666, VerticalAlignment: Center);
+                FlexWeight: 1;
+              }
+
+              TextButton #ModulesBtn {
+                Text: "Modules";
+                Anchor: (Height: 26, Width: 80);
+                Style: $S.@ButtonStyle;
+              }
+            }
+          }
+
+          // --- Danger Zone (hidden by default, shown for leaders) ---
+          Group #DangerZone {
+            Visible: false;
+            LayoutMode: Top;
+            Anchor: (Bottom: 8);
+
+            Label {
+              Text: "Danger Zone";
+              Style: (FontSize: 11, TextColor: #FF5555, RenderBold: true);
+              Anchor: (Height: 18, Bottom: 4);
+            }
+            Group {
+              Anchor: (Height: 1, Bottom: 8);
+              Background: (Color: #553344);
+            }
+
+            Group {
+              Background: (Color: #2a1a1a);
+              Padding: (Left: 12, Right: 12, Top: 8, Bottom: 8);
+              LayoutMode: Top;
+
+              Label {
+                Text: "This action is irreversible.";
+                Style: (FontSize: 10, TextColor: #AA5555);
+                Anchor: (Height: 18, Bottom: 4);
+              }
+
+              TextButton #DisbandBtn {
+                Text: "Disband Faction";
+                Anchor: (Height: 28, Width: 140);
+                Style: $S.@FlatRedButtonStyle;
               }
             }
           }
@@ -462,9 +594,9 @@ $C.@PageOverlay {
           LayoutMode: Top;
           Padding: (Left: 8, Right: 0, Top: 0, Bottom: 0);
 
-          // --- FACTION COLOR ---
+          // --- Appearance ---
           Label {
-            Text: "Faction Color";
+            Text: "Appearance";
             Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
             Anchor: (Height: 18, Bottom: 4);
           }
@@ -473,18 +605,50 @@ $C.@PageOverlay {
             Background: (Color: #334455);
           }
 
-          Group {
+          Group #ColorBox {
             Background: (Color: #1a2a3a);
             Padding: (Left: 12, Right: 12, Top: 8, Bottom: 8);
-            Anchor: (Height: 200, Bottom: 8);
+            LayoutMode: Top;
+            Anchor: (Bottom: 8);
 
-            ColorPicker #FactionColorPicker {
-              DisplayTextField: true;
-              Style: $C.@DefaultColorPickerStyle;
+            // Color row - preview and hex value
+            Group {
+              Anchor: (Height: 28, Bottom: 4);
+              LayoutMode: Left;
+
+              Label {
+                Text: "Color:";
+                Style: (FontSize: 12, TextColor: #888888, VerticalAlignment: Center);
+                Anchor: (Width: 42);
+              }
+
+              Group #ColorPreview {
+                Anchor: (Width: 22, Height: 22);
+                Background: (Color: #00FFFF);
+              }
+
+              Label { Anchor: (Width: 6); }
+
+              Label #ColorValue {
+                Text: "#00FFFF";
+                Style: (FontSize: 12, TextColor: #AAAAAA, VerticalAlignment: Center);
+                FlexWeight: 1;
+              }
+            }
+
+            // Inline ColorPicker
+            Group {
+              Anchor: (Height: 200);
+              Padding: (Left: 40, Right: 0, Top: 0, Bottom: 0);
+
+              ColorPicker #FactionColorPicker {
+                DisplayTextField: true;
+                Style: $C.@DefaultColorPickerStyle;
+              }
             }
           }
 
-          // --- MOB SPAWNING ---
+          // --- Mob Spawning ---
           Label {
             Text: "Mob Spawning";
             Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
@@ -520,7 +684,7 @@ $C.@PageOverlay {
               }
               Label { FlexWeight: 1; }
               $C.@CheckBoxWithLabel #MobSpawningToggle {
-                @Text = ""; @Checked = false;
+                @Text = ""; @Checked = true;
                 Anchor: (Height: 22, Width: 44);
               }
             }
@@ -539,7 +703,7 @@ $C.@PageOverlay {
               }
               Label { FlexWeight: 1; }
               $C.@CheckBoxWithLabel #HostileMobToggle {
-                @Text = ""; @Checked = false;
+                @Text = ""; @Checked = true;
                 Anchor: (Height: 20, Width: 44);
               }
             }
@@ -583,9 +747,9 @@ $C.@PageOverlay {
             }
           }
 
-          // --- COMBAT ---
+          // --- Faction Settings ---
           Label {
-            Text: "Combat";
+            Text: "Faction Settings";
             Style: (FontSize: 11, TextColor: #888888, RenderBold: true);
             Anchor: (Height: 18, Bottom: 4);
           }
@@ -594,15 +758,16 @@ $C.@PageOverlay {
             Background: (Color: #334455);
           }
 
-          Group {
+          Group #FactionSettingsBox {
             Background: (Color: #1a2a3a);
             Padding: (Left: 12, Right: 12, Top: 8, Bottom: 8);
             LayoutMode: Top;
             Anchor: (Bottom: 8);
 
+            // PvP row
             Group {
               LayoutMode: Left;
-              Anchor: (Height: 30);
+              Anchor: (Height: 30, Bottom: 2);
               Background: (Color: #0d1520);
               Padding: (Left: 6, Right: 6);
 
@@ -622,25 +787,30 @@ $C.@PageOverlay {
                 Anchor: (Left: 4);
               }
             }
-          }
 
-          // Spacer
-          Label { FlexWeight: 1; }
+            // Officers can edit row (leader only, hidden for non-leaders)
+            Group #OfficerSettingRow {
+              LayoutMode: Left;
+              Anchor: (Height: 30);
+              Background: (Color: #111a28);
+              Padding: (Left: 6, Right: 6);
 
-          // CREATE button
-          Group {
-            Anchor: (Height: 45);
-            LayoutMode: Left;
-
-            Label { FlexWeight: 1; }
-
-            TextButton #CreateBtn {
-              Text: "Create Faction";
-              Anchor: (Height: 38, Width: 200);
-              Style: $C.@DefaultTextButtonStyle;
+              Label {
+                Text: "Officers can edit";
+                Style: (FontSize: 11, TextColor: #AAAAAA, VerticalAlignment: Center);
+                Anchor: (Width: 120);
+              }
+              $C.@CheckBoxWithLabel #OfficersCanEditToggle {
+                @Text = ""; @Checked = false;
+                Anchor: (Height: 24, Width: 40);
+              }
+              Label {
+                Text: "Leader only";
+                Style: (FontSize: 9, TextColor: #FFD700, VerticalAlignment: Center);
+                FlexWeight: 1;
+                Anchor: (Left: 4);
+              }
             }
-
-            Label { FlexWeight: 1; }
           }
         }
       }
@@ -648,5 +818,4 @@ $C.@PageOverlay {
   }
 }
 
-// Native Hytale back button
 $C.@BackButton {}

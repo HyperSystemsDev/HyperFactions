@@ -73,20 +73,27 @@ public class ColorSubCommand extends FactionSubCommand {
 
         // Text mode requires args
         if (!fctx.hasArgs()) {
-            ctx.sendMessage(prefix().insert(msg("Usage: /f color <code>", COLOR_RED)));
-            ctx.sendMessage(msg("Valid codes: 0-9, a-f", COLOR_GRAY));
+            ctx.sendMessage(prefix().insert(msg("Usage: /f color <code|#hex>", COLOR_RED)));
+            ctx.sendMessage(msg("Valid codes: 0-9, a-f or #RRGGBB hex", COLOR_GRAY));
             return;
         }
 
-        String colorCode = fctx.getArg(0).toLowerCase();
-        if (colorCode.length() != 1 || !colorCode.matches("[0-9a-f]")) {
-            ctx.sendMessage(prefix().insert(msg("Invalid color code. Use 0-9 or a-f.", COLOR_RED)));
+        String colorInput = fctx.getArg(0).toLowerCase();
+        String hexColor;
+        if (colorInput.startsWith("#") && colorInput.length() == 7 && colorInput.substring(1).matches("[0-9a-f]+")) {
+            // Direct hex input
+            hexColor = colorInput.toUpperCase();
+        } else if (colorInput.length() == 1 && colorInput.matches("[0-9a-f]")) {
+            // Legacy color code - convert to hex
+            hexColor = com.hyperfactions.util.LegacyColorParser.codeToHex(colorInput.charAt(0));
+        } else {
+            ctx.sendMessage(prefix().insert(msg("Invalid color. Use 0-9, a-f, or #RRGGBB.", COLOR_RED)));
             return;
         }
 
-        Faction updated = faction.withColor(colorCode)
+        Faction updated = faction.withColor(hexColor)
             .withLog(FactionLog.create(FactionLog.LogType.SETTINGS_CHANGE,
-                "Color changed to '" + colorCode + "'", player.getUuid()));
+                "Color changed to '" + hexColor + "'", player.getUuid()));
 
         hyperFactions.getFactionManager().updateFaction(updated);
 
@@ -94,7 +101,7 @@ public class ColorSubCommand extends FactionSubCommand {
         hyperFactions.getWorldMapService().triggerFactionWideRefresh(faction.id());
 
         ctx.sendMessage(prefix().insert(msg("Faction color updated to ", COLOR_GREEN))
-            .insert(msg("\u00A7" + colorCode + "this color", null))
+            .insert(msg("this color", null).color(hexColor))
             .insert(msg("!", COLOR_GREEN)));
 
         // After action, open settings page if not text mode

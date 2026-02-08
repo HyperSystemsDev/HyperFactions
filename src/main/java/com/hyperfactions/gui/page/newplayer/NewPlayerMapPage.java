@@ -51,6 +51,10 @@ public class NewPlayerMapPage extends InteractiveCustomUIPage<NewPlayerPageData>
     private final ZoneManager zoneManager;
     private final GuiManager guiManager;
 
+    // Saved from build() for use in refreshContent() redirect
+    private Ref<EntityStore> savedRef;
+    private Store<EntityStore> savedStore;
+
     public NewPlayerMapPage(PlayerRef playerRef,
                             FactionManager factionManager,
                             ClaimManager claimManager,
@@ -67,6 +71,10 @@ public class NewPlayerMapPage extends InteractiveCustomUIPage<NewPlayerPageData>
     @Override
     public void build(Ref<EntityStore> ref, UICommandBuilder cmd,
                       UIEventBuilder events, Store<EntityStore> store) {
+
+        // Save ref/store for refreshContent() redirect
+        this.savedRef = ref;
+        this.savedStore = store;
 
         // Get player's current position
         Player player = store.getComponent(ref, Player.getComponentType());
@@ -113,6 +121,21 @@ public class NewPlayerMapPage extends InteractiveCustomUIPage<NewPlayerPageData>
 
     @Override
     public void refreshContent() {
+        // If player joined a faction (e.g., request accepted by someone else), redirect to dashboard
+        if (factionManager.isInFaction(playerRef.getUuid())) {
+            Faction faction = factionManager.getPlayerFaction(playerRef.getUuid());
+            if (faction != null && savedRef != null && savedStore != null) {
+                Player player = savedStore.getComponent(savedRef, Player.getComponentType());
+                if (player != null) {
+                    ActivePageTracker activeTracker = guiManager.getActivePageTracker();
+                    if (activeTracker != null) {
+                        activeTracker.unregister(playerRef.getUuid());
+                    }
+                    guiManager.openFactionDashboard(player, savedRef, savedStore, playerRef, faction);
+                    return;
+                }
+            }
+        }
         rebuild();
     }
 
@@ -172,7 +195,7 @@ public class NewPlayerMapPage extends InteractiveCustomUIPage<NewPlayerPageData>
         if (ownerId != null) {
             Faction faction = factionManager.getFaction(ownerId);
             if (faction != null && faction.color() != null) {
-                return getHexFromColorCode(faction.color());
+                return faction.color();
             }
             return COLOR_OTHER;
         }
@@ -180,27 +203,6 @@ public class NewPlayerMapPage extends InteractiveCustomUIPage<NewPlayerPageData>
         return COLOR_WILDERNESS;
     }
 
-    private String getHexFromColorCode(String colorCode) {
-        return switch (colorCode.toLowerCase()) {
-            case "0" -> "#000000";
-            case "1" -> "#0000AA";
-            case "2" -> "#00AA00";
-            case "3" -> "#00AAAA";
-            case "4" -> "#AA0000";
-            case "5" -> "#AA00AA";
-            case "6" -> "#FFAA00";
-            case "7" -> "#AAAAAA";
-            case "8" -> "#555555";
-            case "9" -> "#5555FF";
-            case "a" -> "#55FF55";
-            case "b" -> "#55FFFF";
-            case "c" -> "#FF5555";
-            case "d" -> "#FF55FF";
-            case "e" -> "#FFFF55";
-            case "f" -> "#FFFFFF";
-            default -> COLOR_OTHER;
-        };
-    }
 
     @Override
     public void handleDataEvent(Ref<EntityStore> ref, Store<EntityStore> store,

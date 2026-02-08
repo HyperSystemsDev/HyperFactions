@@ -10,6 +10,7 @@ import com.hyperfactions.config.ConfigManager;
 import com.hyperfactions.data.Zone;
 import com.hyperfactions.data.ZoneFlags;
 import com.hyperfactions.data.ZoneType;
+import com.hyperfactions.importer.ElbaphFactionsImporter;
 import com.hyperfactions.importer.HyFactionsImporter;
 import com.hyperfactions.importer.ImportResult;
 import com.hyperfactions.manager.ConfirmationManager;
@@ -832,6 +833,7 @@ public class AdminSubCommand extends FactionSubCommand {
 
         switch (subCmd) {
             case "hyfactions" -> handleImportHyFactions(ctx, player, subArgs);
+            case "elbaphfactions" -> handleImportElbaphFactions(ctx, player, subArgs);
             case "help", "?" -> showImportHelp(ctx);
             default -> {
                 ctx.sendMessage(prefix().insert(msg("Unknown import source: " + subCmd, COLOR_RED)));
@@ -842,41 +844,51 @@ public class AdminSubCommand extends FactionSubCommand {
 
     private void showImportHelp(CommandContext ctx) {
         List<CommandHelp> commands = new ArrayList<>();
-        commands.add(new CommandHelp("/f admin import hyfactions <path>", "Import from HyFactions mod"));
-        commands.add(new CommandHelp("  Flags: --dry-run, --no-claims, --no-relations", "Options"));
+        commands.add(new CommandHelp("/f admin import hyfactions [path] [flags]", "Import from HyFactions mod"));
+        commands.add(new CommandHelp("  Default path: mods/Kaws_Hyfaction", ""));
+        commands.add(new CommandHelp("/f admin import elbaphfactions [path] [flags]", "Import from ElbaphFactions mod"));
+        commands.add(new CommandHelp("  Default path: mods/ElbaphFactions", ""));
+        commands.add(new CommandHelp("  Flags:", ""));
+        commands.add(new CommandHelp("    --dry-run / -n", "Simulate without changes"));
+        commands.add(new CommandHelp("    --overwrite", "Replace existing factions"));
+        commands.add(new CommandHelp("    --no-zones", "Skip zone import"));
+        commands.add(new CommandHelp("    --no-power", "Skip power distribution"));
         ctx.sendMessage(HelpFormatter.buildHelp("Import Commands", "Migrate from other faction plugins", commands, null));
     }
 
     private void handleImportHyFactions(CommandContext ctx, PlayerRef player, String[] args) {
-        if (args.length < 1) {
-            ctx.sendMessage(prefix().insert(msg("Usage: /f admin import hyfactions <path> [flags]", COLOR_RED)));
-            ctx.sendMessage(msg("  path: Path to HyFactions data folder", COLOR_GRAY));
-            ctx.sendMessage(msg("  flags: --dry-run, --no-claims, --no-relations", COLOR_GRAY));
-            return;
+        // Parse path (optional - default to mods/Kaws_Hyfaction)
+        String pathStr = "mods/Kaws_Hyfaction";
+        int flagStartIndex = 0;
+
+        if (args.length > 0 && !args[0].startsWith("-")) {
+            pathStr = args[0];
+            flagStartIndex = 1;
         }
 
-        String pathStr = args[0];
         Path dataPath = Paths.get(pathStr);
 
         boolean dryRun = false;
-        boolean skipClaims = false;
-        boolean skipRelations = false;
+        boolean overwrite = false;
+        boolean skipZones = false;
+        boolean skipPower = false;
 
-        for (int i = 1; i < args.length; i++) {
+        for (int i = flagStartIndex; i < args.length; i++) {
             String flag = args[i].toLowerCase();
             switch (flag) {
                 case "--dry-run", "-n" -> dryRun = true;
-                case "--no-claims" -> skipClaims = true;
-                case "--no-relations" -> skipRelations = true;
+                case "--overwrite" -> overwrite = true;
+                case "--no-zones" -> skipZones = true;
+                case "--no-power" -> skipPower = true;
             }
         }
 
         ctx.sendMessage(prefix().insert(msg("Importing from HyFactions...", COLOR_YELLOW)));
+        ctx.sendMessage(msg("  Path: " + dataPath, COLOR_GRAY));
         if (dryRun) {
             ctx.sendMessage(msg("  (Dry run - no changes will be made)", COLOR_GRAY));
         }
 
-        // Create importer with managers
         HyFactionsImporter importer = new HyFactionsImporter(
             hyperFactions.getFactionManager(),
             hyperFactions.getClaimManager(),
@@ -885,30 +897,86 @@ public class AdminSubCommand extends FactionSubCommand {
             hyperFactions.getBackupManager()
         );
 
-        // Configure importer
         importer.setDryRun(dryRun);
-        // Note: skipClaims and skipRelations are not currently supported by HyFactionsImporter
+        importer.setOverwrite(overwrite);
+        importer.setSkipZones(skipZones);
+        importer.setSkipPower(skipPower);
 
         final boolean finalDryRun = dryRun;
-        // Run import asynchronously
         CompletableFuture.supplyAsync(() -> importer.importFrom(dataPath))
-            .thenAccept(result -> {
-                if (!result.hasErrors()) {
-                    player.sendMessage(prefix().insert(msg("Import " + (finalDryRun ? "simulation " : "") + "complete!", COLOR_GREEN)));
-                    player.sendMessage(msg("  Factions: " + result.factionsImported(), COLOR_GRAY));
-                    player.sendMessage(msg("  Claims: " + result.claimsImported(), COLOR_GRAY));
-                    player.sendMessage(msg("  Zones: " + result.zonesCreated(), COLOR_GRAY));
-                    player.sendMessage(msg("  Players with power: " + result.playersWithPower(), COLOR_GRAY));
-                    if (result.hasWarnings()) {
-                        player.sendMessage(msg("  Warnings: " + result.warnings().size() + " (check logs)", COLOR_YELLOW));
-                    }
-                } else {
-                    player.sendMessage(prefix().insert(msg("Import failed with errors:", COLOR_RED)));
-                    for (String error : result.errors()) {
-                        player.sendMessage(msg("  - " + error, COLOR_RED));
-                    }
-                }
-            });
+            .thenAccept(result -> reportImportResult(player, result, finalDryRun, "HyFactions"));
+    }
+
+    private void handleImportElbaphFactions(CommandContext ctx, PlayerRef player, String[] args) {
+        // Parse path (optional - default to mods/ElbaphFactions)
+        String pathStr = "mods/ElbaphFactions";
+        int flagStartIndex = 0;
+
+        if (args.length > 0 && !args[0].startsWith("-")) {
+            pathStr = args[0];
+            flagStartIndex = 1;
+        }
+
+        Path dataPath = Paths.get(pathStr);
+
+        boolean dryRun = false;
+        boolean overwrite = false;
+        boolean skipZones = false;
+        boolean skipPower = false;
+
+        for (int i = flagStartIndex; i < args.length; i++) {
+            String flag = args[i].toLowerCase();
+            switch (flag) {
+                case "--dry-run", "-n" -> dryRun = true;
+                case "--overwrite" -> overwrite = true;
+                case "--no-zones" -> skipZones = true;
+                case "--no-power" -> skipPower = true;
+            }
+        }
+
+        ctx.sendMessage(prefix().insert(msg("Importing from ElbaphFactions...", COLOR_YELLOW)));
+        ctx.sendMessage(msg("  Path: " + dataPath, COLOR_GRAY));
+        if (dryRun) {
+            ctx.sendMessage(msg("  (Dry run - no changes will be made)", COLOR_GRAY));
+        }
+
+        ElbaphFactionsImporter importer = new ElbaphFactionsImporter(
+            hyperFactions.getFactionManager(),
+            hyperFactions.getClaimManager(),
+            hyperFactions.getZoneManager(),
+            hyperFactions.getPowerManager(),
+            hyperFactions.getBackupManager()
+        );
+
+        importer.setDryRun(dryRun);
+        importer.setOverwrite(overwrite);
+        importer.setSkipZones(skipZones);
+        importer.setSkipPower(skipPower);
+
+        final boolean finalDryRun = dryRun;
+        CompletableFuture.supplyAsync(() -> importer.importFrom(dataPath))
+            .thenAccept(result -> reportImportResult(player, result, finalDryRun, "ElbaphFactions"));
+    }
+
+    private void reportImportResult(PlayerRef player, ImportResult result, boolean dryRun, String sourceName) {
+        if (!result.hasErrors()) {
+            player.sendMessage(prefix().insert(msg(sourceName + " import " + (dryRun ? "simulation " : "") + "complete!", COLOR_GREEN)));
+            player.sendMessage(msg("  Factions: " + result.factionsImported(), COLOR_GRAY));
+            player.sendMessage(msg("  Claims: " + result.claimsImported(), COLOR_GRAY));
+            player.sendMessage(msg("  Zones: " + result.zonesCreated(), COLOR_GRAY));
+            player.sendMessage(msg("  Players with power: " + result.playersWithPower(), COLOR_GRAY));
+            if (result.factionsSkipped() > 0) {
+                player.sendMessage(msg("  Skipped: " + result.factionsSkipped(), COLOR_YELLOW));
+            }
+            if (result.hasWarnings()) {
+                player.sendMessage(msg("  Warnings: " + result.warnings().size() + " (check logs)", COLOR_YELLOW));
+            }
+        } else {
+            player.sendMessage(prefix().insert(msg(sourceName + " import failed with errors:", COLOR_RED)));
+            for (String error : result.errors()) {
+                player.sendMessage(msg("  - " + error, COLOR_RED));
+            }
+        }
     }
 
     // === Debug Commands ===

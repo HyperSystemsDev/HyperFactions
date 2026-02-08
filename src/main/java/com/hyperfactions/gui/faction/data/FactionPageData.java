@@ -78,7 +78,7 @@ public class FactionPageData implements NavAwareData {
                     data -> data.playerUuid
             )
             .addField(
-                    new KeyedCodec<>("SortMode", Codec.STRING),
+                    new KeyedCodec<>("@SortMode", Codec.STRING),
                     (data, value) -> data.sortMode = value,
                     data -> data.sortMode
             )

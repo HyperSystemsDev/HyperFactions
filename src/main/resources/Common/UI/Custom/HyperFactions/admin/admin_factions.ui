@@ -31,26 +31,14 @@ $C.@PageOverlay {
 
         Group { FlexWeight: 1; }
 
-        TextButton #SortByPower {
-          Text: "Power";
-          Anchor: (Height: 26, Width: 70);
-          Style: $S.@ButtonStyle;
+        Label {
+          Text: "Sort:";
+          Style: (FontSize: 11, TextColor: #888888, VerticalAlignment: Center);
+          Anchor: (Width: 35);
         }
-
-        Label { Anchor: (Width: 5); }
-
-        TextButton #SortByName {
-          Text: "Name";
-          Anchor: (Height: 26, Width: 65);
-          Style: $S.@ButtonStyle;
-        }
-
-        Label { Anchor: (Width: 5); }
-
-        TextButton #SortByMembers {
-          Text: "Members";
-          Anchor: (Height: 26, Width: 80);
-          Style: $S.@ButtonStyle;
+        DropdownBox #SortDropdown {
+          Style: $C.@DefaultDropdownBoxStyle;
+          Anchor: (Height: 28, Width: 150);
         }
       }
 

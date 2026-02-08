@@ -1,8 +1,7 @@
 package com.hyperfactions.manager;
 
-import com.hyperfactions.data.ChunkKey;
-import com.hyperfactions.data.Zone;
-import com.hyperfactions.data.ZoneFlags;
+import com.hyperfactions.config.ConfigManager;
+import com.hyperfactions.data.*;
 import com.hyperfactions.util.Logger;
 import com.hypixel.hytale.builtin.tagset.TagSetPlugin;
 import com.hypixel.hytale.builtin.tagset.config.NPCGroup;
@@ -39,11 +38,18 @@ import java.util.concurrent.ConcurrentHashMap;
 public class SpawnSuppressionManager {
 
     /**
-     * Prefix for HyperFactions suppression IDs.
+     * Prefix for HyperFactions zone suppression IDs.
      * "HFAC" in ASCII hex: 0x48464143
      */
-    private static final UUID HYPERFACTIONS_PREFIX =
+    private static final UUID ZONE_SUPPRESSION_PREFIX =
         UUID.fromString("48464143-0000-0000-0000-000000000000");
+
+    /**
+     * Prefix for HyperFactions claim suppression IDs.
+     * "HFCL" in ASCII hex: 0x4846434C
+     */
+    private static final UUID CLAIM_SUPPRESSION_PREFIX =
+        UUID.fromString("4846434C-0000-0000-0000-000000000000");
 
     /**
      * Default Y range for suppression spans.
@@ -61,9 +67,12 @@ public class SpawnSuppressionManager {
     private static final String GROUP_NEUTRAL = "neutral";
 
     private final ZoneManager zoneManager;
+    private final ClaimManager claimManager;
+    private final FactionManager factionManager;
 
-    // Cache of suppressor IDs by zone ID
+    // Cache of suppressor IDs by zone/faction ID
     private final Map<UUID, UUID> zoneSuppressorIds = new ConcurrentHashMap<>();
+    private final Map<UUID, UUID> claimSuppressorIds = new ConcurrentHashMap<>();
 
     // Cache of NPC group indices (resolved once at startup)
     private int hostileGroupIndex = -1;
@@ -71,8 +80,12 @@ public class SpawnSuppressionManager {
     private int neutralGroupIndex = -1;
     private boolean groupsResolved = false;
 
-    public SpawnSuppressionManager(@NotNull ZoneManager zoneManager) {
+    public SpawnSuppressionManager(@NotNull ZoneManager zoneManager,
+                                    @NotNull ClaimManager claimManager,
+                                    @NotNull FactionManager factionManager) {
         this.zoneManager = zoneManager;
+        this.claimManager = claimManager;
+        this.factionManager = factionManager;
     }
 
     /**
@@ -151,7 +164,7 @@ public class SpawnSuppressionManager {
 
         // Apply suppression for each zone in this world
         int zonesProcessed = 0;
-        int chunksProcessed = 0;
+        int zoneChunks = 0;
 
         for (Zone zone : zoneManager.getAllZones()) {
             if (!zone.world().equalsIgnoreCase(worldName)) {
@@ -159,24 +172,60 @@ public class SpawnSuppressionManager {
             }
 
             // Determine what to suppress based on zone flags
-            SuppressionConfig config = getSuppressionConfig(zone);
+            SuppressionConfig config = getZoneSuppressionConfig(zone);
             if (config == null) {
                 // No suppression needed for this zone
                 continue;
             }
 
-            UUID suppressorId = getSuppressorId(zone.id());
+            UUID suppressorId = getZoneSuppressorId(zone.id());
 
             for (ChunkKey chunk : zone.chunks()) {
                 long chunkIndex = ChunkUtil.indexChunk(chunk.chunkX(), chunk.chunkZ());
                 applySuppressionToChunk(chunkMap, chunkIndex, suppressorId, config);
-                chunksProcessed++;
+                zoneChunks++;
             }
             zonesProcessed++;
         }
 
-        Logger.info("Applied spawn suppression to %d zones (%d chunks) in world '%s'",
-            zonesProcessed, chunksProcessed, worldName);
+        // Apply suppression for each faction's claimed territory
+        int factionsProcessed = 0;
+        int claimChunks = 0;
+
+        for (Faction faction : factionManager.getAllFactions()) {
+            Set<ChunkKey> claims = claimManager.getFactionClaims(faction.id());
+            if (claims.isEmpty()) {
+                continue;
+            }
+
+            FactionPermissions perms = ConfigManager.get().getEffectiveFactionPermissions(
+                faction.getEffectivePermissions()
+            );
+
+            SuppressionConfig config = getClaimSuppressionConfig(perms);
+            if (config == null) {
+                continue;
+            }
+
+            UUID suppressorId = getClaimSuppressorId(faction.id());
+            int chunksForFaction = 0;
+
+            for (ChunkKey chunk : claims) {
+                if (!chunk.world().equalsIgnoreCase(worldName)) {
+                    continue;
+                }
+                long chunkIndex = ChunkUtil.indexChunk(chunk.chunkX(), chunk.chunkZ());
+                applySuppressionToChunk(chunkMap, chunkIndex, suppressorId, config);
+                chunksForFaction++;
+            }
+            claimChunks += chunksForFaction;
+            if (chunksForFaction > 0) {
+                factionsProcessed++;
+            }
+        }
+
+        Logger.info("Applied spawn suppression in world '%s': %d zones (%d chunks), %d factions (%d claim chunks)",
+            worldName, zonesProcessed, zoneChunks, factionsProcessed, claimChunks);
         return true;
     }
 
@@ -204,25 +253,22 @@ public class SpawnSuppressionManager {
     }
 
     /**
-     * Clears all HyperFactions suppressions from the chunk map.
+     * Clears all HyperFactions suppressions (both zone and claim) from the chunk map.
      */
     private void clearExistingSuppressions(@NotNull Long2ObjectConcurrentHashMap<ChunkSuppressionEntry> chunkMap) {
-        // We identify our suppressions by the prefix in the suppressorId
-        // For simplicity, we track our suppressor IDs and remove entries containing them
         Set<UUID> ourIds = new HashSet<>(zoneSuppressorIds.values());
+        ourIds.addAll(claimSuppressorIds.values());
 
         for (var entry : chunkMap.long2ObjectEntrySet()) {
             ChunkSuppressionEntry chunkEntry = entry.getValue();
             List<ChunkSuppressionEntry.SuppressionSpan> spans = chunkEntry.getSuppressionSpans();
 
-            // Check if any span belongs to us
             boolean hasOurs = spans.stream()
-                .anyMatch(span -> isOurSuppressor(span.getSuppressorId()));
+                .anyMatch(span -> ourIds.contains(span.getSuppressorId()));
 
             if (hasOurs) {
-                // Rebuild the entry without our spans
                 List<ChunkSuppressionEntry.SuppressionSpan> filteredSpans = spans.stream()
-                    .filter(span -> !isOurSuppressor(span.getSuppressorId()))
+                    .filter(span -> !ourIds.contains(span.getSuppressorId()))
                     .toList();
 
                 if (filteredSpans.isEmpty()) {
@@ -235,25 +281,27 @@ public class SpawnSuppressionManager {
     }
 
     /**
-     * Checks if a suppressor ID belongs to HyperFactions.
-     */
-    private boolean isOurSuppressor(@NotNull UUID suppressorId) {
-        // Check if the high bits match our prefix pattern
-        long prefixBits = HYPERFACTIONS_PREFIX.getMostSignificantBits();
-        long idBits = suppressorId.getMostSignificantBits();
-        // XOR should produce a value with our zone ID bits
-        return zoneSuppressorIds.containsValue(suppressorId);
-    }
-
-    /**
      * Generates a unique suppressor ID for a zone.
      */
     @NotNull
-    private UUID getSuppressorId(@NotNull UUID zoneId) {
+    private UUID getZoneSuppressorId(@NotNull UUID zoneId) {
         return zoneSuppressorIds.computeIfAbsent(zoneId, id ->
             new UUID(
-                HYPERFACTIONS_PREFIX.getMostSignificantBits() ^ id.getMostSignificantBits(),
-                HYPERFACTIONS_PREFIX.getLeastSignificantBits() ^ id.getLeastSignificantBits()
+                ZONE_SUPPRESSION_PREFIX.getMostSignificantBits() ^ id.getMostSignificantBits(),
+                ZONE_SUPPRESSION_PREFIX.getLeastSignificantBits() ^ id.getLeastSignificantBits()
+            )
+        );
+    }
+
+    /**
+     * Generates a unique suppressor ID for a faction's claims.
+     */
+    @NotNull
+    private UUID getClaimSuppressorId(@NotNull UUID factionId) {
+        return claimSuppressorIds.computeIfAbsent(factionId, id ->
+            new UUID(
+                CLAIM_SUPPRESSION_PREFIX.getMostSignificantBits() ^ id.getMostSignificantBits(),
+                CLAIM_SUPPRESSION_PREFIX.getLeastSignificantBits() ^ id.getLeastSignificantBits()
             )
         );
     }
@@ -265,7 +313,7 @@ public class SpawnSuppressionManager {
      * @return suppression config, or null if no suppression needed
      */
     @Nullable
-    private SuppressionConfig getSuppressionConfig(@NotNull Zone zone) {
+    private SuppressionConfig getZoneSuppressionConfig(@NotNull Zone zone) {
         // Check master toggle
         boolean mobSpawning = zone.getEffectiveFlag(ZoneFlags.MOB_SPAWNING);
         if (!mobSpawning) {
@@ -284,6 +332,59 @@ public class SpawnSuppressionManager {
         }
 
         // Build set of suppressed roles
+        IntSet suppressedRoles = new IntOpenHashSet();
+        TagSetPlugin.TagSetLookup lookup = TagSetPlugin.get(NPCGroup.class);
+
+        if (!hostileAllowed && hostileGroupIndex >= 0) {
+            IntSet hostileRoles = lookup.getSet(hostileGroupIndex);
+            if (hostileRoles != null) {
+                suppressedRoles.addAll(hostileRoles);
+            }
+        }
+
+        if (!passiveAllowed && passiveGroupIndex >= 0) {
+            IntSet passiveRoles = lookup.getSet(passiveGroupIndex);
+            if (passiveRoles != null) {
+                suppressedRoles.addAll(passiveRoles);
+            }
+        }
+
+        if (!neutralAllowed && neutralGroupIndex >= 0) {
+            IntSet neutralRoles = lookup.getSet(neutralGroupIndex);
+            if (neutralRoles != null) {
+                suppressedRoles.addAll(neutralRoles);
+            }
+        }
+
+        if (suppressedRoles.isEmpty()) {
+            return null;
+        }
+
+        return new SuppressionConfig(suppressedRoles);
+    }
+
+    /**
+     * Determines the suppression configuration for a faction's claims based on its permissions.
+     *
+     * @param perms the effective faction permissions
+     * @return suppression config, or null if no suppression needed
+     */
+    @Nullable
+    private SuppressionConfig getClaimSuppressionConfig(@NotNull FactionPermissions perms) {
+        // Check master toggle
+        if (!perms.get(FactionPermissions.MOB_SPAWNING)) {
+            return new SuppressionConfig(null); // null = suppress all roles
+        }
+
+        // Check group flags
+        boolean hostileAllowed = perms.get(FactionPermissions.HOSTILE_MOB_SPAWNING);
+        boolean passiveAllowed = perms.get(FactionPermissions.PASSIVE_MOB_SPAWNING);
+        boolean neutralAllowed = perms.get(FactionPermissions.NEUTRAL_MOB_SPAWNING);
+
+        if (hostileAllowed && passiveAllowed && neutralAllowed) {
+            return null;
+        }
+
         IntSet suppressedRoles = new IntOpenHashSet();
         TagSetPlugin.TagSetLookup lookup = TagSetPlugin.get(NPCGroup.class);
 

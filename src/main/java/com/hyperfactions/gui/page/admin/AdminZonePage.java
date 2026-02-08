@@ -12,6 +12,7 @@ import com.hypixel.hytale.protocol.packets.interface_.CustomUIEventBindingType;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.entity.entities.player.pages.InteractiveCustomUIPage;
+import com.hypixel.hytale.server.core.ui.Value;
 import com.hypixel.hytale.server.core.ui.builder.EventData;
 import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder;
 import com.hypixel.hytale.server.core.ui.builder.UIEventBuilder;
@@ -74,10 +75,13 @@ public class AdminZonePage extends InteractiveCustomUIPage<AdminZoneData> {
     }
 
     private void buildZoneList(UICommandBuilder cmd, UIEventBuilder events) {
-        // Tab buttons - use Disabled state to show active tab
-        cmd.set("#TabAll.Disabled", currentTab.equals("all"));
-        cmd.set("#TabSafe.Disabled", currentTab.equals("safe"));
-        cmd.set("#TabWar.Disabled", currentTab.equals("war"));
+        // Tab buttons - active tab gets cyan text style, inactive keeps original color
+        cmd.set("#TabAll.Style", Value.ref("HyperFactions/shared/styles.ui",
+                currentTab.equals("all") ? "CyanButtonStyle" : "ButtonStyle"));
+        cmd.set("#TabSafe.Style", Value.ref("HyperFactions/shared/styles.ui",
+                currentTab.equals("safe") ? "CyanButtonStyle" : "SmallTealButtonStyle"));
+        cmd.set("#TabWar.Style", Value.ref("HyperFactions/shared/styles.ui",
+                currentTab.equals("war") ? "CyanButtonStyle" : "SmallPurpleButtonStyle"));
 
         events.addEventBinding(
                 CustomUIEventBindingType.Activating,

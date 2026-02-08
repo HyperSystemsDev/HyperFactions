@@ -25,37 +25,9 @@ java {
 
 repositories {
     mavenCentral()
-    // PlaceholderAPI for Hytale (CurseForge JAR)
+    // PlaceholderAPI for Hytale
+    maven { url = 'https://repo.helpch.at/releases/' }
 }
-
-// Helper to find the latest HyperPerms JAR dynamically
-def findLatestHyperPermsJar() {
-    def libsDir = file('../HyperPerms/build/libs')
-    if (!libsDir.exists()) {
-        return null
-    }
-    def jars = libsDir.listFiles({ dir, name ->
-        name.startsWith('HyperPerms-') && name.endsWith('.jar') && !name.contains('-sources') && !name.contains('-javadoc')
-    } as FilenameFilter)
-    if (jars == null || jars.length == 0) {
-        return null
-    }
-    // Sort by version (assumes format HyperPerms-X.Y.Z.jar)
-    return jars.sort { a, b ->
-        def versionA = a.name.replace('HyperPerms-', '').replace('.jar', '')
-        def versionB = b.name.replace('HyperPerms-', '').replace('.jar', '')
-        def partsA = versionA.split('\\.').collect { it.toInteger() }
-        def partsB = versionB.split('\\.').collect { it.toInteger() }
-        for (int i = 0; i < Math.max(partsA.size(), partsB.size()); i++) {
-            def a_val = i < partsA.size() ? partsA[i] : 0
-            def b_val = i < partsB.size() ? partsB[i] : 0
-            if (a_val != b_val) return a_val <=> b_val
-        }
-        return 0
-    }.last()
-}
-
-def hyperPermsJar = findLatestHyperPermsJar()
 
 dependencies {
     // Hytale Server API (provided at runtime)
@@ -63,16 +35,16 @@ dependencies {
 
     // HyperPerms soft dependency (for compile-time reference only)
     // Actual integration uses reflection to avoid hard dependency
-    // Dynamically finds the latest version from HyperPerms build output
-    if (hyperPermsJar != null) {
-        compileOnly files(hyperPermsJar)
-    }
+    compileOnly project(':HyperPerms')
 
     // JSON handling
     implementation 'com.google.code.gson:gson:2.11.0'
 
     // PlaceholderAPI Hytale (soft dependency - compileOnly)
-    compileOnly files('../resources/mods/jars/PlaceholderAPI-1.0.4-CurseForgee.jar')
+    compileOnly 'at.helpch:placeholderapi-hytale:1.0.4'
+
+    // WiFlow PlaceholderAPI (soft dependency - compileOnly, no Maven repo available)
+    compileOnly files("${rootProject.projectDir}/resources/mods/jars/WiFlowPlaceholderAPI-1.0.3.jar")
 
     // Null safety annotations
     compileOnly 'org.jetbrains:annotations:24.1.0'
@@ -143,9 +115,9 @@ tasks.withType(JavaCompile).configureEach {
     options.compilerArgs.addAll(['-Xlint:all', '-Xlint:-processing'])
 }
 
-// Ensure build info is generated before compiling
+// Ensure build info is generated and HyperPerms shadowJar is built before compiling
 tasks.named('compileJava') {
-    dependsOn 'generateBuildInfo'
+    dependsOn 'generateBuildInfo', ':HyperPerms:shadowJar'
 }
 
 // Dev build task - clean build with version set to 'dev'

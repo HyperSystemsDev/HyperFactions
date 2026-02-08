@@ -87,7 +87,7 @@ public class NewPlayerPageData implements NavAwareData {
                     data -> data.factionName
             )
             .addField(
-                    new KeyedCodec<>("SortMode", Codec.STRING),
+                    new KeyedCodec<>("@SortMode", Codec.STRING),
                     (data, value) -> data.sortMode = value,
                     data -> data.sortMode
             )
@@ -118,7 +118,7 @@ public class NewPlayerPageData implements NavAwareData {
                     data -> data.inputDescription
             )
             .addField(
-                    new KeyedCodec<>("Recruitment", Codec.STRING),
+                    new KeyedCodec<>("@Recruitment", Codec.STRING),
                     (data, value) -> data.inputRecruitment = value,
                     data -> data.inputRecruitment
             )

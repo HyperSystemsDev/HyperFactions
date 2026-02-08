@@ -21,6 +21,8 @@ import com.hypixel.hytale.server.core.entity.entities.player.pages.InteractiveCu
 import com.hypixel.hytale.server.core.ui.builder.EventData;
 import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder;
 import com.hypixel.hytale.server.core.ui.builder.UIEventBuilder;
+import com.hypixel.hytale.server.core.ui.DropdownEntryInfo;
+import com.hypixel.hytale.server.core.ui.LocalizableString;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
@@ -49,6 +51,7 @@ public class FactionMembersPage extends InteractiveCustomUIPage<FactionMembersDa
 
     private Set<UUID> expandedMembers = new HashSet<>();
     private SortMode sortMode = SortMode.ROLE;
+    private String searchQuery = "";
     private int currentPage = 0;
     private Ref<EntityStore> lastRef;
     private Store<EntityStore> lastStore;
@@ -120,20 +123,28 @@ public class FactionMembersPage extends InteractiveCustomUIPage<FactionMembersDa
 
         cmd.set("#MemberCount.Text", totalMembers + " members");
 
-        // Sort buttons
-        cmd.set("#SortByRole.Disabled", sortMode == SortMode.ROLE);
-        cmd.set("#SortByOnline.Disabled", sortMode == SortMode.LAST_ONLINE);
-
+        // Sort dropdown
+        cmd.set("#SortDropdown.Entries", List.of(
+                new DropdownEntryInfo(LocalizableString.fromString("Role"), "ROLE"),
+                new DropdownEntryInfo(LocalizableString.fromString("Last Online"), "LAST_ONLINE")
+        ));
+        cmd.set("#SortDropdown.Value", sortMode.name());
         events.addEventBinding(
-                CustomUIEventBindingType.Activating,
-                "#SortByRole",
-                EventData.of("Button", "SortByRole"),
+                CustomUIEventBindingType.ValueChanged,
+                "#SortDropdown",
+                EventData.of("Button", "SortChanged")
+                        .append("@SortMode", "#SortDropdown.Value"),
                 false
         );
+
+        // Search binding - real-time filtering via ValueChanged
+        if (!searchQuery.isEmpty()) {
+            cmd.set("#SearchInput.Value", searchQuery);
+        }
         events.addEventBinding(
-                CustomUIEventBindingType.Activating,
-                "#SortByOnline",
-                EventData.of("Button", "SortByOnline"),
+                CustomUIEventBindingType.ValueChanged,
+                "#SearchInput",
+                EventData.of("Button", "Search").append("@SearchQuery", "#SearchInput.Value"),
                 false
         );
 
@@ -316,9 +327,12 @@ public class FactionMembersPage extends InteractiveCustomUIPage<FactionMembersDa
     }
 
     private List<FactionMember> getFilteredSortedMembers() {
-        return faction.members().values().stream()
-                .sorted(getSortComparator())
-                .toList();
+        var stream = faction.members().values().stream();
+        if (!searchQuery.isEmpty()) {
+            String query = searchQuery.toLowerCase();
+            stream = stream.filter(m -> m.username().toLowerCase().contains(query));
+        }
+        return stream.sorted(getSortComparator()).toList();
     }
 
     private Comparator<FactionMember> getSortComparator() {
@@ -406,14 +420,18 @@ public class FactionMembersPage extends InteractiveCustomUIPage<FactionMembersDa
                 }
             }
 
-            case "SortByRole" -> {
-                sortMode = SortMode.ROLE;
+            case "Search" -> {
+                searchQuery = data.searchQuery != null ? data.searchQuery : "";
                 currentPage = 0;
                 rebuildList(ref, store);
             }
 
-            case "SortByOnline" -> {
-                sortMode = SortMode.LAST_ONLINE;
+            case "SortChanged" -> {
+                try {
+                    if (data.sortMode != null) {
+                        sortMode = SortMode.valueOf(data.sortMode);
+                    }
+                } catch (IllegalArgumentException ignored) {}
                 currentPage = 0;
                 rebuildList(ref, store);
             }

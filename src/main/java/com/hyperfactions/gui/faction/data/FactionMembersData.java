@@ -26,6 +26,9 @@ public class FactionMembersData implements NavAwareData {
     /** Target player name */
     public String target;
 
+    /** Sort mode from dropdown */
+    public String sortMode;
+
     /** Codec for serialization/deserialization */
     public static final BuilderCodec<FactionMembersData> CODEC = BuilderCodec
             .builder(FactionMembersData.class, FactionMembersData::new)
@@ -53,6 +56,11 @@ public class FactionMembersData implements NavAwareData {
                     new KeyedCodec<>("Target", Codec.STRING),
                     (data, value) -> data.target = value,
                     data -> data.target
+            )
+            .addField(
+                    new KeyedCodec<>("@SortMode", Codec.STRING),
+                    (data, value) -> data.sortMode = value,
+                    data -> data.sortMode
             )
             .build();
 

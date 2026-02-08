@@ -1,58 +1,65 @@
 package com.hyperfactions.config.modules;
 
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.hyperfactions.config.ModuleConfig;
 import com.hyperfactions.data.FactionPermissions;
 import org.jetbrains.annotations.NotNull;
 
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Configuration for faction territory permissions.
  * <p>
- * Controls default permissions, locked permissions (server-enforced),
- * and forced values for locked permissions.
+ * Two-section design:
+ * <ul>
+ *   <li><b>defaults</b>: Default values for new factions AND the forced value when locked</li>
+ *   <li><b>locks</b>: Whether each flag is locked (factions can't change it)</li>
+ * </ul>
+ * When a flag is locked, its effective value is always the defaults value.
+ * <p>
+ * JSON format uses nested sections grouped by role level for readability:
+ * <pre>
+ * {
+ *   "defaults": {
+ *     "outsider": { "break": false, "place": false, ... },
+ *     "ally": { ... },
+ *     "member": { ... },
+ *     "officer": { ... },
+ *     "mobSpawning": { "enabled": true, "hostile": true, ... },
+ *     "pvpEnabled": true,
+ *     "officersCanEdit": false
+ *   },
+ *   "locks": { ... same structure ... }
+ * }
+ * </pre>
  */
 public class FactionPermissionsConfig extends ModuleConfig {
 
-    // Default permissions for new factions
-    private boolean defaultOutsiderBreak = false;
-    private boolean defaultOutsiderPlace = false;
-    private boolean defaultOutsiderInteract = false;
-    private boolean defaultAllyBreak = false;
-    private boolean defaultAllyPlace = false;
-    private boolean defaultAllyInteract = true;
-    private boolean defaultMemberBreak = true;
-    private boolean defaultMemberPlace = true;
-    private boolean defaultMemberInteract = true;
-    private boolean defaultPvpEnabled = true;
-    private boolean defaultOfficersCanEdit = false;
+    // JSON keys for per-level flag suffixes
+    private static final String[][] LEVEL_SUFFIX_MAP = {
+        {"break",         "Break"},
+        {"place",         "Place"},
+        {"interact",      "Interact"},
+        {"doorUse",       "DoorUse"},
+        {"containerUse",  "ContainerUse"},
+        {"benchUse",      "BenchUse"},
+        {"processingUse", "ProcessingUse"},
+        {"seatUse",       "SeatUse"}
+    };
 
-    // Lock flags - when true, factions CANNOT change this setting
-    private boolean lockOutsiderBreak = false;
-    private boolean lockOutsiderPlace = false;
-    private boolean lockOutsiderInteract = false;
-    private boolean lockAllyBreak = false;
-    private boolean lockAllyPlace = false;
-    private boolean lockAllyInteract = false;
-    private boolean lockMemberBreak = false;
-    private boolean lockMemberPlace = false;
-    private boolean lockMemberInteract = false;
-    private boolean lockPvpEnabled = false;
-    private boolean lockOfficersCanEdit = false;
+    // JSON keys for mob spawning sub-flags
+    private static final String[][] MOB_SPAWNING_MAP = {
+        {"enabled",  "mobSpawning"},
+        {"hostile",  "hostileMobSpawning"},
+        {"passive",  "passiveMobSpawning"},
+        {"neutral",  "neutralMobSpawning"}
+    };
 
-    // Force values - when locked, use these values instead
-    private boolean forceOutsiderBreak = false;
-    private boolean forceOutsiderPlace = false;
-    private boolean forceOutsiderInteract = false;
-    private boolean forceAllyBreak = false;
-    private boolean forceAllyPlace = false;
-    private boolean forceAllyInteract = true;
-    private boolean forceMemberBreak = true;
-    private boolean forceMemberPlace = true;
-    private boolean forceMemberInteract = true;
-    private boolean forcePvpEnabled = true;
-    private boolean forceOfficersCanEdit = false;
+    private Map<String, Boolean> defaults = new HashMap<>();
+    private Map<String, Boolean> locks = new HashMap<>();
 
     /**
      * Creates a new faction permissions config.
@@ -72,106 +79,149 @@ public class FactionPermissionsConfig extends ModuleConfig {
     @Override
     protected void createDefaults() {
         enabled = true;
-        // Defaults are already set in field declarations
+        // Initialize defaults from FactionPermissions defaults
+        FactionPermissions defaultPerms = FactionPermissions.defaults();
+        defaults = new HashMap<>(defaultPerms.toMap());
+        // All flags unlocked by default
+        locks = new HashMap<>();
+        for (String flag : FactionPermissions.ALL_FLAGS) {
+            locks.put(flag, false);
+        }
     }
 
     @Override
     protected void loadModuleSettings(@NotNull JsonObject root) {
+        // Start with default values
+        FactionPermissions defaultPerms = FactionPermissions.defaults();
+        defaults = new HashMap<>(defaultPerms.toMap());
+        locks = new HashMap<>();
+        for (String flag : FactionPermissions.ALL_FLAGS) {
+            locks.put(flag, false);
+        }
+
         // Load defaults section
         if (hasSection(root, "defaults")) {
-            JsonObject defaults = root.getAsJsonObject("defaults");
-            defaultOutsiderBreak = getBool(defaults, "outsiderBreak", defaultOutsiderBreak);
-            defaultOutsiderPlace = getBool(defaults, "outsiderPlace", defaultOutsiderPlace);
-            defaultOutsiderInteract = getBool(defaults, "outsiderInteract", defaultOutsiderInteract);
-            defaultAllyBreak = getBool(defaults, "allyBreak", defaultAllyBreak);
-            defaultAllyPlace = getBool(defaults, "allyPlace", defaultAllyPlace);
-            defaultAllyInteract = getBool(defaults, "allyInteract", defaultAllyInteract);
-            defaultMemberBreak = getBool(defaults, "memberBreak", defaultMemberBreak);
-            defaultMemberPlace = getBool(defaults, "memberPlace", defaultMemberPlace);
-            defaultMemberInteract = getBool(defaults, "memberInteract", defaultMemberInteract);
-            defaultPvpEnabled = getBool(defaults, "pvpEnabled", defaultPvpEnabled);
-            defaultOfficersCanEdit = getBool(defaults, "officersCanEdit", defaultOfficersCanEdit);
+            JsonObject defaultsObj = root.getAsJsonObject("defaults");
+            loadSection(defaultsObj, defaults);
         }
 
         // Load locks section
         if (hasSection(root, "locks")) {
-            JsonObject locks = root.getAsJsonObject("locks");
-            lockOutsiderBreak = getBool(locks, "outsiderBreak", lockOutsiderBreak);
-            lockOutsiderPlace = getBool(locks, "outsiderPlace", lockOutsiderPlace);
-            lockOutsiderInteract = getBool(locks, "outsiderInteract", lockOutsiderInteract);
-            lockAllyBreak = getBool(locks, "allyBreak", lockAllyBreak);
-            lockAllyPlace = getBool(locks, "allyPlace", lockAllyPlace);
-            lockAllyInteract = getBool(locks, "allyInteract", lockAllyInteract);
-            lockMemberBreak = getBool(locks, "memberBreak", lockMemberBreak);
-            lockMemberPlace = getBool(locks, "memberPlace", lockMemberPlace);
-            lockMemberInteract = getBool(locks, "memberInteract", lockMemberInteract);
-            lockPvpEnabled = getBool(locks, "pvpEnabled", lockPvpEnabled);
-            lockOfficersCanEdit = getBool(locks, "officersCanEdit", lockOfficersCanEdit);
+            JsonObject locksObj = root.getAsJsonObject("locks");
+            loadSection(locksObj, locks);
+        }
+    }
+
+    /**
+     * Loads a section (defaults or locks), auto-detecting flat vs nested format.
+     */
+    private void loadSection(@NotNull JsonObject section, @NotNull Map<String, Boolean> target) {
+        // Detect format: if "outsider" is a JsonObject, it's nested; if "outsiderBreak" is present, it's flat
+        boolean isNested = false;
+        for (String level : FactionPermissions.ALL_LEVELS) {
+            if (section.has(level) && section.get(level).isJsonObject()) {
+                isNested = true;
+                break;
+            }
         }
 
-        // Load forced section
-        if (hasSection(root, "forced")) {
-            JsonObject forced = root.getAsJsonObject("forced");
-            forceOutsiderBreak = getBool(forced, "outsiderBreak", forceOutsiderBreak);
-            forceOutsiderPlace = getBool(forced, "outsiderPlace", forceOutsiderPlace);
-            forceOutsiderInteract = getBool(forced, "outsiderInteract", forceOutsiderInteract);
-            forceAllyBreak = getBool(forced, "allyBreak", forceAllyBreak);
-            forceAllyPlace = getBool(forced, "allyPlace", forceAllyPlace);
-            forceAllyInteract = getBool(forced, "allyInteract", forceAllyInteract);
-            forceMemberBreak = getBool(forced, "memberBreak", forceMemberBreak);
-            forceMemberPlace = getBool(forced, "memberPlace", forceMemberPlace);
-            forceMemberInteract = getBool(forced, "memberInteract", forceMemberInteract);
-            forcePvpEnabled = getBool(forced, "pvpEnabled", forcePvpEnabled);
-            forceOfficersCanEdit = getBool(forced, "officersCanEdit", forceOfficersCanEdit);
+        if (isNested) {
+            loadNestedSection(section, target);
+        } else {
+            loadFlatSection(section, target);
+        }
+    }
+
+    /**
+     * Loads the new nested JSON format.
+     */
+    private void loadNestedSection(@NotNull JsonObject section, @NotNull Map<String, Boolean> target) {
+        // Per-level flags
+        for (String level : FactionPermissions.ALL_LEVELS) {
+            if (section.has(level) && section.get(level).isJsonObject()) {
+                JsonObject levelObj = section.getAsJsonObject(level);
+                for (String[] mapping : LEVEL_SUFFIX_MAP) {
+                    String jsonKey = mapping[0];
+                    String flagKey = level + mapping[1];
+                    if (levelObj.has(jsonKey) && levelObj.get(jsonKey).isJsonPrimitive()) {
+                        target.put(flagKey, levelObj.get(jsonKey).getAsBoolean());
+                    }
+                }
+            }
+        }
+
+        // Mob spawning
+        if (section.has("mobSpawning") && section.get("mobSpawning").isJsonObject()) {
+            JsonObject mobObj = section.getAsJsonObject("mobSpawning");
+            for (String[] mapping : MOB_SPAWNING_MAP) {
+                String jsonKey = mapping[0];
+                String flagKey = mapping[1];
+                if (mobObj.has(jsonKey) && mobObj.get(jsonKey).isJsonPrimitive()) {
+                    target.put(flagKey, mobObj.get(jsonKey).getAsBoolean());
+                }
+            }
+        }
+
+        // Global flags (flat at top level)
+        if (section.has("pvpEnabled") && section.get("pvpEnabled").isJsonPrimitive()) {
+            target.put(FactionPermissions.PVP_ENABLED, section.get("pvpEnabled").getAsBoolean());
+        }
+        if (section.has("officersCanEdit") && section.get("officersCanEdit").isJsonPrimitive()) {
+            target.put(FactionPermissions.OFFICERS_CAN_EDIT, section.get("officersCanEdit").getAsBoolean());
+        }
+    }
+
+    /**
+     * Loads the old flat JSON format (backward compatibility).
+     */
+    private void loadFlatSection(@NotNull JsonObject section, @NotNull Map<String, Boolean> target) {
+        for (Map.Entry<String, JsonElement> entry : section.entrySet()) {
+            if (entry.getValue().isJsonPrimitive() && entry.getValue().getAsJsonPrimitive().isBoolean()) {
+                if (FactionPermissions.isValidFlag(entry.getKey())) {
+                    target.put(entry.getKey(), entry.getValue().getAsBoolean());
+                }
+            }
         }
     }
 
     @Override
     protected void writeModuleSettings(@NotNull JsonObject root) {
-        // Write defaults section
-        JsonObject defaults = new JsonObject();
-        defaults.addProperty("outsiderBreak", defaultOutsiderBreak);
-        defaults.addProperty("outsiderPlace", defaultOutsiderPlace);
-        defaults.addProperty("outsiderInteract", defaultOutsiderInteract);
-        defaults.addProperty("allyBreak", defaultAllyBreak);
-        defaults.addProperty("allyPlace", defaultAllyPlace);
-        defaults.addProperty("allyInteract", defaultAllyInteract);
-        defaults.addProperty("memberBreak", defaultMemberBreak);
-        defaults.addProperty("memberPlace", defaultMemberPlace);
-        defaults.addProperty("memberInteract", defaultMemberInteract);
-        defaults.addProperty("pvpEnabled", defaultPvpEnabled);
-        defaults.addProperty("officersCanEdit", defaultOfficersCanEdit);
-        root.add("defaults", defaults);
+        root.add("defaults", writeNestedSection(defaults));
+        root.add("locks", writeNestedSection(locks));
+    }
 
-        // Write locks section
-        JsonObject locks = new JsonObject();
-        locks.addProperty("outsiderBreak", lockOutsiderBreak);
-        locks.addProperty("outsiderPlace", lockOutsiderPlace);
-        locks.addProperty("outsiderInteract", lockOutsiderInteract);
-        locks.addProperty("allyBreak", lockAllyBreak);
-        locks.addProperty("allyPlace", lockAllyPlace);
-        locks.addProperty("allyInteract", lockAllyInteract);
-        locks.addProperty("memberBreak", lockMemberBreak);
-        locks.addProperty("memberPlace", lockMemberPlace);
-        locks.addProperty("memberInteract", lockMemberInteract);
-        locks.addProperty("pvpEnabled", lockPvpEnabled);
-        locks.addProperty("officersCanEdit", lockOfficersCanEdit);
-        root.add("locks", locks);
+    /**
+     * Writes a section in the nested JSON format grouped by role level.
+     */
+    @NotNull
+    private JsonObject writeNestedSection(@NotNull Map<String, Boolean> source) {
+        JsonObject section = new JsonObject();
 
-        // Write forced section
-        JsonObject forced = new JsonObject();
-        forced.addProperty("outsiderBreak", forceOutsiderBreak);
-        forced.addProperty("outsiderPlace", forceOutsiderPlace);
-        forced.addProperty("outsiderInteract", forceOutsiderInteract);
-        forced.addProperty("allyBreak", forceAllyBreak);
-        forced.addProperty("allyPlace", forceAllyPlace);
-        forced.addProperty("allyInteract", forceAllyInteract);
-        forced.addProperty("memberBreak", forceMemberBreak);
-        forced.addProperty("memberPlace", forceMemberPlace);
-        forced.addProperty("memberInteract", forceMemberInteract);
-        forced.addProperty("pvpEnabled", forcePvpEnabled);
-        forced.addProperty("officersCanEdit", forceOfficersCanEdit);
-        root.add("forced", forced);
+        // Per-level flags
+        for (String level : FactionPermissions.ALL_LEVELS) {
+            JsonObject levelObj = new JsonObject();
+            for (String[] mapping : LEVEL_SUFFIX_MAP) {
+                String jsonKey = mapping[0];
+                String flagKey = level + mapping[1];
+                levelObj.addProperty(jsonKey, source.getOrDefault(flagKey, false));
+            }
+            section.add(level, levelObj);
+        }
+
+        // Mob spawning
+        JsonObject mobObj = new JsonObject();
+        for (String[] mapping : MOB_SPAWNING_MAP) {
+            String jsonKey = mapping[0];
+            String flagKey = mapping[1];
+            mobObj.addProperty(jsonKey, source.getOrDefault(flagKey, false));
+        }
+        section.add("mobSpawning", mobObj);
+
+        // Global flags
+        section.addProperty("pvpEnabled", source.getOrDefault(FactionPermissions.PVP_ENABLED, true));
+        section.addProperty("officersCanEdit", source.getOrDefault(FactionPermissions.OFFICERS_CAN_EDIT, false));
+
+        return section;
     }
 
     // === FactionPermissions Integration ===
@@ -183,36 +233,26 @@ public class FactionPermissionsConfig extends ModuleConfig {
      */
     @NotNull
     public FactionPermissions getDefaultFactionPermissions() {
-        return new FactionPermissions(
-            defaultOutsiderBreak, defaultOutsiderPlace, defaultOutsiderInteract,
-            defaultAllyBreak, defaultAllyPlace, defaultAllyInteract,
-            defaultMemberBreak, defaultMemberPlace, defaultMemberInteract,
-            defaultPvpEnabled, defaultOfficersCanEdit
-        );
+        return new FactionPermissions(new HashMap<>(defaults));
     }
 
     /**
-     * Gets the effective permissions for a faction, applying server locks/forced values.
-     * For each field: if locked, use forced value; else use faction value.
+     * Gets the effective permissions for a faction, applying server locks.
+     * For each flag: if locked, use the default value; else use faction value.
      *
      * @param factionPerms the faction's permission settings
      * @return the effective permissions after applying server locks
      */
     @NotNull
     public FactionPermissions getEffectiveFactionPermissions(@NotNull FactionPermissions factionPerms) {
-        return new FactionPermissions(
-            lockOutsiderBreak ? forceOutsiderBreak : factionPerms.outsiderBreak(),
-            lockOutsiderPlace ? forceOutsiderPlace : factionPerms.outsiderPlace(),
-            lockOutsiderInteract ? forceOutsiderInteract : factionPerms.outsiderInteract(),
-            lockAllyBreak ? forceAllyBreak : factionPerms.allyBreak(),
-            lockAllyPlace ? forceAllyPlace : factionPerms.allyPlace(),
-            lockAllyInteract ? forceAllyInteract : factionPerms.allyInteract(),
-            lockMemberBreak ? forceMemberBreak : factionPerms.memberBreak(),
-            lockMemberPlace ? forceMemberPlace : factionPerms.memberPlace(),
-            lockMemberInteract ? forceMemberInteract : factionPerms.memberInteract(),
-            lockPvpEnabled ? forcePvpEnabled : factionPerms.pvpEnabled(),
-            lockOfficersCanEdit ? forceOfficersCanEdit : factionPerms.officersCanEdit()
-        );
+        Map<String, Boolean> effective = new HashMap<>(factionPerms.toMap());
+        for (Map.Entry<String, Boolean> entry : locks.entrySet()) {
+            if (entry.getValue()) {
+                // Flag is locked — use default value
+                effective.put(entry.getKey(), defaults.getOrDefault(entry.getKey(), false));
+            }
+        }
+        return new FactionPermissions(effective);
     }
 
     /**
@@ -222,19 +262,6 @@ public class FactionPermissionsConfig extends ModuleConfig {
      * @return true if locked, false if factions can change it
      */
     public boolean isPermissionLocked(@NotNull String permissionName) {
-        return switch (permissionName) {
-            case "outsiderBreak" -> lockOutsiderBreak;
-            case "outsiderPlace" -> lockOutsiderPlace;
-            case "outsiderInteract" -> lockOutsiderInteract;
-            case "allyBreak" -> lockAllyBreak;
-            case "allyPlace" -> lockAllyPlace;
-            case "allyInteract" -> lockAllyInteract;
-            case "memberBreak" -> lockMemberBreak;
-            case "memberPlace" -> lockMemberPlace;
-            case "memberInteract" -> lockMemberInteract;
-            case "pvpEnabled" -> lockPvpEnabled;
-            case "officersCanEdit" -> lockOfficersCanEdit;
-            default -> false;
-        };
+        return locks.getOrDefault(permissionName, false);
     }
 }

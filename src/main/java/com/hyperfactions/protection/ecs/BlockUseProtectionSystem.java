@@ -123,34 +123,25 @@ public class BlockUseProtectionSystem extends EntityEventSystem<EntityStore, Use
             }
 
             // 2. If zone allows (or not in zone), check faction permissions
-            boolean isDoor = isDoorState(stateId);
-            boolean blocked;
-            ProtectionChecker.InteractionType interactionType;
+            // Map block type to specific InteractionType for fine-grained faction permission checks
+            ZoneInteractionProtection.InteractionBlockType detectedBlockType =
+                zoneProtection.detectBlockTypeFromState(stateId != null ? stateId : "");
+            ProtectionChecker.InteractionType interactionType = switch (detectedBlockType) {
+                case DOOR -> ProtectionChecker.InteractionType.DOOR;
+                case CONTAINER -> ProtectionChecker.InteractionType.CONTAINER;
+                case BENCH -> ProtectionChecker.InteractionType.BENCH;
+                case PROCESSING -> ProtectionChecker.InteractionType.PROCESSING;
+                case SEAT -> ProtectionChecker.InteractionType.SEAT;
+                case OTHER -> ProtectionChecker.InteractionType.INTERACT;
+            };
 
-            if (isDoor) {
-                interactionType = ProtectionChecker.InteractionType.INTERACT;
-                blocked = protectionListener.onBlockInteract(
-                    player.getUuid(),
-                    worldName,
-                    pos.getX(), pos.getY(), pos.getZ()
-                );
-            } else {
-                interactionType = ProtectionChecker.InteractionType.CONTAINER;
-                blocked = protectionListener.onContainerAccess(
-                    player.getUuid(),
-                    worldName,
-                    pos.getX(), pos.getY(), pos.getZ()
-                );
-            }
+            ProtectionChecker.ProtectionResult factionResult = hyperFactions.getProtectionChecker().canInteract(
+                player.getUuid(), worldName, pos.getX(), pos.getZ(), interactionType
+            );
 
-            if (blocked) {
+            if (!hyperFactions.getProtectionChecker().isAllowed(factionResult)) {
                 event.setCancelled(true);
-                player.sendMessage(Message.raw(protectionListener.getDenialMessage(
-                    hyperFactions.getProtectionChecker().canInteract(
-                        player.getUuid(), worldName, pos.getX(), pos.getZ(),
-                        interactionType
-                    )
-                )).color("#FF5555"));
+                player.sendMessage(Message.raw(protectionListener.getDenialMessage(factionResult)).color("#FF5555"));
             }
         } catch (Exception e) {
             Logger.severe("Error processing block use event", e);

@@ -42,7 +42,7 @@ public final class PlaceholderAPIIntegration {
             boolean registered = expansion.register();
             if (registered) {
                 available = true;
-                Logger.info("PlaceholderAPI expansion registered (%%hyperfactions_*%%)");
+                Logger.info("PlaceholderAPI expansion registered (%%factions_*%%)");
             } else {
                 Logger.warn("PlaceholderAPI expansion registration failed");
                 expansion = null;

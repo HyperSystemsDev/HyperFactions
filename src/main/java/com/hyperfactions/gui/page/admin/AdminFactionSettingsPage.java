@@ -177,47 +177,62 @@ public class AdminFactionSettingsPage extends InteractiveCustomUIPage<AdminFacti
     }
 
     private void buildPermissions(UICommandBuilder cmd, UIEventBuilder events, Faction faction) {
-        // Get effective permissions
         FactionPermissions perms = ConfigManager.get().getEffectiveFactionPermissions(
                 faction.getEffectivePermissions()
         );
         ConfigManager config = ConfigManager.get();
 
-        // === Outsider Permissions ===
-        buildToggle(cmd, events, "OutsiderBreakToggle", "outsiderBreak", perms.outsiderBreak(), config);
-        buildToggle(cmd, events, "OutsiderPlaceToggle", "outsiderPlace", perms.outsiderPlace(), config);
-        buildToggle(cmd, events, "OutsiderInteractToggle", "outsiderInteract", perms.outsiderInteract(), config);
+        // Build toggles for all 4 levels
+        for (String level : FactionPermissions.ALL_LEVELS) {
+            String cap = capitalize(level);
+            buildToggle(cmd, events, cap + "BreakToggle", level + "Break", perms.get(level + "Break"), config, false);
+            buildToggle(cmd, events, cap + "PlaceToggle", level + "Place", perms.get(level + "Place"), config, false);
+            buildToggle(cmd, events, cap + "InteractToggle", level + "Interact", perms.get(level + "Interact"), config, false);
 
-        // === Ally Permissions ===
-        buildToggle(cmd, events, "AllyBreakToggle", "allyBreak", perms.allyBreak(), config);
-        buildToggle(cmd, events, "AllyPlaceToggle", "allyPlace", perms.allyPlace(), config);
-        buildToggle(cmd, events, "AllyInteractToggle", "allyInteract", perms.allyInteract(), config);
+            // Interaction sub-flags — disabled when parent interact is off
+            boolean interactOff = !perms.get(level + "Interact");
+            buildToggle(cmd, events, cap + "DoorToggle", level + "DoorUse", perms.get(level + "DoorUse"), config, interactOff);
+            buildToggle(cmd, events, cap + "ContainerToggle", level + "ContainerUse", perms.get(level + "ContainerUse"), config, interactOff);
+            buildToggle(cmd, events, cap + "BenchToggle", level + "BenchUse", perms.get(level + "BenchUse"), config, interactOff);
+            buildToggle(cmd, events, cap + "ProcessingToggle", level + "ProcessingUse", perms.get(level + "ProcessingUse"), config, interactOff);
+            buildToggle(cmd, events, cap + "SeatToggle", level + "SeatUse", perms.get(level + "SeatUse"), config, interactOff);
+        }
 
-        // === Member Permissions ===
-        buildToggle(cmd, events, "MemberBreakToggle", "memberBreak", perms.memberBreak(), config);
-        buildToggle(cmd, events, "MemberPlaceToggle", "memberPlace", perms.memberPlace(), config);
-        buildToggle(cmd, events, "MemberInteractToggle", "memberInteract", perms.memberInteract(), config);
+        // Mob spawning toggles — children disabled when master is off
+        boolean mobSpawning = perms.get(FactionPermissions.MOB_SPAWNING);
+        boolean mobParentOff = !mobSpawning;
+        buildToggle(cmd, events, "MobSpawningToggle", "mobSpawning", mobSpawning, config, false);
+        buildToggle(cmd, events, "HostileMobToggle", "hostileMobSpawning", perms.get(FactionPermissions.HOSTILE_MOB_SPAWNING), config, mobParentOff);
+        buildToggle(cmd, events, "PassiveMobToggle", "passiveMobSpawning", perms.get(FactionPermissions.PASSIVE_MOB_SPAWNING), config, mobParentOff);
+        buildToggle(cmd, events, "NeutralMobToggle", "neutralMobSpawning", perms.get(FactionPermissions.NEUTRAL_MOB_SPAWNING), config, mobParentOff);
 
-        // === Combat ===
-        buildToggle(cmd, events, "PvPToggle", "pvpEnabled", perms.pvpEnabled(), config);
+        // PvP toggle
+        buildToggle(cmd, events, "PvPToggle", "pvpEnabled", perms.pvpEnabled(), config, false);
         cmd.set("#PvPStatus.Text", perms.pvpEnabled() ? "Enabled" : "Disabled");
         cmd.set("#PvPStatus.Style.TextColor", perms.pvpEnabled() ? "#55FF55" : "#FF5555");
 
-        // === Access Control ===
-        buildToggle(cmd, events, "OfficersCanEditToggle", "officersCanEdit", perms.officersCanEdit(), config);
+        // Officers can edit
+        buildToggle(cmd, events, "OfficersCanEditToggle", "officersCanEdit", perms.officersCanEdit(), config, false);
+    }
+
+    private static String capitalize(String s) {
+        if (s == null || s.isEmpty()) return s;
+        return Character.toUpperCase(s.charAt(0)) + s.substring(1);
     }
 
     private void buildToggle(UICommandBuilder cmd, UIEventBuilder events,
                              String elementId, String permName, boolean currentValue,
-                             ConfigManager config) {
+                             ConfigManager config, boolean parentDisabled) {
         boolean locked = config.isPermissionLocked(permName);
         String selector = "#" + elementId;
 
-        // Set checkbox value via child selector
-        cmd.set(selector + " #CheckBox.Value", currentValue);
+        // When parent is disabled, show unchecked and disable the checkbox
+        boolean displayValue = parentDisabled ? false : currentValue;
+        boolean shouldDisable = parentDisabled || locked;
 
-        if (locked) {
-            // Locked by server - disable checkbox
+        cmd.set(selector + " #CheckBox.Value", displayValue);
+
+        if (shouldDisable) {
             cmd.set(selector + " #CheckBox.Disabled", true);
         } else {
             // Admin can toggle - bind ValueChanged event
@@ -385,21 +400,8 @@ public class AdminFactionSettingsPage extends InteractiveCustomUIPage<AdminFacti
     }
 
     private String formatPermissionName(String permName) {
-        // Convert camelCase to readable format
-        return switch (permName) {
-            case "outsiderBreak" -> "Outsider Break";
-            case "outsiderPlace" -> "Outsider Place";
-            case "outsiderInteract" -> "Outsider Interact";
-            case "allyBreak" -> "Ally Break";
-            case "allyPlace" -> "Ally Place";
-            case "allyInteract" -> "Ally Interact";
-            case "memberBreak" -> "Member Break";
-            case "memberPlace" -> "Member Place";
-            case "memberInteract" -> "Member Interact";
-            case "pvpEnabled" -> "PvP Enabled";
-            case "officersCanEdit" -> "Officers Can Edit";
-            default -> permName;
-        };
+        String display = FactionPermissions.getDisplayName(permName);
+        return display != null ? display : permName;
     }
 
     private void rebuildPage() {
@@ -489,28 +491,8 @@ public class AdminFactionSettingsPage extends InteractiveCustomUIPage<AdminFacti
     }
 
     private void rebuildPermissions(UICommandBuilder cmd, UIEventBuilder events, Faction faction) {
-        FactionPermissions perms = ConfigManager.get().getEffectiveFactionPermissions(
-                faction.getEffectivePermissions()
-        );
-        ConfigManager config = ConfigManager.get();
-
-        buildToggle(cmd, events, "OutsiderBreakToggle", "outsiderBreak", perms.outsiderBreak(), config);
-        buildToggle(cmd, events, "OutsiderPlaceToggle", "outsiderPlace", perms.outsiderPlace(), config);
-        buildToggle(cmd, events, "OutsiderInteractToggle", "outsiderInteract", perms.outsiderInteract(), config);
-
-        buildToggle(cmd, events, "AllyBreakToggle", "allyBreak", perms.allyBreak(), config);
-        buildToggle(cmd, events, "AllyPlaceToggle", "allyPlace", perms.allyPlace(), config);
-        buildToggle(cmd, events, "AllyInteractToggle", "allyInteract", perms.allyInteract(), config);
-
-        buildToggle(cmd, events, "MemberBreakToggle", "memberBreak", perms.memberBreak(), config);
-        buildToggle(cmd, events, "MemberPlaceToggle", "memberPlace", perms.memberPlace(), config);
-        buildToggle(cmd, events, "MemberInteractToggle", "memberInteract", perms.memberInteract(), config);
-
-        buildToggle(cmd, events, "PvPToggle", "pvpEnabled", perms.pvpEnabled(), config);
-        cmd.set("#PvPStatus.Text", perms.pvpEnabled() ? "Enabled" : "Disabled");
-        cmd.set("#PvPStatus.Style.TextColor", perms.pvpEnabled() ? "#55FF55" : "#FF5555");
-
-        buildToggle(cmd, events, "OfficersCanEditToggle", "officersCanEdit", perms.officersCanEdit(), config);
+        // Reuse the same build logic
+        buildPermissions(cmd, events, faction);
     }
 
 }
