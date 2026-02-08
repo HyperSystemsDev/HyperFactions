@@ -19,6 +19,8 @@ import com.hypixel.hytale.server.core.entity.entities.player.pages.InteractiveCu
 import com.hypixel.hytale.server.core.ui.builder.EventData;
 import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder;
 import com.hypixel.hytale.server.core.ui.builder.UIEventBuilder;
+import com.hypixel.hytale.server.core.ui.DropdownEntryInfo;
+import com.hypixel.hytale.server.core.ui.LocalizableString;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.World;
@@ -85,27 +87,18 @@ public class AdminFactionsPage extends InteractiveCustomUIPage<AdminFactionsData
 
         cmd.set("#FactionCount.Text", factions.size() + " factions");
 
-        // Sort buttons - highlight the active one
-        cmd.set("#SortByPower.Disabled", sortMode == SortMode.POWER);
-        cmd.set("#SortByName.Disabled", sortMode == SortMode.NAME);
-        cmd.set("#SortByMembers.Disabled", sortMode == SortMode.MEMBERS);
-
+        // Sort dropdown
+        cmd.set("#SortDropdown.Entries", List.of(
+                new DropdownEntryInfo(LocalizableString.fromString("Power"), "POWER"),
+                new DropdownEntryInfo(LocalizableString.fromString("Name"), "NAME"),
+                new DropdownEntryInfo(LocalizableString.fromString("Members"), "MEMBERS")
+        ));
+        cmd.set("#SortDropdown.Value", sortMode.name());
         events.addEventBinding(
-                CustomUIEventBindingType.Activating,
-                "#SortByPower",
-                EventData.of("Button", "SortByPower"),
-                false
-        );
-        events.addEventBinding(
-                CustomUIEventBindingType.Activating,
-                "#SortByName",
-                EventData.of("Button", "SortByName"),
-                false
-        );
-        events.addEventBinding(
-                CustomUIEventBindingType.Activating,
-                "#SortByMembers",
-                EventData.of("Button", "SortByMembers"),
+                CustomUIEventBindingType.ValueChanged,
+                "#SortDropdown",
+                EventData.of("Button", "SortChanged")
+                        .append("@SortMode", "#SortDropdown.Value"),
                 false
         );
 
@@ -225,6 +218,24 @@ public class AdminFactionsPage extends InteractiveCustomUIPage<AdminFactionsData
                     false
             );
 
+            // Members button
+            events.addEventBinding(
+                    CustomUIEventBindingType.Activating,
+                    idx + " #MembersBtn",
+                    EventData.of("Button", "ViewMembers")
+                            .append("FactionId", faction.id().toString()),
+                    false
+            );
+
+            // Settings button
+            events.addEventBinding(
+                    CustomUIEventBindingType.Activating,
+                    idx + " #SettingsBtn",
+                    EventData.of("Button", "ViewSettings")
+                            .append("FactionId", faction.id().toString()),
+                    false
+            );
+
             // Unclaim All button
             events.addEventBinding(
                     CustomUIEventBindingType.Activating,
@@ -302,22 +313,12 @@ public class AdminFactionsPage extends InteractiveCustomUIPage<AdminFactionsData
                 }
             }
 
-            case "SortByPower" -> {
-                sortMode = SortMode.POWER;
-                currentPage = 0;
-                expandedFactions.clear();
-                rebuildList();
-            }
-
-            case "SortByName" -> {
-                sortMode = SortMode.NAME;
-                currentPage = 0;
-                expandedFactions.clear();
-                rebuildList();
-            }
-
-            case "SortByMembers" -> {
-                sortMode = SortMode.MEMBERS;
+            case "SortChanged" -> {
+                try {
+                    if (data.sortMode != null) {
+                        sortMode = SortMode.valueOf(data.sortMode);
+                    }
+                } catch (IllegalArgumentException ignored) {}
                 currentPage = 0;
                 expandedFactions.clear();
                 rebuildList();
@@ -377,6 +378,34 @@ public class AdminFactionsPage extends InteractiveCustomUIPage<AdminFactionsData
                         if (faction != null) {
                             // Use admin version to maintain admin nav context
                             guiManager.openAdminFactionInfo(player, ref, store, playerRef, factionId);
+                        }
+                    } catch (IllegalArgumentException e) {
+                        player.sendMessage(Message.raw("Invalid faction.").color("#FF5555"));
+                    }
+                }
+            }
+
+            case "ViewMembers" -> {
+                if (data.factionId != null) {
+                    try {
+                        UUID factionId = UUID.fromString(data.factionId);
+                        Faction faction = factionManager.getFaction(factionId);
+                        if (faction != null) {
+                            guiManager.openAdminFactionMembers(player, ref, store, playerRef, factionId);
+                        }
+                    } catch (IllegalArgumentException e) {
+                        player.sendMessage(Message.raw("Invalid faction.").color("#FF5555"));
+                    }
+                }
+            }
+
+            case "ViewSettings" -> {
+                if (data.factionId != null) {
+                    try {
+                        UUID factionId = UUID.fromString(data.factionId);
+                        Faction faction = factionManager.getFaction(factionId);
+                        if (faction != null) {
+                            guiManager.openAdminFactionSettings(player, ref, store, playerRef, factionId);
                         }
                     } catch (IllegalArgumentException e) {
                         player.sendMessage(Message.raw("Invalid faction.").color("#FF5555"));

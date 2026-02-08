@@ -163,6 +163,22 @@ Group {
 
       Group { Anchor: (Width: 8); }
 
+      TextButton #MembersBtn {
+        Text: "Members";
+        Anchor: (Height: 28, Width: 85);
+        Style: $S.@ButtonStyle;
+      }
+
+      Group { Anchor: (Width: 8); }
+
+      TextButton #SettingsBtn {
+        Text: "Settings";
+        Anchor: (Height: 28, Width: 85);
+        Style: $S.@ButtonStyle;
+      }
+
+      Group { Anchor: (Width: 8); }
+
       TextButton #UnclaimAllBtn {
         Text: "Unclaim All";
         Anchor: (Height: 28, Width: 100);

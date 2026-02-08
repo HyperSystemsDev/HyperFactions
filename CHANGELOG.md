@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+**Admin Faction List Quick Actions**
+- Added "Members" and "Settings" quick buttons to expanded faction entries in admin faction list
+- Navigate directly to a faction's members or settings page without going through View Info first
+
 **Create Faction Page Redesign**
 - Merged the two-step create wizard into a single two-column page (950x650)
 - Left column: preview card, name/tag inputs, description, recruitment toggle
@@ -60,6 +64,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New element test page (`/f admin testgui`) for CustomUI research and verification
 
 ### Changed
+
+**Admin Faction Settings Layout Unified**
+- Admin faction settings page now matches the normal faction settings layout with boxed sections (`#1a2a3a` backgrounds)
+- Appearance (color picker) moved from left column to right column
+- Combat and Access Control merged into single "Faction Settings" section
+- Danger Zone now uses `#2a1a1a` background box with "This action is irreversible" text
+- Container height increased from 700 to 780 to eliminate right column scrolling
 
 **GUI Native UI Audit (Batch 1)**
 - Migrated all button styles from native `$C.@SecondaryTextButtonStyle` to custom `$S.@ButtonStyle` with controlled FontSize 13 across 90+ .ui files

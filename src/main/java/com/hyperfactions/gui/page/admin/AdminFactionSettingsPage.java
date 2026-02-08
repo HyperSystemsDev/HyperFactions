@@ -14,6 +14,8 @@ import com.hypixel.hytale.protocol.packets.interface_.CustomUIEventBindingType;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.entity.entities.player.pages.InteractiveCustomUIPage;
+import com.hypixel.hytale.server.core.ui.DropdownEntryInfo;
+import com.hypixel.hytale.server.core.ui.LocalizableString;
 import com.hypixel.hytale.server.core.ui.builder.EventData;
 import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder;
 import com.hypixel.hytale.server.core.ui.builder.UIEventBuilder;
@@ -29,26 +31,6 @@ import java.util.UUID;
  * Bypasses all role checks - admins have full control.
  */
 public class AdminFactionSettingsPage extends InteractiveCustomUIPage<AdminFactionSettingsData> {
-
-    // Minecraft color code to hex mapping
-    private static final List<ColorInfo> COLORS = List.of(
-            new ColorInfo("0", "#000000", "Black"),
-            new ColorInfo("1", "#0000AA", "Dark Blue"),
-            new ColorInfo("2", "#00AA00", "Dark Green"),
-            new ColorInfo("3", "#00AAAA", "Dark Aqua"),
-            new ColorInfo("4", "#AA0000", "Dark Red"),
-            new ColorInfo("5", "#AA00AA", "Dark Purple"),
-            new ColorInfo("6", "#FFAA00", "Gold"),
-            new ColorInfo("7", "#AAAAAA", "Gray"),
-            new ColorInfo("8", "#555555", "Dark Gray"),
-            new ColorInfo("9", "#5555FF", "Blue"),
-            new ColorInfo("a", "#55FF55", "Green"),
-            new ColorInfo("b", "#55FFFF", "Aqua"),
-            new ColorInfo("c", "#FF5555", "Red"),
-            new ColorInfo("d", "#FF55FF", "Light Purple"),
-            new ColorInfo("e", "#FFFF55", "Yellow"),
-            new ColorInfo("f", "#FFFFFF", "White")
-    );
 
     private final PlayerRef playerRef;
     private final UUID factionId;
@@ -89,7 +71,8 @@ public class AdminFactionSettingsPage extends InteractiveCustomUIPage<AdminFacti
         // === LEFT COLUMN: General Settings ===
         buildGeneralSettings(cmd, events, faction);
 
-        // === RIGHT COLUMN: Permissions ===
+        // === RIGHT COLUMN ===
+        buildColorSection(cmd, events, faction);
         buildPermissions(cmd, events, faction);
 
         // Back button
@@ -136,25 +119,17 @@ public class AdminFactionSettingsPage extends InteractiveCustomUIPage<AdminFacti
                 false
         );
 
-        // Color
-        String colorHex = getColorHex(faction.color());
-        cmd.set("#ColorPreview.Background.Color", colorHex);
-        cmd.set("#ColorValue.Text", colorHex);
+        // Recruitment dropdown
+        cmd.set("#RecruitmentDropdown.Entries", List.of(
+                new DropdownEntryInfo(LocalizableString.fromString("Open"), "OPEN"),
+                new DropdownEntryInfo(LocalizableString.fromString("Invite Only"), "INVITE_ONLY")
+        ));
+        cmd.set("#RecruitmentDropdown.Value", faction.open() ? "OPEN" : "INVITE_ONLY");
         events.addEventBinding(
-                CustomUIEventBindingType.Activating,
-                "#ColorBtn",
-                EventData.of("Button", "OpenColorPicker"),
-                false
-        );
-
-        // Recruitment
-        String recruitmentStatus = faction.open() ? "Open" : "Invite Only";
-        cmd.set("#RecruitmentStatus.Text", recruitmentStatus);
-        cmd.set("#RecruitmentStatus.Style.TextColor", faction.open() ? "#55FF55" : "#FFAA00");
-        events.addEventBinding(
-                CustomUIEventBindingType.Activating,
-                "#RecruitmentBtn",
-                EventData.of("Button", "OpenRecruitmentModal"),
+                CustomUIEventBindingType.ValueChanged,
+                "#RecruitmentDropdown",
+                EventData.of("Button", "RecruitmentChanged")
+                        .append("@Recruitment", "#RecruitmentDropdown.Value"),
                 false
         );
 
@@ -183,6 +158,20 @@ public class AdminFactionSettingsPage extends InteractiveCustomUIPage<AdminFacti
                 CustomUIEventBindingType.Activating,
                 "#DisbandBtn",
                 EventData.of("Button", "Disband"),
+                false
+        );
+    }
+
+    private void buildColorSection(UICommandBuilder cmd, UIEventBuilder events, Faction faction) {
+        String colorHex = faction.color();
+        cmd.set("#ColorPreview.Background.Color", colorHex);
+        cmd.set("#ColorValue.Text", colorHex);
+        cmd.set("#FactionColorPicker.Value", colorHex);
+        events.addEventBinding(
+                CustomUIEventBindingType.ValueChanged,
+                "#FactionColorPicker",
+                EventData.of("Button", "ColorChanged")
+                        .append("@Color", "#FactionColorPicker.Value"),
                 false
         );
     }
@@ -224,40 +213,23 @@ public class AdminFactionSettingsPage extends InteractiveCustomUIPage<AdminFacti
         boolean locked = config.isPermissionLocked(permName);
         String selector = "#" + elementId;
 
+        // Set checkbox value via child selector
+        cmd.set(selector + " #CheckBox.Value", currentValue);
+
         if (locked) {
-            // Locked by server - show lock indicator but admin can still see value
-            cmd.set(selector + ".Text", currentValue ? "On (Locked)" : "Off (Locked)");
-            cmd.set(selector + ".Disabled", true);
-            // Gray out for locked
-            cmd.set(selector + ".Style.Default.LabelStyle.TextColor", "#666666");
-            cmd.set(selector + ".Style.Disabled.LabelStyle.TextColor", "#666666");
+            // Locked by server - disable checkbox
+            cmd.set(selector + " #CheckBox.Disabled", true);
         } else {
-            // Admin can toggle - show current value
-            cmd.set(selector + ".Text", currentValue ? "On" : "Off");
-            cmd.set(selector + ".Disabled", false);
-
-            // Set text color based on value
-            String color = currentValue ? "#55FF55" : "#FF5555";
-            cmd.set(selector + ".Style.Default.LabelStyle.TextColor", color);
-            cmd.set(selector + ".Style.Hovered.LabelStyle.TextColor", color);
-
+            // Admin can toggle - bind ValueChanged event
             events.addEventBinding(
-                    CustomUIEventBindingType.Activating,
-                    selector,
+                    CustomUIEventBindingType.ValueChanged,
+                    selector + " #CheckBox",
                     EventData.of("Button", "TogglePerm")
                             .append("Perm", permName)
                             .append("FactionId", factionId.toString()),
                     false
             );
         }
-    }
-
-    private String getColorHex(String colorCode) {
-        return COLORS.stream()
-                .filter(c -> c.code.equals(colorCode))
-                .findFirst()
-                .map(c -> c.hex)
-                .orElse("#FFFFFF");
     }
 
     @Override
@@ -298,9 +270,9 @@ public class AdminFactionSettingsPage extends InteractiveCustomUIPage<AdminFacti
 
             case "OpenDescriptionModal" -> guiManager.openAdminDescriptionModal(player, ref, store, playerRef, faction);
 
-            case "OpenColorPicker" -> guiManager.openAdminColorPicker(player, ref, store, playerRef, faction);
+            case "ColorChanged" -> handleColorChanged(player, ref, store, data, faction);
 
-            case "OpenRecruitmentModal" -> guiManager.openAdminRecruitmentModal(player, ref, store, playerRef, faction);
+            case "RecruitmentChanged" -> handleRecruitmentChanged(player, ref, store, data, faction);
 
             case "ClearHome" -> handleClearHome(player, ref, store, faction);
 
@@ -351,6 +323,48 @@ public class AdminFactionSettingsPage extends InteractiveCustomUIPage<AdminFacti
                 .color("#55FF55"));
 
         // Rebuild page with fresh data
+        rebuildPage();
+    }
+
+    private void handleColorChanged(Player player, Ref<EntityStore> ref, Store<EntityStore> store,
+                                     AdminFactionSettingsData data, Faction faction) {
+        String rawColor = data.color;
+        if (rawColor == null || rawColor.isEmpty()) {
+            sendUpdate();
+            return;
+        }
+
+        // ColorPicker returns #RRGGBBAA — strip alpha to get #RRGGBB
+        String hexColor = rawColor.length() >= 7 ? rawColor.substring(0, 7).toUpperCase() : rawColor.toUpperCase();
+
+        // Validate hex format
+        if (!hexColor.matches("#[0-9A-F]{6}")) {
+            sendUpdate();
+            return;
+        }
+
+        Faction updatedFaction = faction.withColor(hexColor);
+        factionManager.updateFaction(updatedFaction);
+
+        player.sendMessage(Message.raw("[Admin] Set faction color to " + hexColor).color("#55FF55"));
+
+        rebuildPage();
+    }
+
+    private void handleRecruitmentChanged(Player player, Ref<EntityStore> ref, Store<EntityStore> store,
+                                            AdminFactionSettingsData data, Faction faction) {
+        String value = data.recruitment;
+        if (value == null) {
+            sendUpdate();
+            return;
+        }
+
+        boolean isOpen = "OPEN".equals(value);
+        Faction updatedFaction = faction.withOpen(isOpen);
+        factionManager.updateFaction(updatedFaction);
+
+        player.sendMessage(Message.raw("[Admin] Set recruitment to " + (isOpen ? "Open" : "Invite Only")).color("#55FF55"));
+
         rebuildPage();
     }
 
@@ -406,6 +420,9 @@ public class AdminFactionSettingsPage extends InteractiveCustomUIPage<AdminFacti
         // Rebuild general settings
         rebuildGeneralSettings(cmd, events, faction);
 
+        // Rebuild color section
+        rebuildColorSection(cmd, events, faction);
+
         // Rebuild permissions
         rebuildPermissions(cmd, events, faction);
 
@@ -428,15 +445,19 @@ public class AdminFactionSettingsPage extends InteractiveCustomUIPage<AdminFacti
                 : "(None)";
         cmd.set("#DescValue.Text", desc);
 
-        // Color
-        String colorHex = getColorHex(faction.color());
-        cmd.set("#ColorPreview.Background.Color", colorHex);
-        cmd.set("#ColorValue.Text", colorHex);
-
-        // Recruitment
-        String recruitmentStatus = faction.open() ? "Open" : "Invite Only";
-        cmd.set("#RecruitmentStatus.Text", recruitmentStatus);
-        cmd.set("#RecruitmentStatus.Style.TextColor", faction.open() ? "#55FF55" : "#FFAA00");
+        // Recruitment dropdown
+        cmd.set("#RecruitmentDropdown.Entries", List.of(
+                new DropdownEntryInfo(LocalizableString.fromString("Open"), "OPEN"),
+                new DropdownEntryInfo(LocalizableString.fromString("Invite Only"), "INVITE_ONLY")
+        ));
+        cmd.set("#RecruitmentDropdown.Value", faction.open() ? "OPEN" : "INVITE_ONLY");
+        events.addEventBinding(
+                CustomUIEventBindingType.ValueChanged,
+                "#RecruitmentDropdown",
+                EventData.of("Button", "RecruitmentChanged")
+                        .append("@Recruitment", "#RecruitmentDropdown.Value"),
+                false
+        );
 
         // Home location
         if (faction.home() != null) {
@@ -451,6 +472,20 @@ public class AdminFactionSettingsPage extends InteractiveCustomUIPage<AdminFacti
         } else {
             cmd.set("#HomeLocation.Text", "Not set");
         }
+    }
+
+    private void rebuildColorSection(UICommandBuilder cmd, UIEventBuilder events, Faction faction) {
+        String colorHex = faction.color();
+        cmd.set("#ColorPreview.Background.Color", colorHex);
+        cmd.set("#ColorValue.Text", colorHex);
+        cmd.set("#FactionColorPicker.Value", colorHex);
+        events.addEventBinding(
+                CustomUIEventBindingType.ValueChanged,
+                "#FactionColorPicker",
+                EventData.of("Button", "ColorChanged")
+                        .append("@Color", "#FactionColorPicker.Value"),
+                false
+        );
     }
 
     private void rebuildPermissions(UICommandBuilder cmd, UIEventBuilder events, Faction faction) {
@@ -478,5 +513,4 @@ public class AdminFactionSettingsPage extends InteractiveCustomUIPage<AdminFacti
         buildToggle(cmd, events, "OfficersCanEditToggle", "officersCanEdit", perms.officersCanEdit(), config);
     }
 
-    private record ColorInfo(String code, String hex, String name) {}
 }
