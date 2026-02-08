@@ -1,18 +1,34 @@
 # HyperFactions Architecture
 
-High-level architecture overview for HyperFactions v0.3.x.
+> **Version**: 0.7.0 | **302 classes** across **50 packages**
 
 ## Overview
 
-HyperFactions is a faction management plugin providing territory claims, power mechanics, diplomatic relations, and protection systems. The architecture follows a layered design:
+HyperFactions is a faction management plugin providing territory claims, power mechanics, diplomatic relations, and protection systems. The architecture follows a 9-layer design:
+
+```mermaid
+block-beta
+    columns 1
+    A["Platform Layer — Hytale plugin lifecycle"]
+    B["Core Layer — Central coordinator"]
+    C["Integration Layer — Permissions, PAPI, OrbisGuard, World Map"]
+    D["API Layer — Public API, EventBus, EconomyAPI"]
+    E["Manager Layer — 14 domain managers"]
+    F["Storage Layer — Async JSON persistence"]
+    G["Command Layer — 43 subcommands"]
+    H["GUI Layer — 40+ CustomUI pages"]
+    I["Protection Layer — ECS handlers + OrbisGuard-Mixins hooks"]
+```
 
 1. **Platform Layer** - Hytale plugin lifecycle and event registration
 2. **Core Layer** - Central coordinator and manager initialization
-3. **Manager Layer** - Business logic organized by domain
-4. **Storage Layer** - Async JSON persistence with interfaces
-5. **Command Layer** - Subcommand-based dispatcher pattern
-6. **GUI Layer** - CustomUI pages with registry-based navigation
-7. **Protection Layer** - ECS event handlers for territory protection
+3. **Integration Layer** - Permission chain, PAPI, WiFlow, OrbisGuard, world map
+4. **API Layer** - Public API for third-party mods, EventBus, EconomyAPI
+5. **Manager Layer** - Business logic organized by domain (14 managers)
+6. **Storage Layer** - Async JSON persistence with interfaces
+7. **Command Layer** - Subcommand-based dispatcher pattern (43 subcommands)
+8. **GUI Layer** - CustomUI pages with registry-based navigation (40+ pages)
+9. **Protection Layer** - ECS event handlers + OrbisGuard-Mixins hooks
 
 ## Package Structure
 
@@ -25,7 +41,7 @@ src/main/java/com/hyperfactions/
 ├── platform/                       # Hytale plugin entry point
 │   └── HyperFactionsPlugin.java    # JavaPlugin lifecycle
 │
-├── manager/                        # Business logic layer (12 managers)
+├── manager/                        # Business logic layer (14 managers)
 │   ├── FactionManager.java         # Faction CRUD, membership, roles
 │   ├── ClaimManager.java           # Territory claim/unclaim operations
 │   ├── PowerManager.java           # Player power, regeneration, penalties
@@ -37,7 +53,9 @@ src/main/java/com/hyperfactions/
 │   ├── JoinRequestManager.java     # Join requests for closed factions
 │   ├── ChatManager.java            # Faction/ally chat channels
 │   ├── ConfirmationManager.java    # Text-mode command confirmations
-│   └── EconomyManager.java         # Economy integration (future)
+│   ├── EconomyManager.java         # Faction economy (treasury, transactions)
+│   ├── AnnouncementManager.java    # Server-wide event broadcasts
+│   └── SpawnSuppressionManager.java # Mob spawn control in claims/zones
 │
 ├── command/                        # Command system
 │   ├── FactionCommand.java         # Main /f dispatcher
@@ -111,7 +129,9 @@ src/main/java/com/hyperfactions/
 │       ├── ChatConfig.java
 │       ├── DebugConfig.java
 │       ├── EconomyConfig.java
-│       └── FactionPermissionsConfig.java
+│       ├── FactionPermissionsConfig.java
+│       ├── AnnouncementConfig.java     # Announcement toggles
+│       └── WorldMapConfig.java         # World map refresh modes
 │
 ├── storage/                        # Persistence layer
 │   ├── FactionStorage.java         # Faction storage interface
@@ -157,12 +177,22 @@ src/main/java/com/hyperfactions/
 │   ├── PermissionProvider.java     # Provider interface
 │   ├── HyperPermsIntegration.java  # HyperPerms soft dependency
 │   ├── HyperPermsProviderAdapter.java
-│   ├── LuckPermsProvider.java      # LuckPerms adapter (unused)
-│   └── VaultUnlockedProvider.java  # Economy provider (future)
+│   ├── LuckPermsProvider.java      # LuckPerms permission provider
+│   ├── VaultUnlockedProvider.java  # VaultUnlocked permission provider
+│   ├── orbis/                      # OrbisGuard integration
+│   │   ├── OrbisGuardIntegration.java    # Region conflict detection
+│   │   └── OrbisMixinsIntegration.java   # 11 mixin hook callbacks
+│   ├── papi/                       # PlaceholderAPI integration
+│   │   ├── PlaceholderAPIIntegration.java
+│   │   └── HyperFactionsExpansion.java   # 33 placeholders
+│   └── wiflow/                     # WiFlow placeholder integration
+│       ├── WiFlowPlaceholderIntegration.java
+│       └── WiFlowExpansion.java          # 33 placeholders
 │
 ├── backup/                         # Backup system
 │   ├── BackupManager.java          # GFS backup orchestration
-│   └── BackupType.java             # HOURLY, DAILY, WEEKLY, MANUAL
+│   ├── BackupMetadata.java         # Backup info record
+│   └── BackupType.java             # HOURLY, DAILY, WEEKLY, MANUAL, MIGRATION
 │
 ├── update/                         # Update checking
 │   ├── UpdateChecker.java          # GitHub release checker
@@ -175,22 +205,29 @@ src/main/java/com/hyperfactions/
 │   └── TerritoryTickingSystem.java # ECS tick for chunk tracking
 │
 ├── worldmap/                       # World map integration
-│   ├── WorldMapService.java        # Map marker coordination
+│   ├── WorldMapService.java        # Registration + refresh coordination
 │   ├── HyperFactionsWorldMap.java  # Custom map generator
-│   └── HyperFactionsWorldMapProvider.java
+│   ├── HyperFactionsWorldMapProvider.java # Map provider impl
+│   └── WorldMapRefreshScheduler.java # 5 refresh modes
 │
 ├── chat/                           # Chat formatting
 │   ├── ChatContext.java            # Chat channel state
 │   └── PublicChatListener.java     # Faction tag formatting
 │
 ├── migration/                      # Data migrations
-│   ├── MigrationRunner.java
-│   ├── MigrationResult.java
-│   └── MigrationType.java
+│   ├── Migration.java              # Migration interface
+│   ├── MigrationRunner.java        # Execute with backup/rollback
+│   ├── MigrationRegistry.java      # Migration chain builder
+│   ├── MigrationResult.java        # Result record
+│   ├── MigrationOptions.java       # Execution options
+│   ├── MigrationType.java          # CONFIG, DATA, SCHEMA enum
+│   └── migrations/config/          # Concrete migrations (v1→v2→v3→v4)
 │
 ├── importer/                       # Data import from other plugins
-│   ├── ImportResult.java
-│   └── hyfactions/                 # HyFactions import
+│   ├── elbaphfactions/             # ElbaphFactions importer
+│   └── hyfactions/                 # HyFactions V1 importer
+│
+├── listener/                       # Event listeners
 │
 ├── debug/                          # Debug utilities
 │   ├── ClaimTrace.java
@@ -246,6 +283,8 @@ zoneManager = new ZoneManager(zoneStorage, claimManager);
 teleportManager = new TeleportManager(factionManager);
 inviteManager = new InviteManager(dataDir);
 joinRequestManager = new JoinRequestManager(dataDir);
+announcementManager = new AnnouncementManager(onlinePlayersSupplier);
+spawnSuppressionManager = new SpawnSuppressionManager(zoneManager, claimManager);
 ```
 
 ### Permission Constants: Permissions.java

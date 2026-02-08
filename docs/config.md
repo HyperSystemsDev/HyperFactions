@@ -1,5 +1,7 @@
 # HyperFactions Config System
 
+> **Version**: 0.7.0 | **Config version**: 4 | **7 module configs**
+
 Architecture documentation for the HyperFactions configuration system.
 
 ## Overview
@@ -8,16 +10,16 @@ HyperFactions uses a modular JSON-based configuration system with:
 
 - **ConfigManager** - Central coordinator for all config files
 - **CoreConfig** - Main `config.json` with core settings
-- **Module Configs** - Feature-specific configs in `config/` subdirectory
+- **Module Configs** - 7 feature-specific configs in `config/` subdirectory
 - **Validation** - Automatic validation with warnings and auto-correction
-- **Migration** - Version-aware config migration support
+- **Migration** - Automatic config migration (v1→v2→v3→v4) with backup/rollback
 
 ## Architecture
 
 ```
 ConfigManager (singleton)
      │
-     ├─► CoreConfig (config.json)
+     ├─► CoreConfig (config.json, configVersion: 4)
      │        │
      │        └─► Faction, Power, Claims, Combat, Relations,
      │            Invites, Teleport, Updates, AutoSave, Messages, GUI
@@ -28,24 +30,33 @@ ConfigManager (singleton)
               ├─► ChatConfig (chat.json)
               ├─► DebugConfig (debug.json)
               ├─► EconomyConfig (economy.json)
-              └─► FactionPermissionsConfig (faction-permissions.json)
+              ├─► FactionPermissionsConfig (faction-permissions.json)
+              ├─► AnnouncementConfig (announcements.json)
+              └─► WorldMapConfig (worldmap.json)
 ```
 
 ## File Structure
 
 ```
 <server>/mods/com.hyperfactions_HyperFactions/
-├── config.json                    # Core configuration
+├── config.json                    # Core configuration (v4)
 ├── config/                        # Module configs
 │   ├── backup.json
 │   ├── chat.json
 │   ├── debug.json
 │   ├── economy.json
-│   └── faction-permissions.json
+│   ├── faction-permissions.json
+│   ├── announcements.json         # Event broadcast toggles
+│   └── worldmap.json              # World map refresh modes
 ├── factions/                      # Faction data (see storage.md)
 ├── players/                       # Player data (see storage.md)
+├── backups/                       # Backup archives (see storage.md)
 └── zones.json                     # Zone data (see storage.md)
 ```
+
+## Config Migration
+
+Configuration is automatically migrated on startup. See [Data Import & Migration](data-import.md#config-migration-system) for the full migration chain (v1→v2→v3→v4).
 
 ## Key Classes
 

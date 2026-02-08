@@ -1,5 +1,7 @@
 # HyperFactions Protection System
 
+> **Version**: 0.7.0
+
 Architecture documentation for the HyperFactions protection system.
 
 ## Overview
@@ -10,24 +12,56 @@ HyperFactions uses a multi-layered protection system that controls block interac
 - **Faction Claims** - Territory permissions for members, allies, and outsiders
 - **Relations** - Same faction, ally, enemy, neutral
 - **Combat State** - Spawn protection, combat tagging
+- **OrbisGuard-Mixins** - 11 mixin hooks for extended protection coverage
+- **Spawn Suppression** - Mob spawning control in claims and zones
+
+```mermaid
+flowchart TD
+    A[Interaction Event] --> B{Admin Bypass?}
+    B -->|Yes| C[ALLOWED]
+    B -->|No| D{Bypass Permission?}
+    D -->|Yes| C
+    D -->|No| E{In Zone?}
+    E -->|SafeZone| F[Check Zone Flags]
+    E -->|WarZone| F
+    E -->|No| G{In Claim?}
+    G -->|No| C
+    G -->|Yes| H{Same Faction?}
+    H -->|Yes: Member| I[Check Member Flags]
+    H -->|Yes: Officer| J[Check Officer Flags]
+    H -->|No| K{Relation?}
+    K -->|Ally| L[Check Ally Flags]
+    K -->|Enemy/Neutral| M[Check Outsider Flags]
+    F --> N{Flag Allows?}
+    I --> N
+    J --> N
+    L --> N
+    M --> N
+    N -->|Yes| C
+    N -->|No| O[DENIED]
+
+    style C fill:#22c55e,color:#fff
+    style O fill:#ef4444,color:#fff
+```
 
 ## Architecture
 
 ```
-Hytale ECS Events
-     │
-     ▼
-ECS Protection Systems (protection/ecs/)
-├── BlockPlaceProtectionSystem ─────► PlaceBlockEvent
-├── BlockBreakProtectionSystem ─────► BreakBlockEvent
-├── BlockUseProtectionSystem ───────► UseBlockEvent
-├── ItemDropProtectionSystem ───────► DropItemEvent
-├── ItemPickupProtectionSystem ─────► InteractivelyPickupItemEvent
-└── DamageProtectionSystem ─────────► Damage event
-     │
-     ▼
-ProtectionChecker (central logic)
-├── canInteract() ─────► ProtectionResult
+Hytale ECS Events                  OrbisGuard-Mixins Hooks
+     │                                    │
+     ▼                                    ▼
+ECS Protection Systems             OrbisMixinsIntegration (11 hooks)
+├── BlockPlaceProtectionSystem     ├── PickupHook
+├── BlockBreakProtectionSystem     ├── HammerHook
+├── BlockUseProtectionSystem       ├── HarvestHook
+├── ItemDropProtectionSystem       ├── PlaceHook (bucket/fluid)
+├── ItemPickupProtectionSystem     ├── UseHook (campfire, lantern)
+└── DamageProtectionSystem         ├── SeatHook
+     │                             ├── ExplosionHook
+     ▼                             ├── CommandHook
+ProtectionChecker (central logic)  ├── DeathHook (keep inventory)
+├── canInteract() ─► Result        ├── DurabilityHook
+                                   └── SpawnHook
 ├── canDamagePlayer() ─► PvPResult
 └── isDamageAllowed() ─► Zone flag check
      │

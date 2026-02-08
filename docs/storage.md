@@ -1,5 +1,7 @@
 # HyperFactions Storage Layer
 
+> **Version**: 0.7.0
+
 Architecture documentation for the HyperFactions data persistence system.
 
 ## Overview
@@ -11,7 +13,9 @@ HyperFactions uses an interface-based storage layer with:
 - **Async Operations** - All I/O returns `CompletableFuture` for non-blocking
 - **Data Models** - Java records for immutable data structures
 - **Auto-Save** - Periodic saves with configurable interval
-- **Migration Support** - Automatic data format upgrades
+- **Migration Support** - Automatic data format upgrades (v1→v2→v3→v4)
+- **Backup System** - GFS rotation with hourly/daily/weekly/manual/migration types
+- **Import Directories** - Data import from ElbaphFactions and HyFactions
 
 ## Architecture
 
@@ -26,7 +30,70 @@ ZoneStorage    ────────────────► JsonZoneStora
                     │
            Faction, PlayerPower,
            Zone, FactionClaim, etc.
+
+Backup System
+      │
+BackupManager ─────────────────► ZIP archives in backups/
+      │                          (GFS rotation: hourly, daily, weekly)
+      │
+      └── BackupMetadata ──────► Filename-encoded metadata
 ```
+
+## Data Directory Structure
+
+```
+<server>/mods/com.hyperfactions_HyperFactions/
+├── config.json                    # Core configuration (v4)
+├── config/                        # Module configs (7 files)
+├── factions/                      # Per-faction JSON files
+│   ├── <uuid>.json
+│   └── ...
+├── players/                       # Per-player power data
+│   ├── <uuid>.json
+│   └── ...
+├── zones.json                     # All zones in one file
+└── backups/                       # Backup archives
+    ├── hourly_2025-01-15_12-00-00.zip
+    ├── daily_2025-01-15_00-00-00.zip
+    ├── weekly_2025-01-13_00-00-00.zip
+    ├── manual_my-backup.zip
+    └── migration_v3-to-v4_2025-01-15_00-00-00.zip
+```
+
+## Backup System
+
+The `BackupManager` implements GFS (Grandfather-Father-Son) rotation for automatic backup management.
+
+### Backup Types
+
+| Type | Auto-Rotated | Default Retention |
+|------|-------------|-------------------|
+| `HOURLY` | Yes | Last 24 |
+| `DAILY` | Yes | Last 7 |
+| `WEEKLY` | Yes | Last 4 |
+| `MANUAL` | No | Keep all (configurable) |
+| `MIGRATION` | No | Keep all |
+
+### Backup Contents
+
+Each ZIP archive contains:
+- `data/factions/` — All faction JSON files
+- `data/players/` — All player power JSON files
+- `zones.json` — Zone definitions
+- `config.json` — Core configuration
+- `config/` — Module config directory
+
+### Key Operations
+
+| Method | Description |
+|--------|-------------|
+| `createBackup(type)` | Create async ZIP backup |
+| `restoreBackup(name)` | Async ZIP extraction + reload |
+| `listBackups()` | List sorted by timestamp (newest first) |
+| `performRotation()` | GFS cleanup of old backups |
+| `startScheduledBackups()` | Schedule hourly backups (72,000 ticks) |
+
+See [Data Import & Migration](data-import.md) for import directory details and config migration.
 
 ## Key Classes
 

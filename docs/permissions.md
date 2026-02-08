@@ -1,16 +1,19 @@
 # HyperFactions Permission Framework
 
+> **Version**: 0.7.0 | **47+ permission nodes** across **10 categories**
+
 Architecture documentation for the HyperFactions permission system.
 
 ## Overview
 
 HyperFactions uses a centralized permission system with:
 
-- **Permission Constants** - All nodes defined in `Permissions.java`
-- **Permission Manager** - Chain-based provider resolution
-- **HyperPerms Integration** - Soft dependency with reflection-based detection
+- **Permission Constants** - All 47+ nodes defined in `Permissions.java`
+- **Permission Manager** - Chain-based provider resolution (VaultUnlocked → HyperPerms → LuckPerms)
+- **Multiple Provider Support** - VaultUnlocked, HyperPerms, and LuckPerms adapters
 - **Manager-Level Checks** - Permissions enforced in business logic, not just commands
-- **Fallback Behavior** - Configurable defaults when no provider responds
+- **Wildcard Resolution** - Category wildcards (`hyperfactions.teleport.*`) and root wildcard (`hyperfactions.*`)
+- **Fallback Behavior** - Type-specific defaults when no provider responds
 
 ## Architecture
 
@@ -20,14 +23,21 @@ Permission Check Request
      ▼
 PermissionManager.hasPermission(uuid, node)
      │
-     ├─► HyperPermsProviderAdapter (if available)
-     │        │
-     │        └─► HyperPerms API
+     ├─► 1. VaultUnlockedProvider (if available)
+     ├─► 2. HyperPermsProviderAdapter (if available)
+     ├─► 3. LuckPermsProvider (if available)
      │
-     ├─► OP Check (for admin permissions)
+     ├─► Category wildcard check (e.g., hyperfactions.teleport.*)
+     ├─► Root wildcard check (hyperfactions.*)
      │
-     └─► Fallback (config-based)
+     └─► Fallback:
+          ├─► admin.* → Require OP
+          ├─► bypass.* → Deny
+          ├─► limit.* → Deny (config defaults used)
+          └─► user-level → Configurable (allowWithoutPermissionMod)
 ```
+
+See [Integrations](integrations.md#permission-system) for the full permission resolution flow with Mermaid diagram.
 
 ## Key Classes
 

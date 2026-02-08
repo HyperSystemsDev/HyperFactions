@@ -1,16 +1,52 @@
 # HyperFactions GUI System
 
+> **Version**: 0.7.0 | **40+ pages** across **3 registries**
+
 Architecture documentation for the HyperFactions GUI system using Hytale's CustomUI.
 
 ## Overview
 
 HyperFactions uses Hytale's `InteractiveCustomUIPage` system with:
 
-- **GuiManager** - Central coordinator for opening pages
-- **Page Registries** - Type-safe navigation between pages
+- **GuiManager** (~2,000 lines) - Central coordinator for opening pages
+- **3 Page Registries** - Type-safe navigation between pages
 - **Data Models** - Records for page state
 - **Shared Components** - Reusable modals and UI elements
-- **Three Page Flows** - Faction members, new players, and admins
+- **Help System** - Integrated help pages
+- **Real-Time Updates** - ActivePageTracker for live data refresh
+
+## Navigation Flows
+
+```mermaid
+stateDiagram-v2
+    [*] --> HasFaction: /f (has faction)
+    [*] --> NoFaction: /f (no faction)
+    [*] --> Admin: /f admin
+
+    state HasFaction {
+        FactionMain --> Members
+        FactionMain --> Relations
+        FactionMain --> Territory
+        FactionMain --> Settings
+        FactionMain --> Economy
+        FactionMain --> Help
+    }
+
+    state NoFaction {
+        NewPlayerMain --> CreateFaction
+        NewPlayerMain --> BrowseFactions
+        NewPlayerMain --> ViewInvites
+        NewPlayerMain --> NewPlayerHelp
+    }
+
+    state Admin {
+        AdminMain --> FactionsList
+        AdminMain --> ZoneManagement
+        AdminMain --> ConfigEditor
+        AdminMain --> BackupManager
+        AdminMain --> DebugTools
+    }
+```
 
 ## Architecture
 
@@ -18,14 +54,17 @@ HyperFactions uses Hytale's `InteractiveCustomUIPage` system with:
 GuiManager
      │
      ├─► Faction Pages (FactionPageRegistry)
-     │        ├─► FactionMainPage
+     │        ├─► FactionMainPage (dashboard)
      │        ├─► FactionMembersPage
      │        ├─► FactionRelationsPage
+     │        ├─► FactionSettingsPage
+     │        ├─► FactionEconomyPage
      │        └─► ... (15+ pages)
      │
      ├─► New Player Pages (NewPlayerPageRegistry)
      │        ├─► CreateFactionStep1Page
      │        ├─► InvitesPage
+     │        ├─► BrowseFactionsPage
      │        ├─► HelpPage
      │        └─► ... (5+ pages)
      │

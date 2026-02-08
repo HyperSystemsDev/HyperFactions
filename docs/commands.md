@@ -1,5 +1,7 @@
 # HyperFactions Command System
 
+> **Version**: 0.7.0 | **43 subcommands** across **9 categories**
+
 Architecture documentation for the HyperFactions command system.
 
 ## Overview
@@ -9,16 +11,22 @@ HyperFactions uses a subcommand-based dispatcher pattern built on Hytale's `Abst
 ## Architecture
 
 ```
-FactionCommand (dispatcher)
+FactionCommand (dispatcher): /f, /hf, /faction, /hyperfactions
      │
      ├─► FactionSubCommand (base class)
      │        │
-     │        ├─► CreateSubCommand
-     │        ├─► ClaimSubCommand
-     │        ├─► InviteSubCommand
-     │        └─► ... (40+ subcommands)
+     │        ├─► command/faction/     (7 subcommands: create, disband, rename, desc, color, open, close)
+     │        ├─► command/member/      (7 subcommands: invite, accept, leave, kick, promote, demote, transfer)
+     │        ├─► command/territory/   (4 subcommands: claim, unclaim, overclaim, stuck)
+     │        ├─► command/teleport/    (3 subcommands: home, sethome, delhome)
+     │        ├─► command/relation/    (4 subcommands: ally, enemy, neutral, relations)
+     │        ├─► command/info/        (6 subcommands: info, list, map, members, who, power)
+     │        ├─► command/social/      (3 subcommands: request, invites, chat)
+     │        ├─► command/ui/          (2 subcommands: gui, settings)
+     │        ├─► HelpSubCommand       (1 subcommand: help)
+     │        └─► command/admin/       (17+ admin subcommands with nested routing)
      │
-     └─► FactionCommandContext (execution state)
+     └─► FactionCommandContext (execution state, --text flag)
 ```
 
 ## Key Classes

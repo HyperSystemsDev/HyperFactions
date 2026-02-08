@@ -5,7 +5,7 @@
 
 A comprehensive faction management mod for Hytale servers featuring territory claims, alliances, strategic PvP, power systems, and extensive customization. Part of the **HyperSystems** plugin suite.
 
-**Version:** 0.2.0
+**Version:** 0.7.0
 **Game:** Hytale Early Access
 **License:** GPLv3
 
@@ -88,6 +88,8 @@ HyperFactions transforms your Hytale server into a dynamic faction-based environ
 - Item pickup protection in claimed areas
 - Allied access (configurable)
 - Admin bypass mode
+- OrbisGuard-Mixins integration (11 hook types)
+- Mob spawn suppression in claims/zones
 
 ### GUI Interface
 - Interactive main menu with faction stats
@@ -95,67 +97,96 @@ HyperFactions transforms your Hytale server into a dynamic faction-based environ
 - 15x15 chunk grid visualization
 - Alliance management interface
 - Faction browser with search
-- Multi-page help wiki
+- Multi-page help wiki (40+ pages across 3 registries)
+
+### Economy System
+- Faction treasury with balance tracking
+- Deposit, withdraw, and inter-faction transfers
+- Transaction history (max 50 per faction)
+- Configurable currency formatting
+
+### Server Announcements
+- Server-wide broadcasts for faction events
+- 7 event types with individual toggles
+- Admin actions excluded from announcements
+
+### Data Import & Migration
+- Import from ElbaphFactions and HyFactions
+- Automatic config migration (v1→v2→v3→v4) with rollback
+- Pre-import backup creation
+
+### World Map Integration
+- Faction claim overlays on Hytale's world map
+- 5 refresh modes for performance tuning
+- Faction tag display on map
+
+### Placeholder Support
+- 33 placeholders via PlaceholderAPI (`%factions_xxx%`)
+- 33 placeholders via WiFlow (`{factions_xxx}`)
+
+### Public API
+- Full API for third-party mod developers
+- EventBus with 4 faction events
+- EconomyAPI interface
 
 ---
 
 ## Commands
 
-### Basic Faction Commands
+> 43 subcommands across 9 categories. Permission nodes follow `hyperfactions.<category>.<action>` hierarchy.
+
+### Faction Management
 
 | Command | Description | Permission |
 |---------|-------------|------------|
 | `/f` or `/f menu` | Open faction GUI | `hyperfactions.use` |
-| `/f create <name>` | Create a new faction | `hyperfactions.create` |
-| `/f invite <player>` | Invite player to faction | `hyperfactions.invite` |
-| `/f accept` | Accept faction invitation | `hyperfactions.use` |
-| `/f leave` | Leave your faction | `hyperfactions.use` |
-| `/f kick <player>` | Remove player from faction | `hyperfactions.kick` |
-| `/f disband` | Dissolve faction (Leader only) | `hyperfactions.disband` |
+| `/f create <name>` | Create a new faction | `hyperfactions.faction.create` |
+| `/f disband` | Dissolve faction (Leader only) | `hyperfactions.faction.disband` |
+| `/f rename <name>` | Change faction name (Leader) | `hyperfactions.faction.rename` |
+| `/f desc <text>` | Set faction description (Officer+) | `hyperfactions.faction.description` |
+| `/f tag <tag>` | Set faction tag (Officer+) | `hyperfactions.faction.tag` |
+| `/f color <code>` | Set faction color (Officer+) | `hyperfactions.faction.color` |
+| `/f open` | Allow anyone to join (Leader) | `hyperfactions.faction.open` |
+| `/f close` | Require invite to join (Leader) | `hyperfactions.faction.close` |
 
-### Faction Settings
-
-| Command | Description | Permission |
-|---------|-------------|------------|
-| `/f rename <name>` | Change faction name (Leader) | `hyperfactions.rename` |
-| `/f desc <text>` | Set faction description (Officer+) | `hyperfactions.desc` |
-| `/f color <code>` | Set faction color (Officer+) | `hyperfactions.color` |
-| `/f open` | Allow anyone to join (Leader) | `hyperfactions.open` |
-| `/f close` | Require invite to join (Leader) | `hyperfactions.close` |
-
-### Territory Commands
+### Membership
 
 | Command | Description | Permission |
 |---------|-------------|------------|
-| `/f claim` | Claim current chunk | `hyperfactions.claim` |
-| `/f unclaim` | Unclaim current chunk | `hyperfactions.unclaim` |
-| `/f map` | Open chunk management GUI | `hyperfactions.map` |
-| `/f overclaim` | Capture enemy chunk (requires 0 power) | `hyperfactions.overclaim` |
-| `/f stuck` | Escape from enemy territory (30s warmup) | `hyperfactions.use` |
+| `/f invite <player>` | Invite player to faction | `hyperfactions.member.invite` |
+| `/f accept` | Accept faction invitation | `hyperfactions.member.join` |
+| `/f leave` | Leave your faction | `hyperfactions.member.leave` |
+| `/f kick <player>` | Remove player from faction | `hyperfactions.member.kick` |
+| `/f promote <player>` | Promote to Officer (Leader only) | `hyperfactions.member.promote` |
+| `/f demote <player>` | Demote to Member (Leader only) | `hyperfactions.member.demote` |
+| `/f transfer <player>` | Transfer leadership | `hyperfactions.member.transfer` |
 
-### Home & Teleportation
-
-| Command | Description | Permission |
-|---------|-------------|------------|
-| `/f home` | Teleport to faction home | `hyperfactions.home` |
-| `/f sethome` | Set faction home (Leader only) | `hyperfactions.sethome` |
-
-### Diplomacy Commands
+### Territory
 
 | Command | Description | Permission |
 |---------|-------------|------------|
-| `/f ally <faction>` | Send alliance request | `hyperfactions.ally` |
-| `/f enemy <faction>` | Declare faction as enemy | `hyperfactions.enemy` |
-| `/f neutral <faction>` | Set neutral relationship | `hyperfactions.neutral` |
-| `/f relations` | View all faction relationships | `hyperfactions.use` |
+| `/f claim` | Claim current chunk | `hyperfactions.territory.claim` |
+| `/f unclaim` | Unclaim current chunk | `hyperfactions.territory.unclaim` |
+| `/f map` | Open chunk management GUI | `hyperfactions.territory.map` |
+| `/f overclaim` | Capture enemy chunk (requires 0 power) | `hyperfactions.territory.overclaim` |
 
-### Member Management
+### Teleportation
 
 | Command | Description | Permission |
 |---------|-------------|------------|
-| `/f promote <player>` | Promote to Officer (Leader only) | `hyperfactions.promote` |
-| `/f demote <player>` | Demote to Member (Leader only) | `hyperfactions.demote` |
-| `/f transfer <player>` | Transfer leadership | `hyperfactions.transfer` |
+| `/f home` | Teleport to faction home | `hyperfactions.teleport.home` |
+| `/f sethome` | Set faction home (Leader only) | `hyperfactions.teleport.sethome` |
+| `/f delhome` | Delete faction home (Leader only) | `hyperfactions.teleport.delhome` |
+| `/f stuck` | Escape from enemy territory (30s warmup) | `hyperfactions.teleport.stuck` |
+
+### Diplomacy
+
+| Command | Description | Permission |
+|---------|-------------|------------|
+| `/f ally <faction>` | Send alliance request | `hyperfactions.relation.ally` |
+| `/f enemy <faction>` | Declare faction as enemy | `hyperfactions.relation.enemy` |
+| `/f neutral <faction>` | Set neutral relationship | `hyperfactions.relation.neutral` |
+| `/f relations` | View all faction relationships | `hyperfactions.relation.view` |
 
 ### Communication
 
@@ -164,64 +195,139 @@ HyperFactions transforms your Hytale server into a dynamic faction-based environ
 | `/f c <message>` | Send faction chat message | `hyperfactions.chat.faction` |
 | `/f a <message>` | Send alliance chat message | `hyperfactions.chat.ally` |
 
-### Information Commands
+### Information
 
 | Command | Description | Permission |
 |---------|-------------|------------|
-| `/f info [faction]` | View faction information | `hyperfactions.use` |
-| `/f list` | List all factions | `hyperfactions.use` |
-| `/f logs` | View faction activity logs | `hyperfactions.logs` |
-| `/f help` | Open help menu | `hyperfactions.use` |
+| `/f info [faction]` | View faction information | `hyperfactions.info.faction` |
+| `/f list` | List all factions | `hyperfactions.info.list` |
+| `/f who <player>` | View player info | `hyperfactions.info.player` |
+| `/f power` | View power info | `hyperfactions.info.power` |
+| `/f members` | View faction members | `hyperfactions.info.members` |
+| `/f logs` | View faction activity logs | `hyperfactions.info.logs` |
+| `/f help` | Open help menu | `hyperfactions.info.help` |
 
 ### Admin Commands
 
 | Command | Description | Permission |
 |---------|-------------|------------|
-| `/f admin` | Open admin menu | `hyperfactions.admin` |
-| `/f admin claim` | Admin claim (unlimited) | `hyperfactions.admin` |
-| `/f admin unclaim` | Admin unclaim (any faction) | `hyperfactions.admin` |
-| `/f admin bypass` | Toggle bypass mode | `hyperfactions.admin` |
-| `/f admin safezone add` | Create SafeZone | `hyperfactions.admin` |
-| `/f admin safezone remove` | Remove SafeZone | `hyperfactions.admin` |
-| `/f admin warzone add` | Create WarZone | `hyperfactions.admin` |
-| `/f admin warzone remove` | Remove WarZone | `hyperfactions.admin` |
-| `/f reload` | Reload configuration | `hyperfactions.admin` |
+| `/f admin` | Open admin menu | `hyperfactions.admin.use` |
+| `/f admin claim` | Admin claim (unlimited) | `hyperfactions.admin.bypass.limits` |
+| `/f admin unclaim` | Admin unclaim (any faction) | `hyperfactions.admin.modify` |
+| `/f admin bypass` | Toggle bypass mode | `hyperfactions.admin.use` |
+| `/f admin safezone add` | Create SafeZone | `hyperfactions.admin.zones` |
+| `/f admin safezone remove` | Remove SafeZone | `hyperfactions.admin.zones` |
+| `/f admin warzone add` | Create WarZone | `hyperfactions.admin.zones` |
+| `/f admin warzone remove` | Remove WarZone | `hyperfactions.admin.zones` |
+| `/f admin disband <faction>` | Force disband any faction | `hyperfactions.admin.disband` |
+| `/f admin backup` | Manage backups | `hyperfactions.admin.backup` |
+| `/f reload` | Reload configuration | `hyperfactions.admin.reload` |
 
 ---
 
 ## Permissions
 
-### Core Permissions
+> 47+ permission nodes across 10 categories. Supports wildcards (e.g., `hyperfactions.faction.*`).
+
+### Faction Management
 
 | Permission | Description | Default |
 |------------|-------------|---------|
-| `hyperfactions.use` | Basic faction access | true |
-| `hyperfactions.create` | Create factions | true |
-| `hyperfactions.invite` | Invite players | true |
-| `hyperfactions.claim` | Claim territory | true |
-| `hyperfactions.unclaim` | Unclaim territory | true |
-| `hyperfactions.home` | Use faction home | true |
-| `hyperfactions.sethome` | Set faction home | true |
-| `hyperfactions.kick` | Kick members | true |
-| `hyperfactions.promote` | Promote members | true |
-| `hyperfactions.demote` | Demote members | true |
-| `hyperfactions.ally` | Manage alliances | true |
-| `hyperfactions.enemy` | Declare enemies | true |
-| `hyperfactions.neutral` | Set neutral relations | true |
-| `hyperfactions.disband` | Dissolve faction | true |
-| `hyperfactions.overclaim` | Overclaim enemy territory | true |
+| `hyperfactions.use` | Basic faction access (GUI) | true |
+| `hyperfactions.faction.create` | Create factions | true |
+| `hyperfactions.faction.disband` | Disband your faction | true |
+| `hyperfactions.faction.rename` | Rename your faction | true |
+| `hyperfactions.faction.description` | Set faction description | true |
+| `hyperfactions.faction.tag` | Set faction tag | true |
+| `hyperfactions.faction.color` | Set faction color | true |
+| `hyperfactions.faction.open` | Make faction open | true |
+| `hyperfactions.faction.close` | Make faction closed | true |
+| `hyperfactions.faction.permissions` | Edit territory permissions | true |
+
+### Membership
+
+| Permission | Description | Default |
+|------------|-------------|---------|
+| `hyperfactions.member.invite` | Invite players | true |
+| `hyperfactions.member.join` | Accept invites / join | true |
+| `hyperfactions.member.leave` | Leave faction | true |
+| `hyperfactions.member.kick` | Kick members | true |
+| `hyperfactions.member.promote` | Promote members | true |
+| `hyperfactions.member.demote` | Demote members | true |
+| `hyperfactions.member.transfer` | Transfer leadership | true |
+
+### Territory
+
+| Permission | Description | Default |
+|------------|-------------|---------|
+| `hyperfactions.territory.claim` | Claim territory | true |
+| `hyperfactions.territory.unclaim` | Unclaim territory | true |
+| `hyperfactions.territory.overclaim` | Overclaim enemy territory | true |
+| `hyperfactions.territory.map` | View territory map | true |
+
+### Teleportation
+
+| Permission | Description | Default |
+|------------|-------------|---------|
+| `hyperfactions.teleport.home` | Use faction home | true |
+| `hyperfactions.teleport.sethome` | Set faction home | true |
+| `hyperfactions.teleport.delhome` | Delete faction home | true |
+| `hyperfactions.teleport.stuck` | Use /f stuck | true |
+
+### Diplomacy & Communication
+
+| Permission | Description | Default |
+|------------|-------------|---------|
+| `hyperfactions.relation.ally` | Manage alliances | true |
+| `hyperfactions.relation.enemy` | Declare enemies | true |
+| `hyperfactions.relation.neutral` | Set neutral relations | true |
+| `hyperfactions.relation.view` | View relations | true |
 | `hyperfactions.chat.faction` | Use faction chat | true |
 | `hyperfactions.chat.ally` | Use alliance chat | true |
-| `hyperfactions.logs` | View activity logs | true |
-| `hyperfactions.admin` | Full admin access | op |
+
+### Information
+
+| Permission | Description | Default |
+|------------|-------------|---------|
+| `hyperfactions.info.faction` | View faction info | true |
+| `hyperfactions.info.list` | View faction list | true |
+| `hyperfactions.info.player` | View player info | true |
+| `hyperfactions.info.power` | View power info | true |
+| `hyperfactions.info.members` | View members | true |
+| `hyperfactions.info.logs` | View activity logs | true |
+| `hyperfactions.info.help` | View help | true |
 
 ### Bypass Permissions
 
 | Permission | Description | Default |
 |------------|-------------|---------|
+| `hyperfactions.bypass.build` | Bypass block protection | op |
+| `hyperfactions.bypass.interact` | Bypass interaction protection | op |
+| `hyperfactions.bypass.container` | Bypass container protection | op |
+| `hyperfactions.bypass.damage` | Bypass entity damage protection | op |
+| `hyperfactions.bypass.use` | Bypass item use protection | op |
 | `hyperfactions.bypass.warmup` | Bypass home warmup | false |
 | `hyperfactions.bypass.cooldown` | Bypass home cooldown | false |
-| `hyperfactions.bypass.protection` | Bypass claim protection | op |
+
+### Admin Permissions
+
+| Permission | Description | Default |
+|------------|-------------|---------|
+| `hyperfactions.admin.use` | Base admin access | op |
+| `hyperfactions.admin.reload` | Reload configuration | op |
+| `hyperfactions.admin.debug` | Debug commands | op |
+| `hyperfactions.admin.zones` | Manage safe/war zones | op |
+| `hyperfactions.admin.disband` | Force disband factions | op |
+| `hyperfactions.admin.modify` | Modify any faction | op |
+| `hyperfactions.admin.bypass.limits` | Bypass claim limits | op |
+| `hyperfactions.admin.backup` | Manage backups | op |
+
+### Limit Permissions
+
+| Permission | Description | Default |
+|------------|-------------|---------|
+| `hyperfactions.limit.claims.<N>` | Override max claims | — |
+| `hyperfactions.limit.power.<N>` | Override max power | — |
 
 ---
 
@@ -315,36 +421,64 @@ Configuration file: `mods/com.hyperfactions_HyperFactions/config.json`
 
 ---
 
-## HyperPerms Integration
+## Integrations
+
+### HyperPerms
 
 HyperFactions automatically integrates with HyperPerms when available:
 
-- Automatic faction prefix in chat: `[FactionName][Rank] Player: message`
-- Optional rank display in chat format
-- Placeholders:
-  - `%faction%` - Player's faction name
-  - `%faction_rank%` - Player's faction rank
-  - `%faction_power%` - Player's current power
+- Chain-of-responsibility permission resolution: VaultUnlocked → HyperPerms → LuckPerms
+- Automatic faction prefix in chat: `[FactionName] Player: message`
+- Context keys: `faction`, `faction_role`, `faction_territory`, `relation`
+- No configuration required — just install both mods
 
-No configuration required - just install both mods.
+### PlaceholderAPI / WiFlow
+
+33 placeholders available under the `factions` identifier:
+
+| Placeholder | Description |
+|-------------|-------------|
+| `factions_faction_name` | Player's faction name |
+| `factions_faction_role` | Player's role (Leader/Officer/Member) |
+| `factions_faction_power` | Faction total power |
+| `factions_player_power` | Player's personal power |
+| `factions_faction_claims` | Number of claimed chunks |
+| `factions_faction_members` | Member count |
+| `factions_faction_color` | Faction color hex code |
+| `factions_territory_owner` | Faction owning current chunk |
+
+Access via PlaceholderAPI (`%factions_xxx%`) or WiFlow (`{factions_xxx}`). See [developer docs](docs/integrations.md) for the full list.
+
+### OrbisGuard-Mixins
+
+11 hook types for comprehensive territory protection. See [Protection System](docs/protection.md).
 
 ---
 
 ## Data Storage
 
 ```
-plugins/HyperFactions/
-├── config.json
+mods/com.hyperfactions_HyperFactions/
+├── config.json                    # Main configuration
+├── announcements.json             # Announcement toggles
+├── worldmap.json                  # World map settings
 ├── data/
 │   ├── factions/
-│   │   ├── {uuid}.json          # Per-faction data
+│   │   ├── {uuid}.json            # Per-faction data
 │   │   └── ...
-│   ├── claims.json              # Global claims registry
-│   ├── safezones.json           # SafeZone definitions
-│   ├── warzones.json            # WarZone definitions
+│   ├── claims.json                # Global claims registry
+│   ├── safezones.json             # SafeZone definitions
+│   ├── warzones.json              # WarZone definitions
 │   └── players/
-│       ├── {uuid}.json          # Player power & preferences
+│       ├── {uuid}.json            # Player power & preferences
 │       └── ...
+├── backups/
+│   ├── hourly/                    # Hourly auto-backups
+│   ├── daily/                     # Daily backups
+│   ├── weekly/                    # Weekly backups
+│   ├── manual/                    # Admin-triggered backups
+│   └── migration/                 # Pre-migration backups
+└── imports/                       # Data import staging
 ```
 
 ---
@@ -353,14 +487,14 @@ plugins/HyperFactions/
 
 ### Requirements
 
-- Java 21+ (for building)
-- Java 25 (for running on Hytale server)
-- Gradle 8.12+
+- Java 25 (build and runtime)
+- Gradle 9.3.0+
 - Hytale Server (Early Access)
 - Optional: HyperPerms (for enhanced permission control)
 
 ```bash
-./gradlew build
+# From HyperSystems root (multi-project build)
+./gradlew :HyperFactions:shadowJar
 ```
 
 The output JAR will be in `build/libs/`.

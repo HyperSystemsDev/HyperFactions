@@ -1,5 +1,7 @@
 # HyperFactions Manager Layer
 
+> **Version**: 0.7.0 | **14 managers**
+
 The manager layer contains all business logic for HyperFactions, organized by domain.
 
 ## Overview
@@ -10,6 +12,37 @@ Managers are initialized in [`HyperFactions.java`](../src/main/java/com/hyperfac
 - Performs permission checks before operations
 - Returns typed result enums (not boolean/exception)
 - Uses async storage via `CompletableFuture`
+
+```mermaid
+graph TD
+    FM[FactionManager] --> FS[(FactionStorage)]
+    PM[PowerManager] --> PS[(PlayerStorage)]
+    PM --> FM
+    CM[ClaimManager] --> FM
+    CM --> PM
+    RM[RelationManager] --> FM
+    ZM[ZoneManager] --> ZS[(ZoneStorage)]
+    ZM --> CM
+    TM[TeleportManager] --> FM
+    ChM[ChatManager] --> FM
+    ChM --> RM
+    EM[EconomyManager] --> FM
+    AM[AnnouncementManager]
+    SSM[SpawnSuppressionManager] --> ZM
+    SSM --> CM
+    CTM[CombatTagManager]
+    IM[InviteManager]
+    JRM[JoinRequestManager]
+    CoM[ConfirmationManager]
+
+    style FM fill:#2563eb,color:#fff
+    style CM fill:#2563eb,color:#fff
+    style PM fill:#7c3aed,color:#fff
+    style RM fill:#059669,color:#fff
+    style ZM fill:#d97706,color:#fff
+    style AM fill:#0891b2,color:#fff
+    style SSM fill:#0891b2,color:#fff
+```
 
 ## Manager Index
 
@@ -26,7 +59,9 @@ Managers are initialized in [`HyperFactions.java`](../src/main/java/com/hyperfac
 | [JoinRequestManager](#joinrequestmanager) | Join requests for closed factions | None |
 | [ChatManager](#chatmanager) | Faction/ally chat channels | FactionManager, RelationManager |
 | [ConfirmationManager](#confirmationmanager) | Text-mode confirmations | None |
-| [EconomyManager](#economymanager) | Economy integration (future) | VaultUnlockedProvider |
+| [EconomyManager](#economymanager) | Faction economy (treasury, transactions) | FactionManager |
+| [AnnouncementManager](#announcementmanager) | Server-wide event broadcasts | None |
+| [SpawnSuppressionManager](#spawnsuppressionmanager) | Mob spawn control in claims/zones | ZoneManager, ClaimManager |
 
 ## Initialization Order
 
@@ -529,15 +564,90 @@ confirmationManager.confirm(playerUuid, code); // runs callback
 
 [`manager/EconomyManager.java`](../src/main/java/com/hyperfactions/manager/EconomyManager.java)
 
-Economy integration for future features (faction banks, claim costs).
+Faction treasury management implementing the `EconomyAPI` interface.
 
-### Status
+### Responsibilities
 
-Placeholder for future implementation. Will integrate with VaultUnlocked when economy features are added.
+- Manage faction balance (deposit, withdraw, transfer)
+- Record transaction history (max 50 per faction)
+- Currency formatting and naming
+- Upkeep deductions, tax collection, war/raid costs
 
-### Planned Features
+### Key Methods
 
-- Faction bank balance
-- Claim costs
-- Relation change costs
-- Member limits based on balance
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `getFactionBalance(factionId)` | `double` | Get treasury balance |
+| `hasFunds(factionId, amount)` | `boolean` | Check sufficient funds |
+| `deposit(factionId, amount, actorId, desc)` | `CompletableFuture<TransactionResult>` | Deposit into treasury |
+| `withdraw(factionId, amount, actorId, desc)` | `CompletableFuture<TransactionResult>` | Withdraw from treasury |
+| `transfer(fromId, toId, amount, actorId, desc)` | `CompletableFuture<TransactionResult>` | Inter-faction transfer |
+| `getTransactionHistory(factionId, limit)` | `List<Transaction>` | Recent transactions |
+| `formatCurrency(amount)` | `String` | Formatted display string |
+
+See [API Reference](api.md#economy-api) for the full `EconomyAPI` interface.
+
+---
+
+## AnnouncementManager
+
+[`manager/AnnouncementManager.java`](../src/main/java/com/hyperfactions/manager/AnnouncementManager.java)
+
+Server-wide broadcasts for significant faction events.
+
+### Responsibilities
+
+- Broadcast formatted messages to all online players
+- Check per-event toggle configuration
+- Use configured prefix from messages config
+
+### Key Methods
+
+| Method | Event | Color |
+|--------|-------|-------|
+| `announceFactionCreated(name, leader)` | Faction founded | `#55FF55` |
+| `announceFactionDisbanded(name)` | Faction disbanded | `#FF5555` |
+| `announceLeadershipTransfer(name, old, new)` | Leadership change | `#FFAA00` |
+| `announceOverclaim(attacker, defender)` | Territory overclaimed | `#FF5555` |
+| `announceWarDeclared(declarer, target)` | War declared | `#FF5555` |
+| `announceAllianceFormed(faction1, faction2)` | Alliance formed | `#55FF55` |
+| `announceAllianceBroken(faction1, faction2)` | Alliance broken | `#FFAA00` |
+
+See [Announcements](announcements.md) for configuration and admin exclusion details.
+
+---
+
+## SpawnSuppressionManager
+
+[`manager/SpawnSuppressionManager.java`](../src/main/java/com/hyperfactions/manager/SpawnSuppressionManager.java)
+
+Controls mob spawning in faction territory and zones using Hytale's native spawn suppression API.
+
+### Responsibilities
+
+- Resolve NPC group indices (hostile, passive, neutral)
+- Apply spawn suppression per world based on zone flags and faction permissions
+- Update suppression when zones or claims change
+- Generate unique suppressor IDs via XOR of prefix + zone/faction ID
+
+### Key Methods
+
+| Method | Purpose |
+|--------|---------|
+| `initialize()` | Resolve NPC group indices |
+| `applyToWorld(world)` | Apply suppression for a specific world |
+| `applyToAllWorlds()` | Apply suppression across all worlds |
+| `updateZoneSuppression(zone)` | Update for a specific zone change |
+
+### Suppression Flags
+
+Controlled by faction territory permissions and zone flags:
+
+| Flag | Controls |
+|------|----------|
+| `MOB_SPAWNING` | All mob spawning (parent) |
+| `HOSTILE_MOB_SPAWNING` | Hostile mob spawning |
+| `PASSIVE_MOB_SPAWNING` | Passive mob spawning |
+| `NEUTRAL_MOB_SPAWNING` | Neutral mob spawning |
+
+Uses prefixed UUIDs: `HFAC` for zones, `HFCL` for claims. Y-range: -64 to 320.
