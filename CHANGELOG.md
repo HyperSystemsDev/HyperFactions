@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+**Closes issues:**
+- [#7](https://github.com/HyperSystemsDev/HyperFactions/issues/7) — Announcement system for major faction events
+- [#16](https://github.com/HyperSystemsDev/HyperFactions/issues/16) — Add data import from ElbaphFactions
+- [#18](https://github.com/HyperSystemsDev/HyperFactions/issues/18) — Integrate with Better Scoreboard for faction placeholders
+- [#22](https://github.com/HyperSystemsDev/HyperFactions/issues/22) — Hide GUI buttons when player lacks permission
+- [#23](https://github.com/HyperSystemsDev/HyperFactions/issues/23) — Add Placeholders for scoreboards, holograms, and menus
+
 ### Added
 
 **Server-Wide Faction Announcements**
