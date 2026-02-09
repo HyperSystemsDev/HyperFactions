@@ -16,9 +16,11 @@ import com.hyperfactions.protection.ProtectionChecker;
 import com.hyperfactions.protection.damage.DamageProtectionHandler;
 import com.hyperfactions.protection.zone.ZoneDamageProtection;
 import com.hyperfactions.protection.zone.ZoneInteractionProtection;
+import com.hyperfactions.storage.ChatHistoryStorage;
 import com.hyperfactions.storage.FactionStorage;
 import com.hyperfactions.storage.PlayerStorage;
 import com.hyperfactions.storage.ZoneStorage;
+import com.hyperfactions.storage.json.JsonChatHistoryStorage;
 import com.hyperfactions.storage.json.JsonFactionStorage;
 import com.hyperfactions.storage.json.JsonPlayerStorage;
 import com.hyperfactions.storage.json.JsonZoneStorage;
@@ -57,6 +59,7 @@ public class HyperFactions {
     private FactionStorage factionStorage;
     private PlayerStorage playerStorage;
     private ZoneStorage zoneStorage;
+    private ChatHistoryStorage chatHistoryStorage;
 
     // Managers
     private FactionManager factionManager;
@@ -69,6 +72,7 @@ public class HyperFactions {
     private InviteManager inviteManager;
     private JoinRequestManager joinRequestManager;
     private ChatManager chatManager;
+    private ChatHistoryManager chatHistoryManager;
     private ConfirmationManager confirmationManager;
     private SpawnSuppressionManager spawnSuppressionManager;
     private AnnouncementManager announcementManager;
@@ -101,6 +105,7 @@ public class HyperFactions {
     private final Map<Integer, ScheduledTask> scheduledTasks = new ConcurrentHashMap<>();
     private int autoSaveTaskId = -1;
     private int inviteCleanupTaskId = -1;
+    private int chatHistoryCleanupTaskId = -1;
 
     // Admin bypass state (per-player toggle for protection bypass)
     private final Map<UUID, Boolean> adminBypassEnabled = new ConcurrentHashMap<>();
@@ -274,6 +279,17 @@ public class HyperFactions {
         chatManager = new ChatManager(factionManager, relationManager,
             uuid -> playerLookup != null ? playerLookup.apply(uuid) : null);
 
+        // Initialize chat history storage and manager
+        chatHistoryStorage = new JsonChatHistoryStorage(dataDir);
+        chatHistoryStorage.init().join();
+        chatHistoryManager = new ChatHistoryManager(chatHistoryStorage);
+
+        // Wire chat history into chat manager and GUI
+        chatManager.setChatHistoryManager(chatHistoryManager);
+        chatManager.setGuiUpdateService(guiUpdateService);
+        guiManager.setChatManagerSupplier(() -> chatManager);
+        guiManager.setChatHistoryManagerSupplier(() -> chatHistoryManager);
+
         // Setup combat tag callbacks
         combatTagManager.setOnCombatLogout(playerUuid -> {
             // Apply combat logout penalty (configurable, default same as death penalty)
@@ -393,6 +409,7 @@ public class HyperFactions {
     public void startPeriodicTasks() {
         startAutoSaveTask();
         startInviteCleanupTask();
+        startChatHistoryCleanupTask();
         // Start scheduled backups now that the task scheduler is available
         if (backupManager != null) {
             backupManager.startScheduledBackups();
@@ -423,6 +440,10 @@ public class HyperFactions {
             cancelTask(inviteCleanupTaskId);
             inviteCleanupTaskId = -1;
         }
+        if (chatHistoryCleanupTaskId > 0) {
+            cancelTask(chatHistoryCleanupTaskId);
+            chatHistoryCleanupTaskId = -1;
+        }
 
         // Save all data
         saveAllData();
@@ -438,6 +459,14 @@ public class HyperFactions {
         }
         if (joinRequestManager != null) {
             joinRequestManager.shutdown();
+        }
+
+        // Shutdown chat history manager (flushes pending saves)
+        if (chatHistoryManager != null) {
+            chatHistoryManager.shutdown();
+        }
+        if (chatHistoryStorage != null) {
+            chatHistoryStorage.shutdown().join();
         }
 
         // Shutdown storage
@@ -706,6 +735,33 @@ public class HyperFactions {
         }
     }
 
+    /**
+     * Starts the chat history retention cleanup task if enabled.
+     */
+    private void startChatHistoryCleanupTask() {
+        if (!ConfigManager.get().isChatHistoryEnabled()) {
+            Logger.debug("Chat history disabled, skipping retention cleanup task");
+            return;
+        }
+
+        int intervalMinutes = ConfigManager.get().getChatHistoryCleanupIntervalMinutes();
+        if (intervalMinutes <= 0) {
+            Logger.debug("Chat history cleanup interval is 0, skipping retention cleanup task");
+            return;
+        }
+
+        int periodTicks = intervalMinutes * 60 * 20; // Convert minutes to ticks
+        chatHistoryCleanupTaskId = scheduleRepeatingTask(periodTicks, periodTicks, () -> {
+            if (chatHistoryManager != null) {
+                chatHistoryManager.pruneExpired();
+            }
+        });
+
+        if (chatHistoryCleanupTaskId > 0) {
+            Logger.info("Chat history retention cleanup scheduled every %d minutes", intervalMinutes);
+        }
+    }
+
     // === Getters ===
 
     @NotNull
@@ -761,6 +817,11 @@ public class HyperFactions {
     @NotNull
     public ChatManager getChatManager() {
         return chatManager;
+    }
+
+    @Nullable
+    public ChatHistoryManager getChatHistoryManager() {
+        return chatHistoryManager;
     }
 
     public ConfirmationManager getConfirmationManager() {
@@ -952,5 +1013,10 @@ public class HyperFactions {
 
         // Clean up relations
         relationManager.clearAllRelations(factionId);
+
+        // Clean up chat history
+        if (chatHistoryManager != null) {
+            chatHistoryManager.deleteHistory(factionId);
+        }
     }
 }

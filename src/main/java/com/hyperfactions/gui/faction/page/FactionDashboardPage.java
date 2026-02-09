@@ -36,6 +36,7 @@ import com.hypixel.hytale.server.core.entity.entities.player.pages.InteractiveCu
 import com.hypixel.hytale.server.core.ui.builder.EventData;
 import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder;
 import com.hypixel.hytale.server.core.ui.builder.UIEventBuilder;
+import com.hypixel.hytale.server.core.ui.Value;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.World;
@@ -52,7 +53,7 @@ import java.util.concurrent.TimeUnit;
 public class FactionDashboardPage extends InteractiveCustomUIPage<FactionDashboardData> implements RefreshablePage {
 
     private static final String PAGE_ID = "dashboard";
-    private static final int ACTIVITY_ENTRIES = 5;
+    private static final int ACTIVITY_ENTRIES = 15;
 
     private final PlayerRef playerRef;
     private final FactionManager factionManager;
@@ -233,86 +234,97 @@ public class FactionDashboardPage extends InteractiveCustomUIPage<FactionDashboa
         UUID viewerUuid = playerRef.getUuid();
 
         // HOME button - show for anyone if home exists, or for officers+ to set home
-        // Also requires HOME permission
         if ((faction.hasHome() || isOfficerPlus)
                 && PermissionManager.get().hasPermission(viewerUuid, Permissions.HOME)) {
             cmd.append("#HomeBtnContainer", "HyperFactions/faction/dashboard_action_btn.ui");
-            if (faction.hasHome()) {
-                cmd.set("#HomeBtnContainer #ActionBtn.Text", "Home");
-            } else {
-                cmd.set("#HomeBtnContainer #ActionBtn.Text", "Set Home");
-            }
+            cmd.set("#HomeBtnContainer #ActionBtn.Text", faction.hasHome() ? "Home" : "Set Home");
+            cmd.set("#HomeBtnContainer #ActionBtn.Style",
+                    Value.ref("HyperFactions/shared/styles.ui", "CyanButtonStyle"));
             events.addEventBinding(
                     CustomUIEventBindingType.Activating,
                     "#HomeBtnContainer #ActionBtn",
                     EventData.of("Button", "Home"),
                     false
             );
+        } else {
+            cmd.set("#HomeBtnContainer.Visible", false);
         }
 
         // CLAIM button - only for officers+ with CLAIM permission
         if (isOfficerPlus && PermissionManager.get().hasPermission(viewerUuid, Permissions.CLAIM)) {
             cmd.append("#ClaimBtnContainer", "HyperFactions/faction/dashboard_action_btn.ui");
             cmd.set("#ClaimBtnContainer #ActionBtn.Text", "Claim");
+            cmd.set("#ClaimBtnContainer #ActionBtn.Style",
+                    Value.ref("HyperFactions/shared/styles.ui", "GreenButtonStyle"));
             events.addEventBinding(
                     CustomUIEventBindingType.Activating,
                     "#ClaimBtnContainer #ActionBtn",
                     EventData.of("Button", "Claim"),
                     false
             );
+        } else {
+            cmd.set("#ClaimBtnContainer.Visible", false);
         }
 
-        // F-CHAT button - faction chat toggle (requires CHAT_FACTION permission)
-        if (PermissionManager.get().hasPermission(viewerUuid, Permissions.CHAT_FACTION)) {
-            cmd.append("#FChatBtnContainer", "HyperFactions/faction/dashboard_action_btn.ui");
-            cmd.set("#FChatBtnContainer #ActionBtn.Text", "F-Chat");
+        // CHAT MODE button - shows current mode, click to cycle
+        if (PermissionManager.get().hasPermission(viewerUuid, Permissions.CHAT_FACTION)
+                || PermissionManager.get().hasPermission(viewerUuid, Permissions.CHAT_ALLY)) {
+            ChatManager chatManager = plugin.getChatManager();
+            ChatManager.ChatChannel currentChannel = chatManager.getChannel(viewerUuid);
+            String display = "Chat: " + ChatManager.getChannelDisplay(currentChannel);
+
+            cmd.append("#ChatModeBtnContainer", "HyperFactions/faction/dashboard_action_btn.ui");
+            cmd.set("#ChatModeBtnContainer #ActionBtn.Text", display);
             events.addEventBinding(
                     CustomUIEventBindingType.Activating,
-                    "#FChatBtnContainer #ActionBtn",
-                    EventData.of("Button", "FChat"),
+                    "#ChatModeBtnContainer #ActionBtn",
+                    EventData.of("Button", "ChatMode"),
                     false
             );
+        } else {
+            cmd.set("#ChatModeBtnContainer.Visible", false);
         }
 
-        // A-CHAT button - grayed out, coming soon
-        cmd.append("#AChatBtnContainer", "HyperFactions/faction/dashboard_action_btn_disabled.ui");
-        cmd.set("#AChatBtnContainer #ActionBtn.Text", "A-Chat");
-        cmd.set("#AChatBtnContainer #ComingSoon.Text", "Coming Soon");
-
-        // LEAVE button - show for all members including leaders (requires LEAVE permission)
+        // LEAVE button - flat red background for danger action
         if (PermissionManager.get().hasPermission(viewerUuid, Permissions.LEAVE)) {
             cmd.append("#LeaveBtnContainer", "HyperFactions/faction/dashboard_action_btn.ui");
             cmd.set("#LeaveBtnContainer #ActionBtn.Text", "Leave");
+            cmd.set("#LeaveBtnContainer #ActionBtn.Style",
+                    Value.ref("HyperFactions/shared/styles.ui", "FlatRedButtonStyle"));
             events.addEventBinding(
                     CustomUIEventBindingType.Activating,
                     "#LeaveBtnContainer #ActionBtn",
                     EventData.of("Button", "Leave"),
                     false
             );
+        } else {
+            cmd.set("#LeaveBtnContainer.Visible", false);
         }
     }
 
     private void buildActivityFeed(UICommandBuilder cmd, UIEventBuilder events, Faction currentFaction) {
         // TODO: Enable View All button when Activity Logs page (logs_viewer.ui) is implemented
-        // events.addEventBinding(
-        //         CustomUIEventBindingType.Activating,
-        //         "#ViewLogsBtn",
-        //         EventData.of("Button", "ViewLogs"),
-        //         false
-        // );
+        // ViewLogsBtn is styled as disabled in the UI template for now
 
-        // Show recent activity entries
+        // Show recent activity entries (appended dynamically, scrollable)
         List<FactionLog> logs = currentFaction.logs();
         int displayCount = Math.min(ACTIVITY_ENTRIES, logs.size());
 
+        if (displayCount == 0) {
+            cmd.appendInline("#ActivityFeed",
+                    "Label { Text: \"No recent activity.\"; Style: (FontSize: 11, TextColor: #555555); " +
+                    "Anchor: (Height: 26); }");
+            return;
+        }
+
         for (int i = 0; i < displayCount; i++) {
             FactionLog log = logs.get(i);
-            String containerId = "#ActivityEntry" + i;
+            String idx = "#ActivityFeed[" + i + "]";
 
-            cmd.append(containerId, "HyperFactions/faction/activity_entry.ui");
-            cmd.set(containerId + " #ActivityType.Text", log.type().getDisplayName().toUpperCase());
-            cmd.set(containerId + " #ActivityMessage.Text", log.message());
-            cmd.set(containerId + " #ActivityTime.Text", formatTimeAgo(log.timestamp()));
+            cmd.append("#ActivityFeed", "HyperFactions/faction/activity_entry.ui");
+            cmd.set(idx + " #ActivityType.Text", log.type().getDisplayName().toUpperCase());
+            cmd.set(idx + " #ActivityMessage.Text", log.message());
+            cmd.set(idx + " #ActivityTime.Text", formatTimeAgo(log.timestamp()));
         }
     }
 
@@ -395,24 +407,16 @@ public class FactionDashboardPage extends InteractiveCustomUIPage<FactionDashboa
                 handleClaimAction(player, ref, store, playerRef, uuid, currentFaction);
             }
 
-            case "FChat" -> {
-                if (!PermissionManager.get().hasPermission(uuid, Permissions.CHAT_FACTION)) {
-                    sendUpdate();
-                    return;
-                }
+            case "ChatMode" -> {
                 ChatManager chatManager = plugin.getChatManager();
-                ChatManager.ChatChannel newChannel = chatManager.toggleFactionChat(uuid);
-                String display = ChatManager.getChannelDisplay(newChannel);
-                String color = ChatManager.getChannelColor(newChannel);
-                player.sendMessage(Message.raw("Chat mode: ").color("#AAAAAA")
-                        .insert(Message.raw(display).color(color)));
-                sendUpdate();
-            }
-
-            case "AChat" -> {
-                // A-CHAT is disabled/coming soon - show message if clicked
-                player.sendMessage(Message.raw("Ally chat is coming soon!").color("#FFAA00"));
-                sendUpdate();
+                ChatManager.ToggleResult chatResult = chatManager.cycleChannelChecked(uuid);
+                if (chatResult.isSuccess() && chatResult.channel() != null) {
+                    String display = ChatManager.getChannelDisplay(chatResult.channel());
+                    String color = ChatManager.getChannelColor(chatResult.channel());
+                    player.sendMessage(Message.raw("Chat mode: ").color("#AAAAAA")
+                            .insert(Message.raw(display).color(color)));
+                }
+                rebuild();
             }
 
             case "Leave" -> {

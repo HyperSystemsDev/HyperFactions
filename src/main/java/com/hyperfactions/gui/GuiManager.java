@@ -47,6 +47,8 @@ public class GuiManager {
     private final Supplier<JoinRequestManager> joinRequestManager;
     private final Supplier<Path> dataDir;
     private ActivePageTracker activePageTracker;
+    private Supplier<ChatManager> chatManagerSupplier;
+    private Supplier<ChatHistoryManager> chatHistoryManagerSupplier;
 
     public GuiManager(Supplier<HyperFactions> plugin,
                       Supplier<FactionManager> factionManager,
@@ -101,6 +103,23 @@ public class GuiManager {
                 0 // Order
         ));
 
+        // Chat page (faction/ally chat history with send-from-GUI)
+        registry.registerEntry(new Entry(
+                "chat",
+                "Chat",
+                Permissions.CHAT_FACTION,
+                (player, ref, store, playerRef, faction, guiManager) -> {
+                    if (faction == null) return null;
+                    if (chatManagerSupplier == null || chatHistoryManagerSupplier == null) return null;
+                    return new FactionChatPage(playerRef, factionManager.get(),
+                            chatManagerSupplier.get(), chatHistoryManagerSupplier.get(),
+                            guiManager, faction);
+                },
+                true, // Show in nav bar
+                true, // Requires faction
+                1
+        ));
+
         // Members page
         registry.registerEntry(new Entry(
                 "members",
@@ -112,7 +131,7 @@ public class GuiManager {
                 },
                 true,
                 true, // Requires faction
-                1
+                2
         ));
 
         // Invites page (officers+ only) - shows outgoing invites and incoming join requests
@@ -128,7 +147,7 @@ public class GuiManager {
                 true, // Show in nav bar
                 true, // Requires faction
                 FactionRole.OFFICER, // Minimum role required
-                2
+                3
         ));
 
         // Browser page
@@ -140,7 +159,7 @@ public class GuiManager {
                         new FactionBrowserPage(playerRef, factionManager.get(), powerManager.get(), guiManager),
                 true,
                 false,
-                3
+                4
         ));
 
         // Map page
@@ -153,7 +172,7 @@ public class GuiManager {
                                 relationManager.get(), zoneManager.get(), guiManager),
                 true,
                 false,
-                4
+                5
         ));
 
         // Relations page
@@ -168,7 +187,7 @@ public class GuiManager {
                 },
                 true,
                 true,
-                5
+                6
         ));
 
         // Settings page (officers+) - unified two-column layout
@@ -182,7 +201,7 @@ public class GuiManager {
                 },
                 true, // Show in nav bar
                 true, // Requires faction
-                6
+                7
         ));
 
         // Help page (available to all players in faction nav bar)
@@ -194,7 +213,7 @@ public class GuiManager {
                         new HelpMainPage(playerRef, guiManager, factionManager.get()),
                 true, // Show in nav bar
                 false, // Doesn't require faction
-                7
+                8
         ));
 
         // Admin page (requires permission) - accessed via /f admin, not in main nav bar
@@ -1009,6 +1028,41 @@ public class GuiManager {
             Logger.debug("[GUI] LeaderLeaveConfirmPage opened successfully");
         } catch (Exception e) {
             Logger.severe("[GUI] Failed to open LeaderLeaveConfirmPage: %s", e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Opens the Faction Chat page (chat history with send-from-GUI).
+     *
+     * @param player    The Player entity
+     * @param ref       The entity reference
+     * @param store     The entity store
+     * @param playerRef The PlayerRef component
+     * @param faction   The faction to show chat for
+     */
+    public void openFactionChat(Player player, Ref<EntityStore> ref,
+                                Store<EntityStore> store, PlayerRef playerRef,
+                                Faction faction) {
+        Logger.debug("[GUI] Opening FactionChatPage for %s", playerRef.getUsername());
+        try {
+            if (chatManagerSupplier == null || chatHistoryManagerSupplier == null) {
+                Logger.warn("[GUI] Chat managers not initialized, cannot open chat page");
+                return;
+            }
+            PageManager pageManager = player.getPageManager();
+            FactionChatPage page = new FactionChatPage(
+                playerRef,
+                factionManager.get(),
+                chatManagerSupplier.get(),
+                chatHistoryManagerSupplier.get(),
+                this,
+                faction
+            );
+            pageManager.openCustomPage(ref, store, page);
+            Logger.debug("[GUI] FactionChatPage opened successfully");
+        } catch (Exception e) {
+            Logger.severe("[GUI] Failed to open FactionChatPage: %s", e.getMessage());
             e.printStackTrace();
         }
     }
@@ -2037,6 +2091,24 @@ public class GuiManager {
      */
     public void setActivePageTracker(ActivePageTracker tracker) {
         this.activePageTracker = tracker;
+    }
+
+    /**
+     * Sets the chat manager supplier for the chat page.
+     *
+     * @param chatManager The chat manager supplier
+     */
+    public void setChatManagerSupplier(Supplier<ChatManager> chatManager) {
+        this.chatManagerSupplier = chatManager;
+    }
+
+    /**
+     * Sets the chat history manager supplier for the chat page.
+     *
+     * @param chatHistoryManager The chat history manager supplier
+     */
+    public void setChatHistoryManagerSupplier(Supplier<ChatHistoryManager> chatHistoryManager) {
+        this.chatHistoryManagerSupplier = chatHistoryManager;
     }
 
     /**

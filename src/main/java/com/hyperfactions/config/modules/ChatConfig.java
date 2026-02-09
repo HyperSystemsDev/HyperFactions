@@ -29,6 +29,18 @@ public class ChatConfig extends ModuleConfig {
     private String relationColorNeutral = "#AAAAAA"; // Gray - neutral
     private String relationColorEnemy = "#FF0000";   // Red - enemies
 
+    // Faction chat settings
+    private String factionChatColor = "#00FFFF";       // Cyan - faction messages
+    private String factionChatPrefix = "[Faction]";
+    private String allyChatColor = "#AA00AA";          // Purple - ally messages
+    private String allyChatPrefix = "[Ally]";
+    private String senderNameColor = "#FFFF55";        // Yellow - sender name
+    private String messageColor = "#FFFFFF";            // White - message text
+    private boolean historyEnabled = true;
+    private int historyMaxMessages = 200;
+    private int historyRetentionDays = 7;
+    private int historyCleanupIntervalMinutes = 60;
+
     /**
      * Creates a new chat config.
      *
@@ -57,6 +69,16 @@ public class ChatConfig extends ModuleConfig {
         relationColorAlly = "#FF69B4";
         relationColorNeutral = "#AAAAAA";
         relationColorEnemy = "#FF0000";
+        factionChatColor = "#00FFFF";
+        factionChatPrefix = "[Faction]";
+        allyChatColor = "#AA00AA";
+        allyChatPrefix = "[Ally]";
+        senderNameColor = "#FFFF55";
+        messageColor = "#FFFFFF";
+        historyEnabled = true;
+        historyMaxMessages = 200;
+        historyRetentionDays = 7;
+        historyCleanupIntervalMinutes = 60;
     }
 
     @Override
@@ -76,6 +98,21 @@ public class ChatConfig extends ModuleConfig {
             relationColorNeutral = getString(colors, "neutral", relationColorNeutral);
             relationColorEnemy = getString(colors, "enemy", relationColorEnemy);
         }
+
+        // Load faction chat settings
+        if (hasSection(root, "factionChat")) {
+            JsonObject fc = root.getAsJsonObject("factionChat");
+            factionChatColor = getString(fc, "factionChatColor", factionChatColor);
+            factionChatPrefix = getString(fc, "factionChatPrefix", factionChatPrefix);
+            allyChatColor = getString(fc, "allyChatColor", allyChatColor);
+            allyChatPrefix = getString(fc, "allyChatPrefix", allyChatPrefix);
+            senderNameColor = getString(fc, "senderNameColor", senderNameColor);
+            messageColor = getString(fc, "messageColor", messageColor);
+            historyEnabled = getBool(fc, "historyEnabled", historyEnabled);
+            historyMaxMessages = getInt(fc, "historyMaxMessages", historyMaxMessages);
+            historyRetentionDays = getInt(fc, "historyRetentionDays", historyRetentionDays);
+            historyCleanupIntervalMinutes = getInt(fc, "historyCleanupIntervalMinutes", historyCleanupIntervalMinutes);
+        }
     }
 
     @Override
@@ -94,6 +131,19 @@ public class ChatConfig extends ModuleConfig {
         colors.addProperty("neutral", relationColorNeutral);
         colors.addProperty("enemy", relationColorEnemy);
         root.add("relationColors", colors);
+
+        JsonObject fc = new JsonObject();
+        fc.addProperty("factionChatColor", factionChatColor);
+        fc.addProperty("factionChatPrefix", factionChatPrefix);
+        fc.addProperty("allyChatColor", allyChatColor);
+        fc.addProperty("allyChatPrefix", allyChatPrefix);
+        fc.addProperty("senderNameColor", senderNameColor);
+        fc.addProperty("messageColor", messageColor);
+        fc.addProperty("historyEnabled", historyEnabled);
+        fc.addProperty("historyMaxMessages", historyMaxMessages);
+        fc.addProperty("historyRetentionDays", historyRetentionDays);
+        fc.addProperty("historyCleanupIntervalMinutes", historyCleanupIntervalMinutes);
+        root.add("factionChat", fc);
     }
 
     // === Getters ===
@@ -193,6 +243,54 @@ public class ChatConfig extends ModuleConfig {
         return relationColorEnemy;
     }
 
+    // === Faction Chat Getters ===
+
+    @NotNull
+    public String getFactionChatColor() {
+        return factionChatColor;
+    }
+
+    @NotNull
+    public String getFactionChatPrefix() {
+        return factionChatPrefix;
+    }
+
+    @NotNull
+    public String getAllyChatColor() {
+        return allyChatColor;
+    }
+
+    @NotNull
+    public String getAllyChatPrefix() {
+        return allyChatPrefix;
+    }
+
+    @NotNull
+    public String getSenderNameColor() {
+        return senderNameColor;
+    }
+
+    @NotNull
+    public String getMessageColor() {
+        return messageColor;
+    }
+
+    public boolean isHistoryEnabled() {
+        return historyEnabled;
+    }
+
+    public int getHistoryMaxMessages() {
+        return historyMaxMessages;
+    }
+
+    public int getHistoryRetentionDays() {
+        return historyRetentionDays;
+    }
+
+    public int getHistoryCleanupIntervalMinutes() {
+        return historyCleanupIntervalMinutes;
+    }
+
     // === Validation ===
 
     @Override
@@ -214,6 +312,35 @@ public class ChatConfig extends ModuleConfig {
         validateHexColor(result, "relationColors.ally", relationColorAlly);
         validateHexColor(result, "relationColors.neutral", relationColorNeutral);
         validateHexColor(result, "relationColors.enemy", relationColorEnemy);
+
+        // Validate faction chat colors
+        validateHexColor(result, "factionChat.factionChatColor", factionChatColor);
+        validateHexColor(result, "factionChat.allyChatColor", allyChatColor);
+        validateHexColor(result, "factionChat.senderNameColor", senderNameColor);
+        validateHexColor(result, "factionChat.messageColor", messageColor);
+
+        // Validate faction chat numeric settings
+        if (historyMaxMessages < 10) {
+            result.addWarning(getConfigName(), "factionChat.historyMaxMessages",
+                    "Must be at least 10", historyMaxMessages, 10);
+            historyMaxMessages = 10;
+        } else if (historyMaxMessages > 1000) {
+            result.addWarning(getConfigName(), "factionChat.historyMaxMessages",
+                    "Capped at 1000", historyMaxMessages, 1000);
+            historyMaxMessages = 1000;
+        }
+
+        if (historyRetentionDays < 1) {
+            result.addWarning(getConfigName(), "factionChat.historyRetentionDays",
+                    "Must be at least 1", historyRetentionDays, 1);
+            historyRetentionDays = 1;
+        }
+
+        if (historyCleanupIntervalMinutes < 5) {
+            result.addWarning(getConfigName(), "factionChat.historyCleanupIntervalMinutes",
+                    "Must be at least 5", historyCleanupIntervalMinutes, 5);
+            historyCleanupIntervalMinutes = 5;
+        }
 
         return result;
     }

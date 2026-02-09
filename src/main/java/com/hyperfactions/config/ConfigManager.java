@@ -434,6 +434,18 @@ public class ConfigManager {
     @NotNull public String getChatRelationColorNeutral() { return chatConfig.getRelationColorNeutral(); }
     @NotNull public String getChatRelationColorEnemy() { return chatConfig.getRelationColorEnemy(); }
 
+    // Faction Chat (from chat module factionChat section)
+    @NotNull public String getFactionChatColor() { return chatConfig.getFactionChatColor(); }
+    @NotNull public String getFactionChatPrefix() { return chatConfig.getFactionChatPrefix(); }
+    @NotNull public String getAllyChatColor() { return chatConfig.getAllyChatColor(); }
+    @NotNull public String getAllyChatPrefix() { return chatConfig.getAllyChatPrefix(); }
+    @NotNull public String getSenderNameColor() { return chatConfig.getSenderNameColor(); }
+    @NotNull public String getMessageColor() { return chatConfig.getMessageColor(); }
+    public boolean isChatHistoryEnabled() { return chatConfig.isHistoryEnabled(); }
+    public int getChatHistoryMaxMessages() { return chatConfig.getHistoryMaxMessages(); }
+    public int getChatHistoryRetentionDays() { return chatConfig.getHistoryRetentionDays(); }
+    public int getChatHistoryCleanupIntervalMinutes() { return chatConfig.getHistoryCleanupIntervalMinutes(); }
+
     // Permissions
     public boolean isAdminRequiresOp() { return coreConfig.isAdminRequiresOp(); }
     public boolean isAllowWithoutPermissionMod() { return coreConfig.isAllowWithoutPermissionMod(); }

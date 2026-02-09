@@ -127,7 +127,7 @@ public class WiFlowExpansion extends PlaceholderExpansion {
     public String onPlaceholderRequest(@NotNull PlaceholderContext context, @NotNull String params) {
         UUID uuid = context.getPlayerUuid();
         if (uuid == null) {
-            return "";
+            return null;
         }
 
         return switch (params.toLowerCase()) {
@@ -188,29 +188,29 @@ public class WiFlowExpansion extends PlaceholderExpansion {
         return plugin.getFactionManager().getPlayerFaction(uuid) != null ? "yes" : "no";
     }
 
-    @NotNull
+    @Nullable
     private String getFactionName(@NotNull UUID uuid) {
         Faction faction = plugin.getFactionManager().getPlayerFaction(uuid);
-        return faction != null ? faction.name() : "";
+        return faction != null ? faction.name() : null;
     }
 
-    @NotNull
+    @Nullable
     private String getFactionId(@NotNull UUID uuid) {
         Faction faction = plugin.getFactionManager().getPlayerFaction(uuid);
-        return faction != null ? faction.id().toString() : "";
+        return faction != null ? faction.id().toString() : null;
     }
 
-    @NotNull
+    @Nullable
     private String getFactionTag(@NotNull UUID uuid) {
         Faction faction = plugin.getFactionManager().getPlayerFaction(uuid);
-        if (faction == null) return "";
-        return faction.tag() != null ? faction.tag() : "";
+        if (faction == null) return null;
+        return faction.tag() != null ? faction.tag() : null;
     }
 
-    @NotNull
+    @Nullable
     private String getFactionDisplay(@NotNull UUID uuid) {
         Faction faction = plugin.getFactionManager().getPlayerFaction(uuid);
-        if (faction == null) return "";
+        if (faction == null) return null;
 
         String tagDisplay = ConfigManager.get().getChatTagDisplay();
         return switch (tagDisplay) {
@@ -224,61 +224,61 @@ public class WiFlowExpansion extends PlaceholderExpansion {
                 yield name.substring(0, Math.min(3, name.length())).toUpperCase();
             }
             case "name" -> faction.name();
-            case "none" -> "";
+            case "none" -> null;
             default -> faction.name();
         };
     }
 
-    @NotNull
+    @Nullable
     private String getFactionColor(@NotNull UUID uuid) {
         Faction faction = plugin.getFactionManager().getPlayerFaction(uuid);
-        if (faction == null) return "";
-        return faction.color() != null ? faction.color() : "";
+        if (faction == null) return null;
+        return faction.color() != null ? faction.color() : null;
     }
 
-    @NotNull
+    @Nullable
     private String getPlayerRole(@NotNull UUID uuid) {
         Faction faction = plugin.getFactionManager().getPlayerFaction(uuid);
-        if (faction == null) return "";
+        if (faction == null) return null;
         FactionMember member = faction.getMember(uuid);
-        if (member == null) return "";
+        if (member == null) return null;
         return member.role().getDisplayName();
     }
 
-    @NotNull
+    @Nullable
     private String getFactionDescription(@NotNull UUID uuid) {
         Faction faction = plugin.getFactionManager().getPlayerFaction(uuid);
-        if (faction == null) return "";
-        return faction.description() != null ? faction.description() : "";
+        if (faction == null) return null;
+        return faction.description() != null ? faction.description() : null;
     }
 
-    @NotNull
+    @Nullable
     private String getFactionLeader(@NotNull UUID uuid) {
         Faction faction = plugin.getFactionManager().getPlayerFaction(uuid);
-        if (faction == null) return "";
+        if (faction == null) return null;
         FactionMember leader = faction.getLeader();
-        return leader != null ? leader.username() : "";
+        return leader != null ? leader.username() : null;
     }
 
-    @NotNull
+    @Nullable
     private String getFactionOpen(@NotNull UUID uuid) {
         Faction faction = plugin.getFactionManager().getPlayerFaction(uuid);
-        if (faction == null) return "";
+        if (faction == null) return null;
         return String.valueOf(faction.open());
     }
 
-    @NotNull
+    @Nullable
     private String getFactionLeaderId(@NotNull UUID uuid) {
         Faction faction = plugin.getFactionManager().getPlayerFaction(uuid);
-        if (faction == null) return "";
+        if (faction == null) return null;
         FactionMember leader = faction.getLeader();
-        return leader != null ? leader.uuid().toString() : "";
+        return leader != null ? leader.uuid().toString() : null;
     }
 
-    @NotNull
+    @Nullable
     private String getFactionCreated(@NotNull UUID uuid) {
         Faction faction = plugin.getFactionManager().getPlayerFaction(uuid);
-        if (faction == null) return "";
+        if (faction == null) return null;
         return DATE_FORMAT.format(Instant.ofEpochMilli(faction.createdAt()));
     }
 
@@ -302,48 +302,48 @@ public class WiFlowExpansion extends PlaceholderExpansion {
         return String.valueOf(power.getPowerPercent());
     }
 
-    @NotNull
+    @Nullable
     private String getFactionPower(@NotNull UUID uuid) {
         Faction faction = plugin.getFactionManager().getPlayerFaction(uuid);
-        if (faction == null) return "0";
+        if (faction == null) return null;
         return String.format("%.1f", plugin.getPowerManager().getFactionPower(faction.id()));
     }
 
-    @NotNull
+    @Nullable
     private String getFactionMaxPower(@NotNull UUID uuid) {
         Faction faction = plugin.getFactionManager().getPlayerFaction(uuid);
-        if (faction == null) return "0";
+        if (faction == null) return null;
         return String.format("%.1f", plugin.getPowerManager().getFactionMaxPower(faction.id()));
     }
 
-    @NotNull
+    @Nullable
     private String getFactionPowerPercent(@NotNull UUID uuid) {
         Faction faction = plugin.getFactionManager().getPlayerFaction(uuid);
-        if (faction == null) return "0";
+        if (faction == null) return null;
         PowerManager.FactionPowerStats stats = plugin.getPowerManager().getFactionPowerStats(faction.id());
         return String.valueOf(stats.getPowerPercent());
     }
 
-    @NotNull
+    @Nullable
     private String getFactionRaidable(@NotNull UUID uuid) {
         Faction faction = plugin.getFactionManager().getPlayerFaction(uuid);
-        if (faction == null) return "";
+        if (faction == null) return null;
         return String.valueOf(plugin.getPowerManager().isFactionRaidable(faction.id()));
     }
 
     // ==================== Territory ====================
 
-    @NotNull
+    @Nullable
     private String getFactionLand(@NotNull UUID uuid) {
         Faction faction = plugin.getFactionManager().getPlayerFaction(uuid);
-        if (faction == null) return "0";
+        if (faction == null) return null;
         return String.valueOf(faction.getClaimCount());
     }
 
-    @NotNull
+    @Nullable
     private String getFactionLandMax(@NotNull UUID uuid) {
         Faction faction = plugin.getFactionManager().getPlayerFaction(uuid);
-        if (faction == null) return "0";
+        if (faction == null) return null;
         return String.valueOf(plugin.getPowerManager().getFactionClaimCapacity(faction.id()));
     }
 
@@ -352,10 +352,10 @@ public class WiFlowExpansion extends PlaceholderExpansion {
      * Uses chunk coordinates directly from the WiFlow PlaceholderContext.
      * Returns "Wilderness", "SafeZone", "WarZone", or the faction name.
      */
-    @NotNull
+    @Nullable
     private String getTerritoryOwner(@NotNull PlaceholderContext context) {
         String world = context.getWorldName();
-        if (world == null || world.isEmpty()) return "";
+        if (world == null || world.isEmpty()) return null;
 
         // WiFlow context provides block coordinates; convert to chunk coords
         int chunkX = context.getPosX() >> 4;
@@ -373,7 +373,7 @@ public class WiFlowExpansion extends PlaceholderExpansion {
         UUID claimOwner = plugin.getClaimManager().getClaimOwner(world, chunkX, chunkZ);
         if (claimOwner != null) {
             Faction faction = plugin.getFactionManager().getFaction(claimOwner);
-            return faction != null ? faction.name() : "";
+            return faction != null ? faction.name() : null;
         }
 
         return "Wilderness";
@@ -384,10 +384,10 @@ public class WiFlowExpansion extends PlaceholderExpansion {
      * Uses chunk coordinates directly from the WiFlow PlaceholderContext.
      * Returns "SafeZone", "WarZone", "Claimed", or "Wilderness".
      */
-    @NotNull
+    @Nullable
     private String getTerritoryType(@NotNull PlaceholderContext context) {
         String world = context.getWorldName();
-        if (world == null || world.isEmpty()) return "";
+        if (world == null || world.isEmpty()) return null;
 
         // WiFlow context provides block coordinates; convert to chunk coords
         int chunkX = context.getPosX() >> 4;
@@ -407,69 +407,69 @@ public class WiFlowExpansion extends PlaceholderExpansion {
 
     // ==================== Faction Home ====================
 
-    @NotNull
+    @Nullable
     private String getFactionHomeWorld(@NotNull UUID uuid) {
         Faction faction = plugin.getFactionManager().getPlayerFaction(uuid);
-        if (faction == null || faction.home() == null) return "";
+        if (faction == null || faction.home() == null) return null;
         return faction.home().world();
     }
 
-    @NotNull
+    @Nullable
     private String getFactionHomeX(@NotNull UUID uuid) {
         Faction faction = plugin.getFactionManager().getPlayerFaction(uuid);
-        if (faction == null || faction.home() == null) return "";
+        if (faction == null || faction.home() == null) return null;
         return String.format("%.2f", faction.home().x());
     }
 
-    @NotNull
+    @Nullable
     private String getFactionHomeY(@NotNull UUID uuid) {
         Faction faction = plugin.getFactionManager().getPlayerFaction(uuid);
-        if (faction == null || faction.home() == null) return "";
+        if (faction == null || faction.home() == null) return null;
         return String.format("%.2f", faction.home().y());
     }
 
-    @NotNull
+    @Nullable
     private String getFactionHomeZ(@NotNull UUID uuid) {
         Faction faction = plugin.getFactionManager().getPlayerFaction(uuid);
-        if (faction == null || faction.home() == null) return "";
+        if (faction == null || faction.home() == null) return null;
         return String.format("%.2f", faction.home().z());
     }
 
-    @NotNull
+    @Nullable
     private String getFactionHomeCoords(@NotNull UUID uuid) {
         Faction faction = plugin.getFactionManager().getPlayerFaction(uuid);
-        if (faction == null || faction.home() == null) return "";
+        if (faction == null || faction.home() == null) return null;
         Faction.FactionHome home = faction.home();
         return String.format("%.2f, %.2f, %.2f", home.x(), home.y(), home.z());
     }
 
-    @NotNull
+    @Nullable
     private String getFactionHomeYaw(@NotNull UUID uuid) {
         Faction faction = plugin.getFactionManager().getPlayerFaction(uuid);
-        if (faction == null || faction.home() == null) return "";
+        if (faction == null || faction.home() == null) return null;
         return String.format("%.2f", faction.home().yaw());
     }
 
-    @NotNull
+    @Nullable
     private String getFactionHomePitch(@NotNull UUID uuid) {
         Faction faction = plugin.getFactionManager().getPlayerFaction(uuid);
-        if (faction == null || faction.home() == null) return "";
+        if (faction == null || faction.home() == null) return null;
         return String.format("%.2f", faction.home().pitch());
     }
 
     // ==================== Members & Relations ====================
 
-    @NotNull
+    @Nullable
     private String getFactionMembers(@NotNull UUID uuid) {
         Faction faction = plugin.getFactionManager().getPlayerFaction(uuid);
-        if (faction == null) return "0";
+        if (faction == null) return null;
         return String.valueOf(faction.getMemberCount());
     }
 
-    @NotNull
+    @Nullable
     private String getFactionMembersOnline(@NotNull UUID uuid) {
         Faction faction = plugin.getFactionManager().getPlayerFaction(uuid);
-        if (faction == null) return "0";
+        if (faction == null) return null;
 
         int online = 0;
         for (UUID memberUuid : faction.members().keySet()) {
@@ -480,40 +480,40 @@ public class WiFlowExpansion extends PlaceholderExpansion {
         return String.valueOf(online);
     }
 
-    @NotNull
+    @Nullable
     private String getFactionAllyCount(@NotNull UUID uuid) {
         Faction faction = plugin.getFactionManager().getPlayerFaction(uuid);
-        if (faction == null) return "0";
+        if (faction == null) return null;
         long count = faction.relations().values().stream()
                 .filter(r -> r.type() == RelationType.ALLY)
                 .count();
         return String.valueOf(count);
     }
 
-    @NotNull
+    @Nullable
     private String getFactionEnemyCount(@NotNull UUID uuid) {
         Faction faction = plugin.getFactionManager().getPlayerFaction(uuid);
-        if (faction == null) return "0";
+        if (faction == null) return null;
         long count = faction.relations().values().stream()
                 .filter(r -> r.type() == RelationType.ENEMY)
                 .count();
         return String.valueOf(count);
     }
 
-    @NotNull
+    @Nullable
     private String getFactionNeutralCount(@NotNull UUID uuid) {
         Faction faction = plugin.getFactionManager().getPlayerFaction(uuid);
-        if (faction == null) return "0";
+        if (faction == null) return null;
         long count = faction.relations().values().stream()
                 .filter(r -> r.type() == RelationType.NEUTRAL)
                 .count();
         return String.valueOf(count);
     }
 
-    @NotNull
+    @Nullable
     private String getFactionRelationCount(@NotNull UUID uuid) {
         Faction faction = plugin.getFactionManager().getPlayerFaction(uuid);
-        if (faction == null) return "0";
+        if (faction == null) return null;
         return String.valueOf(faction.relations().size());
     }
 }

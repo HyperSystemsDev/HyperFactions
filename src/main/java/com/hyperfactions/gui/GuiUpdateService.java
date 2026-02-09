@@ -147,6 +147,18 @@ public class GuiUpdateService {
     }
 
     // ============================================================
+    // Chat Events
+    // ============================================================
+
+    /**
+     * Called when a chat message is sent in a faction/ally channel.
+     * Refreshes chat pages for faction members.
+     */
+    public void onChatMessage(@NotNull UUID factionId) {
+        refreshFactionPage("chat", factionId);
+    }
+
+    // ============================================================
     // Territory Events
     // ============================================================
 

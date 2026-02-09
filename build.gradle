@@ -93,6 +93,10 @@ processResources {
     }
 }
 
+jar {
+    archiveClassifier = 'plain'
+}
+
 shadowJar {
     archiveClassifier.set('')
 

@@ -7,7 +7,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-*No changes yet*
+### Added
+
+**Faction & Alliance Chat Overhaul**
+- New persistent chat history system with per-faction JSON storage and debounced disk writes
+- Chat history GUI page with Faction/Ally tabs, scrollable message list, and send-from-GUI input bar
+- Toggle-only chat command: `/f c` cycles modes, `/f c f` for faction, `/f c a` for ally, `/f c off` for public
+- Configurable chat formatting with colors and prefixes per channel in `config/chat.json`
+- Ally tab merges messages from all allied factions into a chronological timeline with faction tag prefixes
+- Automatic retention cleanup of old messages (configurable days and interval)
+- Real-time GUI push: new messages appear instantly for all faction members with the chat page open
+- Chat history pre-warming on player connect for instant page loads
+
+**Dashboard Chat Mode Button**
+- Replaced separate F-Chat and A-Chat buttons with a single unified "Chat Mode" toggle button
+- Cycles through Public → Faction → Ally modes with color-coded labels
+- Respects `chat.faction` and `chat.ally` permissions
+
+**PlaceholderAPI Improvements**
+- Refactored PAPI and WiFlow expansions for cleaner placeholder resolution
+- Added `factions_home_pitch` placeholder (WiFlow)
+- Both expansions now share consistent null handling and formatting
+
+**CurseForge Description**
+- Complete rewrite of the CurseForge listing page with comprehensive feature documentation
+- Added emojis, colored accents, and marketing-friendly layout
+- Detailed sections for protection system, zone flags, chat, announcements, GUI system, admin tools, and integrations
+- Integration links for HyperPerms, LuckPerms, VaultUnlocked, Hyxin, OrbisGuard-Mixins, PlaceholderAPI, WiFlow
+- Upcoming integration callouts for Ecotale, RPG Leveling, NPC Dialog, NPC Quests Maker, BetterScoreBoard
+
+### Changed
+
+- Chat command no longer supports one-shot `/f c <message>` send (use toggle mode instead)
+- `ChatConfig` now includes a `factionChat` nested section for channel-specific settings
+- `GuiManager` bumped Settings to order 7 and Help to order 8 to accommodate Chat at order 6
+
+### Fixed
+
+- Shadow JAR clobbering in multi-project builds: added `jar { archiveClassifier = 'plain' }` to prevent the plain jar task from overwriting the shadow JAR
+- WorldMapConfig minor cleanup
+
+### Docs
+
+- New `docs/placeholders.md` with complete placeholder reference for PAPI and WiFlow (34+ placeholders)
+- Updated `docs/integrations.md` with WiFlow expansion details
+- Updated `docs/readme.md` with chat page entry
 
 ## [0.7.0] - 2026-02-07
 

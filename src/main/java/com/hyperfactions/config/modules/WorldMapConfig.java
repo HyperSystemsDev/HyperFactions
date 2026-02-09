@@ -66,12 +66,12 @@ public class WorldMapConfig extends ModuleConfig {
                     return mode;
                 }
             }
-            return PROXIMITY; // Default
+            return INCREMENTAL; // Default
         }
     }
 
     // Current refresh mode
-    private RefreshMode refreshMode = RefreshMode.PROXIMITY;
+    private RefreshMode refreshMode = RefreshMode.INCREMENTAL;
 
     // Proximity mode settings
     private int proximityChunkRadius = 32;
@@ -117,7 +117,7 @@ public class WorldMapConfig extends ModuleConfig {
     @Override
     protected void createDefaults() {
         enabled = true;
-        refreshMode = RefreshMode.PROXIMITY;
+        refreshMode = RefreshMode.INCREMENTAL;
 
         // Proximity defaults (30 TPS: 30 ticks = 1 second)
         proximityChunkRadius = 32;

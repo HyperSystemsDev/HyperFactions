@@ -729,6 +729,12 @@ public class HyperFactionsPlugin extends JavaPlugin {
         // Update faction member last online
         hyperFactions.getFactionManager().updateLastOnline(uuid);
 
+        // Pre-warm chat history cache if player is in a faction
+        com.hyperfactions.data.Faction playerFaction = hyperFactions.getFactionManager().getPlayerFaction(uuid);
+        if (playerFaction != null && hyperFactions.getChatHistoryManager() != null) {
+            hyperFactions.getChatHistoryManager().preWarmCache(playerFaction.id());
+        }
+
         // Initialize territory tracking and send initial notification
         // World map provider is now registered via AddWorldEvent, not here
         try {
@@ -779,6 +785,17 @@ public class HyperFactionsPlugin extends JavaPlugin {
 
         // Reset chat channel
         hyperFactions.getChatManager().resetChannel(uuid);
+
+        // Evict chat history cache if no online faction members remain
+        com.hyperfactions.data.Faction dcFaction = hyperFactions.getFactionManager().getPlayerFaction(uuid);
+        if (dcFaction != null && hyperFactions.getChatHistoryManager() != null) {
+            boolean anyOnline = dcFaction.members().keySet().stream()
+                    .filter(id -> !id.equals(uuid))
+                    .anyMatch(id -> trackedPlayers.containsKey(id));
+            if (!anyOnline) {
+                hyperFactions.getChatHistoryManager().evictCache(dcFaction.id());
+            }
+        }
 
         // Clean up territory tracking
         hyperFactions.getTerritoryNotifier().onPlayerDisconnect(uuid);

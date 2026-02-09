@@ -30,6 +30,7 @@ Developer documentation for HyperFactions - a comprehensive faction management p
 |----------|-------------|
 | [api.md](api.md) | Developer API reference - HyperFactionsAPI, EconomyAPI, EventBus |
 | [integrations.md](integrations.md) | Integration breakdown - permissions, PAPI, WiFlow, OrbisGuard, world map |
+| [placeholders.md](placeholders.md) | Placeholder reference - all 35 PAPI & WiFlow placeholders with examples |
 
 ### Feature Documentation
 

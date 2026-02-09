@@ -1,0 +1,32 @@
+// Single chat message entry row
+// Compact format: [time] [tag] sender: message
+
+Group {
+  Anchor: (Height: 16, Bottom: 1);
+  LayoutMode: Left;
+
+  Label #MsgTime {
+    Text: "";
+    Style: (FontSize: 9, TextColor: #555555);
+    Anchor: (Width: 24, Right: 3);
+  }
+
+  Label #MsgTag {
+    Text: "";
+    Style: (FontSize: 9, TextColor: #666666);
+    Anchor: (Width: 36, Right: 3);
+    Visible: false;
+  }
+
+  Label #MsgSender {
+    Text: "";
+    Style: (FontSize: 10, TextColor: #FFAA00, RenderBold: true);
+    Anchor: (Width: 62, Right: 3);
+  }
+
+  Label #MsgText {
+    Text: "";
+    Style: (FontSize: 10, TextColor: #cccccc);
+    FlexWeight: 1;
+  }
+}

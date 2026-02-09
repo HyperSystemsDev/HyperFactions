@@ -145,6 +145,8 @@ When no provider can answer:
 
 Registered via `PlaceholderExpansion` from the PlaceholderAPI library. Persists across reloads (`persist() = true`).
 
+> **Full Reference**: See [placeholders.md](placeholders.md) for complete placeholder documentation with null behavior, usage examples, and configuration details.
+
 ### Placeholders (33)
 
 #### Player Faction Info (12)
@@ -216,6 +218,8 @@ Registered via `PlaceholderExpansion` from the PlaceholderAPI library. Persists 
 **Format**: `{factions_<placeholder>}`
 
 WiFlow uses curly braces instead of percent signs but supports the same 33 placeholders as PAPI. The `WiFlowExpansion` class mirrors `HyperFactionsExpansion` exactly, using WiFlow's `PlaceholderContext` instead of PAPI's `PlayerRef`.
+
+> **Full Reference**: See [placeholders.md](placeholders.md) for complete placeholder documentation with null behavior, usage examples, and configuration details.
 
 ---
 

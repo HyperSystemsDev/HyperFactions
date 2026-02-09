@@ -4,9 +4,11 @@ $C = "../../Common.ui";
 $S = "../shared/styles.ui";
 
 Group {
+  LayoutMode: Top;
+
   TextButton #ActionBtn {
     Text: "Action";
-    Anchor: (Height: 32, Width: 80);
+    Anchor: (Height: 36);
     Style: $S.@ButtonStyle;
   }
 }

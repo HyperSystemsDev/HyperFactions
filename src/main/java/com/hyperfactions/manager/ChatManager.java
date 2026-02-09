@@ -1,8 +1,12 @@
 package com.hyperfactions.manager;
 
 import com.hyperfactions.Permissions;
+import com.hyperfactions.config.ConfigManager;
+import com.hyperfactions.data.ChatMessage;
 import com.hyperfactions.data.Faction;
 import com.hyperfactions.data.FactionRelation;
+import com.hyperfactions.gui.ActivePageTracker;
+import com.hyperfactions.gui.GuiUpdateService;
 import com.hyperfactions.integration.PermissionManager;
 import com.hyperfactions.util.Logger;
 import com.hypixel.hytale.server.core.Message;
@@ -10,14 +14,18 @@ import com.hypixel.hytale.server.core.universe.PlayerRef;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Function;
 
 /**
  * Manages chat channels for faction and ally chat.
  * Players can toggle between normal, faction, and ally chat modes.
+ * Integrates with ChatHistoryManager for message persistence and
+ * GuiUpdateService for real-time GUI refresh.
  */
 public class ChatManager {
 
@@ -53,12 +61,24 @@ public class ChatManager {
         }
     }
 
+    /**
+     * Listener for chat messages. Called after each message broadcast.
+     * Useful for external integrations (e.g., Discord bridge).
+     */
+    @FunctionalInterface
+    public interface ChatMessageListener {
+        void onMessage(@NotNull ChatMessage message, @NotNull UUID factionId);
+    }
+
     // Player UUID -> current chat channel
     private final Map<UUID, ChatChannel> playerChannels = new ConcurrentHashMap<>();
 
     private final FactionManager factionManager;
     private final RelationManager relationManager;
     private final Function<UUID, PlayerRef> playerLookup;
+    private @Nullable ChatHistoryManager chatHistoryManager;
+    private @Nullable GuiUpdateService guiUpdateService;
+    private final List<ChatMessageListener> messageListeners = new CopyOnWriteArrayList<>();
 
     /**
      * Creates a new ChatManager.
@@ -74,6 +94,46 @@ public class ChatManager {
         this.relationManager = relationManager;
         this.playerLookup = playerLookup;
     }
+
+    /**
+     * Sets the chat history manager for message persistence.
+     *
+     * @param chatHistoryManager the history manager
+     */
+    public void setChatHistoryManager(@Nullable ChatHistoryManager chatHistoryManager) {
+        this.chatHistoryManager = chatHistoryManager;
+    }
+
+    /**
+     * Sets the GUI update service for real-time page refresh.
+     *
+     * @param guiUpdateService the GUI update service
+     */
+    public void setGuiUpdateService(@Nullable GuiUpdateService guiUpdateService) {
+        this.guiUpdateService = guiUpdateService;
+    }
+
+    /**
+     * Adds a listener that is notified after each faction/ally message is broadcast.
+     *
+     * @param listener the listener
+     */
+    public void addMessageListener(@NotNull ChatMessageListener listener) {
+        messageListeners.add(listener);
+    }
+
+    /**
+     * Removes a message listener.
+     *
+     * @param listener the listener to remove
+     */
+    public void removeMessageListener(@NotNull ChatMessageListener listener) {
+        messageListeners.remove(listener);
+    }
+
+    // ============================================================
+    // Channel Management
+    // ============================================================
 
     /**
      * Gets a player's current chat channel.
@@ -101,6 +161,75 @@ public class ChatManager {
     }
 
     /**
+     * Cycles through chat channels: Normal -> Faction -> Ally -> Normal,
+     * skipping modes the player lacks permission for.
+     *
+     * @param playerUuid the player's UUID
+     * @return the result with new channel state
+     */
+    @NotNull
+    public ToggleResult cycleChannelChecked(@NotNull UUID playerUuid) {
+        ChatChannel current = getChannel(playerUuid);
+        boolean hasFaction = PermissionManager.get().hasPermission(playerUuid, Permissions.CHAT_FACTION);
+        boolean hasAlly = PermissionManager.get().hasPermission(playerUuid, Permissions.CHAT_ALLY);
+
+        ChatChannel next = switch (current) {
+            case NORMAL -> {
+                if (hasFaction) yield ChatChannel.FACTION;
+                if (hasAlly) yield ChatChannel.ALLY;
+                yield ChatChannel.NORMAL;
+            }
+            case FACTION -> {
+                if (hasAlly) yield ChatChannel.ALLY;
+                yield ChatChannel.NORMAL;
+            }
+            case ALLY -> ChatChannel.NORMAL;
+        };
+
+        setChannel(playerUuid, next);
+        return new ToggleResult(ChatResult.SUCCESS, next);
+    }
+
+    /**
+     * Sets a player directly to faction chat mode with permission check.
+     *
+     * @param playerUuid the player's UUID
+     * @return the toggle result
+     */
+    @NotNull
+    public ToggleResult setFactionChatChecked(@NotNull UUID playerUuid) {
+        if (!PermissionManager.get().hasPermission(playerUuid, Permissions.CHAT_FACTION)) {
+            return new ToggleResult(ChatResult.NO_PERMISSION, null);
+        }
+        setChannel(playerUuid, ChatChannel.FACTION);
+        return new ToggleResult(ChatResult.SUCCESS, ChatChannel.FACTION);
+    }
+
+    /**
+     * Sets a player directly to ally chat mode with permission check.
+     *
+     * @param playerUuid the player's UUID
+     * @return the toggle result
+     */
+    @NotNull
+    public ToggleResult setAllyChatChecked(@NotNull UUID playerUuid) {
+        if (!PermissionManager.get().hasPermission(playerUuid, Permissions.CHAT_ALLY)) {
+            return new ToggleResult(ChatResult.NO_PERMISSION, null);
+        }
+        setChannel(playerUuid, ChatChannel.ALLY);
+        return new ToggleResult(ChatResult.SUCCESS, ChatChannel.ALLY);
+    }
+
+    /**
+     * Sets a player's chat to normal mode (no permission check needed).
+     *
+     * @param playerUuid the player's UUID
+     */
+    public void setNormalChat(@NotNull UUID playerUuid) {
+        setChannel(playerUuid, ChatChannel.NORMAL);
+    }
+
+    /**
      * Toggles faction chat for a player with permission check.
      *
      * @param playerUuid the player's UUID
@@ -108,7 +237,6 @@ public class ChatManager {
      */
     @NotNull
     public ToggleResult toggleFactionChatChecked(@NotNull UUID playerUuid) {
-        // Check permission first
         if (!PermissionManager.get().hasPermission(playerUuid, Permissions.CHAT_FACTION)) {
             return new ToggleResult(ChatResult.NO_PERMISSION, null);
         }
@@ -119,7 +247,6 @@ public class ChatManager {
 
     /**
      * Toggles faction chat for a player.
-     * Note: For permission-checked toggle, use {@link #toggleFactionChatChecked}.
      *
      * @param playerUuid the player's UUID
      * @return the new channel state
@@ -144,7 +271,6 @@ public class ChatManager {
      */
     @NotNull
     public ToggleResult toggleAllyChatChecked(@NotNull UUID playerUuid) {
-        // Check permission first
         if (!PermissionManager.get().hasPermission(playerUuid, Permissions.CHAT_ALLY)) {
             return new ToggleResult(ChatResult.NO_PERMISSION, null);
         }
@@ -155,7 +281,6 @@ public class ChatManager {
 
     /**
      * Toggles ally chat for a player.
-     * Note: For permission-checked toggle, use {@link #toggleAllyChatChecked}.
      *
      * @param playerUuid the player's UUID
      * @return the new channel state
@@ -182,6 +307,10 @@ public class ChatManager {
         playerChannels.remove(playerUuid);
     }
 
+    // ============================================================
+    // Message Processing
+    // ============================================================
+
     /**
      * Processes a chat message based on the player's current channel.
      * Returns true if the message was handled (faction/ally chat), false if normal chat.
@@ -200,7 +329,6 @@ public class ChatManager {
 
         Faction senderFaction = factionManager.getPlayerFaction(senderUuid);
         if (senderFaction == null) {
-            // Player is not in a faction, reset to normal
             resetChannel(senderUuid);
             return false;
         }
@@ -217,13 +345,37 @@ public class ChatManager {
     }
 
     /**
+     * Sends a message from the GUI on a specific channel.
+     * Used by the chat history page to send messages without toggling the player's mode.
+     *
+     * @param sender  the sender's PlayerRef
+     * @param faction the sender's faction
+     * @param channel the target channel
+     * @param message the message text
+     */
+    public void sendFromGui(@NotNull PlayerRef sender, @NotNull Faction faction,
+                            @NotNull ChatMessage.Channel channel, @NotNull String message) {
+        if (channel == ChatMessage.Channel.FACTION) {
+            sendFactionMessage(sender, faction, message);
+        } else {
+            sendAllyMessage(sender, faction, message);
+        }
+    }
+
+    /**
      * Sends a message to all faction members.
      */
     private void sendFactionMessage(@NotNull PlayerRef sender, @NotNull Faction faction, @NotNull String message) {
-        Message formatted = Message.raw("[Faction] ").color("#00FFFF")
-                .insert(Message.raw(sender.getUsername()).color("#FFFF55"))
+        ConfigManager config = ConfigManager.get();
+        String prefix = config.getFactionChatPrefix();
+        String prefixColor = config.getFactionChatColor();
+        String nameColor = config.getSenderNameColor();
+        String msgColor = config.getMessageColor();
+
+        Message formatted = Message.raw(prefix + " ").color(prefixColor)
+                .insert(Message.raw(sender.getUsername()).color(nameColor))
                 .insert(Message.raw(": ").color("#AAAAAA"))
-                .insert(Message.raw(message).color("#FFFFFF"));
+                .insert(Message.raw(message).color(msgColor));
 
         // Send to all online faction members
         for (UUID memberUuid : faction.members().keySet()) {
@@ -233,6 +385,24 @@ public class ChatManager {
             }
         }
 
+        // Record in history
+        String tag = faction.tag() != null ? faction.tag() : faction.name();
+        ChatMessage chatMessage = ChatMessage.create(
+                sender.getUuid(), sender.getUsername(), tag,
+                ChatMessage.Channel.FACTION, message);
+
+        if (chatHistoryManager != null) {
+            chatHistoryManager.recordMessage(faction.id(), chatMessage);
+        }
+
+        // Notify listeners
+        notifyListeners(chatMessage, faction.id());
+
+        // Refresh chat GUI pages for faction members
+        if (guiUpdateService != null) {
+            guiUpdateService.onChatMessage(faction.id());
+        }
+
         Logger.debug("[FChat] %s: %s", sender.getUsername(), message);
     }
 
@@ -240,11 +410,18 @@ public class ChatManager {
      * Sends a message to all faction and ally faction members.
      */
     private void sendAllyMessage(@NotNull PlayerRef sender, @NotNull Faction faction, @NotNull String message) {
-        Message formatted = Message.raw("[Ally] ").color("#AA00AA")
-                .insert(Message.raw("[" + faction.tag() + "] ").color("#AAAAAA"))
-                .insert(Message.raw(sender.getUsername()).color("#FFFF55"))
+        ConfigManager config = ConfigManager.get();
+        String prefix = config.getAllyChatPrefix();
+        String prefixColor = config.getAllyChatColor();
+        String nameColor = config.getSenderNameColor();
+        String msgColor = config.getMessageColor();
+        String tag = faction.tag() != null ? faction.tag() : faction.name();
+
+        Message formatted = Message.raw(prefix + " ").color(prefixColor)
+                .insert(Message.raw("[" + tag + "] ").color("#AAAAAA"))
+                .insert(Message.raw(sender.getUsername()).color(nameColor))
                 .insert(Message.raw(": ").color("#AAAAAA"))
-                .insert(Message.raw(message).color("#FFFFFF"));
+                .insert(Message.raw(message).color(msgColor));
 
         // Send to sender's faction members
         for (UUID memberUuid : faction.members().keySet()) {
@@ -270,8 +447,45 @@ public class ChatManager {
             }
         }
 
+        // Record in sender's faction history only (ally tab merges at read time)
+        ChatMessage chatMessage = ChatMessage.create(
+                sender.getUuid(), sender.getUsername(), tag,
+                ChatMessage.Channel.ALLY, message);
+
+        if (chatHistoryManager != null) {
+            chatHistoryManager.recordMessage(faction.id(), chatMessage);
+        }
+
+        // Notify listeners
+        notifyListeners(chatMessage, faction.id());
+
+        // Refresh chat GUI pages for sender's faction + all allies
+        if (guiUpdateService != null) {
+            guiUpdateService.onChatMessage(faction.id());
+            for (UUID allyFactionId : faction.relations().keySet()) {
+                FactionRelation relation = faction.relations().get(allyFactionId);
+                if (relation != null && relation.isAlly()) {
+                    guiUpdateService.onChatMessage(allyFactionId);
+                }
+            }
+        }
+
         Logger.debug("[AChat] %s: %s", sender.getUsername(), message);
     }
+
+    private void notifyListeners(@NotNull ChatMessage message, @NotNull UUID factionId) {
+        for (ChatMessageListener listener : messageListeners) {
+            try {
+                listener.onMessage(message, factionId);
+            } catch (Exception e) {
+                Logger.warn("Chat message listener threw exception: %s", e.getMessage());
+            }
+        }
+    }
+
+    // ============================================================
+    // Display Helpers
+    // ============================================================
 
     /**
      * Gets a display string for a chat channel.
@@ -289,7 +503,7 @@ public class ChatManager {
     }
 
     /**
-     * Gets the color for a chat channel.
+     * Gets the color for a chat channel from config.
      *
      * @param channel the channel
      * @return hex color string
@@ -298,8 +512,8 @@ public class ChatManager {
     public static String getChannelColor(@NotNull ChatChannel channel) {
         return switch (channel) {
             case NORMAL -> "#FFFFFF";
-            case FACTION -> "#00FFFF";
-            case ALLY -> "#AA00AA";
+            case FACTION -> ConfigManager.get().getFactionChatColor();
+            case ALLY -> ConfigManager.get().getAllyChatColor();
         };
     }
 }

@@ -4,6 +4,7 @@ import com.hyperfactions.HyperFactions;
 import com.hyperfactions.Permissions;
 import com.hyperfactions.command.FactionSubCommand;
 import com.hyperfactions.data.Faction;
+import com.hyperfactions.manager.ChatManager;
 import com.hyperfactions.platform.HyperFactionsPlugin;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
@@ -14,14 +15,20 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Subcommand: /f chat <message>
- * Sends a message to faction chat.
+ * Subcommand: /f chat [faction|ally|off]
+ * Toggles between chat modes or sets a specific mode.
  * Aliases: c
+ *
+ * Usage:
+ *   /f c       - Cycle: Normal -> Faction -> Ally -> Normal
+ *   /f c f     - Set to Faction chat
+ *   /f c a     - Set to Ally chat
+ *   /f c off   - Set to Normal/public chat
  */
 public class ChatSubCommand extends FactionSubCommand {
 
     public ChatSubCommand(@NotNull HyperFactions hyperFactions, @NotNull HyperFactionsPlugin plugin) {
-        super("chat", "Send faction chat message", hyperFactions, plugin);
+        super("chat", "Toggle faction/ally chat mode", hyperFactions, plugin);
         addAliases("c");
     }
 
@@ -32,31 +39,53 @@ public class ChatSubCommand extends FactionSubCommand {
                           @NotNull PlayerRef player,
                           @NotNull World currentWorld) {
 
-        if (!hasPermission(player, Permissions.CHAT_FACTION)) {
-            ctx.sendMessage(prefix().insert(msg("You don't have permission to use faction chat.", COLOR_RED)));
-            return;
-        }
-
         Faction faction = hyperFactions.getFactionManager().getPlayerFaction(player.getUuid());
         if (faction == null) {
             ctx.sendMessage(prefix().insert(msg("You are not in a faction.", COLOR_RED)));
             return;
         }
 
+        ChatManager chatManager = hyperFactions.getChatManager();
+
+        // Parse arguments
         String input = ctx.getInputString();
         String[] parts = input != null ? input.trim().split("\\s+") : new String[0];
-        // parts[0] = "faction/f/hf", parts[1] = "chat/c", parts[2+] = message
-        String[] args = parts.length > 2 ? java.util.Arrays.copyOfRange(parts, 2, parts.length) : new String[0];
+        // parts[0] = "faction/f/hf", parts[1] = "chat/c", parts[2] = mode (optional)
+        String mode = parts.length > 2 ? parts[2].toLowerCase() : null;
 
-        if (args.length == 0) {
-            ctx.sendMessage(prefix().insert(msg("Usage: /f c <message>", COLOR_RED)));
+        ChatManager.ToggleResult result;
+
+        if (mode == null) {
+            // No argument - cycle through modes
+            result = chatManager.cycleChannelChecked(player.getUuid());
+        } else {
+            result = switch (mode) {
+                case "f", "faction" -> chatManager.setFactionChatChecked(player.getUuid());
+                case "a", "ally" -> chatManager.setAllyChatChecked(player.getUuid());
+                case "off", "normal", "public" -> {
+                    chatManager.setNormalChat(player.getUuid());
+                    yield new ChatManager.ToggleResult(ChatManager.ChatResult.SUCCESS, ChatManager.ChatChannel.NORMAL);
+                }
+                default -> {
+                    ctx.sendMessage(prefix().insert(msg("Usage: /f c [f|a|off]", COLOR_RED)));
+                    yield null;
+                }
+            };
+        }
+
+        if (result == null) return;
+
+        if (!result.isSuccess()) {
+            ctx.sendMessage(prefix().insert(msg("You don't have permission for that chat mode.", COLOR_RED)));
             return;
         }
 
-        String message = String.join(" ", args);
-        com.hypixel.hytale.server.core.Message formatted = msg("[Faction] ", COLOR_CYAN)
-            .insert(msg(player.getUsername(), COLOR_YELLOW))
-            .insert(msg(": " + message, COLOR_WHITE));
-        broadcastToFaction(faction.id(), formatted);
+        ChatManager.ChatChannel channel = result.channel();
+        String display = ChatManager.getChannelDisplay(channel);
+        String color = ChatManager.getChannelColor(channel);
+
+        ctx.sendMessage(prefix()
+                .insert(msg("Chat mode set to ", COLOR_GRAY))
+                .insert(msg(display, color)));
     }
 }

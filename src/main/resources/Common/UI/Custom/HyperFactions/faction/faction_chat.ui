@@ -1,0 +1,91 @@
+// Faction Chat Page
+// Chat history with faction and ally tabs, scrollable messages, and send input
+
+$C = "../../Common.ui";
+$S = "../shared/styles.ui";
+$Nav = "../nav/nav_bar.ui";
+
+$C.@PageOverlay {
+  $Nav.@HyperFactionsNavBar #HyperFactionsNavBar {}
+
+  $C.@Container {
+    Anchor: (Width: 550, Height: 500);
+
+    #Title {
+      $C.@Title {
+        @Text = "Faction Chat";
+      }
+    }
+
+    #Content {
+      LayoutMode: Top;
+      Padding: (Left: 15, Right: 15, Top: 10, Bottom: 10);
+
+      // Tab row
+      Group #TabRow {
+        Anchor: (Height: 35, Bottom: 10);
+        LayoutMode: Left;
+
+        TextButton #TabFactionBtn {
+          Text: "Faction";
+          Style: $S.@ButtonStyle;
+          Anchor: (Width: 80, Height: 26);
+        }
+
+        Label { Anchor: (Width: 5); }
+
+        TextButton #TabAllyBtn {
+          Text: "Ally";
+          Style: $S.@ButtonStyle;
+          Anchor: (Width: 80, Height: 26);
+        }
+
+        Label { FlexWeight: 1; }
+      }
+
+      // Divider
+      Group {
+        Anchor: (Height: 1, Bottom: 8);
+        Background: (Color: #00AAAA);
+      }
+
+      // Message list (scrollable, anchored to bottom for chat UX)
+      Group #MessageList {
+        FlexWeight: 1;
+        LayoutMode: BottomScrolling;
+        ScrollbarStyle: $C.@DefaultScrollbarStyle;
+        Background: (Color: #0a1018);
+        Padding: (Left: 8, Right: 8, Top: 6, Bottom: 6);
+      }
+
+      // Divider
+      Group {
+        Anchor: (Height: 1, Top: 8, Bottom: 8);
+        Background: (Color: #00AAAA);
+      }
+
+      // Chat input bar
+      Group #ChatInputBar {
+        LayoutMode: Left;
+        Anchor: (Height: 35);
+
+        $C.@TextField #ChatInput {
+          FlexWeight: 1;
+          Anchor: (Height: 28);
+          Style: (FontSize: 12, TextColor: #FFFFFF);
+        }
+
+        Label { Anchor: (Width: 6); }
+
+        TextButton #SendBtn {
+          Text: "Send";
+          Style: $S.@CyanButtonStyle;
+          Anchor: (Width: 70, Height: 28);
+        }
+      }
+    }
+  }
+}
+
+// Native Hytale back button (bottom-left ESC)
+$C.@BackButton {}

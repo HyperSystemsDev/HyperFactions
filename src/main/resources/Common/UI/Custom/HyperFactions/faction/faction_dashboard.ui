@@ -245,7 +245,7 @@ $C.@PageOverlay {
 
       // Quick actions section
       Group {
-        Anchor: (Height: 25, Bottom: 5);
+        Anchor: (Height: 25, Bottom: 8);
 
         Label {
           Text: "Quick Actions";
@@ -254,29 +254,63 @@ $C.@PageOverlay {
       }
 
       Group #QuickActionsRow {
-        Anchor: (Height: 40, Bottom: 15);
+        Anchor: (Height: 70, Bottom: 15);
         LayoutMode: Left;
 
         Group #HomeBtnContainer {
-          Anchor: (Width: 85);
+          FlexWeight: 1;
+          Background: (Color: #1a2a3a);
+          Padding: (Left: 8, Right: 8, Top: 8, Bottom: 8);
+          LayoutMode: Top;
+          Anchor: (Right: 4);
+
+          Label {
+            Text: "Teleport";
+            Style: (FontSize: 9, TextColor: #555555);
+            Anchor: (Height: 14, Bottom: 4);
+          }
         }
 
         Group #ClaimBtnContainer {
-          Anchor: (Width: 85);
+          FlexWeight: 1;
+          Background: (Color: #1a2a3a);
+          Padding: (Left: 8, Right: 8, Top: 8, Bottom: 8);
+          LayoutMode: Top;
+          Anchor: (Left: 4, Right: 4);
+
+          Label {
+            Text: "Territory";
+            Style: (FontSize: 9, TextColor: #555555);
+            Anchor: (Height: 14, Bottom: 4);
+          }
         }
 
-        Group #FChatBtnContainer {
-          Anchor: (Width: 85);
-        }
+        Group #ChatModeBtnContainer {
+          FlexWeight: 1;
+          Background: (Color: #1a2a3a);
+          Padding: (Left: 8, Right: 8, Top: 8, Bottom: 8);
+          LayoutMode: Top;
+          Anchor: (Left: 4, Right: 4);
 
-        Group #AChatBtnContainer {
-          Anchor: (Width: 85);
+          Label {
+            Text: "Channel";
+            Style: (FontSize: 9, TextColor: #555555);
+            Anchor: (Height: 14, Bottom: 4);
+          }
         }
-
-        Label { FlexWeight: 1; }
 
         Group #LeaveBtnContainer {
-          Anchor: (Width: 85);
+          FlexWeight: 1;
+          Background: (Color: #1a2a3a);
+          Padding: (Left: 8, Right: 8, Top: 8, Bottom: 8);
+          LayoutMode: Top;
+          Anchor: (Left: 4);
+
+          Label {
+            Text: "Membership";
+            Style: (FontSize: 9, TextColor: #555555);
+            Anchor: (Height: 14, Bottom: 4);
+          }
         }
       }
 
@@ -301,20 +335,15 @@ $C.@PageOverlay {
         TextButton #ViewLogsBtn {
           Text: "View All";
           Anchor: (Height: 22, Width: 70);
-          Style: $S.@ButtonStyle;
+          Style: $S.@DisabledButtonStyle;
         }
       }
 
-      // Activity entries container
+      // Activity entries container (scrollable)
       Group #ActivityFeed {
-        LayoutMode: Top;
-        Anchor: (Height: 130);
-
-        Group #ActivityEntry0 { Anchor: (Height: 26); }
-        Group #ActivityEntry1 { Anchor: (Height: 26); }
-        Group #ActivityEntry2 { Anchor: (Height: 26); }
-        Group #ActivityEntry3 { Anchor: (Height: 26); }
-        Group #ActivityEntry4 { Anchor: (Height: 26); }
+        FlexWeight: 1;
+        LayoutMode: TopScrolling;
+        ScrollbarStyle: $C.@DefaultScrollbarStyle;
       }
     }
   }
