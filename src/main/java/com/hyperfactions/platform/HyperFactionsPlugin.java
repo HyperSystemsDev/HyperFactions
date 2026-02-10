@@ -438,6 +438,14 @@ public class HyperFactionsPlugin extends JavaPlugin {
             getLogger().at(Level.INFO).log("OrbisGuard: Not detected (optional)");
         }
 
+        boolean gsAvailable = hyperFactions.getProtectionChecker().getGravestoneIntegration() != null
+                && hyperFactions.getProtectionChecker().getGravestoneIntegration().isAvailable();
+        if (gsAvailable) {
+            getLogger().at(Level.INFO).log("GravestonePlugin: Faction-aware gravestone protection - ENABLED");
+        } else {
+            getLogger().at(Level.INFO).log("GravestonePlugin: Not detected (optional)");
+        }
+
         getLogger().at(Level.INFO).log("=========================================");
     }
 

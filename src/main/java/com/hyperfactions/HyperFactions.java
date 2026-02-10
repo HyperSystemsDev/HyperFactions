@@ -9,6 +9,7 @@ import com.hyperfactions.backup.BackupManager;
 import com.hyperfactions.config.ConfigManager;
 import com.hyperfactions.data.Faction;
 import com.hyperfactions.gui.GuiManager;
+import com.hyperfactions.integration.GravestoneIntegration;
 import com.hyperfactions.integration.HyperPermsIntegration;
 import com.hyperfactions.integration.PermissionManager;
 import com.hyperfactions.manager.*;
@@ -76,6 +77,9 @@ public class HyperFactions {
     private ConfirmationManager confirmationManager;
     private SpawnSuppressionManager spawnSuppressionManager;
     private AnnouncementManager announcementManager;
+
+    // Integrations
+    private GravestoneIntegration gravestoneIntegration;
 
     // Protection
     private ProtectionChecker protectionChecker;
@@ -225,6 +229,11 @@ public class HyperFactions {
         protectionChecker = new ProtectionChecker(
             () -> this, factionManager, claimManager, zoneManager, relationManager, combatTagManager
         );
+
+        // Initialize GravestonePlugin integration (soft dependency, reflection-based)
+        gravestoneIntegration = new GravestoneIntegration();
+        gravestoneIntegration.init();
+        protectionChecker.setGravestoneIntegration(gravestoneIntegration);
 
         // Initialize zone damage protection
         zoneDamageProtection = new ZoneDamageProtection(this);

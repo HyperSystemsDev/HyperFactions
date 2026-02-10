@@ -2,8 +2,11 @@ package com.hyperfactions.protection.ecs;
 
 import com.hyperfactions.HyperFactions;
 import com.hyperfactions.config.ConfigManager;
+import com.hyperfactions.config.modules.GravestoneConfig;
+import com.hyperfactions.data.Faction;
 import com.hyperfactions.data.RelationType;
 import com.hyperfactions.manager.PowerManager;
+import com.hyperfactions.util.ChunkUtil;
 import com.hyperfactions.util.Logger;
 import com.hypixel.hytale.component.CommandBuffer;
 import com.hypixel.hytale.component.ComponentType;
@@ -11,6 +14,10 @@ import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.component.query.Query;
 import com.hypixel.hytale.component.system.RefChangeSystem;
+import com.hypixel.hytale.math.vector.Transform;
+import com.hypixel.hytale.math.vector.Vector3d;
+import com.hypixel.hytale.server.core.Message;
+import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
 import com.hypixel.hytale.server.core.modules.entity.damage.DeathComponent;
 import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
@@ -99,8 +106,73 @@ public class PlayerDeathSystem extends RefChangeSystem<EntityStore, DeathCompone
                     }
                 }
             }
+
+            // Death location announcement for gravestone integration
+            announceDeathLocation(victimUuid, playerRef, store, commandBuffer, ref);
         } catch (Exception e) {
             Logger.severe("Error handling player death in ECS system", e);
+        }
+    }
+
+    /**
+     * Announces death location to faction members if gravestone integration is enabled.
+     */
+    private void announceDeathLocation(UUID victimUuid, PlayerRef playerRef,
+                                        Store<EntityStore> store,
+                                        CommandBuffer<EntityStore> commandBuffer,
+                                        Ref<EntityStore> ref) {
+        try {
+            GravestoneConfig gsConfig = ConfigManager.get().gravestones();
+            if (!gsConfig.isEnabled() || !gsConfig.isAnnounceDeathLocation()) return;
+
+            // Only announce if GravestonePlugin is available
+            var gsIntegration = hyperFactions.getProtectionChecker().getGravestoneIntegration();
+            if (gsIntegration == null || !gsIntegration.isAvailable()) return;
+
+            // Only announce if victim is in a faction
+            Faction faction = hyperFactions.getFactionManager().getPlayerFaction(victimUuid);
+            if (faction == null) return;
+
+            // Get death position
+            TransformComponent transform = commandBuffer.getComponent(ref, TransformComponent.getComponentType());
+            if (transform == null) return;
+
+            Vector3d pos = transform.getPosition();
+            int x = (int) Math.floor(pos.getX());
+            int y = (int) Math.floor(pos.getY());
+            int z = (int) Math.floor(pos.getZ());
+
+            // Get world name
+            String worldName;
+            try {
+                worldName = store.getExternalData().getWorld().getName();
+            } catch (Exception e) {
+                return;
+            }
+
+            // Build and send message to faction members
+            String playerName = playerRef.getUsername();
+            Message deathMsg = Message.raw("[").color("#555555")
+                    .insert(Message.raw("HF").color("#55FFFF"))
+                    .insert(Message.raw("] ").color("#555555"))
+                    .insert(Message.raw(playerName).color("#FFAA00"))
+                    .insert(Message.raw(" died at ").color("#AAAAAA"))
+                    .insert(Message.raw("(" + x + ", " + y + ", " + z + ")").color("#55FF55"))
+                    .insert(Message.raw(" in ").color("#AAAAAA"))
+                    .insert(Message.raw(worldName).color("#55FFFF"));
+
+            for (UUID memberUuid : faction.members().keySet()) {
+                if (memberUuid.equals(victimUuid)) continue;  // Don't notify the dead player
+                PlayerRef member = hyperFactions.lookupPlayer(memberUuid);
+                if (member != null) {
+                    member.sendMessage(deathMsg);
+                }
+            }
+
+            Logger.debug("Announced death location for %s at (%d,%d,%d) in %s to %d faction members",
+                    playerName, x, y, z, worldName, faction.members().size() - 1);
+        } catch (Exception e) {
+            Logger.debug("Failed to announce death location: %s", e.getMessage());
         }
     }
 

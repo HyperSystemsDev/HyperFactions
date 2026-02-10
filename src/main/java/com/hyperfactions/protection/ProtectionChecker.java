@@ -2,6 +2,7 @@ package com.hyperfactions.protection;
 
 import com.hyperfactions.HyperFactions;
 import com.hyperfactions.config.ConfigManager;
+import com.hyperfactions.config.modules.GravestoneConfig;
 import com.hyperfactions.data.Faction;
 import com.hyperfactions.data.FactionMember;
 import com.hyperfactions.data.FactionPermissions;
@@ -9,6 +10,7 @@ import com.hyperfactions.data.FactionRole;
 import com.hyperfactions.data.RelationType;
 import com.hyperfactions.data.Zone;
 import com.hyperfactions.data.ZoneFlags;
+import com.hyperfactions.integration.GravestoneIntegration;
 import com.hyperfactions.integration.PermissionManager;
 import com.hyperfactions.manager.*;
 import com.hyperfactions.util.ChunkUtil;
@@ -30,6 +32,7 @@ public class ProtectionChecker {
     private final ZoneManager zoneManager;
     private final RelationManager relationManager;
     private final CombatTagManager combatTagManager;
+    private GravestoneIntegration gravestoneIntegration;
 
     public ProtectionChecker(
         @NotNull FactionManager factionManager,
@@ -620,6 +623,130 @@ public class ProtectionChecker {
             case DENIED_TERRITORY_NO_PVP -> "PvP is disabled in this territory.";
             default -> "You cannot attack this player.";
         };
+    }
+
+    // === Gravestone Integration ===
+
+    /**
+     * Sets the gravestone integration bridge.
+     *
+     * @param integration the gravestone integration (may be null if plugin not available)
+     */
+    public void setGravestoneIntegration(@Nullable GravestoneIntegration integration) {
+        this.gravestoneIntegration = integration;
+    }
+
+    /**
+     * Gets the gravestone integration bridge.
+     *
+     * @return the gravestone integration, or null if not set
+     */
+    @Nullable
+    public GravestoneIntegration getGravestoneIntegration() {
+        return gravestoneIntegration;
+    }
+
+    /**
+     * Checks if a player can access (collect or break) a gravestone at a location.
+     * <p>
+     * This adds faction-aware gravestone access control on top of GravestonePlugin's
+     * native protection. The owner can always access their own gravestone.
+     *
+     * @param accessorUuid the UUID of the player trying to access
+     * @param world        the world name
+     * @param x            block X coordinate
+     * @param y            block Y coordinate
+     * @param z            block Z coordinate
+     * @return true if the player can access the gravestone
+     */
+    public boolean canAccessGravestone(@NotNull UUID accessorUuid, @NotNull String world,
+                                        int x, int y, int z) {
+        GravestoneConfig config = ConfigManager.get().gravestones();
+        if (!config.isEnabled()) return true;
+
+        if (gravestoneIntegration == null || !gravestoneIntegration.isAvailable()) return true;
+
+        // Check admin bypass
+        if (plugin != null) {
+            HyperFactions hyperFactions = plugin.get();
+            if (hyperFactions != null && hyperFactions.isAdminBypassEnabled(accessorUuid)) {
+                return true;
+            }
+        }
+
+        // Check bypass permission
+        if (PermissionManager.get().hasPermission(accessorUuid, "hyperfactions.gravestone.bypass")) {
+            return true;
+        }
+
+        UUID ownerUuid = gravestoneIntegration.getGravestoneOwner(x, y, z);
+        if (ownerUuid == null) return true;  // Not a tracked gravestone
+        if (ownerUuid.equals(accessorUuid)) return true;  // Owner always allowed
+
+        int chunkX = ChunkUtil.toChunkCoord(x);
+        int chunkZ = ChunkUtil.toChunkCoord(z);
+
+        // Check zone first
+        Zone zone = zoneManager.getZone(world, chunkX, chunkZ);
+        if (zone != null) {
+            if (zone.isSafeZone()) {
+                boolean blocked = config.isProtectInSafeZone();
+                Logger.debugProtection("Gravestone access in SafeZone: accessor=%s, owner=%s, blocked=%s",
+                        accessorUuid, ownerUuid, blocked);
+                return !blocked;
+            }
+            if (zone.isWarZone()) {
+                boolean blocked = config.isProtectInWarZone();
+                Logger.debugProtection("Gravestone access in WarZone: accessor=%s, owner=%s, blocked=%s",
+                        accessorUuid, ownerUuid, blocked);
+                return !blocked;
+            }
+        }
+
+        // Check faction territory
+        UUID claimOwner = claimManager.getClaimOwner(world, chunkX, chunkZ);
+        if (claimOwner == null) {
+            // Wilderness — defer to config
+            boolean blocked = config.isProtectInWilderness();
+            Logger.debugProtection("Gravestone access in Wilderness: accessor=%s, owner=%s, blocked=%s",
+                    accessorUuid, ownerUuid, blocked);
+            return !blocked;
+        }
+
+        if (!config.isProtectInOwnTerritory()) return true;
+
+        // Same faction checks
+        UUID accessorFactionId = factionManager.getPlayerFactionId(accessorUuid);
+        UUID ownerFactionId = factionManager.getPlayerFactionId(ownerUuid);
+
+        if (accessorFactionId != null && accessorFactionId.equals(claimOwner)) {
+            // Accessor is in the faction that owns this territory
+            if (ownerFactionId != null && ownerFactionId.equals(claimOwner)) {
+                // Both in same faction — check factionMembersCanAccess
+                boolean allowed = config.isFactionMembersCanAccess();
+                Logger.debugProtection("Gravestone access same-faction: accessor=%s, owner=%s, allowed=%s",
+                        accessorUuid, ownerUuid, allowed);
+                return allowed;
+            }
+            // Accessor in territory owner faction, gravestone owner is outsider
+            return true;
+        }
+
+        // Ally check
+        if (accessorFactionId != null) {
+            RelationType relation = relationManager.getRelation(accessorFactionId, claimOwner);
+            if (relation == RelationType.ALLY) {
+                boolean allowed = config.isAlliesCanAccess();
+                Logger.debugProtection("Gravestone access ally: accessor=%s, owner=%s, allowed=%s",
+                        accessorUuid, ownerUuid, allowed);
+                return allowed;
+            }
+        }
+
+        // Outsider/enemy — block in protected territory
+        Logger.debugProtection("Gravestone access blocked: accessor=%s, owner=%s, chunk=%s/%d/%d",
+                accessorUuid, ownerUuid, world, chunkX, chunkZ);
+        return false;
     }
 
     // === Zone Damage Flags ===

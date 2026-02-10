@@ -7,6 +7,8 @@ import com.hyperfactions.backup.BackupMetadata;
 import com.hyperfactions.backup.BackupType;
 import com.hyperfactions.command.FactionSubCommand;
 import com.hyperfactions.config.ConfigManager;
+import com.hyperfactions.config.modules.GravestoneConfig;
+import com.hyperfactions.integration.GravestoneIntegration;
 import com.hyperfactions.data.Zone;
 import com.hyperfactions.data.ZoneFlags;
 import com.hyperfactions.data.ZoneType;
@@ -128,6 +130,7 @@ public class AdminSubCommand extends FactionSubCommand {
                     hyperFactions.getGuiManager().openButtonTestPage(playerEntity, ref, store, player);
                 }
             }
+            case "gravestone", "gravestones", "gs" -> handleGravestone(ctx);
             default -> ctx.sendMessage(prefix().insert(msg("Unknown admin command. Use /f admin help", COLOR_RED)));
         }
     }
@@ -151,7 +154,35 @@ public class AdminSubCommand extends FactionSubCommand {
         commands.add(new CommandHelp("/f admin warzone [name]", "Create WarZone + claim chunk"));
         commands.add(new CommandHelp("/f admin removezone", "Unclaim chunk from zone"));
         commands.add(new CommandHelp("/f admin zoneflag <flag> <value>", "Set zone flag"));
+        commands.add(new CommandHelp("/f admin gravestone", "GravestonePlugin integration status"));
         ctx.sendMessage(HelpFormatter.buildHelp("Admin Commands", "Server administration", commands, null));
+    }
+
+    // === Gravestone Integration ===
+    private void handleGravestone(CommandContext ctx) {
+        GravestoneIntegration gs = hyperFactions.getProtectionChecker().getGravestoneIntegration();
+        GravestoneConfig config = ConfigManager.get().gravestones();
+
+        boolean pluginDetected = gs != null && gs.isAvailable();
+        boolean integrationEnabled = config.isEnabled();
+
+        ctx.sendMessage(prefix().insert(msg("Gravestone Integration Status", COLOR_CYAN)));
+        ctx.sendMessage(msg("  GravestonePlugin: " + (pluginDetected ? "Detected" : "Not Found"), pluginDetected ? COLOR_GREEN : COLOR_GRAY));
+        ctx.sendMessage(msg("  Integration: " + (integrationEnabled ? "Enabled" : "Disabled"), integrationEnabled ? COLOR_GREEN : COLOR_RED));
+
+        if (pluginDetected) {
+            boolean nativeProtection = gs.isNativeOwnerProtectionEnabled();
+            ctx.sendMessage(msg("  Native ownerProtection: " + (nativeProtection ? "On" : "Off"), COLOR_GRAY));
+        }
+
+        ctx.sendMessage(msg("  Config:", COLOR_CYAN));
+        ctx.sendMessage(msg("    protectInOwnTerritory: " + config.isProtectInOwnTerritory(), COLOR_GRAY));
+        ctx.sendMessage(msg("    factionMembersCanAccess: " + config.isFactionMembersCanAccess(), COLOR_GRAY));
+        ctx.sendMessage(msg("    alliesCanAccess: " + config.isAlliesCanAccess(), COLOR_GRAY));
+        ctx.sendMessage(msg("    protectInSafeZone: " + config.isProtectInSafeZone(), COLOR_GRAY));
+        ctx.sendMessage(msg("    protectInWarZone: " + config.isProtectInWarZone(), COLOR_GRAY));
+        ctx.sendMessage(msg("    protectInWilderness: " + config.isProtectInWilderness(), COLOR_GRAY));
+        ctx.sendMessage(msg("    announceDeathLocation: " + config.isAnnounceDeathLocation(), COLOR_GRAY));
     }
 
     // === Reload ===

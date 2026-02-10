@@ -74,6 +74,19 @@ public class BlockUseProtectionSystem extends EntityEventSystem<EntityStore, Use
                 return;
             }
 
+            // Gravestone block check — intercept before normal protection
+            if (isGravestoneBlock(blockId)) {
+                boolean canAccess = hyperFactions.getProtectionChecker()
+                    .canAccessGravestone(player.getUuid(), worldName, pos.getX(), pos.getY(), pos.getZ());
+                if (!canAccess) {
+                    event.setCancelled(true);
+                    player.sendMessage(Message.raw("You cannot access this gravestone.").color("#FF5555"));
+                    Logger.debugProtection("Gravestone collection blocked for %s at (%d,%d,%d)",
+                        player.getUuid(), pos.getX(), pos.getY(), pos.getZ());
+                }
+                return;  // Skip normal protection for gravestones (allow/deny handled above)
+            }
+
             ZoneInteractionProtection zoneProtection = hyperFactions.getZoneInteractionProtection();
 
             // 1. Check if this is a crop/plant block (berry, etc.) - uses ITEM_PICKUP_MANUAL flag
@@ -146,6 +159,15 @@ public class BlockUseProtectionSystem extends EntityEventSystem<EntityStore, Use
         } catch (Exception e) {
             Logger.severe("Error processing block use event", e);
         }
+    }
+
+    /**
+     * Checks if a block ID indicates a gravestone block from GravestonePlugin.
+     * Matches both standard and vanilla gravestone block IDs.
+     */
+    private boolean isGravestoneBlock(String blockId) {
+        if (blockId == null) return false;
+        return blockId.contains("Gravestone");
     }
 
     /**

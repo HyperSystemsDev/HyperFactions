@@ -31,6 +31,7 @@ public class ConfigManager {
     private FactionPermissionsConfig factionPermissionsConfig;
     private WorldMapConfig worldMapConfig;
     private AnnouncementConfig announcementConfig;
+    private GravestoneConfig gravestoneConfig;
 
     private ConfigManager() {}
 
@@ -94,6 +95,9 @@ public class ConfigManager {
         announcementConfig = new AnnouncementConfig(configDir.resolve("announcements.json"));
         announcementConfig.load();
 
+        gravestoneConfig = new GravestoneConfig(configDir.resolve("gravestones.json"));
+        gravestoneConfig.load();
+
         // Step 4: Validate all configs and log any issues
         validateAll();
 
@@ -150,6 +154,11 @@ public class ConfigManager {
             combined.merge(announcementConfig.getLastValidationResult());
         }
 
+        gravestoneConfig.validateAndLog();
+        if (gravestoneConfig.getLastValidationResult() != null) {
+            combined.merge(gravestoneConfig.getLastValidationResult());
+        }
+
         // Log summary
         if (combined.hasIssues()) {
             int warnings = combined.getWarnings().size();
@@ -192,6 +201,7 @@ public class ConfigManager {
         factionPermissionsConfig.reload();
         worldMapConfig.reload();
         announcementConfig.reload();
+        gravestoneConfig.reload();
 
         // Re-validate after reload
         validateAll();
@@ -211,6 +221,7 @@ public class ConfigManager {
         factionPermissionsConfig.save();
         worldMapConfig.save();
         announcementConfig.save();
+        gravestoneConfig.save();
     }
 
     // === Config Accessors ===
@@ -293,6 +304,16 @@ public class ConfigManager {
     @NotNull
     public AnnouncementConfig announcements() {
         return announcementConfig;
+    }
+
+    /**
+     * Gets the gravestone integration module configuration.
+     *
+     * @return gravestone config
+     */
+    @NotNull
+    public GravestoneConfig gravestones() {
+        return gravestoneConfig;
     }
 
     // === Convenience Methods (for backward compatibility) ===

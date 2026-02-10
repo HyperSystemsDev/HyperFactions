@@ -7,7 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-*No changes yet*
+### Added
+
+**GravestonePlugin Integration**
+- Reflection-based soft dependency on Zurku's GravestonePlugin for faction-aware gravestone protection
+- New `GravestoneIntegration` class discovers running GravestonePlugin via Hytale's PluginManager
+- Faction-aware access control for gravestone break and collection events:
+  - Owner always has access to their own gravestone
+  - Faction members can access gravestones in own territory (configurable)
+  - Allies can access gravestones in allied territory (configurable)
+  - Enemies/outsiders blocked from gravestones in claimed territory
+  - Per-zone-type settings: SafeZone, WarZone, Wilderness each configurable independently
+- Admin bypass and `hyperfactions.gravestone.bypass` permission support
+- Death location announcements: faction members notified with coordinates when a member dies
+- New `/f admin gravestone` command showing integration status, plugin detection, and config values
+- New `config/gravestones.json` module config with 7 settings:
+  - `protectInOwnTerritory`, `factionMembersCanAccess`, `alliesCanAccess`
+  - `protectInSafeZone`, `protectInWarZone`, `protectInWilderness`
+  - `announceDeathLocation`
+- Gravestone block detection in `BlockBreakProtectionSystem` and `BlockUseProtectionSystem` (intercepts before normal protection)
+- Startup banner shows GravestonePlugin detection status
+- Debug logging for all gravestone access checks
 
 ## [0.7.1] - 2026-02-08
 
