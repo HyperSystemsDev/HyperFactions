@@ -264,4 +264,26 @@ public class FactionPermissionsConfig extends ModuleConfig {
     public boolean isPermissionLocked(@NotNull String permissionName) {
         return locks.getOrDefault(permissionName, false);
     }
+
+    // === Setters (Config GUI) ===
+
+    public void setDefault(@NotNull String flagName, boolean value) {
+        defaults.put(flagName, value);
+        needsSave = true;
+    }
+
+    public void setLock(@NotNull String flagName, boolean value) {
+        locks.put(flagName, value);
+        needsSave = true;
+    }
+
+    @NotNull
+    public Map<String, Boolean> getDefaults() {
+        return defaults;
+    }
+
+    @NotNull
+    public Map<String, Boolean> getLocks() {
+        return locks;
+    }
 }

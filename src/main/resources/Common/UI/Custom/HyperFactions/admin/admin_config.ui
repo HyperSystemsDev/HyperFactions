@@ -6,52 +6,95 @@ $C.@PageOverlay {
   $Nav.@HyperFactionsAdminNavBar #HyperFactionsAdminNavBar {}
 
   $C.@Container {
-    Anchor: (Width: 600, Height: 470);
+    Anchor: (Width: 780, Height: 700);
 
     #Title {
       $C.@Title {
-        @Text = "Configuration";
+        @Text = "Server Configuration";
       }
     }
 
     #Content {
       LayoutMode: Top;
-      Padding: (Left: 15, Right: 15, Top: 10, Bottom: 10);
+      Padding: (Left: 10, Right: 10, Top: 5, Bottom: 5);
 
-      Group #PlaceholderContent {
+      // Tab bar
+      Group #TabBar {
+        LayoutMode: Left;
+        Anchor: (Height: 30);
+        Padding: (Bottom: 4);
+
+        TextButton #TabGeneral { Text: "General"; Anchor: (Height: 26, Width: 75); Style: $S.@TabActiveButtonStyle; }
+        Group { Anchor: (Width: 2); }
+        TextButton #TabPower { Text: "Power"; Anchor: (Height: 26, Width: 60); Style: $S.@TabButtonStyle; }
+        Group { Anchor: (Width: 2); }
+        TextButton #TabClaims { Text: "Claims"; Anchor: (Height: 26, Width: 65); Style: $S.@TabButtonStyle; }
+        Group { Anchor: (Width: 2); }
+        TextButton #TabCombat { Text: "Combat"; Anchor: (Height: 26, Width: 65); Style: $S.@TabButtonStyle; }
+        Group { Anchor: (Width: 2); }
+        TextButton #TabChat { Text: "Chat"; Anchor: (Height: 26, Width: 55); Style: $S.@TabButtonStyle; }
+        Group { Anchor: (Width: 2); }
+        TextButton #TabModules { Text: "Modules"; Anchor: (Height: 26, Width: 70); Style: $S.@TabButtonStyle; }
+        Group { Anchor: (Width: 2); }
+        TextButton #TabWorldmap { Text: "World Map"; Anchor: (Height: 26, Width: 80); Style: $S.@TabButtonStyle; }
+        Group { Anchor: (Width: 2); }
+        TextButton #TabProtection { Text: "Protection"; Anchor: (Height: 26, Width: 80); Style: $S.@TabButtonStyle; }
+      }
+
+      // Callout / description box
+      Group #Callout {
+        Anchor: (Height: 32);
+        Background: (Color: #0d1a2a);
+        Padding: (Left: 10, Right: 10, Top: 4, Bottom: 4);
+
+        Label #CalloutText {
+          Text: "Hover over settings for descriptions. Changes are held in memory until you click Save.";
+          Style: (FontSize: 10, TextColor: #6699aa, VerticalAlignment: Center);
+          FlexWeight: 1;
+        }
+      }
+
+      // Tab content area (scrollable)
+      Group #TabContent {
+        LayoutMode: TopScrolling;
         FlexWeight: 1;
-        LayoutMode: Top;
+        Padding: (Left: 5, Right: 5, Top: 5, Bottom: 5);
+      }
 
-        Label {
-          Anchor: (Height: 100);
+      // Footer bar
+      Group #Footer {
+        LayoutMode: Left;
+        Anchor: (Height: 36);
+        Padding: (Top: 4);
+
+        TextButton #SaveBtn {
+          Text: "Save";
+          Anchor: (Height: 28, Width: 80);
+          Style: $S.@GreenButtonStyle;
         }
 
-        Label #ComingSoon {
-          Text: "Configuration Editor";
-          Style: (FontSize: 24, TextColor: #00FFFF, HorizontalAlignment: Center, VerticalAlignment: Center, RenderBold: true);
-          Anchor: (Height: 40);
+        Group { Anchor: (Width: 8); }
+
+        TextButton #RevertBtn {
+          Text: "Revert";
+          Anchor: (Height: 28, Width: 80);
+          Style: $S.@ButtonStyle;
         }
 
-        Label #ComingSoonSub {
-          Text: "Coming Soon";
-          Style: (FontSize: 16, TextColor: #888888, HorizontalAlignment: Center, VerticalAlignment: Center);
-          Anchor: (Height: 30);
+        Group { FlexWeight: 1; }
+
+        Label #DirtyIndicator {
+          Text: "";
+          Style: (FontSize: 10, TextColor: #FFAA00, VerticalAlignment: Center);
+          Anchor: (Width: 120);
         }
 
-        Label {
-          Anchor: (Height: 20);
-        }
+        Group { FlexWeight: 1; }
 
-        Label #Description {
-          Text: "Configure HyperFactions settings directly from the GUI.";
-          Style: (FontSize: 12, TextColor: #666666, HorizontalAlignment: Center, VerticalAlignment: Center);
-          Anchor: (Height: 25);
-        }
-
-        Label #Description2 {
-          Text: "For now, use /f reload to reload configuration changes.";
-          Style: (FontSize: 12, TextColor: #666666, HorizontalAlignment: Center, VerticalAlignment: Center);
-          Anchor: (Height: 25);
+        TextButton #ResetBtn {
+          Text: "Reset Defaults";
+          Anchor: (Height: 28, Width: 110);
+          Style: $S.@RedButtonStyle;
         }
       }
     }

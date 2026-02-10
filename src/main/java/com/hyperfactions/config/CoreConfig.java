@@ -485,6 +485,88 @@ public class CoreConfig extends ConfigFile {
     public boolean isAdminRequiresOp() { return adminRequiresOp; }
     public boolean isAllowWithoutPermissionMod() { return allowWithoutPermissionMod; }
 
+    // === Setters (Config GUI) ===
+
+    // Faction
+    public void setMaxMembers(int value) { this.maxMembers = value; needsSave = true; }
+    public void setMaxNameLength(int value) { this.maxNameLength = value; needsSave = true; }
+    public void setMinNameLength(int value) { this.minNameLength = value; needsSave = true; }
+    public void setAllowColors(boolean value) { this.allowColors = value; needsSave = true; }
+
+    // Power
+    public void setMaxPlayerPower(double value) { this.maxPlayerPower = value; needsSave = true; }
+    public void setStartingPower(double value) { this.startingPower = value; needsSave = true; }
+    public void setPowerPerClaim(double value) { this.powerPerClaim = value; needsSave = true; }
+    public void setDeathPenalty(double value) { this.deathPenalty = value; needsSave = true; }
+    public void setKillReward(double value) { this.killReward = value; needsSave = true; }
+    public void setRegenPerMinute(double value) { this.regenPerMinute = value; needsSave = true; }
+    public void setRegenWhenOffline(boolean value) { this.regenWhenOffline = value; needsSave = true; }
+
+    // Claims
+    public void setMaxClaims(int value) { this.maxClaims = value; needsSave = true; }
+    public void setOnlyAdjacent(boolean value) { this.onlyAdjacent = value; needsSave = true; }
+    public void setPreventDisconnect(boolean value) { this.preventDisconnect = value; needsSave = true; }
+    public void setDecayEnabled(boolean value) { this.decayEnabled = value; needsSave = true; }
+    public void setDecayDaysInactive(int value) { this.decayDaysInactive = value; needsSave = true; }
+    public void setWorldWhitelist(@NotNull List<String> value) { this.worldWhitelist = new ArrayList<>(value); needsSave = true; }
+    public void setWorldBlacklist(@NotNull List<String> value) { this.worldBlacklist = new ArrayList<>(value); needsSave = true; }
+
+    // Combat
+    public void setTagDurationSeconds(int value) { this.tagDurationSeconds = value; needsSave = true; }
+    public void setAllyDamage(boolean value) { this.allyDamage = value; needsSave = true; }
+    public void setFactionDamage(boolean value) { this.factionDamage = value; needsSave = true; }
+    public void setTaggedLogoutPenalty(boolean value) { this.taggedLogoutPenalty = value; needsSave = true; }
+    public void setLogoutPowerLoss(double value) { this.logoutPowerLoss = value; needsSave = true; }
+    public void setNeutralAttackPenalty(double value) { this.neutralAttackPenalty = value; needsSave = true; }
+
+    // Spawn Protection
+    public void setSpawnProtectionEnabled(boolean value) { this.spawnProtectionEnabled = value; needsSave = true; }
+    public void setSpawnProtectionDurationSeconds(int value) { this.spawnProtectionDurationSeconds = value; needsSave = true; }
+    public void setSpawnProtectionBreakOnAttack(boolean value) { this.spawnProtectionBreakOnAttack = value; needsSave = true; }
+    public void setSpawnProtectionBreakOnMove(boolean value) { this.spawnProtectionBreakOnMove = value; needsSave = true; }
+
+    // Relations
+    public void setMaxAllies(int value) { this.maxAllies = value; needsSave = true; }
+    public void setMaxEnemies(int value) { this.maxEnemies = value; needsSave = true; }
+
+    // Invites
+    public void setInviteExpirationMinutes(int value) { this.inviteExpirationMinutes = value; needsSave = true; }
+    public void setJoinRequestExpirationHours(int value) { this.joinRequestExpirationHours = value; needsSave = true; }
+
+    // Stuck
+    public void setStuckWarmupSeconds(int value) { this.stuckWarmupSeconds = value; needsSave = true; }
+    public void setStuckCooldownSeconds(int value) { this.stuckCooldownSeconds = value; needsSave = true; }
+
+    // Teleport
+    public void setWarmupSeconds(int value) { this.warmupSeconds = value; needsSave = true; }
+    public void setCooldownSeconds(int value) { this.cooldownSeconds = value; needsSave = true; }
+    public void setCancelOnMove(boolean value) { this.cancelOnMove = value; needsSave = true; }
+    public void setCancelOnDamage(boolean value) { this.cancelOnDamage = value; needsSave = true; }
+
+    // Updates
+    public void setUpdateCheckEnabled(boolean value) { this.updateCheckEnabled = value; needsSave = true; }
+    public void setReleaseChannel(@NotNull String value) { this.releaseChannel = value; needsSave = true; }
+
+    // Auto-save
+    public void setAutoSaveEnabled(boolean value) { this.autoSaveEnabled = value; needsSave = true; }
+    public void setAutoSaveIntervalMinutes(int value) { this.autoSaveIntervalMinutes = value; needsSave = true; }
+
+    // Messages
+    public void setPrefixText(@NotNull String value) { this.prefixText = value; needsSave = true; }
+    public void setPrefixColor(@NotNull String value) { this.prefixColor = value; needsSave = true; }
+    public void setPrefixBracketColor(@NotNull String value) { this.prefixBracketColor = value; needsSave = true; }
+    public void setPrimaryColor(@NotNull String value) { this.primaryColor = value; needsSave = true; }
+
+    // GUI
+    public void setGuiTitle(@NotNull String value) { this.guiTitle = value; needsSave = true; }
+
+    // Territory Notifications
+    public void setTerritoryNotificationsEnabled(boolean value) { this.territoryNotificationsEnabled = value; needsSave = true; }
+
+    // Permissions
+    public void setAdminRequiresOp(boolean value) { this.adminRequiresOp = value; needsSave = true; }
+    public void setAllowWithoutPermissionMod(boolean value) { this.allowWithoutPermissionMod = value; needsSave = true; }
+
     // === Utility Methods ===
 
     /**

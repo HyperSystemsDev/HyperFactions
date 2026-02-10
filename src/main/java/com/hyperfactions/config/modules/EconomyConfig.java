@@ -123,6 +123,14 @@ public class EconomyConfig extends ModuleConfig {
         return String.format("%.2f %s", amount, name);
     }
 
+    // === Setters (Config GUI) ===
+
+    public void setEnabled(boolean value) { this.enabled = value; needsSave = true; }
+    public void setCurrencyName(@NotNull String value) { this.currencyName = value; needsSave = true; }
+    public void setCurrencyNamePlural(@NotNull String value) { this.currencyNamePlural = value; needsSave = true; }
+    public void setCurrencySymbol(@NotNull String value) { this.currencySymbol = value; needsSave = true; }
+    public void setStartingBalance(double value) { this.startingBalance = value; needsSave = true; }
+
     // === Validation ===
 
     @Override

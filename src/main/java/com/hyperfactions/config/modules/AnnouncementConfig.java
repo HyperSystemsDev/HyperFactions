@@ -109,4 +109,15 @@ public class AnnouncementConfig extends ModuleConfig {
     public boolean isAllianceBroken() {
         return allianceBroken;
     }
+
+    // === Setters (Config GUI) ===
+
+    public void setEnabled(boolean value) { this.enabled = value; needsSave = true; }
+    public void setFactionCreated(boolean value) { this.factionCreated = value; needsSave = true; }
+    public void setFactionDisbanded(boolean value) { this.factionDisbanded = value; needsSave = true; }
+    public void setLeadershipTransfer(boolean value) { this.leadershipTransfer = value; needsSave = true; }
+    public void setOverclaim(boolean value) { this.overclaim = value; needsSave = true; }
+    public void setWarDeclared(boolean value) { this.warDeclared = value; needsSave = true; }
+    public void setAllianceFormed(boolean value) { this.allianceFormed = value; needsSave = true; }
+    public void setAllianceBroken(boolean value) { this.allianceBroken = value; needsSave = true; }
 }

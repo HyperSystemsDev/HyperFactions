@@ -127,6 +127,16 @@ public class BackupConfig extends ModuleConfig {
         return shutdownRetention;
     }
 
+    // === Setters (Config GUI) ===
+
+    public void setEnabled(boolean value) { this.enabled = value; needsSave = true; }
+    public void setHourlyRetention(int value) { this.hourlyRetention = value; needsSave = true; }
+    public void setDailyRetention(int value) { this.dailyRetention = value; needsSave = true; }
+    public void setWeeklyRetention(int value) { this.weeklyRetention = value; needsSave = true; }
+    public void setManualRetention(int value) { this.manualRetention = value; needsSave = true; }
+    public void setOnShutdown(boolean value) { this.onShutdown = value; needsSave = true; }
+    public void setShutdownRetention(int value) { this.shutdownRetention = value; needsSave = true; }
+
     // === Validation ===
 
     @Override

@@ -1,0 +1,20 @@
+// List entry for world whitelist/blacklist items
+$S = "../../shared/styles.ui";
+
+Group {
+  LayoutMode: Left;
+  Anchor: (Height: 24);
+  Padding: (Left: 8, Right: 4);
+
+  Label #EntryName {
+    Text: "world_name";
+    Style: (FontSize: 11, TextColor: #cccccc, VerticalAlignment: Center);
+    FlexWeight: 1;
+  }
+
+  TextButton #RemoveBtn {
+    Text: "X";
+    Anchor: (Height: 20, Width: 24);
+    Style: $S.@RedButtonStyle;
+  }
+}

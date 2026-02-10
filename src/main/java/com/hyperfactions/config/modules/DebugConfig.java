@@ -240,6 +240,17 @@ public class DebugConfig extends ModuleConfig {
 
     // === Setters (for runtime toggle) ===
 
+    public void setLogToConsole(boolean value) {
+        this.logToConsole = value;
+        needsSave = true;
+        applyToLogger();
+    }
+
+    public void setEnabledByDefault(boolean value) {
+        this.enabledByDefault = value;
+        needsSave = true;
+    }
+
     /**
      * Sets power debug state and applies to Logger.
      *

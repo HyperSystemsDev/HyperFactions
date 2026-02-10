@@ -354,4 +354,17 @@ public class WorldMapConfig extends ModuleConfig {
     public int getFactionWideRefreshThreshold() {
         return factionWideRefreshThreshold;
     }
+
+    // === Setters (Config GUI) ===
+
+    public void setEnabled(boolean value) { this.enabled = value; needsSave = true; }
+    public void setShowFactionTags(boolean value) { this.showFactionTags = value; needsSave = true; }
+    public void setAutoFallbackOnError(boolean value) { this.autoFallbackOnError = value; needsSave = true; }
+    public void setFactionWideRefreshThreshold(int value) { this.factionWideRefreshThreshold = value; needsSave = true; }
+    public void setProximityChunkRadius(int value) { this.proximityChunkRadius = value; needsSave = true; }
+    public void setProximityBatchIntervalTicks(int value) { this.proximityBatchIntervalTicks = value; needsSave = true; }
+    public void setProximityMaxChunksPerBatch(int value) { this.proximityMaxChunksPerBatch = value; needsSave = true; }
+    public void setIncrementalBatchIntervalTicks(int value) { this.incrementalBatchIntervalTicks = value; needsSave = true; }
+    public void setIncrementalMaxChunksPerBatch(int value) { this.incrementalMaxChunksPerBatch = value; needsSave = true; }
+    public void setDebouncedDelaySeconds(int value) { this.debouncedDelaySeconds = value; needsSave = true; }
 }

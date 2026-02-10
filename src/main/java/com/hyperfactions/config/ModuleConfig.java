@@ -49,6 +49,7 @@ public abstract class ModuleConfig extends ConfigFile {
      */
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
+        needsSave = true;
     }
 
     /**
