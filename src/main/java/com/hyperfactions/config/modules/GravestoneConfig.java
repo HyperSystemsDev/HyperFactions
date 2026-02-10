@@ -103,4 +103,15 @@ public class GravestoneConfig extends ModuleConfig {
     public boolean isAnnounceDeathLocation() {
         return announceDeathLocation;
     }
+
+    // === Setters (Config GUI) ===
+
+    public void setEnabled(boolean value) { this.enabled = value; needsSave = true; }
+    public void setProtectInOwnTerritory(boolean value) { this.protectInOwnTerritory = value; needsSave = true; }
+    public void setFactionMembersCanAccess(boolean value) { this.factionMembersCanAccess = value; needsSave = true; }
+    public void setAlliesCanAccess(boolean value) { this.alliesCanAccess = value; needsSave = true; }
+    public void setProtectInSafeZone(boolean value) { this.protectInSafeZone = value; needsSave = true; }
+    public void setProtectInWarZone(boolean value) { this.protectInWarZone = value; needsSave = true; }
+    public void setProtectInWilderness(boolean value) { this.protectInWilderness = value; needsSave = true; }
+    public void setAnnounceDeathLocation(boolean value) { this.announceDeathLocation = value; needsSave = true; }
 }

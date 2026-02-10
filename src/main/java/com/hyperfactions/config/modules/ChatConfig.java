@@ -291,6 +291,29 @@ public class ChatConfig extends ModuleConfig {
         return historyCleanupIntervalMinutes;
     }
 
+    // === Setters (Config GUI) ===
+
+    public void setFormat(@NotNull String value) { this.format = value; needsSave = true; }
+    public void setTagDisplay(@NotNull String value) { this.tagDisplay = value; needsSave = true; }
+    public void setTagFormat(@NotNull String value) { this.tagFormat = value; needsSave = true; }
+    public void setNoFactionTag(@NotNull String value) { this.noFactionTag = value; needsSave = true; }
+    public void setNoFactionTagColor(@NotNull String value) { this.noFactionTagColor = value; needsSave = true; }
+    public void setPriority(@NotNull String value) { this.priority = value; needsSave = true; }
+    public void setRelationColorOwn(@NotNull String value) { this.relationColorOwn = value; needsSave = true; }
+    public void setRelationColorAlly(@NotNull String value) { this.relationColorAlly = value; needsSave = true; }
+    public void setRelationColorNeutral(@NotNull String value) { this.relationColorNeutral = value; needsSave = true; }
+    public void setRelationColorEnemy(@NotNull String value) { this.relationColorEnemy = value; needsSave = true; }
+    public void setFactionChatColor(@NotNull String value) { this.factionChatColor = value; needsSave = true; }
+    public void setFactionChatPrefix(@NotNull String value) { this.factionChatPrefix = value; needsSave = true; }
+    public void setAllyChatColor(@NotNull String value) { this.allyChatColor = value; needsSave = true; }
+    public void setAllyChatPrefix(@NotNull String value) { this.allyChatPrefix = value; needsSave = true; }
+    public void setSenderNameColor(@NotNull String value) { this.senderNameColor = value; needsSave = true; }
+    public void setMessageColor(@NotNull String value) { this.messageColor = value; needsSave = true; }
+    public void setHistoryEnabled(boolean value) { this.historyEnabled = value; needsSave = true; }
+    public void setHistoryMaxMessages(int value) { this.historyMaxMessages = value; needsSave = true; }
+    public void setHistoryRetentionDays(int value) { this.historyRetentionDays = value; needsSave = true; }
+    public void setHistoryCleanupIntervalMinutes(int value) { this.historyCleanupIntervalMinutes = value; needsSave = true; }
+
     // === Validation ===
 
     @Override

@@ -257,3 +257,55 @@ $C = "../../Common.ui";
   Disabled: (Background: (Color: #00000000), LabelStyle: @PlayerMarkerLabelStyle),
   Sounds: $C.@ButtonSounds,
 );
+
+// =============================================================================
+// CONFIG EDITOR STYLES
+// =============================================================================
+
+@TabLabelStyle = LabelStyle(
+  FontSize: 11,
+  TextColor: #bfcdd5,
+  RenderBold: true,
+  HorizontalAlignment: Center,
+  VerticalAlignment: Center
+);
+
+@TabActiveLabelStyle = LabelStyle(
+  FontSize: 11,
+  TextColor: #00FFFF,
+  RenderBold: true,
+  HorizontalAlignment: Center,
+  VerticalAlignment: Center
+);
+
+@TabButtonStyle = TextButtonStyle(
+  Default: (Background: (Color: #1a2a3a), LabelStyle: @TabLabelStyle),
+  Hovered: (Background: (Color: #253545), LabelStyle: @TabLabelStyle),
+  Pressed: (Background: (Color: #0d1520), LabelStyle: @TabLabelStyle),
+  Disabled: (Background: (Color: #0d1520), LabelStyle: @TabLabelStyle),
+  Sounds: $C.@ButtonSounds,
+);
+
+@TabActiveButtonStyle = TextButtonStyle(
+  Default: (Background: (Color: #0a3a4a), LabelStyle: @TabActiveLabelStyle),
+  Hovered: (Background: (Color: #0a3a4a), LabelStyle: @TabActiveLabelStyle),
+  Pressed: (Background: (Color: #0a3a4a), LabelStyle: @TabActiveLabelStyle),
+  Disabled: (Background: (Color: #0a3a4a), LabelStyle: @TabActiveLabelStyle),
+  Sounds: $C.@ButtonSounds,
+);
+
+@SmallLabelStyle = LabelStyle(
+  FontSize: 12,
+  TextColor: #bfcdd5,
+  RenderBold: true,
+  HorizontalAlignment: Center,
+  VerticalAlignment: Center
+);
+
+@SmallButtonStyle = TextButtonStyle(
+  Default: (Background: $C.@DefaultSquareButtonDefaultBackground, LabelStyle: @SmallLabelStyle),
+  Hovered: (Background: $C.@DefaultSquareButtonHoveredBackground, LabelStyle: @SmallLabelStyle),
+  Pressed: (Background: $C.@DefaultSquareButtonPressedBackground, LabelStyle: @SmallLabelStyle),
+  Disabled: (Background: $C.@DefaultSquareButtonDisabledBackground, LabelStyle: @SmallLabelStyle),
+  Sounds: $C.@ButtonSounds,
+);

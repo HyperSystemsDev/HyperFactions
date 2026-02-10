@@ -1,0 +1,19 @@
+// Section header for config tab groups
+Group {
+  Anchor: (Height: 24);
+  Padding: (Top: 6, Bottom: 2);
+  LayoutMode: Left;
+
+  Group {
+    Anchor: (Width: 4, Height: 14);
+    Background: (Color: #00FFFF);
+  }
+
+  Group { Anchor: (Width: 6); }
+
+  Label #SectionTitle {
+    Text: "Section";
+    Style: (FontSize: 12, TextColor: #00CCCC, VerticalAlignment: Center, RenderBold: true);
+    FlexWeight: 1;
+  }
+}
