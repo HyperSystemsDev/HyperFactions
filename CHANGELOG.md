@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+*No changes yet*
+
+## [0.7.2] - 2026-02-11
+
 ### Added
 
 **Integration Flags GUI Sub-Page**
