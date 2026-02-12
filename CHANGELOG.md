@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Shows `gravestone_access` flag with clear description: "When ON, non-owners can loot graves. Owners always can."
 - Dedicated Reset to Defaults button (only clears integration flags, not all zone flags)
 - Scalable layout for future integration flags
+- Integration flags disabled with "(no plugin)" indicator when the required integration is not installed or not enabled, matching the existing "(mixin)" pattern for mixin-dependent flags
 
 **Expanded Admin Integrations Command**
 - `/f admin integrations` now shows all 7 integrations organized by category:
