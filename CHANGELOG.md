@@ -37,12 +37,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Placeholders not resolving for factionless players**: Both PlaceholderAPI and WiFlow expansions returned `null` for faction-specific placeholders when a player had no faction. WiFlow's parser treats `null` as "unknown placeholder" and preserves the raw text (e.g., `{factions_tag}` shown literally). Now returns empty string `""` for text placeholders and sensible defaults (`"0"`, `"false"`) for numeric/boolean ones.
 - **Set Relation search interrupting typing**: The Set Relation modal opened a brand new page on every keystroke via `ValueChanged`, destroying the text field focus. Now uses partial `sendUpdate()` like the Faction Browser page to preserve focus during search.
 
-### Changed
-
-- Zone flag `gravestone_access` display name changed to "Others Loot Graves" for clarity
-- Zone flag description updated to explicitly state owners always have access to their own gravestone
-
 **GravestonePlugin Integration**
+> **Note**: The gravestone integration requires a new release of [GravestonePlugin](https://github.com/zurkubusiness/gravestones) that includes the v2 API with AccessChecker and events. This is pending review in [zurkubusiness/gravestones#2](https://github.com/zurkubusiness/gravestones/pull/2). Until that PR is merged and released, the integration will detect the plugin but the AccessChecker will not be registered.
+
 - Reflection-based soft dependency on Zurku's GravestonePlugin for faction-aware gravestone protection
 - New `GravestoneIntegration` class discovers running GravestonePlugin via Hytale's PluginManager
 - Faction-aware access control for gravestone break and collection events:
@@ -61,6 +58,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Gravestone block detection in `BlockBreakProtectionSystem` and `BlockUseProtectionSystem` (intercepts before normal protection)
 - Startup banner shows GravestonePlugin detection status
 - Debug logging for all gravestone access checks
+
+### Changed
+
+- Zone flag `gravestone_access` display name changed to "Others Loot Graves" for clarity
+- Zone flag description updated to explicitly state owners always have access to their own gravestone
+- Placeholder expansions (PAPI + WiFlow) now return empty strings/defaults for factionless players instead of `null`
 
 ## [0.7.1] - 2026-02-08
 

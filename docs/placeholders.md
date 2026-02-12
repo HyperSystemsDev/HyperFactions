@@ -1,6 +1,6 @@
 # HyperFactions Placeholders
 
-> **Version**: 0.7.0 | **Expansion Identifier**: `factions` | **35 placeholders**
+> **Version**: 0.7.2 | **Expansion Identifier**: `factions` | **35 placeholders**
 
 HyperFactions exposes faction data as placeholders through two placeholder APIs: **PlaceholderAPI (PAPI)** and **WiFlow PlaceholderAPI**. Both APIs support the same set of placeholders with identical behavior.
 
@@ -31,26 +31,20 @@ Both APIs are registered under the identifier `factions`. Detection is automatic
 
 ---
 
-## Null Behavior
+## Factionless Player Behavior
 
-Placeholders return `null` when no data is available. This follows the PlaceholderAPI convention:
+All placeholders return a value even when the player has no faction. This ensures placeholder APIs (especially WiFlow, which preserves raw text on `null`) always resolve cleanly.
 
-- **`null` return** — The consumer (scoreboard, chat formatter, etc.) preserves the raw placeholder text or hides it, depending on its own configuration.
-- **Empty string `""` return** — Would cause the placeholder to silently disappear, which is undesirable.
+### Default Values for Factionless Players
 
-### When Placeholders Return Null
+| Type | Default | Examples |
+|------|---------|----------|
+| Text placeholders | `""` (empty string) | `name`, `tag`, `display`, `color`, `role`, `description`, `leader`, `leader_id`, `open`, `created` |
+| Numeric placeholders | `"0"` or `"0.0"` | `faction_power`, `faction_maxpower`, `faction_power_percent`, `land`, `land_max`, `members`, `members_online`, `allies`, `enemies`, `neutrals`, `relations` |
+| Boolean placeholders | `"false"` | `raidable` |
+| Home placeholders | `""` (empty string) | `home_world`, `home_x`, `home_y`, `home_z`, `home_coords`, `home_yaw`, `home_pitch` |
 
-| Condition | Affected Placeholders |
-|-----------|-----------------------|
-| Player has no faction | All faction-dependent placeholders (name, tag, role, power stats, members, relations, home, etc.) |
-| Faction has no home set | `home_world`, `home_x`, `home_y`, `home_z`, `home_coords`, `home_yaw`, `home_pitch` |
-| Faction has no tag | `tag` |
-| Faction has no description | `description` |
-| Faction has no color | `color` |
-| Player position unknown | `territory`, `territory_type` |
-| Display mode is `none` | `display` |
-
-### Placeholders That Always Return Data
+### Placeholders That Always Return Meaningful Data
 
 | Placeholder | Reason |
 |-------------|--------|
@@ -68,17 +62,17 @@ Placeholders return `null` when no data is available. This follows the Placehold
 | Placeholder | Description | Returns | Example |
 |-------------|-------------|---------|---------|
 | `has_faction` | Whether the player is in a faction | `yes` / `no` | `yes` |
-| `name` | Faction name | String or null | `Warriors` |
-| `faction_id` | Faction UUID | UUID string or null | `a1b2c3d4-...` |
-| `tag` | Faction short tag | String or null | `WAR` |
-| `display` | Display text (tag, name, or none based on config) | String or null | `WAR` |
-| `color` | Faction color hex code | Hex string or null | `#FF5555` |
-| `role` | Player's faction role | Role name or null | `Leader`, `Officer`, `Member` |
-| `description` | Faction description text | String or null | `The best faction` |
-| `leader` | Faction leader's username | String or null | `Steve` |
-| `leader_id` | Faction leader's UUID | UUID string or null | `d4e5f6a7-...` |
-| `open` | Whether faction accepts join requests | `true` / `false` or null | `true` |
-| `created` | Faction creation date | `yyyy-MM-dd` or null | `2025-01-15` |
+| `name` | Faction name | String or `""` | `Warriors` |
+| `faction_id` | Faction UUID | UUID string or `""` | `a1b2c3d4-...` |
+| `tag` | Faction short tag | String or `""` | `WAR` |
+| `display` | Display text (tag, name, or none based on config) | String or `""` | `WAR` |
+| `color` | Faction color hex code | Hex string or `""` | `#FF5555` |
+| `role` | Player's faction role | Role name or `""` | `Leader`, `Officer`, `Member` |
+| `description` | Faction description text | String or `""` | `The best faction` |
+| `leader` | Faction leader's username | String or `""` | `Steve` |
+| `leader_id` | Faction leader's UUID | UUID string or `""` | `d4e5f6a7-...` |
+| `open` | Whether faction accepts join requests | `"false"` if no faction | `true` |
+| `created` | Faction creation date | `yyyy-MM-dd` or `""` | `2025-01-15` |
 
 ### Display Placeholder Behavior
 
@@ -88,7 +82,7 @@ The `display` placeholder respects the `chatTagDisplay` config setting:
 |-------------|----------|
 | `tag` | Returns faction tag; falls back to first 3 characters of name (uppercased) if no tag set |
 | `name` | Returns full faction name |
-| `none` | Returns null |
+| `none` | Returns `""` (empty string) |
 
 ---
 
@@ -101,10 +95,10 @@ The `display` placeholder respects the `chatTagDisplay` config setting:
 | `power` | Player's current power (1 decimal) | Always present | `8.5` |
 | `maxpower` | Player's max power (1 decimal) | Always present | `10.0` |
 | `power_percent` | Player's power as percentage | Always present | `85` |
-| `faction_power` | Faction's total power (1 decimal) | Number or null | `42.5` |
-| `faction_maxpower` | Faction's max power (1 decimal) | Number or null | `50.0` |
-| `faction_power_percent` | Faction's power as percentage | Number or null | `85` |
-| `raidable` | Whether faction is raidable (power < land) | `true` / `false` or null | `false` |
+| `faction_power` | Faction's total power (1 decimal) | `"0"` if no faction | `42.5` |
+| `faction_maxpower` | Faction's max power (1 decimal) | `"0"` if no faction | `50.0` |
+| `faction_power_percent` | Faction's power as percentage | `"0"` if no faction | `85` |
+| `raidable` | Whether faction is raidable (power < land) | `"false"` if no faction | `false` |
 
 > **Note**: `power`, `maxpower`, and `power_percent` are player-level and always available even without a faction. The `faction_*` variants require faction membership.
 
@@ -116,10 +110,10 @@ The `display` placeholder respects the `chatTagDisplay` config setting:
 
 | Placeholder | Description | Returns | Example |
 |-------------|-------------|---------|---------|
-| `land` | Number of chunks claimed by faction | Number or null | `12` |
-| `land_max` | Maximum claimable chunks | Number or null | `20` |
-| `territory` | Name of faction owning current chunk | String or null | `Warriors` |
-| `territory_type` | Type of territory at current location | String or null | `Claimed` |
+| `land` | Number of chunks claimed by faction | `"0"` if no faction | `12` |
+| `land_max` | Maximum claimable chunks | `"0"` if no faction | `20` |
+| `territory` | Name of faction owning current chunk | String or `""` | `Warriors` |
+| `territory_type` | Type of territory at current location | String or `""` | `Claimed` |
 
 ### Territory Values
 
@@ -141,15 +135,15 @@ The `display` placeholder respects the `chatTagDisplay` config setting:
 
 | Placeholder | Description | Returns | Example |
 |-------------|-------------|---------|---------|
-| `home_world` | World name of faction home | String or null | `world` |
-| `home_x` | X coordinate (2 decimals) | Number or null | `123.45` |
-| `home_y` | Y coordinate (2 decimals) | Number or null | `64.00` |
-| `home_z` | Z coordinate (2 decimals) | Number or null | `-456.78` |
-| `home_coords` | Combined X, Y, Z (2 decimals) | String or null | `123.45, 64.00, -456.78` |
-| `home_yaw` | Yaw angle (2 decimals) | Number or null | `90.00` |
-| `home_pitch` | Pitch angle (2 decimals) | Number or null | `0.00` |
+| `home_world` | World name of faction home | String or `""` | `world` |
+| `home_x` | X coordinate (2 decimals) | `"0"` if no faction | `123.45` |
+| `home_y` | Y coordinate (2 decimals) | `"0"` if no faction | `64.00` |
+| `home_z` | Z coordinate (2 decimals) | `"0"` if no faction | `-456.78` |
+| `home_coords` | Combined X, Y, Z (2 decimals) | String or `""` | `123.45, 64.00, -456.78` |
+| `home_yaw` | Yaw angle (2 decimals) | `"0"` if no faction | `90.00` |
+| `home_pitch` | Pitch angle (2 decimals) | `"0"` if no faction | `0.00` |
 
-All home placeholders return null if the player has no faction or the faction has no home set.
+All home placeholders return `""` (empty string) if the player has no faction or the faction has no home set.
 
 ---
 
@@ -159,12 +153,12 @@ All home placeholders return null if the player has no faction or the faction ha
 
 | Placeholder | Description | Returns | Example |
 |-------------|-------------|---------|---------|
-| `members` | Total faction member count | Number or null | `5` |
-| `members_online` | Currently online member count | Number or null | `3` |
-| `allies` | Number of allied factions | Number or null | `2` |
-| `enemies` | Number of enemy factions | Number or null | `1` |
-| `neutrals` | Number of neutral relations | Number or null | `4` |
-| `relations` | Total number of relations (all types) | Number or null | `7` |
+| `members` | Total faction member count | `"0"` if no faction | `5` |
+| `members_online` | Currently online member count | `"0"` if no faction | `3` |
+| `allies` | Number of allied factions | `"0"` if no faction | `2` |
+| `enemies` | Number of enemy factions | `"0"` if no faction | `1` |
+| `neutrals` | Number of neutral relations | `"0"` if no faction | `4` |
+| `relations` | Total number of relations (all types) | `"0"` if no faction | `7` |
 
 ---
 
@@ -237,7 +231,7 @@ Location: {factions_territory}
 
 ### Conditional Display
 
-Since placeholders return null when no data is available, consumers can use this to conditionally show content. For example, a player without a faction would have `{factions_name}` preserved as raw text or hidden entirely, depending on the consumer's null handling.
+Faction-specific placeholders return empty strings or zero values for factionless players. This means `{factions_name}` resolves to `""` rather than showing the raw placeholder text. Consumers can use `{factions_has_faction}` to conditionally show/hide faction-related sections.
 
 ---
 
