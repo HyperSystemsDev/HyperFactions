@@ -20,6 +20,15 @@ public class GravestoneConfig extends ModuleConfig {
     private boolean protectInWilderness = false;
     private boolean announceDeathLocation = true;
 
+    // Territory context settings
+    private boolean protectInEnemyTerritory = false;
+    private boolean protectInNeutralTerritory = true;
+    private boolean enemiesCanLootInOwnTerritory = false;
+
+    // Raid/War placeholders (not enforced until raid/war systems are implemented)
+    private boolean allowLootDuringRaid = true;
+    private boolean allowLootDuringWar = true;
+
     /**
      * Creates a new gravestone config.
      *
@@ -50,6 +59,11 @@ public class GravestoneConfig extends ModuleConfig {
         protectInWarZone = false;
         protectInWilderness = false;
         announceDeathLocation = true;
+        protectInEnemyTerritory = false;
+        protectInNeutralTerritory = true;
+        enemiesCanLootInOwnTerritory = false;
+        allowLootDuringRaid = true;
+        allowLootDuringWar = true;
     }
 
     @Override
@@ -61,6 +75,11 @@ public class GravestoneConfig extends ModuleConfig {
         protectInWarZone = getBool(root, "protectInWarZone", protectInWarZone);
         protectInWilderness = getBool(root, "protectInWilderness", protectInWilderness);
         announceDeathLocation = getBool(root, "announceDeathLocation", announceDeathLocation);
+        protectInEnemyTerritory = getBool(root, "protectInEnemyTerritory", protectInEnemyTerritory);
+        protectInNeutralTerritory = getBool(root, "protectInNeutralTerritory", protectInNeutralTerritory);
+        enemiesCanLootInOwnTerritory = getBool(root, "enemiesCanLootInOwnTerritory", enemiesCanLootInOwnTerritory);
+        allowLootDuringRaid = getBool(root, "allowLootDuringRaid", allowLootDuringRaid);
+        allowLootDuringWar = getBool(root, "allowLootDuringWar", allowLootDuringWar);
     }
 
     @Override
@@ -72,6 +91,11 @@ public class GravestoneConfig extends ModuleConfig {
         root.addProperty("protectInWarZone", protectInWarZone);
         root.addProperty("protectInWilderness", protectInWilderness);
         root.addProperty("announceDeathLocation", announceDeathLocation);
+        root.addProperty("protectInEnemyTerritory", protectInEnemyTerritory);
+        root.addProperty("protectInNeutralTerritory", protectInNeutralTerritory);
+        root.addProperty("enemiesCanLootInOwnTerritory", enemiesCanLootInOwnTerritory);
+        root.addProperty("allowLootDuringRaid", allowLootDuringRaid);
+        root.addProperty("allowLootDuringWar", allowLootDuringWar);
     }
 
     // === Getters ===
@@ -102,5 +126,25 @@ public class GravestoneConfig extends ModuleConfig {
 
     public boolean isAnnounceDeathLocation() {
         return announceDeathLocation;
+    }
+
+    public boolean isProtectInEnemyTerritory() {
+        return protectInEnemyTerritory;
+    }
+
+    public boolean isProtectInNeutralTerritory() {
+        return protectInNeutralTerritory;
+    }
+
+    public boolean isEnemiesCanLootInOwnTerritory() {
+        return enemiesCanLootInOwnTerritory;
+    }
+
+    public boolean isAllowLootDuringRaid() {
+        return allowLootDuringRaid;
+    }
+
+    public boolean isAllowLootDuringWar() {
+        return allowLootDuringWar;
     }
 }

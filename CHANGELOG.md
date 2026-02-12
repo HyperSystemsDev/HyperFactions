@@ -9,6 +9,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+**Integration Flags GUI Sub-Page**
+- New Admin Zone Integration Flags page for configuring integration-specific zone flags
+- Accessible via "Integration Flags" button in Zone Settings footer
+- Shows `gravestone_access` flag with clear description: "When ON, non-owners can loot graves. Owners always can."
+- Dedicated Reset to Defaults button (only clears integration flags, not all zone flags)
+- Scalable layout for future integration flags
+
+**Expanded Admin Integrations Command**
+- `/f admin integrations` now shows all 7 integrations organized by category:
+  - Permissions: HyperPerms, LuckPerms, VaultUnlocked
+  - Protection: OrbisGuard API, OrbisGuard-Mixins, Gravestones
+  - Placeholders: PlaceholderAPI, WiFlow PAPI
+- `/f admin integration <name>` detail views for all integrations:
+  - `hyperperms` — Provider chain, active providers, fallback config
+  - `orbisguard` — API detection, claim conflict detection status
+  - `mixins` — Mixin availability, individual hook load status
+  - `papi` — Expansion registration, placeholder count
+  - `wiflow` — WiFlow expansion status
+  - `gravestones` — Existing detail view (unchanged)
+
+### Changed
+
+- Zone flag `gravestone_access` display name changed to "Others Loot Graves" for clarity
+- Zone flag description updated to explicitly state owners always have access to their own gravestone
+
 **GravestonePlugin Integration**
 - Reflection-based soft dependency on Zurku's GravestonePlugin for faction-aware gravestone protection
 - New `GravestoneIntegration` class discovers running GravestonePlugin via Hytale's PluginManager

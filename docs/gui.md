@@ -196,6 +196,7 @@ AdminMainPage
      ├─► AdminZoneMapPage
      │        ├─► CreateZoneWizardPage
      │        └─► AdminZoneSettingsPage
+     │                 └─► AdminZoneIntegrationFlagsPage
      │
      ├─► AdminConfigPage
      │
@@ -510,6 +511,7 @@ gui/
 │       ├── AdminFactionRelationsPage.java
 │       ├── AdminZoneMapPage.java
 │       ├── AdminZoneSettingsPage.java
+│       ├── AdminZoneIntegrationFlagsPage.java
 │       ├── CreateZoneWizardPage.java
 │       ├── AdminConfigPage.java
 │       ├── AdminBackupsPage.java

@@ -1655,6 +1655,35 @@ public class GuiManager {
     }
 
     /**
+     * Opens the Admin Zone Integration Flags page for configuring integration-specific zone flags.
+     *
+     * @param player    The Player entity
+     * @param ref       The entity reference
+     * @param store     The entity store
+     * @param playerRef The PlayerRef component
+     * @param zoneId    The UUID of the zone to configure
+     */
+    public void openAdminZoneIntegrationFlags(Player player, Ref<EntityStore> ref,
+                                               Store<EntityStore> store, PlayerRef playerRef,
+                                               UUID zoneId) {
+        Logger.debug("[GUI] Opening AdminZoneIntegrationFlagsPage for %s (zone: %s)", playerRef.getUsername(), zoneId);
+        try {
+            PageManager pageManager = player.getPageManager();
+            AdminZoneIntegrationFlagsPage page = new AdminZoneIntegrationFlagsPage(
+                playerRef,
+                zoneId,
+                zoneManager.get(),
+                this
+            );
+            pageManager.openCustomPage(ref, store, page);
+            Logger.debug("[GUI] AdminZoneIntegrationFlagsPage opened successfully");
+        } catch (Exception e) {
+            Logger.severe("[GUI] Failed to open AdminZoneIntegrationFlagsPage: %s", e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
      * Opens the Zone Rename modal.
      *
      * @param player      The Player entity

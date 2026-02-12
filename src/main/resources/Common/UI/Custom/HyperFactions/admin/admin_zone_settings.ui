@@ -707,6 +707,14 @@ $C.@PageOverlay {
 
         Label { FlexWeight: 1; }
 
+        TextButton #IntegrationFlagsBtn {
+          Text: "Integration Flags";
+          Anchor: (Height: 32, Width: 160);
+          Style: $S.@ButtonStyle;
+        }
+
+        Label { FlexWeight: 1; }
+
         TextButton #BackBtn {
           Text: "Back to Zones";
           Anchor: (Height: 32, Width: 130);

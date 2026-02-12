@@ -230,9 +230,9 @@ public class HyperFactions {
             () -> this, factionManager, claimManager, zoneManager, relationManager, combatTagManager
         );
 
-        // Initialize GravestonePlugin integration (soft dependency, reflection-based)
+        // GravestonePlugin integration is initialized later by the plugin
+        // via initGravestoneIntegration() once EventRegistry is available
         gravestoneIntegration = new GravestoneIntegration();
-        gravestoneIntegration.init();
         protectionChecker.setGravestoneIntegration(gravestoneIntegration);
 
         // Initialize zone damage protection
@@ -586,6 +586,18 @@ public class HyperFactions {
         }
 
         Logger.info("Configuration reloaded");
+    }
+
+    /**
+     * Initializes the GravestonePlugin integration (v2 direct API).
+     * Must be called by the plugin after enable() once EventRegistry is available.
+     *
+     * @param eventRegistry the event registry for gravestone event listeners
+     */
+    public void initGravestoneIntegration(@NotNull com.hypixel.hytale.event.EventRegistry eventRegistry) {
+        if (gravestoneIntegration != null) {
+            gravestoneIntegration.init(() -> this, protectionChecker, eventRegistry);
+        }
     }
 
     // === Platform callbacks ===

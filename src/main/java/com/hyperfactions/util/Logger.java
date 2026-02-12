@@ -26,7 +26,8 @@ public final class Logger {
         WORLDMAP("worldmap"),
         INTERACTION("interaction"),
         MIXIN("mixin"),
-        SPAWNING("spawning");
+        SPAWNING("spawning"),
+        INTEGRATION("integration");
 
         private final String configKey;
 
@@ -367,6 +368,19 @@ public final class Logger {
     public static void debugSpawning(@NotNull String message, Object... args) {
         if (isDebugEnabled(DebugCategory.SPAWNING)) {
             logDebug("SPAWNING", message, args);
+        }
+    }
+
+    /**
+     * Logs an integration-related debug message (cross-plugin integrations, access checkers).
+     * Used for debugging GravestonePlugin integration, future integrations.
+     *
+     * @param message the message format
+     * @param args    format arguments
+     */
+    public static void debugIntegration(@NotNull String message, Object... args) {
+        if (isDebugEnabled(DebugCategory.INTEGRATION)) {
+            logDebug("INTEGRATION", message, args);
         }
     }
 

@@ -9,6 +9,12 @@ import com.hyperfactions.command.FactionSubCommand;
 import com.hyperfactions.config.ConfigManager;
 import com.hyperfactions.config.modules.GravestoneConfig;
 import com.hyperfactions.integration.GravestoneIntegration;
+import com.hyperfactions.integration.HyperPermsIntegration;
+import com.hyperfactions.integration.PermissionManager;
+import com.hyperfactions.integration.orbis.OrbisGuardIntegration;
+import com.hyperfactions.integration.orbis.OrbisMixinsIntegration;
+import com.hyperfactions.integration.papi.PlaceholderAPIIntegration;
+import com.hyperfactions.integration.wiflow.WiFlowPlaceholderIntegration;
 import com.hyperfactions.data.Zone;
 import com.hyperfactions.data.ZoneFlags;
 import com.hyperfactions.data.ZoneType;
@@ -130,7 +136,8 @@ public class AdminSubCommand extends FactionSubCommand {
                     hyperFactions.getGuiManager().openButtonTestPage(playerEntity, ref, store, player);
                 }
             }
-            case "gravestone", "gravestones", "gs" -> handleGravestone(ctx);
+            case "integrations" -> handleIntegrations(ctx);
+            case "integration" -> handleIntegrationDetail(ctx, Arrays.copyOfRange(args, 1, args.length));
             default -> ctx.sendMessage(prefix().insert(msg("Unknown admin command. Use /f admin help", COLOR_RED)));
         }
     }
@@ -154,35 +161,212 @@ public class AdminSubCommand extends FactionSubCommand {
         commands.add(new CommandHelp("/f admin warzone [name]", "Create WarZone + claim chunk"));
         commands.add(new CommandHelp("/f admin removezone", "Unclaim chunk from zone"));
         commands.add(new CommandHelp("/f admin zoneflag <flag> <value>", "Set zone flag"));
-        commands.add(new CommandHelp("/f admin gravestone", "GravestonePlugin integration status"));
+        commands.add(new CommandHelp("/f admin integrations", "Summary of all integrations"));
+        commands.add(new CommandHelp("/f admin integration <name>", "Detailed integration status"));
         ctx.sendMessage(HelpFormatter.buildHelp("Admin Commands", "Server administration", commands, null));
     }
 
-    // === Gravestone Integration ===
-    private void handleGravestone(CommandContext ctx) {
+    // === Integration Commands ===
+    private void handleIntegrations(CommandContext ctx) {
+        ctx.sendMessage(prefix().insert(msg("Integration Status", COLOR_CYAN)));
+
+        // --- Permissions ---
+        ctx.sendMessage(msg("  Permissions:", COLOR_YELLOW));
+
+        boolean hpAvailable = HyperPermsIntegration.isAvailable();
+        ctx.sendMessage(msg("    HyperPerms: " + (hpAvailable ? "Active" : "Not Found"),
+                hpAvailable ? COLOR_GREEN : COLOR_GRAY));
+
+        String providerNames = PermissionManager.get().getProviderNames();
+        boolean luckPermsAvailable = providerNames.contains("LuckPerms");
+        ctx.sendMessage(msg("    LuckPerms: " + (luckPermsAvailable ? "Active" : "Not Found"),
+                luckPermsAvailable ? COLOR_GREEN : COLOR_GRAY));
+
+        boolean vaultAvailable = providerNames.contains("VaultUnlocked");
+        ctx.sendMessage(msg("    VaultUnlocked: " + (vaultAvailable ? "Active" : "Not Found"),
+                vaultAvailable ? COLOR_GREEN : COLOR_GRAY));
+
+        // --- Protection ---
+        ctx.sendMessage(msg("  Protection:", COLOR_YELLOW));
+
+        boolean ogAvailable = OrbisGuardIntegration.isAvailable();
+        ctx.sendMessage(msg("    OrbisGuard API: " + (ogAvailable ? "Active" : "Not Detected"),
+                ogAvailable ? COLOR_GREEN : COLOR_GRAY));
+
+        boolean mixinsAvailable = OrbisMixinsIntegration.isMixinsAvailable();
+        ctx.sendMessage(msg("    OrbisGuard-Mixins: " + (mixinsAvailable ? "Active (11 hooks)" : "Not Detected"),
+                mixinsAvailable ? COLOR_GREEN : COLOR_GRAY));
+
         GravestoneIntegration gs = hyperFactions.getProtectionChecker().getGravestoneIntegration();
-        GravestoneConfig config = ConfigManager.get().gravestones();
+        boolean gsAvailable = gs != null && gs.isAvailable();
+        boolean gsEnabled = ConfigManager.get().gravestones().isEnabled();
+        String gsStatus = !gsAvailable ? "Not Found" : (gsEnabled ? "Active" : "Disabled");
+        String gsColor = gsAvailable && gsEnabled ? COLOR_GREEN : (gsAvailable ? COLOR_YELLOW : COLOR_GRAY);
+        ctx.sendMessage(msg("    Gravestones: " + gsStatus, gsColor));
 
-        boolean pluginDetected = gs != null && gs.isAvailable();
-        boolean integrationEnabled = config.isEnabled();
+        // --- Placeholders ---
+        ctx.sendMessage(msg("  Placeholders:", COLOR_YELLOW));
 
-        ctx.sendMessage(prefix().insert(msg("Gravestone Integration Status", COLOR_CYAN)));
-        ctx.sendMessage(msg("  GravestonePlugin: " + (pluginDetected ? "Detected" : "Not Found"), pluginDetected ? COLOR_GREEN : COLOR_GRAY));
-        ctx.sendMessage(msg("  Integration: " + (integrationEnabled ? "Enabled" : "Disabled"), integrationEnabled ? COLOR_GREEN : COLOR_RED));
+        boolean papiAvailable = PlaceholderAPIIntegration.isAvailable();
+        ctx.sendMessage(msg("    PlaceholderAPI: " + (papiAvailable ? "Active" : "Not Found"),
+                papiAvailable ? COLOR_GREEN : COLOR_GRAY));
 
-        if (pluginDetected) {
-            boolean nativeProtection = gs.isNativeOwnerProtectionEnabled();
-            ctx.sendMessage(msg("  Native ownerProtection: " + (nativeProtection ? "On" : "Off"), COLOR_GRAY));
+        boolean wiflowAvailable = WiFlowPlaceholderIntegration.isAvailable();
+        ctx.sendMessage(msg("    WiFlow PAPI: " + (wiflowAvailable ? "Active" : "Not Found"),
+                wiflowAvailable ? COLOR_GREEN : COLOR_GRAY));
+
+        ctx.sendMessage(msg("  Use /f admin integration <name> for details", COLOR_GRAY));
+    }
+
+    private void handleIntegrationDetail(CommandContext ctx, String[] args) {
+        if (args.length == 0) {
+            ctx.sendMessage(prefix().insert(msg("Usage: /f admin integration <name>", COLOR_RED)));
+            ctx.sendMessage(msg("  Available: hyperperms, orbisguard, mixins, gravestones, papi, wiflow", COLOR_GRAY));
+            return;
         }
 
-        ctx.sendMessage(msg("  Config:", COLOR_CYAN));
+        String name = args[0].toLowerCase();
+        switch (name) {
+            case "gravestones", "gravestone", "gs" -> handleIntegrationGravestones(ctx);
+            case "hyperperms", "perms", "hp" -> handleIntegrationPermissions(ctx);
+            case "orbisguard", "orbis", "og" -> handleIntegrationOrbisGuard(ctx);
+            case "mixins", "orbismixins", "om" -> handleIntegrationMixins(ctx);
+            case "placeholderapi", "papi" -> handleIntegrationPAPI(ctx);
+            case "wiflow", "wflow" -> handleIntegrationWiFlow(ctx);
+            default -> ctx.sendMessage(prefix().insert(msg("Unknown integration: " + name +
+                    ". Available: hyperperms, orbisguard, mixins, gravestones, papi, wiflow", COLOR_RED)));
+        }
+    }
+
+    private void handleIntegrationGravestones(CommandContext ctx) {
+        GravestoneIntegration gs = hyperFactions.getProtectionChecker().getGravestoneIntegration();
+        GravestoneConfig config = ConfigManager.get().gravestones();
+        boolean pluginDetected = gs != null && gs.isAvailable();
+
+        ctx.sendMessage(prefix().insert(msg("Gravestone Integration", COLOR_CYAN)));
+        ctx.sendMessage(msg("  Plugin: " + (pluginDetected ? "Detected (v2 API)" : "Not Found"),
+                pluginDetected ? COLOR_GREEN : COLOR_GRAY));
+        ctx.sendMessage(msg("  Integration: " + (config.isEnabled() ? "Enabled" : "Disabled"),
+                config.isEnabled() ? COLOR_GREEN : COLOR_RED));
+
+        if (pluginDetected) {
+            ctx.sendMessage(msg("  AccessChecker: Registered", COLOR_GREEN));
+            ctx.sendMessage(msg("  Event Listeners: Active", COLOR_GREEN));
+        }
+
+        ctx.sendMessage(msg("  Territory Config:", COLOR_CYAN));
         ctx.sendMessage(msg("    protectInOwnTerritory: " + config.isProtectInOwnTerritory(), COLOR_GRAY));
         ctx.sendMessage(msg("    factionMembersCanAccess: " + config.isFactionMembersCanAccess(), COLOR_GRAY));
         ctx.sendMessage(msg("    alliesCanAccess: " + config.isAlliesCanAccess(), COLOR_GRAY));
+        ctx.sendMessage(msg("    protectInEnemyTerritory: " + config.isProtectInEnemyTerritory(), COLOR_GRAY));
+        ctx.sendMessage(msg("    protectInNeutralTerritory: " + config.isProtectInNeutralTerritory(), COLOR_GRAY));
+        ctx.sendMessage(msg("    enemiesCanLootInOwnTerritory: " + config.isEnemiesCanLootInOwnTerritory(), COLOR_GRAY));
+        ctx.sendMessage(msg("  Zone/Wilderness Config:", COLOR_CYAN));
         ctx.sendMessage(msg("    protectInSafeZone: " + config.isProtectInSafeZone(), COLOR_GRAY));
         ctx.sendMessage(msg("    protectInWarZone: " + config.isProtectInWarZone(), COLOR_GRAY));
         ctx.sendMessage(msg("    protectInWilderness: " + config.isProtectInWilderness(), COLOR_GRAY));
+        ctx.sendMessage(msg("  Features:", COLOR_CYAN));
         ctx.sendMessage(msg("    announceDeathLocation: " + config.isAnnounceDeathLocation(), COLOR_GRAY));
+        ctx.sendMessage(msg("  Raid/War (placeholder):", COLOR_CYAN));
+        ctx.sendMessage(msg("    allowLootDuringRaid: " + config.isAllowLootDuringRaid(), COLOR_GRAY));
+        ctx.sendMessage(msg("    allowLootDuringWar: " + config.isAllowLootDuringWar(), COLOR_GRAY));
+    }
+
+    private void handleIntegrationPermissions(CommandContext ctx) {
+        ctx.sendMessage(prefix().insert(msg("Permission Integration", COLOR_CYAN)));
+
+        // HyperPerms direct integration
+        boolean hpAvailable = HyperPermsIntegration.isAvailable();
+        ctx.sendMessage(msg("  HyperPerms: " + (hpAvailable ? "Available" : "Not Found"),
+                hpAvailable ? COLOR_GREEN : COLOR_GRAY));
+        if (hpAvailable) {
+            ctx.sendMessage(msg("    Status: " + HyperPermsIntegration.getDetailedStatus(), COLOR_GRAY));
+        } else {
+            String error = HyperPermsIntegration.getInitError();
+            if (error != null) {
+                ctx.sendMessage(msg("    Error: " + error, COLOR_RED));
+            }
+        }
+
+        // Provider chain
+        PermissionManager pm = PermissionManager.get();
+        ctx.sendMessage(msg("  Provider Chain:", COLOR_CYAN));
+        ctx.sendMessage(msg("    Priority: VaultUnlocked > HyperPerms > LuckPerms", COLOR_GRAY));
+        ctx.sendMessage(msg("    Active Providers: " + pm.getProviderCount() + " (" + pm.getProviderNames() + ")", COLOR_WHITE));
+
+        // Fallback config
+        boolean allowWithout = ConfigManager.get().isAllowWithoutPermissionMod();
+        ctx.sendMessage(msg("  Fallback:", COLOR_CYAN));
+        ctx.sendMessage(msg("    allowWithoutPermissionMod: " + allowWithout,
+                allowWithout ? COLOR_GREEN : COLOR_GRAY));
+    }
+
+    private void handleIntegrationOrbisGuard(CommandContext ctx) {
+        boolean available = OrbisGuardIntegration.isAvailable();
+
+        ctx.sendMessage(prefix().insert(msg("OrbisGuard API Integration", COLOR_CYAN)));
+        ctx.sendMessage(msg("  API Status: " + (available ? "Detected" : "Not Detected"),
+                available ? COLOR_GREEN : COLOR_GRAY));
+
+        if (available) {
+            ctx.sendMessage(msg("  Claim Conflict Detection: Active", COLOR_GREEN));
+            ctx.sendMessage(msg("    Prevents faction claims in OrbisGuard-protected regions", COLOR_GRAY));
+        } else {
+            ctx.sendMessage(msg("  Claim Conflict Detection: Disabled", COLOR_GRAY));
+            ctx.sendMessage(msg("    OrbisGuard not installed - no region conflict checks", COLOR_GRAY));
+        }
+    }
+
+    private void handleIntegrationMixins(CommandContext ctx) {
+        boolean available = OrbisMixinsIntegration.isMixinsAvailable();
+
+        ctx.sendMessage(prefix().insert(msg("OrbisGuard-Mixins Integration", COLOR_CYAN)));
+        ctx.sendMessage(msg("  Status: " + (available ? "Active" : "Not Detected"),
+                available ? COLOR_GREEN : COLOR_GRAY));
+
+        if (available) {
+            ctx.sendMessage(msg("  Registered Hooks:", COLOR_CYAN));
+            ctx.sendMessage(msg("    Pickup: " + (OrbisMixinsIntegration.isPickupMixinLoaded() ? "Loaded" : "Pending"),
+                    OrbisMixinsIntegration.isPickupMixinLoaded() ? COLOR_GREEN : COLOR_YELLOW));
+            ctx.sendMessage(msg("    Death: " + (OrbisMixinsIntegration.isDeathMixinLoaded() ? "Loaded" : "Pending"),
+                    OrbisMixinsIntegration.isDeathMixinLoaded() ? COLOR_GREEN : COLOR_YELLOW));
+            ctx.sendMessage(msg("    Durability: " + (OrbisMixinsIntegration.isDurabilityMixinLoaded() ? "Loaded" : "Pending"),
+                    OrbisMixinsIntegration.isDurabilityMixinLoaded() ? COLOR_GREEN : COLOR_YELLOW));
+            ctx.sendMessage(msg("    Seating: " + (OrbisMixinsIntegration.isSeatingMixinLoaded() ? "Loaded" : "Pending"),
+                    OrbisMixinsIntegration.isSeatingMixinLoaded() ? COLOR_GREEN : COLOR_YELLOW));
+            ctx.sendMessage(msg("  Additional hooks: hammer, explosion, command, use, harvest, place, spawn", COLOR_GRAY));
+        } else {
+            ctx.sendMessage(msg("  Mixin-dependent zone flags will be disabled:", COLOR_GRAY));
+            ctx.sendMessage(msg("    item_pickup_manual, invincible_items, keep_inventory, npc_spawning", COLOR_GRAY));
+        }
+    }
+
+    private void handleIntegrationPAPI(CommandContext ctx) {
+        boolean available = PlaceholderAPIIntegration.isAvailable();
+
+        ctx.sendMessage(prefix().insert(msg("PlaceholderAPI Integration", COLOR_CYAN)));
+        ctx.sendMessage(msg("  Status: " + (available ? "Active" : "Not Found"),
+                available ? COLOR_GREEN : COLOR_GRAY));
+
+        if (available) {
+            ctx.sendMessage(msg("  Expansion: Registered", COLOR_GREEN));
+            ctx.sendMessage(msg("  Prefix: hyperfactions", COLOR_GRAY));
+            ctx.sendMessage(msg("  Placeholders: 73+", COLOR_GRAY));
+            ctx.sendMessage(msg("  Categories: faction info, player power, relations, claims, roles", COLOR_GRAY));
+        }
+    }
+
+    private void handleIntegrationWiFlow(CommandContext ctx) {
+        boolean available = WiFlowPlaceholderIntegration.isAvailable();
+
+        ctx.sendMessage(prefix().insert(msg("WiFlow Placeholder Integration", COLOR_CYAN)));
+        ctx.sendMessage(msg("  Status: " + (available ? "Active" : "Not Found"),
+                available ? COLOR_GREEN : COLOR_GRAY));
+
+        if (available) {
+            ctx.sendMessage(msg("  Expansion: Registered", COLOR_GREEN));
+            ctx.sendMessage(msg("  API: WiFlowPlaceholderAPI", COLOR_GRAY));
+        }
     }
 
     // === Reload ===
@@ -1071,6 +1255,7 @@ public class AdminSubCommand extends FactionSubCommand {
             ctx.sendMessage(msg("  interaction: ", COLOR_WHITE).insert(msg(debugConfig.isInteraction() ? "ON" : "OFF", debugConfig.isInteraction() ? COLOR_GREEN : COLOR_RED)));
             ctx.sendMessage(msg("  mixin: ", COLOR_WHITE).insert(msg(debugConfig.isMixin() ? "ON" : "OFF", debugConfig.isMixin() ? COLOR_GREEN : COLOR_RED)));
             ctx.sendMessage(msg("  spawning: ", COLOR_WHITE).insert(msg(debugConfig.isSpawning() ? "ON" : "OFF", debugConfig.isSpawning() ? COLOR_GREEN : COLOR_RED)));
+            ctx.sendMessage(msg("  integration: ", COLOR_WHITE).insert(msg(debugConfig.isIntegration() ? "ON" : "OFF", debugConfig.isIntegration() ? COLOR_GREEN : COLOR_RED)));
             ctx.sendMessage(msg("Usage: /f admin debug toggle <category|all> [on|off]", COLOR_GRAY));
             return;
         }
@@ -1104,9 +1289,10 @@ public class AdminSubCommand extends FactionSubCommand {
             case "interaction" -> currentValue = debugConfig.isInteraction();
             case "mixin" -> currentValue = debugConfig.isMixin();
             case "spawning" -> currentValue = debugConfig.isSpawning();
+            case "integration" -> currentValue = debugConfig.isIntegration();
             default -> {
                 ctx.sendMessage(prefix().insert(msg("Unknown category: " + category, COLOR_RED)));
-                ctx.sendMessage(msg("Valid categories: power, claim, combat, protection, relation, territory, worldmap, interaction, mixin, spawning, all", COLOR_GRAY));
+                ctx.sendMessage(msg("Valid categories: power, claim, combat, protection, relation, territory, worldmap, interaction, mixin, spawning, integration, all", COLOR_GRAY));
                 return;
             }
         }
@@ -1128,6 +1314,7 @@ public class AdminSubCommand extends FactionSubCommand {
             case "interaction" -> debugConfig.setInteraction(newValue);
             case "mixin" -> debugConfig.setMixin(newValue);
             case "spawning" -> debugConfig.setSpawning(newValue);
+            case "integration" -> debugConfig.setIntegration(newValue);
         }
 
         // Save to persist the change
@@ -1165,6 +1352,7 @@ public class AdminSubCommand extends FactionSubCommand {
         ctx.sendMessage(msg("  interaction: ", COLOR_WHITE).insert(msg(debugConfig.isInteraction() ? "ON" : "OFF", debugConfig.isInteraction() ? COLOR_GREEN : COLOR_RED)));
         ctx.sendMessage(msg("  mixin: ", COLOR_WHITE).insert(msg(debugConfig.isMixin() ? "ON" : "OFF", debugConfig.isMixin() ? COLOR_GREEN : COLOR_RED)));
         ctx.sendMessage(msg("  spawning: ", COLOR_WHITE).insert(msg(debugConfig.isSpawning() ? "ON" : "OFF", debugConfig.isSpawning() ? COLOR_GREEN : COLOR_RED)));
+        ctx.sendMessage(msg("  integration: ", COLOR_WHITE).insert(msg(debugConfig.isIntegration() ? "ON" : "OFF", debugConfig.isIntegration() ? COLOR_GREEN : COLOR_RED)));
     }
 
     private void handleDebugPower(CommandContext ctx, String[] args) {

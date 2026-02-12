@@ -105,6 +105,15 @@ public class AdminZoneSettingsPage extends InteractiveCustomUIPage<AdminZoneSett
             cmd.set("#ResetBtn.Disabled", true);
         }
 
+        // Integration Flags button
+        events.addEventBinding(
+                CustomUIEventBindingType.Activating,
+                "#IntegrationFlagsBtn",
+                EventData.of("Button", "IntegrationFlags")
+                        .append("ZoneId", zoneId.toString()),
+                false
+        );
+
         // Back button
         events.addEventBinding(
                 CustomUIEventBindingType.Activating,
@@ -225,6 +234,10 @@ public class AdminZoneSettingsPage extends InteractiveCustomUIPage<AdminZoneSett
         switch (data.button) {
             case "ToggleFlag" -> handleToggleFlag(player, data);
             case "ResetDefaults" -> handleResetDefaults(player, data);
+            case "IntegrationFlags" -> {
+                UUID zId = UUID.fromString(data.zoneId);
+                guiManager.openAdminZoneIntegrationFlags(player, ref, store, playerRef, zId);
+            }
             case "Back" -> guiManager.openAdminZone(player, ref, store, playerRef);
         }
     }

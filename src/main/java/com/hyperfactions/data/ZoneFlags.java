@@ -182,6 +182,13 @@ public final class ZoneFlags {
      */
     public static final String NPC_SPAWNING = "npc_spawning";
 
+    // ==========================================================================
+    // INTEGRATION FLAGS (1)
+    // ==========================================================================
+
+    /** Whether non-owners can access (collect/break) other players' gravestones in this zone. Owners can always access their own. */
+    public static final String GRAVESTONE_ACCESS = "gravestone_access";
+
     /**
      * All available flag names for validation.
      */
@@ -215,7 +222,9 @@ public final class ZoneFlags {
         HOSTILE_MOB_SPAWNING,
         PASSIVE_MOB_SPAWNING,
         NEUTRAL_MOB_SPAWNING,
-        NPC_SPAWNING
+        NPC_SPAWNING,
+        // Integration (1)
+        GRAVESTONE_ACCESS
     };
 
     /**
@@ -229,6 +238,7 @@ public final class ZoneFlags {
     public static final String[] SPAWNING_FLAGS = { MOB_SPAWNING, HOSTILE_MOB_SPAWNING, PASSIVE_MOB_SPAWNING, NEUTRAL_MOB_SPAWNING, NPC_SPAWNING };
     public static final String[] INTERACTION_FLAGS = { BLOCK_INTERACT, DOOR_USE, CONTAINER_USE, BENCH_USE, PROCESSING_USE, SEAT_USE };
     public static final String[] ITEM_FLAGS = { ITEM_DROP, ITEM_PICKUP, ITEM_PICKUP_MANUAL, INVINCIBLE_ITEMS };
+    public static final String[] INTEGRATION_FLAGS = { GRAVESTONE_ACCESS };
 
     /**
      * Flags that require OrbisGuard-Mixins to function.
@@ -309,6 +319,8 @@ public final class ZoneFlags {
             case PASSIVE_MOB_SPAWNING -> false;
             case NEUTRAL_MOB_SPAWNING -> false;
             case NPC_SPAWNING -> false;           // Mixin spawn hook blocked
+            // Integration: Protected in safe zones
+            case GRAVESTONE_ACCESS -> false;
             default -> false;
         };
     }
@@ -360,6 +372,8 @@ public final class ZoneFlags {
             case PASSIVE_MOB_SPAWNING -> true;
             case NEUTRAL_MOB_SPAWNING -> true;
             case NPC_SPAWNING -> true;            // Mixin spawn hook allowed
+            // Integration: Free for all in war zones
+            case GRAVESTONE_ACCESS -> true;
             default -> false;
         };
     }
@@ -423,6 +437,7 @@ public final class ZoneFlags {
             case PASSIVE_MOB_SPAWNING -> "Passive Mobs";
             case NEUTRAL_MOB_SPAWNING -> "Neutral Mobs";
             case NPC_SPAWNING -> "NPC Spawning";
+            case GRAVESTONE_ACCESS -> "Others Loot Graves";
             default -> flagName;
         };
     }
@@ -459,6 +474,7 @@ public final class ZoneFlags {
             case PASSIVE_MOB_SPAWNING -> "Non-aggressive mobs can spawn";
             case NEUTRAL_MOB_SPAWNING -> "Conditionally aggressive mobs can spawn";
             case NPC_SPAWNING -> "NPC spawning via mixin (requires mixin)";
+            case GRAVESTONE_ACCESS -> "Non-owners can loot/break other players' gravestones (owners always can)";
             default -> "Unknown flag";
         };
     }
@@ -570,6 +586,7 @@ public final class ZoneFlags {
         for (String f : SPAWNING_FLAGS) if (f.equals(flagName)) return "Spawning";
         for (String f : INTERACTION_FLAGS) if (f.equals(flagName)) return "Interaction";
         for (String f : ITEM_FLAGS) if (f.equals(flagName)) return "Items";
+        for (String f : INTEGRATION_FLAGS) if (f.equals(flagName)) return "Integration";
         return "Other";
     }
 
@@ -588,6 +605,7 @@ public final class ZoneFlags {
         categories.put("Damage", DAMAGE_FLAGS);
         categories.put("Death", DEATH_FLAGS);
         categories.put("Spawning", SPAWNING_FLAGS);
+        categories.put("Integration", INTEGRATION_FLAGS);
         return categories;
     }
 
@@ -605,7 +623,8 @@ public final class ZoneFlags {
             "Items",
             "Damage",
             "Death",
-            "Spawning"
+            "Spawning",
+            "Integration"
         };
     }
 }

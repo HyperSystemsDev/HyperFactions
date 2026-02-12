@@ -1,0 +1,138 @@
+// Admin Zone Integration Flags Page
+// Configure integration-specific zone flags
+// Dedicated sub-page for flags from plugin integrations (Gravestones, etc.)
+
+$C = "../../Common.ui";
+$S = "../shared/styles.ui";
+$Nav = "admin_nav_bar.ui";
+
+$C.@PageOverlay {
+  $Nav.@HyperFactionsAdminNavBar #HyperFactionsAdminNavBar {}
+
+  $C.@DecoratedContainer {
+    Anchor: (Width: 500, Height: 360);
+
+    #Title {
+      Group {
+        $C.@Title {
+          @Text = "Admin: Integration Flags";
+        }
+      }
+    }
+
+    #Content {
+      LayoutMode: Top;
+      Padding: (Left: 20, Right: 20, Top: 12, Bottom: 12);
+
+      // === Zone Info Header ===
+      Group #HeaderSection {
+        Anchor: (Height: 28, Bottom: 8);
+        LayoutMode: Left;
+
+        Label #ZoneName {
+          Text: "Zone Name";
+          Style: (FontSize: 14, TextColor: #00FFFF, RenderBold: true, VerticalAlignment: Center);
+        }
+
+        Label { Anchor: (Width: 12); }
+
+        Label #ZoneType {
+          Text: "Safe";
+          Style: (FontSize: 12, TextColor: #2dd4bf, RenderBold: true, VerticalAlignment: Center);
+        }
+      }
+
+      // Divider
+      Group {
+        Anchor: (Height: 1, Bottom: 8);
+        Background: (Color: #00AAAA);
+      }
+
+      // === Flags Container ===
+      Group #FlagsContainer {
+        LayoutMode: Top;
+        FlexWeight: 1;
+
+        // --- Gravestones Box ---
+        Group #GravestonesBox {
+          Background: (Color: #1a2a3a);
+          Padding: (Left: 12, Right: 12, Top: 8, Bottom: 8);
+          LayoutMode: Top;
+          Anchor: (Bottom: 8);
+
+          Group {
+            Anchor: (Height: 18, Bottom: 4);
+            Label {
+              Text: "Gravestones";
+              Style: (FontSize: 11, TextColor: #00AAAA, RenderBold: true);
+            }
+          }
+
+          // Flag 0: gravestone_access
+          Group {
+            Anchor: (Height: 24);
+            LayoutMode: Left;
+            Label #Flag0Name {
+              Text: "Others Loot Graves";
+              Style: (FontSize: 11, TextColor: #CCCCCC, VerticalAlignment: Center);
+              Anchor: (Width: 160);
+            }
+            Label { FlexWeight: 1; }
+            Label #Flag0Default {
+              Text: "(default)";
+              Style: (FontSize: 9, TextColor: #555555, VerticalAlignment: Center);
+              Anchor: (Width: 55);
+            }
+            $C.@CheckBoxWithLabel #Flag0Toggle {
+              @Text = ""; @Checked = false;
+              Anchor: (Height: 20, Width: 44);
+            }
+          }
+
+          // Description
+          Group {
+            Anchor: (Height: 16);
+            Padding: (Left: 4, Right: 0, Top: 0, Bottom: 0);
+            Label {
+              Text: "When ON, non-owners can loot graves. Owners always can.";
+              Style: (FontSize: 9, TextColor: #666666);
+            }
+          }
+        }
+
+        // Future integration flag boxes will go here (same pattern)
+
+        // Info text for empty space
+        Group #InfoSection {
+          Anchor: (Height: 40, Top: 8);
+          Label #InfoText {
+            Text: "More integration flags will appear here as integrations are added.";
+            Style: (FontSize: 10, TextColor: #555555);
+          }
+        }
+      }
+
+      // === Footer ===
+      Group #Footer {
+        Anchor: (Height: 40);
+        LayoutMode: Left;
+
+        TextButton #ResetBtn {
+          Text: "Reset to Defaults";
+          Anchor: (Height: 32, Width: 150);
+          Style: $S.@RedButtonStyle;
+        }
+
+        Label { FlexWeight: 1; }
+
+        TextButton #BackBtn {
+          Text: "Back to Flags";
+          Anchor: (Height: 32, Width: 130);
+          Style: $S.@ButtonStyle;
+        }
+      }
+    }
+  }
+}
+
+$C.@BackButton {}

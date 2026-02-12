@@ -429,6 +429,7 @@ public class ConfigManager {
     public boolean isDebugRelation() { return debugConfig.isRelation(); }
     public boolean isDebugTerritory() { return debugConfig.isTerritory(); }
     public boolean isDebugWorldmap() { return debugConfig.isWorldmap(); }
+    public boolean isDebugIntegration() { return debugConfig.isIntegration(); }
 
     // Debug setters
     public void setDebugPower(boolean enabled) { debugConfig.setPower(enabled); }
@@ -438,6 +439,7 @@ public class ConfigManager {
     public void setDebugRelation(boolean enabled) { debugConfig.setRelation(enabled); }
     public void setDebugTerritory(boolean enabled) { debugConfig.setTerritory(enabled); }
     public void setDebugWorldmap(boolean enabled) { debugConfig.setWorldmap(enabled); }
+    public void setDebugIntegration(boolean enabled) { debugConfig.setIntegration(enabled); }
     public void enableAllDebug() { debugConfig.enableAll(); }
     public void disableAllDebug() { debugConfig.disableAll(); }
     public void applyDebugSettings() { debugConfig.applyToLogger(); }

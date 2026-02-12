@@ -1,6 +1,6 @@
 # HyperFactions Integration Breakdown
 
-> **Version**: 0.7.0 | **Package**: `com.hyperfactions.integration`
+> **Version**: 0.7.1 | **Package**: `com.hyperfactions.integration`
 
 HyperFactions integrates with external plugins through soft dependencies. All integrations use reflection-based detection and fail-open design — if a dependency is missing, the feature gracefully degrades.
 
@@ -15,6 +15,7 @@ HyperFactions integrates with external plugins through soft dependencies. All in
 - [OrbisGuard](#orbisguard)
 - [OrbisGuard-Mixins](#orbisguard-mixins)
 - [World Map](#world-map)
+- [GravestonePlugin](#gravestoneplugin)
 - [HyperPerms Context](#hyperperms-context)
 
 ---
@@ -29,6 +30,7 @@ graph TD
     HF --> OG[OrbisGuard]
     HF --> OGM[OrbisGuard-Mixins]
     HF --> WM[World Map]
+    HF --> GS[Gravestones]
     HF --> HP[HyperPerms Context]
 
     PM --> VU[VaultUnlocked]
@@ -44,15 +46,17 @@ graph TD
     style OG fill:#d97706,color:#fff
     style OGM fill:#d97706,color:#fff
     style WM fill:#0891b2,color:#fff
+    style GS fill:#dc2626,color:#fff
     style HP fill:#7c3aed,color:#fff
 ```
 
 All integrations share these design principles:
 
-- **Reflection-based detection**: No hard dependencies in `manifest.json`
+- **Soft dependencies**: No hard dependencies in `manifest.json` — `compileOnly` at build time
 - **Fail-open**: Missing integrations never cause errors or block functionality
 - **Lazy initialization**: Detection happens once at startup; results are cached
-- **Logging**: All integration status is logged on startup for debugging
+- **Logging**: All integration status is logged on startup (use `debug integration` for detailed logs)
+- **Detection**: Most use reflection; GravestonePlugin uses direct API with `NoClassDefFoundError` catch
 
 ---
 
@@ -145,70 +149,7 @@ When no provider can answer:
 
 Registered via `PlaceholderExpansion` from the PlaceholderAPI library. Persists across reloads (`persist() = true`).
 
-> **Full Reference**: See [placeholders.md](placeholders.md) for complete placeholder documentation with null behavior, usage examples, and configuration details.
-
-### Placeholders (33)
-
-#### Player Faction Info (12)
-
-| Placeholder | Returns | Example |
-|-------------|---------|---------|
-| `%factions_has_faction%` | `yes` / `no` | `yes` |
-| `%factions_name%` | Faction name | `Warriors` |
-| `%factions_faction_id%` | Faction UUID | `a1b2c3...` |
-| `%factions_tag%` | Faction tag | `WAR` |
-| `%factions_display%` | Tag or name (config-dependent) | `WAR` |
-| `%factions_color%` | Faction color code | `#FF5555` |
-| `%factions_role%` | Player's role display name | `Officer` |
-| `%factions_description%` | Faction description | `The best faction` |
-| `%factions_leader%` | Leader's username | `Steve` |
-| `%factions_leader_id%` | Leader's UUID | `d4e5f6...` |
-| `%factions_open%` | Open status | `true` |
-| `%factions_created%` | Creation date (yyyy-MM-dd) | `2025-01-15` |
-
-#### Power (7)
-
-| Placeholder | Returns | Example |
-|-------------|---------|---------|
-| `%factions_power%` | Player power (1 d.p.) | `8.5` |
-| `%factions_maxpower%` | Player max power (1 d.p.) | `10.0` |
-| `%factions_power_percent%` | Player power % | `85` |
-| `%factions_faction_power%` | Faction total power (1 d.p.) | `42.5` |
-| `%factions_faction_maxpower%` | Faction max power (1 d.p.) | `50.0` |
-| `%factions_faction_power_percent%` | Faction power % | `85` |
-| `%factions_raidable%` | Raidable status | `false` |
-
-#### Territory (4)
-
-| Placeholder | Returns | Example |
-|-------------|---------|---------|
-| `%factions_land%` | Claimed chunk count | `12` |
-| `%factions_land_max%` | Max claimable chunks | `20` |
-| `%factions_territory%` | Owner of current chunk | `Warriors` / `SafeZone` / `Wilderness` |
-| `%factions_territory_type%` | Territory type at location | `Claimed` / `SafeZone` / `WarZone` / `Wilderness` |
-
-#### Faction Home (6)
-
-| Placeholder | Returns | Example |
-|-------------|---------|---------|
-| `%factions_home_world%` | Home world name | `world` |
-| `%factions_home_x%` | Home X (2 d.p.) | `123.45` |
-| `%factions_home_y%` | Home Y (2 d.p.) | `64.00` |
-| `%factions_home_z%` | Home Z (2 d.p.) | `-456.78` |
-| `%factions_home_coords%` | Home X, Y, Z (2 d.p.) | `123.45, 64.00, -456.78` |
-| `%factions_home_yaw%` | Home yaw (2 d.p.) | `90.00` |
-| `%factions_home_pitch%` | Home pitch (2 d.p.) | `0.00` |
-
-#### Members & Relations (6)
-
-| Placeholder | Returns | Example |
-|-------------|---------|---------|
-| `%factions_members%` | Total member count | `5` |
-| `%factions_members_online%` | Online member count | `3` |
-| `%factions_allies%` | Allied faction count | `2` |
-| `%factions_enemies%` | Enemy faction count | `1` |
-| `%factions_neutrals%` | Neutral relation count | `4` |
-| `%factions_relations%` | Total relation count | `7` |
+> **Full Placeholder Reference**: See [placeholders.md](placeholders.md) for complete list of all 35 placeholders with null behavior, usage examples, and configuration details.
 
 ---
 
@@ -217,9 +158,9 @@ Registered via `PlaceholderExpansion` from the PlaceholderAPI library. Persists 
 **Package**: `com.hyperfactions.integration.wiflow`
 **Format**: `{factions_<placeholder>}`
 
-WiFlow uses curly braces instead of percent signs but supports the same 33 placeholders as PAPI. The `WiFlowExpansion` class mirrors `HyperFactionsExpansion` exactly, using WiFlow's `PlaceholderContext` instead of PAPI's `PlayerRef`.
+WiFlow uses curly braces instead of percent signs but supports the same placeholders as PAPI. The `WiFlowExpansion` class mirrors `HyperFactionsExpansion` exactly, using WiFlow's `PlaceholderContext` instead of PAPI's `PlayerRef`.
 
-> **Full Reference**: See [placeholders.md](placeholders.md) for complete placeholder documentation with null behavior, usage examples, and configuration details.
+> **Full Placeholder Reference**: See [placeholders.md](placeholders.md) for complete list of all 35 placeholders with null behavior, usage examples, and configuration details.
 
 ---
 
@@ -349,6 +290,99 @@ Key settings in `config/worldmap.json`:
 - `batchInterval` — Milliseconds between batch updates
 - `maxChunksPerBatch` — Throttle for large updates
 - `showFactionTags` — Display faction names on the map
+
+---
+
+## GravestonePlugin
+
+**Package**: `com.hyperfactions.integration`
+**Purpose**: Faction-aware gravestone access control using direct v2 API
+**Detection**: `GravestonePlugin.getInstance()` (wrapped in `NoClassDefFoundError` catch)
+
+### How It Works
+
+HyperFactions registers a `GravestoneAccessChecker` with the gravestone plugin during startup. This checker is called whenever a player attempts to interact with or break a gravestone. The checker returns a tri-state `AccessResult`:
+
+- **ALLOW** — Access granted (admin bypass, permission bypass, zone/territory allows)
+- **DENY** — Access denied (zone flag, territory protection)
+- **DEFER** — Let gravestone's built-in ownership check decide (owner accessing own, unknown state)
+
+### ECS Protection Bypass
+
+When the integration is active, gravestone blocks bypass normal zone/faction protection in `BlockUseProtectionSystem` and `BlockBreakProtectionSystem`. Access control is handled exclusively by the registered AccessChecker. If the integration is unavailable, normal protection applies as fallback.
+
+### AccessChecker Decision Flow
+
+1. **Config disabled** → DEFER (integration inactive)
+2. **Admin bypass** (has `hyperfactions.admin.use` + bypass toggle ON) → ALLOW
+3. **Permission bypass** (non-admin with `hyperfactions.gravestone.bypass`) → ALLOW
+4. **Owner accessing own** → DEFER (let gravestone plugin handle)
+5. **Zone flag** (`gravestone_access`) → ALLOW or DENY based on zone setting
+6. **Territory + relation** → Based on config (see decision matrix below)
+
+### Zone Flag
+
+`gravestone_access` — Controls whether non-owners can loot/break other players' gravestones in a zone. Owners can always access their own gravestone regardless of this flag. Configurable in the Admin GUI via Zone Settings > Integration Flags.
+
+| Zone Type | Default |
+|-----------|---------|
+| SafeZone | `false` (protected) |
+| WarZone | `true` (free for all) |
+
+### Territory Decision Matrix
+
+| Location | Accessor Relation | Result | Config Setting |
+|----------|-------------------|--------|----------------|
+| Own territory | Same faction member | ALLOW if membersCanAccess | `factionMembersCanAccess` |
+| Own territory | Outsider's gravestone | ALLOW | `protectInOwnTerritory` |
+| Ally territory | Any non-owner | ALLOW if alliesCanAccess | `alliesCanAccess` |
+| Enemy territory | Any non-owner | ALLOW if !protectInEnemy | `protectInEnemyTerritory` |
+| Neutral territory | Any non-owner | DENY if protectInNeutral | `protectInNeutralTerritory` |
+| Wilderness | Any non-owner | ALLOW if !protectInWild | `protectInWilderness` |
+
+### Configuration
+
+All settings in `config/gravestones.json`:
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `enabled` | `true` | Enable/disable the integration |
+| `protectInOwnTerritory` | `true` | Protect gravestones in faction's own territory |
+| `factionMembersCanAccess` | `true` | Faction members can access each other's gravestones |
+| `alliesCanAccess` | `false` | Allied factions can access gravestones |
+| `protectInEnemyTerritory` | `false` | Protect gravestones in enemy territory |
+| `protectInNeutralTerritory` | `true` | Protect gravestones in neutral territory |
+| `enemiesCanLootInOwnTerritory` | `false` | Enemies can loot gravestones in your territory |
+| `protectInSafeZone` | `true` | Protect in SafeZones (via zone flag) |
+| `protectInWarZone` | `false` | Protect in WarZones (via zone flag) |
+| `protectInWilderness` | `false` | Protect in unclaimed wilderness |
+| `announceDeathLocation` | `true` | Announce death location to faction members |
+| `allowLootDuringRaid` | `true` | Allow looting during raids (placeholder) |
+| `allowLootDuringWar` | `true` | Allow looting during wars (placeholder) |
+
+### Event Listeners
+
+Gravestone lifecycle events are logged when `debug integration` is enabled:
+
+- `GravestoneCreatedEvent` — Logs owner, coordinates, world
+- `GravestoneCollectedEvent` — Logs collector, owner, coordinates
+- `GravestoneBrokenEvent` — Logs breaker, owner, coordinates
+
+### Admin Commands
+
+- `/f admin integrations` — Summary status of all 7 integrations (permissions, protection, placeholders)
+- `/f admin integration <name>` — Detailed status for a specific integration
+  - Names: `hyperperms`/`perms`, `orbisguard`/`orbis`, `mixins`, `gravestones`/`gs`, `papi`, `wiflow`
+- `/f admin debug toggle integration` — Enable/disable integration debug logging
+
+### Graceful Degradation
+
+GravestonePlugin is fully optional:
+
+1. **Compile-time**: Gravestones JAR is `compileOnly` — not bundled into the HyperFactions shadow JAR
+2. **Runtime init**: `GravestoneIntegration.init()` wraps all API calls in `NoClassDefFoundError` catch — if gravestone classes aren't on classpath, `available = false`
+3. **ECS systems**: Check `isAvailable()` before bypassing protection — if inactive, normal protection applies
+4. **Config**: Settings load/save regardless of plugin availability
 
 ---
 

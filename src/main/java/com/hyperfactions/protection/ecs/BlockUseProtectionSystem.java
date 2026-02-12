@@ -74,17 +74,16 @@ public class BlockUseProtectionSystem extends EntityEventSystem<EntityStore, Use
                 return;
             }
 
-            // Gravestone block check — intercept before normal protection
+            // Gravestone block — bypass ALL normal protection when integration is active
+            // Access control is handled by our registered GravestoneAccessChecker in the gravestone plugin
             if (isGravestoneBlock(blockId)) {
-                boolean canAccess = hyperFactions.getProtectionChecker()
-                    .canAccessGravestone(player.getUuid(), worldName, pos.getX(), pos.getY(), pos.getZ());
-                if (!canAccess) {
-                    event.setCancelled(true);
-                    player.sendMessage(Message.raw("You cannot access this gravestone.").color("#FF5555"));
-                    Logger.debugProtection("Gravestone collection blocked for %s at (%d,%d,%d)",
-                        player.getUuid(), pos.getX(), pos.getY(), pos.getZ());
+                var gsIntegration = hyperFactions.getProtectionChecker().getGravestoneIntegration();
+                if (gsIntegration != null && gsIntegration.isAvailable()) {
+                    Logger.debugIntegration("Gravestone interaction bypassed normal protection for %s at (%d,%d,%d)",
+                            player.getUuid(), pos.getX(), pos.getY(), pos.getZ());
+                    return;  // Let gravestone plugin handle via AccessChecker
                 }
-                return;  // Skip normal protection for gravestones (allow/deny handled above)
+                // No integration — fall through to normal protection
             }
 
             ZoneInteractionProtection zoneProtection = hyperFactions.getZoneInteractionProtection();

@@ -46,6 +46,9 @@ dependencies {
     // WiFlow PlaceholderAPI (soft dependency - compileOnly, no Maven repo available)
     compileOnly files("${rootProject.projectDir}/resources/mods/jars/WiFlowPlaceholderAPI-1.0.3.jar")
 
+    // GravestonePlugin (soft dependency - compileOnly, forked with API access for direct integration)
+    compileOnly files("${rootProject.projectDir}/resources/mods/repos/gravestones/build/libs/GravestonePlugin-1.0.9.jar")
+
     // Null safety annotations
     compileOnly 'org.jetbrains:annotations:24.1.0'
     testCompileOnly 'org.jetbrains:annotations:24.1.0'

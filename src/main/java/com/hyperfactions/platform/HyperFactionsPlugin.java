@@ -122,6 +122,9 @@ public class HyperFactionsPlugin extends JavaPlugin {
         // Enable core
         hyperFactions.enable();
 
+        // Initialize GravestonePlugin integration (v2 direct API — needs EventRegistry)
+        hyperFactions.initGravestoneIntegration(getEventRegistry());
+
         // Register world map provider CODEC (must be before worlds load)
         registerWorldMapProvider();
 
@@ -441,7 +444,7 @@ public class HyperFactionsPlugin extends JavaPlugin {
         boolean gsAvailable = hyperFactions.getProtectionChecker().getGravestoneIntegration() != null
                 && hyperFactions.getProtectionChecker().getGravestoneIntegration().isAvailable();
         if (gsAvailable) {
-            getLogger().at(Level.INFO).log("GravestonePlugin: Faction-aware gravestone protection - ENABLED");
+            getLogger().at(Level.INFO).log("GravestonePlugin: v2 API — AccessChecker + events - ENABLED");
         } else {
             getLogger().at(Level.INFO).log("GravestonePlugin: Not detected (optional)");
         }

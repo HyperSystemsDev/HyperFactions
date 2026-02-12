@@ -51,19 +51,18 @@ public class BlockBreakProtectionSystem extends EntityEventSystem<EntityStore, B
             String worldName = getWorldName(store);
             if (worldName == null) return;
 
-            // Gravestone block check — faction-aware access control
+            // Gravestone block — bypass ALL normal protection when integration is active
+            // Access control is handled by our registered GravestoneAccessChecker in the gravestone plugin
             BlockType blockType = event.getBlockType();
             String blockId = blockType != null ? blockType.getId() : null;
             if (blockId != null && blockId.contains("Gravestone")) {
-                boolean canAccess = hyperFactions.getProtectionChecker()
-                    .canAccessGravestone(player.getUuid(), worldName, pos.getX(), pos.getY(), pos.getZ());
-                if (!canAccess) {
-                    event.setCancelled(true);
-                    player.sendMessage(Message.raw("You cannot break this gravestone.").color("#FF5555"));
-                    Logger.debugProtection("Gravestone break blocked for %s at (%d,%d,%d)",
-                        player.getUuid(), pos.getX(), pos.getY(), pos.getZ());
+                var gsIntegration = hyperFactions.getProtectionChecker().getGravestoneIntegration();
+                if (gsIntegration != null && gsIntegration.isAvailable()) {
+                    Logger.debugIntegration("Gravestone break bypassed normal protection for %s at (%d,%d,%d)",
+                            player.getUuid(), pos.getX(), pos.getY(), pos.getZ());
+                    return;  // Let gravestone plugin handle via AccessChecker
                 }
-                return;  // Skip normal build protection for gravestones
+                // No integration — fall through to normal build protection
             }
 
             boolean blocked = protectionListener.onBlockBreak(

@@ -28,6 +28,7 @@ public class DebugConfig extends ModuleConfig {
     private boolean interaction = false;
     private boolean mixin = false;
     private boolean spawning = false;
+    private boolean integration = false;
 
     /**
      * Creates a new debug config.
@@ -64,6 +65,7 @@ public class DebugConfig extends ModuleConfig {
         interaction = false;
         mixin = false;
         spawning = false;
+        integration = false;
     }
 
     @Override
@@ -84,6 +86,7 @@ public class DebugConfig extends ModuleConfig {
             interaction = getBool(categories, "interaction", false);
             mixin = getBool(categories, "mixin", false);
             spawning = getBool(categories, "spawning", false);
+            integration = getBool(categories, "integration", false);
         }
 
         // Apply settings to Logger
@@ -106,6 +109,7 @@ public class DebugConfig extends ModuleConfig {
         categories.addProperty("interaction", interaction);
         categories.addProperty("mixin", mixin);
         categories.addProperty("spawning", spawning);
+        categories.addProperty("integration", integration);
         root.add("categories", categories);
     }
 
@@ -126,6 +130,7 @@ public class DebugConfig extends ModuleConfig {
         Logger.setDebugEnabled(Logger.DebugCategory.INTERACTION, interaction);
         Logger.setDebugEnabled(Logger.DebugCategory.MIXIN, mixin);
         Logger.setDebugEnabled(Logger.DebugCategory.SPAWNING, spawning);
+        Logger.setDebugEnabled(Logger.DebugCategory.INTEGRATION, integration);
     }
 
     // === Getters ===
@@ -238,6 +243,15 @@ public class DebugConfig extends ModuleConfig {
         return spawning;
     }
 
+    /**
+     * Checks if integration debug is enabled.
+     *
+     * @return true if enabled
+     */
+    public boolean isIntegration() {
+        return integration;
+    }
+
     // === Setters (for runtime toggle) ===
 
     /**
@@ -341,6 +355,16 @@ public class DebugConfig extends ModuleConfig {
     }
 
     /**
+     * Sets integration debug state and applies to Logger.
+     *
+     * @param enabled true to enable
+     */
+    public void setIntegration(boolean enabled) {
+        this.integration = enabled;
+        applyToLogger();
+    }
+
+    /**
      * Enables all debug categories.
      */
     public void enableAll() {
@@ -355,6 +379,7 @@ public class DebugConfig extends ModuleConfig {
         interaction = true;
         mixin = true;
         spawning = true;
+        integration = true;
         applyToLogger();
     }
 
@@ -373,6 +398,7 @@ public class DebugConfig extends ModuleConfig {
         interaction = false;
         mixin = false;
         spawning = false;
+        integration = false;
         applyToLogger();
     }
 }
