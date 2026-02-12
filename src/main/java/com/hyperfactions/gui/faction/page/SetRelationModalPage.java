@@ -76,7 +76,19 @@ public class SetRelationModalPage extends InteractiveCustomUIPage<SetRelationMod
         // Load the modal template
         cmd.append("HyperFactions/faction/set_relation_modal.ui");
 
+        // Build the results content
+        buildResultsContent(cmd, events);
+    }
+
+    /**
+     * Builds the results content (search binding, results list, pagination).
+     * Called from build() for initial load and from rebuildResults() for partial updates.
+     */
+    private void buildResultsContent(UICommandBuilder cmd, UIEventBuilder events) {
         // Search - real-time filtering via ValueChanged
+        if (!searchQuery.isEmpty()) {
+            cmd.set("#SearchInput.Value", searchQuery);
+        }
         events.addEventBinding(
                 CustomUIEventBindingType.ValueChanged,
                 "#SearchInput",
@@ -92,6 +104,9 @@ public class SetRelationModalPage extends InteractiveCustomUIPage<SetRelationMod
                 false
         );
 
+        // Clear previous results
+        cmd.clear("#ResultsList");
+
         // Build search results
         List<FactionEntry> results = getSearchResults();
 
@@ -102,6 +117,7 @@ public class SetRelationModalPage extends InteractiveCustomUIPage<SetRelationMod
             } else {
                 cmd.set("#EmptyText.Text", "No factions found matching '" + searchQuery + "'");
             }
+            cmd.set("#PageInfo.Text", "0/0");
         } else {
             // Hide empty state by setting text to empty
             cmd.set("#EmptyText.Text", "");
@@ -256,12 +272,12 @@ public class SetRelationModalPage extends InteractiveCustomUIPage<SetRelationMod
             case "Search" -> {
                 searchQuery = data.searchQuery != null ? data.searchQuery.trim() : "";
                 currentPage = 0;
-                reopenModal(player, ref, store, playerRef);
+                rebuildResults();
             }
 
             case "Page" -> {
                 currentPage = data.page;
-                reopenModal(player, ref, store, playerRef);
+                rebuildResults();
             }
 
             case "RequestAlly" -> {
@@ -350,9 +366,16 @@ public class SetRelationModalPage extends InteractiveCustomUIPage<SetRelationMod
         }
     }
 
-    private void reopenModal(Player player, Ref<EntityStore> ref,
-                             Store<EntityStore> store, PlayerRef playerRef) {
-        guiManager.openSetRelationModal(player, ref, store, playerRef,
-                factionManager.getFaction(faction.id()), searchQuery, currentPage);
+    /**
+     * Rebuild only the results portion of the page via partial update.
+     * This preserves the text field focus so search typing isn't interrupted.
+     */
+    private void rebuildResults() {
+        UICommandBuilder cmd = new UICommandBuilder();
+        UIEventBuilder events = new UIEventBuilder();
+
+        buildResultsContent(cmd, events);
+
+        sendUpdate(cmd, events, false);
     }
 }

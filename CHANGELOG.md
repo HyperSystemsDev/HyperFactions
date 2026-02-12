@@ -33,6 +33,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **GUI crash on promotion**: Players with the faction GUI open would crash when another player promoted/demoted a member, due to stale `ActivePageTracker` entries sending UI updates to dismissed pages. Added `onDismiss()` cleanup to all 8 pages that register with the tracker (members, dashboard, invites, relations, chat map, new player map, new player invites, admin zone map). `FactionChatPage` already handled this correctly.
+- **World map empty after teleport**: Batch refresh was calling `WorldMapTracker.clear()` (nuclear wipe of all loaded tiles + ClearWorldMap packet) instead of `clearChunks()` (surgical invalidation of only changed chunks). After teleporting, the slow spiral iterator would get wiped on every batch cycle before it could finish loading. Now uses `clearChunks()` matching Hytale's own BuilderToolsPlugin pattern.
+- **Placeholders not resolving for factionless players**: Both PlaceholderAPI and WiFlow expansions returned `null` for faction-specific placeholders when a player had no faction. WiFlow's parser treats `null` as "unknown placeholder" and preserves the raw text (e.g., `{factions_tag}` shown literally). Now returns empty string `""` for text placeholders and sensible defaults (`"0"`, `"false"`) for numeric/boolean ones.
+- **Set Relation search interrupting typing**: The Set Relation modal opened a brand new page on every keystroke via `ValueChanged`, destroying the text field focus. Now uses partial `sendUpdate()` like the Faction Browser page to preserve focus during search.
 
 ### Changed
 

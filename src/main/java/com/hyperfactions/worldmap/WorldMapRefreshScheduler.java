@@ -398,22 +398,21 @@ public class WorldMapRefreshScheduler {
     }
 
     /**
-     * Notifies a player that chunks need to be reloaded on their world map.
-     * Uses tracker.clear() which sends ClearWorldMap packet to the client,
-     * forcing them to re-request all visible tiles.
+     * Notifies a player that specific chunks need to be reloaded on their world map.
+     * Uses clearChunks() for surgical invalidation — only the changed chunks are
+     * removed from the loaded set and queued for re-fetch on the next tick.
+     * This avoids the nuclear clear() which wipes ALL loaded tiles and forces
+     * a full spiral reload from scratch (causing empty map after teleport).
      *
      * @param player the player
-     * @param chunkKeys the chunk keys that changed (used for logging only)
+     * @param chunkKeys the chunk keys that changed
      */
     private void markChunksPendingReload(@NotNull Player player, @NotNull List<Long> chunkKeys) {
         try {
-            // Use tracker.clear() - this reliably triggers client-side map refresh
-            // by sending ClearWorldMap packet. The client will re-request visible tiles.
-            // Note: We tried selective chunk invalidation via reflection but it didn't
-            // reliably trigger client refreshes. Full clear is more reliable.
-            player.getWorldMapTracker().clear();
+            LongOpenHashSet indices = new LongOpenHashSet(chunkKeys);
+            player.getWorldMapTracker().clearChunks(indices);
         } catch (Exception e) {
-            Logger.debugWorldMap("Failed to clear world map tracker for player: %s", e.getMessage());
+            Logger.debugWorldMap("Failed to clear world map chunks for player: %s", e.getMessage());
         }
     }
 
