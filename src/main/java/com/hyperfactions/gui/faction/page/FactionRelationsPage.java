@@ -675,4 +675,13 @@ public class FactionRelationsPage extends InteractiveCustomUIPage<FactionRelatio
 
         sendUpdate(cmd, events, false);
     }
+
+    @Override
+    public void onDismiss(Ref<EntityStore> ref, Store<EntityStore> store) {
+        super.onDismiss(ref, store);
+        ActivePageTracker activeTracker = guiManager.getActivePageTracker();
+        if (activeTracker != null) {
+            activeTracker.unregister(playerRef.getUuid());
+        }
+    }
 }

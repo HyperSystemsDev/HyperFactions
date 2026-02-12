@@ -348,4 +348,13 @@ public class AdminZoneMapPage extends InteractiveCustomUIPage<AdminZoneMapData> 
             default -> {}
         }
     }
+
+    @Override
+    public void onDismiss(Ref<EntityStore> ref, Store<EntityStore> store) {
+        super.onDismiss(ref, store);
+        ActivePageTracker activeTracker = guiManager.getActivePageTracker();
+        if (activeTracker != null) {
+            activeTracker.unregister(playerRef.getUuid());
+        }
+    }
 }

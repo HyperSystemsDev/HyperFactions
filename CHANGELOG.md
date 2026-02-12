@@ -30,6 +30,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `wiflow` — WiFlow expansion status
   - `gravestones` — Existing detail view (unchanged)
 
+### Fixed
+
+- **GUI crash on promotion**: Players with the faction GUI open would crash when another player promoted/demoted a member, due to stale `ActivePageTracker` entries sending UI updates to dismissed pages. Added `onDismiss()` cleanup to all 8 pages that register with the tracker (members, dashboard, invites, relations, chat map, new player map, new player invites, admin zone map). `FactionChatPage` already handled this correctly.
+
 ### Changed
 
 - Zone flag `gravestone_access` display name changed to "Others Loot Graves" for clarity

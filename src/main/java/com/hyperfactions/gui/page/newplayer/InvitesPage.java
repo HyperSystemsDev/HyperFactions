@@ -396,4 +396,13 @@ public class InvitesPage extends InteractiveCustomUIPage<NewPlayerPageData> impl
             sendUpdate();
         }
     }
+
+    @Override
+    public void onDismiss(Ref<EntityStore> ref, Store<EntityStore> store) {
+        super.onDismiss(ref, store);
+        ActivePageTracker activeTracker = guiManager.getActivePageTracker();
+        if (activeTracker != null) {
+            activeTracker.unregister(playerRef.getUuid());
+        }
+    }
 }

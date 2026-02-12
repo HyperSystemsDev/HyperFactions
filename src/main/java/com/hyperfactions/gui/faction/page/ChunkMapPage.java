@@ -408,4 +408,12 @@ public class ChunkMapPage extends InteractiveCustomUIPage<ChunkMapData> implemen
         guiManager.openChunkMap(player, ref, store, playerRef);
     }
 
+    @Override
+    public void onDismiss(Ref<EntityStore> ref, Store<EntityStore> store) {
+        super.onDismiss(ref, store);
+        ActivePageTracker activeTracker = guiManager.getActivePageTracker();
+        if (activeTracker != null) {
+            activeTracker.unregister(playerRef.getUuid());
+        }
+    }
 }

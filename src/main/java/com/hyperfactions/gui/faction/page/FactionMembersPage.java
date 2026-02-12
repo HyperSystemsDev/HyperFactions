@@ -573,4 +573,13 @@ public class FactionMembersPage extends InteractiveCustomUIPage<FactionMembersDa
 
         sendUpdate(cmd, events, false);
     }
+
+    @Override
+    public void onDismiss(Ref<EntityStore> ref, Store<EntityStore> store) {
+        super.onDismiss(ref, store);
+        ActivePageTracker activeTracker = guiManager.getActivePageTracker();
+        if (activeTracker != null) {
+            activeTracker.unregister(playerRef.getUuid());
+        }
+    }
 }

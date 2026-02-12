@@ -225,4 +225,13 @@ public class NewPlayerMapPage extends InteractiveCustomUIPage<NewPlayerPageData>
         // Default - just refresh
         sendUpdate();
     }
+
+    @Override
+    public void onDismiss(Ref<EntityStore> ref, Store<EntityStore> store) {
+        super.onDismiss(ref, store);
+        ActivePageTracker activeTracker = guiManager.getActivePageTracker();
+        if (activeTracker != null) {
+            activeTracker.unregister(playerRef.getUuid());
+        }
+    }
 }

@@ -631,4 +631,13 @@ public class FactionDashboardPage extends InteractiveCustomUIPage<FactionDashboa
             default -> player.sendMessage(Message.raw("Could not claim this chunk.").color("#FF5555"));
         }
     }
+
+    @Override
+    public void onDismiss(Ref<EntityStore> ref, Store<EntityStore> store) {
+        super.onDismiss(ref, store);
+        ActivePageTracker activeTracker = guiManager.getActivePageTracker();
+        if (activeTracker != null) {
+            activeTracker.unregister(playerRef.getUuid());
+        }
+    }
 }
