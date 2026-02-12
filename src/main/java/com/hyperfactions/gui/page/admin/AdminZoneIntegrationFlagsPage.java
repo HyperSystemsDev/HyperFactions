@@ -1,10 +1,12 @@
 package com.hyperfactions.gui.page.admin;
 
+import com.hyperfactions.config.ConfigManager;
 import com.hyperfactions.data.Zone;
 import com.hyperfactions.data.ZoneFlags;
 import com.hyperfactions.gui.GuiManager;
 import com.hyperfactions.gui.admin.AdminNavBarHelper;
 import com.hyperfactions.gui.admin.data.AdminZoneSettingsData;
+import com.hyperfactions.integration.GravestoneIntegration;
 import com.hyperfactions.manager.ZoneManager;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
@@ -32,16 +34,19 @@ public class AdminZoneIntegrationFlagsPage extends InteractiveCustomUIPage<Admin
     private final UUID zoneId;
     private final ZoneManager zoneManager;
     private final GuiManager guiManager;
+    private final GravestoneIntegration gravestoneIntegration;
 
     public AdminZoneIntegrationFlagsPage(PlayerRef playerRef,
                                           UUID zoneId,
                                           ZoneManager zoneManager,
-                                          GuiManager guiManager) {
+                                          GuiManager guiManager,
+                                          GravestoneIntegration gravestoneIntegration) {
         super(playerRef, CustomPageLifetime.CanDismiss, AdminZoneSettingsData.CODEC);
         this.playerRef = playerRef;
         this.zoneId = zoneId;
         this.zoneManager = zoneManager;
         this.guiManager = guiManager;
+        this.gravestoneIntegration = gravestoneIntegration;
     }
 
     @Override
@@ -112,15 +117,24 @@ public class AdminZoneIntegrationFlagsPage extends InteractiveCustomUIPage<Admin
         boolean currentValue = zone.getEffectiveFlag(flagName);
         boolean isDefault = !zone.hasFlagSet(flagName);
 
+        // Check if the integration for this flag is available
+        boolean integrationUnavailable = !isIntegrationAvailable(flagName);
+
         // Flag name (display name from ZoneFlags)
         String displayName = ZoneFlags.getDisplayName(flagName);
         cmd.set(idx + "Name.Text", displayName);
 
         // Set checkbox value via child selector
-        cmd.set(idx + "Toggle #CheckBox.Value", currentValue);
+        // When integration is unavailable, show as unchecked
+        boolean displayValue = integrationUnavailable ? false : currentValue;
+        cmd.set(idx + "Toggle #CheckBox.Value", displayValue);
+        cmd.set(idx + "Toggle #CheckBox.Disabled", integrationUnavailable);
 
-        // Default indicator (shows "(default)" or "(custom)")
-        if (isDefault) {
+        // Default indicator (shows "(default)", "(custom)", or "(no plugin)")
+        if (integrationUnavailable) {
+            cmd.set(idx + "Default.Text", "(no plugin)");
+            cmd.set(idx + "Default.Style.TextColor", "#FF5555");
+        } else if (isDefault) {
             cmd.set(idx + "Default.Text", "(default)");
             cmd.set(idx + "Default.Style.TextColor", "#555555");
         } else {
@@ -128,7 +142,7 @@ public class AdminZoneIntegrationFlagsPage extends InteractiveCustomUIPage<Admin
             cmd.set(idx + "Default.Style.TextColor", "#FFAA00");
         }
 
-        // ValueChanged event
+        // ValueChanged event (disabled checkboxes won't fire)
         events.addEventBinding(
                 CustomUIEventBindingType.ValueChanged,
                 idx + "Toggle #CheckBox",
@@ -137,6 +151,18 @@ public class AdminZoneIntegrationFlagsPage extends InteractiveCustomUIPage<Admin
                         .append("ZoneId", zoneId.toString()),
                 false
         );
+    }
+
+    /**
+     * Checks if the integration required for a given flag is available.
+     */
+    private boolean isIntegrationAvailable(String flagName) {
+        return switch (flagName) {
+            case ZoneFlags.GRAVESTONE_ACCESS ->
+                    gravestoneIntegration != null && gravestoneIntegration.isAvailable()
+                            && ConfigManager.get().gravestones().isEnabled();
+            default -> true;
+        };
     }
 
     /**

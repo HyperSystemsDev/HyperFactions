@@ -1669,11 +1669,13 @@ public class GuiManager {
         Logger.debug("[GUI] Opening AdminZoneIntegrationFlagsPage for %s (zone: %s)", playerRef.getUsername(), zoneId);
         try {
             PageManager pageManager = player.getPageManager();
+            var gs = plugin.get().getProtectionChecker().getGravestoneIntegration();
             AdminZoneIntegrationFlagsPage page = new AdminZoneIntegrationFlagsPage(
                 playerRef,
                 zoneId,
                 zoneManager.get(),
-                this
+                this,
+                gs
             );
             pageManager.openCustomPage(ref, store, page);
             Logger.debug("[GUI] AdminZoneIntegrationFlagsPage opened successfully");
