@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 *No changes yet*
 
+## [0.7.3] - 2026-02-13
+
+### Fixed
+
+- **Startup crash when GravestonePlugin is outdated**: `GravestoneIntegration.init()` threw `NoSuchMethodError` when an older Gravestones version was installed without the v2 API (`getInstance()`). Now catches `LinkageError` (covers both missing plugin and missing methods) so HyperFactions starts cleanly regardless of Gravestones version.
+
 ## [0.7.2] - 2026-02-11
 
 ### Added

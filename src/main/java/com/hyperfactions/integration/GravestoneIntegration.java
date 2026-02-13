@@ -74,8 +74,9 @@ public class GravestoneIntegration {
             available = true;
             Logger.info("[Integration] GravestonePlugin v2 API detected — direct integration enabled");
 
-        } catch (NoClassDefFoundError e) {
-            Logger.info("[Integration] GravestonePlugin not found — gravestone integration disabled");
+        } catch (LinkageError e) {
+            // NoClassDefFoundError = plugin not installed; NoSuchMethodError = old version without API
+            Logger.info("[Integration] GravestonePlugin not available — gravestone integration disabled");
         }
     }
 
