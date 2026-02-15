@@ -18,6 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Compact 2-row legend showing all territory types and player marker
 - `terrainMapEnabled` config toggle in GUI section (default: `true`) — set to `false` to revert to the flat colored grid
 
+### Fixed
+
+- **Terrain map lag on claim/unclaim**: Each claim/unclaim action opened a new page instance, regenerating the entire 17x17 terrain image from scratch. Now reuses the same page via `rebuild()`, skipping terrain generation and only updating the overlay grid
+
 ### Changed
 
 - CurseForge description updated with Discord community link and HyBounty integration callout

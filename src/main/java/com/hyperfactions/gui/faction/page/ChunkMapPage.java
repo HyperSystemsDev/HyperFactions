@@ -486,8 +486,9 @@ public class ChunkMapPage extends InteractiveCustomUIPage<ChunkMapData> implemen
 
         player.sendMessage(message);
 
-        // Refresh the map by opening new page instance
-        guiManager.openChunkMap(player, ref, store, playerRef);
+        // Rebuild the same page instance to update the overlay grid.
+        // This preserves terrainAssetFuture, skipping terrain re-generation.
+        rebuild();
     }
 
     private void handleUnclaim(Player player, PlayerRef playerRef, String worldName,
@@ -506,8 +507,9 @@ public class ChunkMapPage extends InteractiveCustomUIPage<ChunkMapData> implemen
 
         player.sendMessage(message);
 
-        // Refresh the map by opening new page instance
-        guiManager.openChunkMap(player, ref, store, playerRef);
+        // Rebuild the same page instance to update the overlay grid.
+        // This preserves terrainAssetFuture, skipping terrain re-generation.
+        rebuild();
     }
 
     private void handleOverclaim(Player player, PlayerRef playerRef, String worldName,
@@ -527,8 +529,9 @@ public class ChunkMapPage extends InteractiveCustomUIPage<ChunkMapData> implemen
 
         player.sendMessage(message);
 
-        // Refresh the map by opening new page instance
-        guiManager.openChunkMap(player, ref, store, playerRef);
+        // Rebuild the same page instance to update the overlay grid.
+        // This preserves terrainAssetFuture, skipping terrain re-generation.
+        rebuild();
     }
 
     @Override
