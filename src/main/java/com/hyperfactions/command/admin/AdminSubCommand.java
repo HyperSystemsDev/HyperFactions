@@ -5,7 +5,9 @@ import com.hyperfactions.Permissions;
 import com.hyperfactions.backup.BackupManager;
 import com.hyperfactions.backup.BackupMetadata;
 import com.hyperfactions.backup.BackupType;
-import com.hyperfactions.command.FactionSubCommand;
+import com.hyperfactions.command.util.CommandUtil;
+import com.hypixel.hytale.server.core.Message;
+import com.hypixel.hytale.server.core.command.system.basecommands.AbstractAsyncCommand;
 import com.hyperfactions.config.ConfigManager;
 import com.hyperfactions.config.modules.GravestoneConfig;
 import com.hyperfactions.integration.GravestoneIntegration;
@@ -37,6 +39,7 @@ import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -48,22 +51,73 @@ import java.util.concurrent.CompletableFuture;
  * Routes to admin subcommands: reload, sync, zones, backup, debug, import, update, etc.
  * Opens admin GUI when called with no arguments.
  */
-public class AdminSubCommand extends FactionSubCommand {
+public class AdminSubCommand extends AbstractAsyncCommand {
+
+    private final HyperFactions hyperFactions;
+    private final HyperFactionsPlugin plugin;
+
+    private static final UUID CONSOLE_UUID = new UUID(0L, 0L);
 
     public AdminSubCommand(@NotNull HyperFactions hyperFactions, @NotNull HyperFactionsPlugin plugin) {
-        super("admin", "Admin commands", hyperFactions, plugin);
+        super("admin", "Admin commands");
+        this.hyperFactions = hyperFactions;
+        this.plugin = plugin;
+        setAllowsExtraArguments(true);
     }
 
     @Override
-    protected void execute(@NotNull CommandContext ctx,
-                          @NotNull Store<EntityStore> store,
-                          @NotNull Ref<EntityStore> ref,
-                          @NotNull PlayerRef player,
-                          @NotNull World currentWorld) {
+    protected boolean canGeneratePermission() { return false; }
+
+    private static Message prefix() { return CommandUtil.prefix(); }
+    private static Message msg(String text, String color) { return CommandUtil.msg(text, color); }
+
+    private boolean hasPermission(@Nullable PlayerRef player, String permission) {
+        if (player == null) return true; // console always permitted
+        return CommandUtil.hasPermission(player, permission);
+    }
+
+    private boolean requirePlayer(CommandContext ctx, boolean isPlayer) {
+        if (!isPlayer) {
+            ctx.sendMessage(prefix().insert(msg("This command can only be used by a player.", COLOR_RED)));
+            return false;
+        }
+        return true;
+    }
+
+    private static final String COLOR_CYAN = CommandUtil.COLOR_CYAN;
+    private static final String COLOR_GREEN = CommandUtil.COLOR_GREEN;
+    private static final String COLOR_RED = CommandUtil.COLOR_RED;
+    private static final String COLOR_YELLOW = CommandUtil.COLOR_YELLOW;
+    private static final String COLOR_GRAY = CommandUtil.COLOR_GRAY;
+    private static final String COLOR_WHITE = CommandUtil.COLOR_WHITE;
+
+    @Override
+    @NotNull
+    protected CompletableFuture<Void> executeAsync(@NotNull CommandContext ctx) {
+        boolean isPlayer = ctx.isPlayer();
+        PlayerRef player = null;
+        Store<EntityStore> store = null;
+        Ref<EntityStore> ref = null;
+        World currentWorld = null;
+
+        if (isPlayer) {
+            ref = ctx.senderAsPlayerRef();
+            if (ref == null || !ref.isValid()) {
+                ctx.sendMessage(prefix().insert(msg("Player context unavailable.", COLOR_RED)));
+                return CompletableFuture.completedFuture(null);
+            }
+            store = ref.getStore();
+            currentWorld = store.getExternalData().getWorld();
+            player = store.getComponent(ref, PlayerRef.getComponentType());
+            if (player == null) {
+                ctx.sendMessage(prefix().insert(msg("Could not find player entity.", COLOR_RED)));
+                return CompletableFuture.completedFuture(null);
+            }
+        }
 
         if (!hasPermission(player, Permissions.ADMIN)) {
             ctx.sendMessage(prefix().insert(msg("You don't have permission.", COLOR_RED)));
-            return;
+            return CompletableFuture.completedFuture(null);
         }
 
         String input = ctx.getInputString();
@@ -71,15 +125,19 @@ public class AdminSubCommand extends FactionSubCommand {
         // parts[0] = "faction/f/hf", parts[1] = "admin", parts[2+] = admin args
         String[] args = parts.length > 2 ? Arrays.copyOfRange(parts, 2, parts.length) : new String[0];
 
-        // No args - open admin GUI
+        // No args - open admin GUI (player) or show help (console)
         if (args.length == 0) {
-            Player playerEntity = store.getComponent(ref, Player.getComponentType());
-            if (playerEntity == null) {
-                ctx.sendMessage(prefix().insert(msg("Could not find player entity.", COLOR_RED)));
-                return;
+            if (!isPlayer) {
+                showAdminHelp(ctx);
+            } else {
+                Player playerEntity = store.getComponent(ref, Player.getComponentType());
+                if (playerEntity == null) {
+                    ctx.sendMessage(prefix().insert(msg("Could not find player entity.", COLOR_RED)));
+                } else {
+                    hyperFactions.getGuiManager().openAdminMain(playerEntity, ref, store, player);
+                }
             }
-            hyperFactions.getGuiManager().openAdminMain(playerEntity, ref, store, player);
-            return;
+            return CompletableFuture.completedFuture(null);
         }
 
         String adminCmd = args[0].toLowerCase();
@@ -87,59 +145,77 @@ public class AdminSubCommand extends FactionSubCommand {
         // Show help for admin commands
         if (adminCmd.equals("help") || adminCmd.equals("?")) {
             showAdminHelp(ctx);
-            return;
+            return CompletableFuture.completedFuture(null);
         }
 
-        TransformComponent transform = store.getComponent(ref, TransformComponent.getComponentType());
-        if (transform == null) return;
+        // Extract player position (only if player)
+        int chunkX = 0, chunkZ = 0;
+        if (isPlayer) {
+            TransformComponent transform = store.getComponent(ref, TransformComponent.getComponentType());
+            if (transform == null) {
+                return CompletableFuture.completedFuture(null);
+            }
+            Vector3d pos = transform.getPosition();
+            chunkX = ChunkUtil.toChunkCoord(pos.getX());
+            chunkZ = ChunkUtil.toChunkCoord(pos.getZ());
+        }
 
-        Vector3d pos = transform.getPosition();
-        int chunkX = ChunkUtil.toChunkCoord(pos.getX());
-        int chunkZ = ChunkUtil.toChunkCoord(pos.getZ());
+        // Sender UUID for operations that track who performed them
+        UUID senderUuid = isPlayer ? player.getUuid() : CONSOLE_UUID;
 
         switch (adminCmd) {
+            // Console-compatible commands
             case "reload" -> handleReload(ctx, player);
             case "sync" -> handleSync(ctx, player);
+            case "integrations" -> handleIntegrations(ctx);
+            case "integration" -> handleIntegrationDetail(ctx, Arrays.copyOfRange(args, 1, args.length));
+            case "update" -> handleAdminUpdate(ctx, senderUuid);
+            case "rollback" -> handleAdminRollback(ctx);
+            case "backup" -> handleAdminBackup(ctx, player, senderUuid, Arrays.copyOfRange(args, 1, args.length));
+            case "import" -> handleAdminImport(ctx, Arrays.copyOfRange(args, 1, args.length));
+            case "debug" -> handleDebug(ctx, store, ref, player, currentWorld, Arrays.copyOfRange(args, 1, args.length));
+            case "decay" -> handleAdminDecay(ctx, player, Arrays.copyOfRange(args, 1, args.length));
+            case "map" -> handleAdminMap(ctx, player, Arrays.copyOfRange(args, 1, args.length));
+            case "zones", "zone" -> handleAdminZone(ctx, store, ref, player, currentWorld,
+                    chunkX, chunkZ, Arrays.copyOfRange(args, 1, args.length), isPlayer, senderUuid);
+
+            // Player-only commands (GUI / location)
             case "factions" -> {
+                if (!requirePlayer(ctx, isPlayer)) break;
                 Player playerEntity = store.getComponent(ref, Player.getComponentType());
                 if (playerEntity != null) {
                     hyperFactions.getGuiManager().openAdminFactions(playerEntity, ref, store, player);
                 }
             }
-            case "zones", "zone" -> handleAdminZone(ctx, store, ref, player, currentWorld, chunkX, chunkZ, Arrays.copyOfRange(args, 1, args.length));
             case "config" -> {
+                if (!requirePlayer(ctx, isPlayer)) break;
                 Player playerEntity = store.getComponent(ref, Player.getComponentType());
                 if (playerEntity != null) {
                     hyperFactions.getGuiManager().openAdminConfig(playerEntity, ref, store, player);
                 }
             }
             case "backups" -> {
+                if (!requirePlayer(ctx, isPlayer)) break;
                 Player playerEntity = store.getComponent(ref, Player.getComponentType());
                 if (playerEntity != null) {
                     hyperFactions.getGuiManager().openAdminBackups(playerEntity, ref, store, player);
                 }
             }
-            case "safezone" -> handleSafezone(ctx, player, currentWorld, chunkX, chunkZ, args);
-            case "warzone" -> handleWarzone(ctx, player, currentWorld, chunkX, chunkZ, args);
-            case "removezone" -> handleRemovezone(ctx, currentWorld, chunkX, chunkZ);
-            case "zoneflag" -> handleZoneFlag(ctx, currentWorld.getName(), chunkX, chunkZ, Arrays.copyOfRange(args, 1, args.length));
-            case "update" -> handleAdminUpdate(ctx, player);
-            case "rollback" -> handleAdminRollback(ctx, player);
-            case "backup" -> handleAdminBackup(ctx, player, Arrays.copyOfRange(args, 1, args.length));
-            case "import" -> handleAdminImport(ctx, player, Arrays.copyOfRange(args, 1, args.length));
-            case "debug" -> handleDebug(ctx, store, ref, player, currentWorld, Arrays.copyOfRange(args, 1, args.length));
-            case "decay" -> handleAdminDecay(ctx, player, Arrays.copyOfRange(args, 1, args.length));
-            case "map" -> handleAdminMap(ctx, player, Arrays.copyOfRange(args, 1, args.length));
             case "testgui" -> {
+                if (!requirePlayer(ctx, isPlayer)) break;
                 Player playerEntity = store.getComponent(ref, Player.getComponentType());
                 if (playerEntity != null) {
                     hyperFactions.getGuiManager().openButtonTestPage(playerEntity, ref, store, player);
                 }
             }
-            case "integrations" -> handleIntegrations(ctx);
-            case "integration" -> handleIntegrationDetail(ctx, Arrays.copyOfRange(args, 1, args.length));
+            case "safezone" -> { if (requirePlayer(ctx, isPlayer)) handleSafezone(ctx, player, currentWorld, chunkX, chunkZ, args); }
+            case "warzone" -> { if (requirePlayer(ctx, isPlayer)) handleWarzone(ctx, player, currentWorld, chunkX, chunkZ, args); }
+            case "removezone" -> { if (requirePlayer(ctx, isPlayer)) handleRemovezone(ctx, currentWorld, chunkX, chunkZ); }
+            case "zoneflag" -> { if (requirePlayer(ctx, isPlayer)) handleZoneFlag(ctx, currentWorld.getName(), chunkX, chunkZ, Arrays.copyOfRange(args, 1, args.length)); }
             default -> ctx.sendMessage(prefix().insert(msg("Unknown admin command. Use /f admin help", COLOR_RED)));
         }
+
+        return CompletableFuture.completedFuture(null);
     }
 
     private void showAdminHelp(CommandContext ctx) {
@@ -449,10 +525,15 @@ public class AdminSubCommand extends FactionSubCommand {
     }
 
     // === Admin Zone Subcommands ===
-    private void handleAdminZone(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
-                                 PlayerRef player, World world, int chunkX, int chunkZ, String[] args) {
-        // No args - open zone GUI
+    private void handleAdminZone(CommandContext ctx, @Nullable Store<EntityStore> store, @Nullable Ref<EntityStore> ref,
+                                 @Nullable PlayerRef player, @Nullable World world,
+                                 int chunkX, int chunkZ, String[] args, boolean isPlayer, UUID senderUuid) {
+        // No args - open zone GUI (player) or show zone list (console)
         if (args.length == 0) {
+            if (!isPlayer) {
+                handleZoneList(ctx);
+                return;
+            }
             Player playerEntity = store.getComponent(ref, Player.getComponentType());
             if (playerEntity != null) {
                 hyperFactions.getGuiManager().openAdminZone(playerEntity, ref, store, player);
@@ -462,16 +543,23 @@ public class AdminSubCommand extends FactionSubCommand {
 
         String subCmd = args[0].toLowerCase();
         String[] subArgs = args.length > 1 ? Arrays.copyOfRange(args, 1, args.length) : new String[0];
+        String worldName = world != null ? world.getName() : null;
 
         switch (subCmd) {
             case "list" -> handleZoneList(ctx);
-            case "create" -> handleZoneCreate(ctx, world.getName(), player.getUuid(), subArgs);
+            case "create" -> handleZoneCreate(ctx, worldName != null ? worldName : "world", senderUuid, subArgs);
             case "delete" -> handleZoneDelete(ctx, subArgs);
             case "rename" -> handleZoneRename(ctx, subArgs);
-            case "info" -> handleZoneInfo(ctx, world.getName(), chunkX, chunkZ, subArgs);
-            case "claim" -> handleZoneClaim(ctx, world.getName(), chunkX, chunkZ, subArgs);
-            case "unclaim" -> handleZoneUnclaim(ctx, world.getName(), chunkX, chunkZ);
-            case "radius" -> handleZoneRadius(ctx, world.getName(), chunkX, chunkZ, subArgs);
+            case "info" -> {
+                if (subArgs.length == 0 && !isPlayer) {
+                    ctx.sendMessage(prefix().insert(msg("Usage: /f admin zone info <name>", COLOR_RED)));
+                } else {
+                    handleZoneInfo(ctx, worldName, chunkX, chunkZ, subArgs);
+                }
+            }
+            case "claim" -> { if (requirePlayer(ctx, isPlayer)) handleZoneClaim(ctx, worldName, chunkX, chunkZ, subArgs); }
+            case "unclaim" -> { if (requirePlayer(ctx, isPlayer)) handleZoneUnclaim(ctx, worldName, chunkX, chunkZ); }
+            case "radius" -> { if (requirePlayer(ctx, isPlayer)) handleZoneRadius(ctx, worldName, chunkX, chunkZ, subArgs); }
             default -> ctx.sendMessage(prefix().insert(msg("Unknown zone command. Use /f admin help", COLOR_RED)));
         }
     }
@@ -748,7 +836,7 @@ public class AdminSubCommand extends FactionSubCommand {
     }
 
     // === Admin Update ===
-    private void handleAdminUpdate(CommandContext ctx, PlayerRef player) {
+    private void handleAdminUpdate(CommandContext ctx, UUID senderUuid) {
         var updateChecker = hyperFactions.getUpdateChecker();
         if (updateChecker == null) {
             ctx.sendMessage(prefix().insert(msg("Update checker is not available.", COLOR_RED)));
@@ -759,10 +847,10 @@ public class AdminSubCommand extends FactionSubCommand {
             ctx.sendMessage(prefix().insert(msg("Checking for updates...", COLOR_YELLOW)));
             updateChecker.checkForUpdates(true).thenAccept(info -> {
                 if (info == null) {
-                    player.sendMessage(prefix().insert(msg("Plugin is already up-to-date (v" + updateChecker.getCurrentVersion() + ")", COLOR_GREEN)));
+                    ctx.sendMessage(prefix().insert(msg("Plugin is already up-to-date (v" + updateChecker.getCurrentVersion() + ")", COLOR_GREEN)));
                 } else {
-                    player.sendMessage(prefix().insert(msg("Update available: v" + info.version(), COLOR_GREEN)));
-                    startDownload(player, updateChecker, info);
+                    ctx.sendMessage(prefix().insert(msg("Update available: v" + info.version(), COLOR_GREEN)));
+                    startDownload(ctx, senderUuid, updateChecker, info);
                 }
             });
             return;
@@ -774,48 +862,49 @@ public class AdminSubCommand extends FactionSubCommand {
             return;
         }
 
-        startDownload(player, updateChecker, info);
+        startDownload(ctx, senderUuid, updateChecker, info);
     }
 
-    private void startDownload(PlayerRef player, com.hyperfactions.update.UpdateChecker updateChecker,
+    private void startDownload(CommandContext ctx, UUID senderUuid,
+                               com.hyperfactions.update.UpdateChecker updateChecker,
                                com.hyperfactions.update.UpdateChecker.UpdateInfo info) {
         String currentVersion = updateChecker.getCurrentVersion();
 
         // Step 1: Create a data backup before downloading the update
-        player.sendMessage(prefix().insert(msg("Creating pre-update backup...", COLOR_YELLOW)));
+        ctx.sendMessage(prefix().insert(msg("Creating pre-update backup...", COLOR_YELLOW)));
 
-        hyperFactions.getBackupManager().createBackup(BackupType.MANUAL, "pre-update-" + currentVersion, player.getUuid())
+        hyperFactions.getBackupManager().createBackup(BackupType.MANUAL, "pre-update-" + currentVersion, senderUuid)
             .thenCompose(backupResult -> {
                 if (backupResult instanceof BackupManager.BackupResult.Success success) {
-                    player.sendMessage(prefix().insert(msg("Backup created: " + success.metadata().name(), COLOR_GREEN)));
+                    ctx.sendMessage(prefix().insert(msg("Backup created: " + success.metadata().name(), COLOR_GREEN)));
                 } else if (backupResult instanceof BackupManager.BackupResult.Failure failure) {
-                    player.sendMessage(prefix().insert(msg("Warning: Backup failed - " + failure.error(), COLOR_YELLOW)));
-                    player.sendMessage(msg("  Continuing with update anyway...", COLOR_GRAY));
+                    ctx.sendMessage(prefix().insert(msg("Warning: Backup failed - " + failure.error(), COLOR_YELLOW)));
+                    ctx.sendMessage(msg("  Continuing with update anyway...", COLOR_GRAY));
                 }
 
                 // Step 2: Download the update
-                player.sendMessage(prefix().insert(msg("Downloading HyperFactions v" + info.version() + "...", COLOR_YELLOW)));
+                ctx.sendMessage(prefix().insert(msg("Downloading HyperFactions v" + info.version() + "...", COLOR_YELLOW)));
                 return updateChecker.downloadUpdate(info);
             })
             .thenAccept(path -> {
                 if (path == null) {
-                    player.sendMessage(prefix().insert(msg("Failed to download update. Check server logs.", COLOR_RED)));
+                    ctx.sendMessage(prefix().insert(msg("Failed to download update. Check server logs.", COLOR_RED)));
                 } else {
-                    player.sendMessage(prefix().insert(msg("Update downloaded successfully!", COLOR_GREEN)));
-                    player.sendMessage(msg("  File: " + path.getFileName(), COLOR_GRAY));
+                    ctx.sendMessage(prefix().insert(msg("Update downloaded successfully!", COLOR_GREEN)));
+                    ctx.sendMessage(msg("  File: " + path.getFileName(), COLOR_GRAY));
 
                     // Step 3: Clean up old JAR backups (keep only the version we just upgraded from)
                     int cleaned = updateChecker.cleanupOldBackups(currentVersion);
                     if (cleaned > 0) {
-                        player.sendMessage(msg("  Cleanup: Removed " + cleaned + " old backup(s)", COLOR_GRAY));
+                        ctx.sendMessage(msg("  Cleanup: Removed " + cleaned + " old backup(s)", COLOR_GRAY));
                     }
-                    player.sendMessage(msg("  Kept: HyperFactions-" + currentVersion + ".jar.backup (for rollback)", COLOR_GRAY));
+                    ctx.sendMessage(msg("  Kept: HyperFactions-" + currentVersion + ".jar.backup (for rollback)", COLOR_GRAY));
 
                     // Step 4: Create rollback marker (safe to rollback until server restarts)
                     updateChecker.createRollbackMarker(currentVersion, info.version());
 
-                    player.sendMessage(msg("  Restart the server to apply the update.", COLOR_YELLOW));
-                    player.sendMessage(msg("  Use /f admin rollback to revert before restarting.", COLOR_GRAY));
+                    ctx.sendMessage(msg("  Restart the server to apply the update.", COLOR_YELLOW));
+                    ctx.sendMessage(msg("  Use /f admin rollback to revert before restarting.", COLOR_GRAY));
 
                     // Run manual backup rotation to respect retention limits
                     hyperFactions.getBackupManager().performRotation();
@@ -824,7 +913,7 @@ public class AdminSubCommand extends FactionSubCommand {
     }
 
     // === Admin Rollback ===
-    private void handleAdminRollback(CommandContext ctx, PlayerRef player) {
+    private void handleAdminRollback(CommandContext ctx) {
         var updateChecker = hyperFactions.getUpdateChecker();
         if (updateChecker == null) {
             ctx.sendMessage(prefix().insert(msg("Update checker is not available.", COLOR_RED)));
@@ -888,7 +977,7 @@ public class AdminSubCommand extends FactionSubCommand {
     }
 
     // === Admin Backup Commands ===
-    private void handleAdminBackup(CommandContext ctx, PlayerRef player, String[] args) {
+    private void handleAdminBackup(CommandContext ctx, @Nullable PlayerRef player, UUID senderUuid, String[] args) {
         if (!hasPermission(player, Permissions.ADMIN_BACKUP)) {
             ctx.sendMessage(prefix().insert(msg("You don't have permission to manage backups.", COLOR_RED)));
             return;
@@ -903,9 +992,9 @@ public class AdminSubCommand extends FactionSubCommand {
         String[] subArgs = args.length > 1 ? Arrays.copyOfRange(args, 1, args.length) : new String[0];
 
         switch (subCmd) {
-            case "create" -> handleBackupCreate(ctx, player, subArgs);
+            case "create" -> handleBackupCreate(ctx, senderUuid, subArgs);
             case "list" -> handleBackupList(ctx);
-            case "restore" -> handleBackupRestore(ctx, player, subArgs);
+            case "restore" -> handleBackupRestore(ctx, senderUuid, subArgs);
             case "delete" -> handleBackupDelete(ctx, subArgs);
             case "help", "?" -> showBackupHelp(ctx);
             default -> {
@@ -924,19 +1013,19 @@ public class AdminSubCommand extends FactionSubCommand {
         ctx.sendMessage(HelpFormatter.buildHelp("Backup Management", "GFS rotation scheme", commands, null));
     }
 
-    private void handleBackupCreate(CommandContext ctx, PlayerRef player, String[] args) {
+    private void handleBackupCreate(CommandContext ctx, UUID senderUuid, String[] args) {
         String customName = args.length > 0 ? String.join("_", args) : null;
 
         ctx.sendMessage(prefix().insert(msg("Creating backup...", COLOR_YELLOW)));
 
-        hyperFactions.getBackupManager().createBackup(BackupType.MANUAL, customName, player.getUuid())
+        hyperFactions.getBackupManager().createBackup(BackupType.MANUAL, customName, senderUuid)
             .thenAccept(result -> {
                 if (result instanceof BackupManager.BackupResult.Success success) {
-                    player.sendMessage(prefix().insert(msg("Backup created successfully!", COLOR_GREEN)));
-                    player.sendMessage(msg("  Name: " + success.metadata().name(), COLOR_GRAY));
-                    player.sendMessage(msg("  Size: " + success.metadata().getFormattedSize(), COLOR_GRAY));
+                    ctx.sendMessage(prefix().insert(msg("Backup created successfully!", COLOR_GREEN)));
+                    ctx.sendMessage(msg("  Name: " + success.metadata().name(), COLOR_GRAY));
+                    ctx.sendMessage(msg("  Size: " + success.metadata().getFormattedSize(), COLOR_GRAY));
                 } else if (result instanceof BackupManager.BackupResult.Failure failure) {
-                    player.sendMessage(prefix().insert(msg("Backup failed: " + failure.error(), COLOR_RED)));
+                    ctx.sendMessage(prefix().insert(msg("Backup failed: " + failure.error(), COLOR_RED)));
                 }
             });
     }
@@ -963,7 +1052,7 @@ public class AdminSubCommand extends FactionSubCommand {
         }
     }
 
-    private void handleBackupRestore(CommandContext ctx, PlayerRef player, String[] args) {
+    private void handleBackupRestore(CommandContext ctx, UUID senderUuid, String[] args) {
         if (args.length < 1) {
             ctx.sendMessage(prefix().insert(msg("Usage: /f admin backup restore <name>", COLOR_RED)));
             return;
@@ -982,7 +1071,7 @@ public class AdminSubCommand extends FactionSubCommand {
 
         ConfirmationManager confirmManager = hyperFactions.getConfirmationManager();
         ConfirmationManager.ConfirmationResult confirmResult = confirmManager.checkOrCreate(
-            player.getUuid(), ConfirmationManager.ConfirmationType.RESTORE_BACKUP, null
+            senderUuid, ConfirmationManager.ConfirmationType.RESTORE_BACKUP, null
         );
 
         switch (confirmResult) {
@@ -997,9 +1086,9 @@ public class AdminSubCommand extends FactionSubCommand {
                 hyperFactions.getBackupManager().restoreBackup(backup.name())
                     .thenAccept(result -> {
                         if (result instanceof BackupManager.RestoreResult.Success) {
-                            player.sendMessage(prefix().insert(msg("Backup restored successfully! Data reloaded.", COLOR_GREEN)));
+                            ctx.sendMessage(prefix().insert(msg("Backup restored successfully! Data reloaded.", COLOR_GREEN)));
                         } else if (result instanceof BackupManager.RestoreResult.Failure failure) {
-                            player.sendMessage(prefix().insert(msg("Restore failed: " + failure.error(), COLOR_RED)));
+                            ctx.sendMessage(prefix().insert(msg("Restore failed: " + failure.error(), COLOR_RED)));
                         }
                     });
             }
@@ -1037,7 +1126,7 @@ public class AdminSubCommand extends FactionSubCommand {
     }
 
     // === Admin Import Commands ===
-    private void handleAdminImport(CommandContext ctx, PlayerRef player, String[] args) {
+    private void handleAdminImport(CommandContext ctx, String[] args) {
         if (args.length == 0) {
             showImportHelp(ctx);
             return;
@@ -1047,8 +1136,8 @@ public class AdminSubCommand extends FactionSubCommand {
         String[] subArgs = args.length > 1 ? Arrays.copyOfRange(args, 1, args.length) : new String[0];
 
         switch (subCmd) {
-            case "hyfactions" -> handleImportHyFactions(ctx, player, subArgs);
-            case "elbaphfactions" -> handleImportElbaphFactions(ctx, player, subArgs);
+            case "hyfactions" -> handleImportHyFactions(ctx, subArgs);
+            case "elbaphfactions" -> handleImportElbaphFactions(ctx, subArgs);
             case "help", "?" -> showImportHelp(ctx);
             default -> {
                 ctx.sendMessage(prefix().insert(msg("Unknown import source: " + subCmd, COLOR_RED)));
@@ -1071,7 +1160,7 @@ public class AdminSubCommand extends FactionSubCommand {
         ctx.sendMessage(HelpFormatter.buildHelp("Import Commands", "Migrate from other faction plugins", commands, null));
     }
 
-    private void handleImportHyFactions(CommandContext ctx, PlayerRef player, String[] args) {
+    private void handleImportHyFactions(CommandContext ctx, String[] args) {
         // Parse path (optional - default to mods/Kaws_Hyfaction)
         String pathStr = "mods/Kaws_Hyfaction";
         int flagStartIndex = 0;
@@ -1119,10 +1208,10 @@ public class AdminSubCommand extends FactionSubCommand {
 
         final boolean finalDryRun = dryRun;
         CompletableFuture.supplyAsync(() -> importer.importFrom(dataPath))
-            .thenAccept(result -> reportImportResult(player, result, finalDryRun, "HyFactions"));
+            .thenAccept(result -> reportImportResult(ctx, result, finalDryRun, "HyFactions"));
     }
 
-    private void handleImportElbaphFactions(CommandContext ctx, PlayerRef player, String[] args) {
+    private void handleImportElbaphFactions(CommandContext ctx, String[] args) {
         // Parse path (optional - default to mods/ElbaphFactions)
         String pathStr = "mods/ElbaphFactions";
         int flagStartIndex = 0;
@@ -1170,33 +1259,33 @@ public class AdminSubCommand extends FactionSubCommand {
 
         final boolean finalDryRun = dryRun;
         CompletableFuture.supplyAsync(() -> importer.importFrom(dataPath))
-            .thenAccept(result -> reportImportResult(player, result, finalDryRun, "ElbaphFactions"));
+            .thenAccept(result -> reportImportResult(ctx, result, finalDryRun, "ElbaphFactions"));
     }
 
-    private void reportImportResult(PlayerRef player, ImportResult result, boolean dryRun, String sourceName) {
+    private void reportImportResult(CommandContext ctx, ImportResult result, boolean dryRun, String sourceName) {
         if (!result.hasErrors()) {
-            player.sendMessage(prefix().insert(msg(sourceName + " import " + (dryRun ? "simulation " : "") + "complete!", COLOR_GREEN)));
-            player.sendMessage(msg("  Factions: " + result.factionsImported(), COLOR_GRAY));
-            player.sendMessage(msg("  Claims: " + result.claimsImported(), COLOR_GRAY));
-            player.sendMessage(msg("  Zones: " + result.zonesCreated(), COLOR_GRAY));
-            player.sendMessage(msg("  Players with power: " + result.playersWithPower(), COLOR_GRAY));
+            ctx.sendMessage(prefix().insert(msg(sourceName + " import " + (dryRun ? "simulation " : "") + "complete!", COLOR_GREEN)));
+            ctx.sendMessage(msg("  Factions: " + result.factionsImported(), COLOR_GRAY));
+            ctx.sendMessage(msg("  Claims: " + result.claimsImported(), COLOR_GRAY));
+            ctx.sendMessage(msg("  Zones: " + result.zonesCreated(), COLOR_GRAY));
+            ctx.sendMessage(msg("  Players with power: " + result.playersWithPower(), COLOR_GRAY));
             if (result.factionsSkipped() > 0) {
-                player.sendMessage(msg("  Skipped: " + result.factionsSkipped(), COLOR_YELLOW));
+                ctx.sendMessage(msg("  Skipped: " + result.factionsSkipped(), COLOR_YELLOW));
             }
             if (result.hasWarnings()) {
-                player.sendMessage(msg("  Warnings: " + result.warnings().size() + " (check logs)", COLOR_YELLOW));
+                ctx.sendMessage(msg("  Warnings: " + result.warnings().size() + " (check logs)", COLOR_YELLOW));
             }
         } else {
-            player.sendMessage(prefix().insert(msg(sourceName + " import failed with errors:", COLOR_RED)));
+            ctx.sendMessage(prefix().insert(msg(sourceName + " import failed with errors:", COLOR_RED)));
             for (String error : result.errors()) {
-                player.sendMessage(msg("  - " + error, COLOR_RED));
+                ctx.sendMessage(msg("  - " + error, COLOR_RED));
             }
         }
     }
 
     // === Debug Commands ===
-    private void handleDebug(CommandContext ctx, Store<EntityStore> store, Ref<EntityStore> ref,
-                            PlayerRef player, World world, String[] args) {
+    private void handleDebug(CommandContext ctx, @Nullable Store<EntityStore> store, @Nullable Ref<EntityStore> ref,
+                            @Nullable PlayerRef player, @Nullable World world, String[] args) {
         if (!hasPermission(player, Permissions.ADMIN_DEBUG)) {
             ctx.sendMessage(prefix().insert(msg("You don't have permission to use debug commands.", COLOR_RED)));
             return;
@@ -1214,8 +1303,20 @@ public class AdminSubCommand extends FactionSubCommand {
             case "toggle" -> handleDebugToggle(ctx, subArgs);
             case "status" -> handleDebugStatus(ctx);
             case "power" -> handleDebugPower(ctx, subArgs);
-            case "claim" -> handleDebugClaim(ctx, store, ref, world, subArgs);
-            case "protection" -> handleDebugProtection(ctx, store, ref, world, subArgs);
+            case "claim" -> {
+                if (store == null) {
+                    ctx.sendMessage(prefix().insert(msg("This debug command can only be used by a player.", COLOR_RED)));
+                } else {
+                    handleDebugClaim(ctx, store, ref, world, subArgs);
+                }
+            }
+            case "protection" -> {
+                if (store == null) {
+                    ctx.sendMessage(prefix().insert(msg("This debug command can only be used by a player.", COLOR_RED)));
+                } else {
+                    handleDebugProtection(ctx, store, ref, world, subArgs);
+                }
+            }
             case "combat" -> handleDebugCombat(ctx, subArgs);
             case "relation" -> handleDebugRelation(ctx, subArgs);
             case "help", "?" -> showDebugHelp(ctx);

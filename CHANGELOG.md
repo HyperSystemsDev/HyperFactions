@@ -7,7 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-*No changes yet*
+### Added
+
+- **Console support for admin commands**: All admin commands that don't require player context now work from the server console (`/f admin reload`, `debug status`, `backup list`, `decay`, `integrations`, `zone list`, `update`, `import`, etc.)
+- Console receives help text instead of GUI when running `/f admin` with no arguments
+- Player-only commands (`safezone`, `warzone`, `testgui`, GUI-based pages) show a clear error when run from console
 
 ## [0.7.3] - 2026-02-13
 
