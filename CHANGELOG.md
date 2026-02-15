@@ -23,7 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Liquid placement (water/lava buckets) now blocked in protected zones and faction territory (requires OrbisGuard-Mixins place hook)
+- **Fluid protection via interaction codecs**: Liquid placement (water/lava buckets) and fluid pickup (scooping with empty buckets) now blocked in protected zones and faction territory via `PlaceFluid` and `RefillContainer` codec replacements (no mixin dependency)
+- **WarZone denial message**: Zone-denied actions in WarZones now show "You cannot do that in a WarZone." instead of the generic "You don't have permission to do that." (added `DENIED_WARZONE` protection result)
 - **LuckPerms prefix/suffix not showing in chat**: Permission providers failed to initialize at startup because LuckPerms loads after HyperFactions. Chat format `{prefix}` resolved to empty. Lazy init ensures the LuckPerms provider retries on first chat message when LuckPerms is loaded, so prefixes like `[Admin]` now appear alongside faction tags. (#25, #11, #24)
 - **VaultUnlocked provider using wrong class paths**: Corrected `net.milkbowl.vault2.VaultUnlocked` to `net.cfh.vault.VaultUnlocked`, fixed Subject/Context sub-package paths, unwrapped `Optional<>` returns from `permission()`/`chat()`, and fixed `getPrimaryGroup` → `primaryGroup` method name
 - **Admin commands crashing on world thread assertion**: `AdminSubCommand` extended `AbstractAsyncCommand` which runs on ForkJoinPool, but ECS calls like `store.getComponent()` assert WorldThread. Restructured to dispatch player commands back to world thread via `runAsync(ctx, runnable, world)`.

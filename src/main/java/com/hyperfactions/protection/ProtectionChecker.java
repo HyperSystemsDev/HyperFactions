@@ -70,6 +70,7 @@ public class ProtectionChecker {
         ALLOWED_ALLY_CLAIM,
         ALLOWED_WARZONE,
         DENIED_SAFEZONE,
+        DENIED_WARZONE,
         DENIED_ENEMY_CLAIM,
         DENIED_NEUTRAL_CLAIM,
         DENIED_NO_PERMISSION
@@ -188,7 +189,9 @@ public class ProtectionChecker {
                 zone.name(), zone.type().name(), flagName, allowed, playerUuid, world, chunkX, chunkZ);
 
             if (!allowed) {
-                ProtectionResult result = zone.isSafeZone() ? ProtectionResult.DENIED_SAFEZONE : ProtectionResult.DENIED_NO_PERMISSION;
+                ProtectionResult result = zone.isSafeZone() ? ProtectionResult.DENIED_SAFEZONE
+                        : zone.isWarZone() ? ProtectionResult.DENIED_WARZONE
+                        : ProtectionResult.DENIED_NO_PERMISSION;
                 Logger.debug("[Protection] Zone blocked: %s", result);
                 return result;
             }
@@ -598,6 +601,7 @@ public class ProtectionChecker {
     public String getDenialMessage(@NotNull ProtectionResult result) {
         return switch (result) {
             case DENIED_SAFEZONE -> "You cannot do that in a SafeZone.";
+            case DENIED_WARZONE -> "You cannot do that in a WarZone.";
             case DENIED_ENEMY_CLAIM -> "You cannot do that in enemy territory.";
             case DENIED_NEUTRAL_CLAIM -> "You cannot do that in claimed territory.";
             case DENIED_NO_PERMISSION -> "You don't have permission to do that.";

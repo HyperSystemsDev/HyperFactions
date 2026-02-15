@@ -9,6 +9,8 @@ import com.hyperfactions.listener.PlayerListener;
 import com.hyperfactions.protection.ProtectionListener;
 import com.hyperfactions.protection.damage.DamageProtectionHandler;
 import com.hyperfactions.protection.ecs.BlockPlaceProtectionSystem;
+import com.hyperfactions.protection.interactions.HyperFactionsPlaceFluidInteraction;
+import com.hyperfactions.protection.interactions.HyperFactionsRefillContainerInteraction;
 import com.hyperfactions.protection.ecs.BlockBreakProtectionSystem;
 import com.hyperfactions.protection.ecs.BlockUseProtectionSystem;
 import com.hyperfactions.protection.ecs.ItemPickupProtectionSystem;
@@ -39,6 +41,7 @@ import com.hypixel.hytale.component.CommandBuffer;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.component.query.Query;
 import com.hypixel.hytale.component.system.EntityEventSystem;
+import com.hypixel.hytale.server.core.modules.interaction.interaction.config.Interaction;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.plugin.JavaPlugin;
 import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
@@ -106,6 +109,9 @@ public class HyperFactionsPlugin extends JavaPlugin {
     @Override
     protected void setup() {
         instance = this;
+
+        // Register interaction codec replacements (must be in setup, before assets load)
+        registerInteractionCodecs();
 
         // Initialize HyperFactions core
         hyperFactions = new HyperFactions(getDataDirectory(), java.util.logging.Logger.getLogger("HyperFactions"));
@@ -285,6 +291,26 @@ public class HyperFactionsPlugin extends JavaPlugin {
     }
 
     /**
+     * Registers custom interaction codec replacements for protection.
+     * Replaces PlaceFluid with a version that checks zone/faction protection.
+     * Must be called in setup() before assets are loaded.
+     */
+    private void registerInteractionCodecs() {
+        try {
+            var registry = this.getCodecRegistry(Interaction.CODEC);
+            registry.register("PlaceFluid",
+                    HyperFactionsPlaceFluidInteraction.class,
+                    HyperFactionsPlaceFluidInteraction.CODEC);
+            registry.register("RefillContainer",
+                    HyperFactionsRefillContainerInteraction.class,
+                    HyperFactionsRefillContainerInteraction.CODEC);
+            getLogger().at(Level.INFO).log("Registered fluid protection codecs (place + pickup)");
+        } catch (Exception e) {
+            getLogger().at(Level.WARNING).log("Failed to register fluid placement codec: %s", e.getMessage());
+        }
+    }
+
+    /**
      * Initializes the spawn suppression manager and applies suppression to existing worlds.
      */
     private void initializeSpawnSuppression() {
@@ -427,13 +453,8 @@ public class HyperFactionsPlugin extends JavaPlugin {
                     return hyperFactions.getProtectionChecker().shouldBlockSpawn(worldName, x, y, z);
                 });
 
-        // Register place protection hook (bucket/fluid placement)
-        OrbisMixinsIntegration.registerPlaceHook(
-                (playerUuid, worldName, x, y, z) -> {
-                    // Fluid placement is a form of building - use BUILD check
-                    return hyperFactions.getProtectionChecker().canBuild(
-                            playerUuid, worldName, (double) x, (double) z);
-                });
+        // Note: Fluid placement protection is handled via interaction codec replacement
+        // (HyperFactionsPlaceFluidInteraction), not via mixin hooks.
     }
 
     /**
@@ -445,7 +466,8 @@ public class HyperFactionsPlugin extends JavaPlugin {
 
         getLogger().at(Level.INFO).log("=== HyperFactions Protection Coverage ===");
         getLogger().at(Level.INFO).log("ECS Events (native): Block break/place, Use, Harvest drops, Damage - ENABLED");
-        getLogger().at(Level.INFO).log("Mixin Hooks (registered): F-key pickup, Auto pickup, NPC Spawn control, Fluid placement");
+        getLogger().at(Level.INFO).log("Interaction Codecs: Fluid place/pickup protection - ENABLED");
+        getLogger().at(Level.INFO).log("Mixin Hooks (registered): F-key pickup, Auto pickup, NPC Spawn control");
         getLogger().at(Level.INFO).log("  -> Requires Hyxin + OrbisGuard-Mixins in earlyplugins/ to activate");
 
         if (orbisGuardAvailable) {
