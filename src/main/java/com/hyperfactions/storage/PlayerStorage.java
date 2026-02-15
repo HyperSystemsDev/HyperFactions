@@ -1,5 +1,6 @@
 package com.hyperfactions.storage;
 
+import com.hyperfactions.data.PlayerData;
 import com.hyperfactions.data.PlayerPower;
 import org.jetbrains.annotations.NotNull;
 
@@ -57,4 +58,20 @@ public interface PlayerStorage {
      * @return a future containing all player power data
      */
     CompletableFuture<Collection<PlayerPower>> loadAllPlayerPower();
+
+    /**
+     * Loads full player data (power + history + stats).
+     *
+     * @param uuid the player's UUID
+     * @return a future containing the player data if found
+     */
+    CompletableFuture<Optional<PlayerData>> loadPlayerData(@NotNull UUID uuid);
+
+    /**
+     * Saves full player data (power + history + stats).
+     *
+     * @param data the player data to save
+     * @return a future that completes when saving is done
+     */
+    CompletableFuture<Void> savePlayerData(@NotNull PlayerData data);
 }

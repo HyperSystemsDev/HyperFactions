@@ -4,6 +4,7 @@ import com.hyperfactions.HyperFactions;
 import com.hyperfactions.config.ConfigManager;
 import com.hyperfactions.config.modules.GravestoneConfig;
 import com.hyperfactions.data.Faction;
+import com.hyperfactions.data.PlayerData;
 import com.hyperfactions.data.RelationType;
 import com.hyperfactions.data.Zone;
 import com.hyperfactions.data.ZoneFlags;
@@ -127,6 +128,20 @@ public class PlayerDeathSystem extends RefChangeSystem<EntityStore, DeathCompone
                         Logger.debugPower("Neutral kill penalty: killer=%s lost %.2f power (now %.2f)", killerUuid, neutralPenalty, killerPower);
                     }
                 }
+            }
+
+            // Increment kill/death counters
+            hyperFactions.getPlayerStorage().loadPlayerData(victimUuid).thenAccept(opt -> {
+                PlayerData victimData = opt.orElseGet(() -> new PlayerData(victimUuid));
+                victimData.incrementDeaths();
+                hyperFactions.getPlayerStorage().savePlayerData(victimData);
+            });
+            if (killerUuid != null) {
+                hyperFactions.getPlayerStorage().loadPlayerData(killerUuid).thenAccept(opt -> {
+                    PlayerData killerData = opt.orElseGet(() -> new PlayerData(killerUuid));
+                    killerData.incrementKills();
+                    hyperFactions.getPlayerStorage().savePlayerData(killerData);
+                });
             }
 
             // Death location announcement for gravestone integration

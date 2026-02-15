@@ -1852,6 +1852,7 @@ public class GuiManager {
                 targetName,
                 factionManager.get(),
                 powerManager.get(),
+                plugin.get().getPlayerStorage(),
                 this
             );
             pageManager.openCustomPage(ref, store, page);

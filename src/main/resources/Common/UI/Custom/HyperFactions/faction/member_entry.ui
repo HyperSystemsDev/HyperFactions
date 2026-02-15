@@ -162,6 +162,14 @@ Group {
         Style: $S.@ButtonStyle;
       }
 
+      TextButton #ProfileBtn {
+        Text: "Profile";
+        Anchor: (Height: 28, Width: 65);
+        Style: $S.@CyanButtonStyle;
+      }
+
+      Group #ProfileSpacer { Anchor: (Width: 6); }
+
       Group { FlexWeight: 1; }
 
       Label #SelfLabel {

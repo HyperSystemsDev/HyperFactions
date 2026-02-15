@@ -2,8 +2,12 @@ package com.hyperfactions.storage.json;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.hyperfactions.data.FactionRole;
+import com.hyperfactions.data.MembershipRecord;
+import com.hyperfactions.data.PlayerData;
 import com.hyperfactions.data.PlayerPower;
 import com.hyperfactions.storage.PlayerStorage;
 import com.hyperfactions.storage.StorageHealth;
@@ -20,7 +24,10 @@ import java.util.concurrent.CompletableFuture;
 
 /**
  * JSON file-based implementation of PlayerStorage.
- * Stores each player's power data in: data/players/{uuid}.json
+ * Stores each player's data in: data/players/{uuid}.json
+ * <p>
+ * Backwards-compatible: old files with only power fields load without errors.
+ * New fields (username, kills, deaths, membershipHistory) default to null/0/empty.
  */
 public class JsonPlayerStorage implements PlayerStorage {
 
@@ -58,55 +65,25 @@ public class JsonPlayerStorage implements PlayerStorage {
 
     @Override
     public CompletableFuture<Optional<PlayerPower>> loadPlayerPower(@NotNull UUID uuid) {
-        return CompletableFuture.supplyAsync(() -> {
-            Path file = playersDir.resolve(uuid + ".json");
-            if (!Files.exists(file)) {
-                // Check if there's a backup we can recover from
-                if (StorageUtils.hasBackup(file)) {
-                    Logger.warn("Player power file %s missing but backup exists, attempting recovery", uuid);
-                    if (StorageUtils.recoverFromBackup(file)) {
-                        Logger.info("Successfully recovered player power %s from backup", uuid);
-                    } else {
-                        return Optional.empty();
-                    }
-                } else {
-                    return Optional.empty();
-                }
-            }
-
-            try {
-                String json = Files.readString(file);
-                JsonObject obj = JsonParser.parseString(json).getAsJsonObject();
-                return Optional.of(deserializePlayerPower(obj));
-            } catch (Exception e) {
-                Logger.severe("Failed to load player power %s, attempting backup recovery", e, uuid);
-                // Attempt backup recovery on parse failure
-                if (StorageUtils.recoverFromBackup(file)) {
-                    try {
-                        String json = Files.readString(file);
-                        JsonObject obj = JsonParser.parseString(json).getAsJsonObject();
-                        Logger.info("Successfully loaded player power %s from recovered backup", uuid);
-                        return Optional.of(deserializePlayerPower(obj));
-                    } catch (Exception e2) {
-                        Logger.severe("Backup recovery failed for player power %s", e2, uuid);
-                    }
-                }
-                return Optional.empty();
-            }
-        });
+        return loadPlayerData(uuid).thenApply(opt -> opt.map(PlayerData::toPower));
     }
 
     @Override
     public CompletableFuture<Void> savePlayerPower(@NotNull PlayerPower power) {
+        // Load-modify-save to preserve history and other fields
         return CompletableFuture.runAsync(() -> {
             Path file = playersDir.resolve(power.uuid() + ".json");
             String filePath = file.toString();
 
             try {
-                JsonObject obj = serializePlayerPower(power);
-                String content = gson.toJson(obj);
+                // Load existing data or create new
+                PlayerData data = loadPlayerDataSync(power.uuid());
+                if (data == null) {
+                    data = new PlayerData(power.uuid());
+                }
+                data.updatePower(power);
 
-                // Use atomic write for bulletproof data protection
+                String content = gson.toJson(serializePlayerData(data));
                 StorageUtils.WriteResult result = StorageUtils.writeAtomic(file, content);
 
                 if (result instanceof StorageUtils.WriteResult.Success) {
@@ -149,7 +126,7 @@ public class JsonPlayerStorage implements PlayerStorage {
                     try {
                         String json = Files.readString(file);
                         JsonObject obj = JsonParser.parseString(json).getAsJsonObject();
-                        powers.add(deserializePlayerPower(obj));
+                        powers.add(deserializePlayerData(obj).toPower());
                     } catch (Exception e) {
                         failedFiles.add(file.getFileName().toString());
                         Logger.severe("Failed to load player file %s: %s", file.getFileName(), e.getMessage());
@@ -171,23 +148,166 @@ public class JsonPlayerStorage implements PlayerStorage {
         });
     }
 
-    private JsonObject serializePlayerPower(PlayerPower power) {
+    @Override
+    public CompletableFuture<Optional<PlayerData>> loadPlayerData(@NotNull UUID uuid) {
+        return CompletableFuture.supplyAsync(() -> Optional.ofNullable(loadPlayerDataSync(uuid)));
+    }
+
+    @Override
+    public CompletableFuture<Void> savePlayerData(@NotNull PlayerData data) {
+        return CompletableFuture.runAsync(() -> {
+            Path file = playersDir.resolve(data.getUuid() + ".json");
+            String filePath = file.toString();
+
+            try {
+                String content = gson.toJson(serializePlayerData(data));
+                StorageUtils.WriteResult result = StorageUtils.writeAtomic(file, content);
+
+                if (result instanceof StorageUtils.WriteResult.Success) {
+                    StorageHealth.get().recordSuccess(filePath);
+                } else if (result instanceof StorageUtils.WriteResult.Failure failure) {
+                    StorageHealth.get().recordFailure(filePath, failure.error());
+                    Logger.severe("Failed to save player data %s: %s", data.getUuid(), failure.error());
+                }
+            } catch (Exception e) {
+                StorageHealth.get().recordFailure(filePath, e.getMessage());
+                Logger.severe("Failed to save player data %s", e, data.getUuid());
+            }
+        });
+    }
+
+    // === Internal sync helpers ===
+
+    /**
+     * Synchronously loads player data from disk. Returns null if not found.
+     */
+    private PlayerData loadPlayerDataSync(@NotNull UUID uuid) {
+        Path file = playersDir.resolve(uuid + ".json");
+        if (!Files.exists(file)) {
+            if (StorageUtils.hasBackup(file)) {
+                Logger.warn("Player data file %s missing but backup exists, attempting recovery", uuid);
+                if (!StorageUtils.recoverFromBackup(file)) {
+                    return null;
+                }
+                Logger.info("Successfully recovered player data %s from backup", uuid);
+            } else {
+                return null;
+            }
+        }
+
+        try {
+            String json = Files.readString(file);
+            JsonObject obj = JsonParser.parseString(json).getAsJsonObject();
+            return deserializePlayerData(obj);
+        } catch (Exception e) {
+            Logger.severe("Failed to load player data %s, attempting backup recovery", e, uuid);
+            if (StorageUtils.recoverFromBackup(file)) {
+                try {
+                    String json = Files.readString(file);
+                    JsonObject obj = JsonParser.parseString(json).getAsJsonObject();
+                    Logger.info("Successfully loaded player data %s from recovered backup", uuid);
+                    return deserializePlayerData(obj);
+                } catch (Exception e2) {
+                    Logger.severe("Backup recovery failed for player data %s", e2, uuid);
+                }
+            }
+            return null;
+        }
+    }
+
+    // === Serialization ===
+
+    private JsonObject serializePlayerData(PlayerData data) {
         JsonObject obj = new JsonObject();
-        obj.addProperty("uuid", power.uuid().toString());
-        obj.addProperty("power", power.power());
-        obj.addProperty("maxPower", power.maxPower());
-        obj.addProperty("lastDeath", power.lastDeath());
-        obj.addProperty("lastRegen", power.lastRegen());
+        obj.addProperty("uuid", data.getUuid().toString());
+        if (data.getUsername() != null) {
+            obj.addProperty("username", data.getUsername());
+        }
+        obj.addProperty("power", data.getPower());
+        obj.addProperty("maxPower", data.getMaxPower());
+        obj.addProperty("lastDeath", data.getLastDeath());
+        obj.addProperty("lastRegen", data.getLastRegen());
+        obj.addProperty("kills", data.getKills());
+        obj.addProperty("deaths", data.getDeaths());
+        if (data.getFirstJoined() > 0) {
+            obj.addProperty("firstJoined", data.getFirstJoined());
+        }
+        if (data.getLastOnline() > 0) {
+            obj.addProperty("lastOnline", data.getLastOnline());
+        }
+
+        // Membership history
+        if (!data.getMembershipHistory().isEmpty()) {
+            JsonArray historyArr = new JsonArray();
+            for (MembershipRecord rec : data.getMembershipHistory()) {
+                JsonObject recObj = new JsonObject();
+                recObj.addProperty("factionId", rec.factionId().toString());
+                recObj.addProperty("factionName", rec.factionName());
+                if (rec.factionTag() != null) {
+                    recObj.addProperty("factionTag", rec.factionTag());
+                }
+                recObj.addProperty("highestRole", rec.highestRole().name());
+                recObj.addProperty("joinedAt", rec.joinedAt());
+                recObj.addProperty("leftAt", rec.leftAt());
+                recObj.addProperty("reason", rec.reason().name());
+                historyArr.add(recObj);
+            }
+            obj.add("membershipHistory", historyArr);
+        }
+
         return obj;
     }
 
-    private PlayerPower deserializePlayerPower(JsonObject obj) {
-        return new PlayerPower(
-            UUID.fromString(obj.get("uuid").getAsString()),
-            obj.get("power").getAsDouble(),
-            obj.get("maxPower").getAsDouble(),
-            obj.get("lastDeath").getAsLong(),
-            obj.get("lastRegen").getAsLong()
-        );
+    private PlayerData deserializePlayerData(JsonObject obj) {
+        PlayerData data = new PlayerData();
+        data.setUuid(UUID.fromString(obj.get("uuid").getAsString()));
+
+        if (obj.has("username") && !obj.get("username").isJsonNull()) {
+            data.setUsername(obj.get("username").getAsString());
+        }
+
+        data.setPower(obj.get("power").getAsDouble());
+        data.setMaxPower(obj.get("maxPower").getAsDouble());
+        data.setLastDeath(obj.get("lastDeath").getAsLong());
+        data.setLastRegen(obj.get("lastRegen").getAsLong());
+
+        if (obj.has("kills")) {
+            data.setKills(obj.get("kills").getAsInt());
+        }
+        if (obj.has("deaths")) {
+            data.setDeaths(obj.get("deaths").getAsInt());
+        }
+        if (obj.has("firstJoined")) {
+            data.setFirstJoined(obj.get("firstJoined").getAsLong());
+        }
+        if (obj.has("lastOnline")) {
+            data.setLastOnline(obj.get("lastOnline").getAsLong());
+        }
+
+        // Membership history
+        if (obj.has("membershipHistory") && obj.get("membershipHistory").isJsonArray()) {
+            JsonArray historyArr = obj.getAsJsonArray("membershipHistory");
+            List<MembershipRecord> history = new ArrayList<>();
+            for (var element : historyArr) {
+                try {
+                    JsonObject recObj = element.getAsJsonObject();
+                    history.add(new MembershipRecord(
+                        UUID.fromString(recObj.get("factionId").getAsString()),
+                        recObj.get("factionName").getAsString(),
+                        recObj.has("factionTag") && !recObj.get("factionTag").isJsonNull()
+                            ? recObj.get("factionTag").getAsString() : null,
+                        FactionRole.valueOf(recObj.get("highestRole").getAsString()),
+                        recObj.get("joinedAt").getAsLong(),
+                        recObj.get("leftAt").getAsLong(),
+                        MembershipRecord.LeaveReason.valueOf(recObj.get("reason").getAsString())
+                    ));
+                } catch (Exception e) {
+                    Logger.warn("Failed to deserialize membership record: %s", e.getMessage());
+                }
+            }
+            data.setMembershipHistory(history);
+        }
+
+        return data;
     }
 }

@@ -1,12 +1,12 @@
 package com.hyperfactions.gui.faction.page;
 
-import com.hyperfactions.data.Faction;
-import com.hyperfactions.data.FactionMember;
-import com.hyperfactions.data.PlayerPower;
+import com.hyperfactions.data.*;
 import com.hyperfactions.gui.GuiManager;
 import com.hyperfactions.gui.faction.data.PlayerInfoData;
 import com.hyperfactions.manager.FactionManager;
 import com.hyperfactions.manager.PowerManager;
+import com.hyperfactions.storage.PlayerStorage;
+import com.hyperfactions.util.Logger;
 import com.hyperfactions.util.TimeUtil;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
@@ -19,12 +19,19 @@ import com.hypixel.hytale.server.core.ui.builder.EventData;
 import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder;
 import com.hypixel.hytale.server.core.ui.builder.UIEventBuilder;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
+import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 
 /**
- * Player Info page - shows detailed information about a player.
+ * Player Info page - shows detailed information about a player including
+ * faction membership, power stats, combat stats, and membership history.
+ * <p>
+ * Uses a static {@code player_info.ui} template with unique per-field IDs
+ * and dynamic {@code history_entry.ui} entries via the IndexCards pattern.
  */
 public class PlayerInfoPage extends InteractiveCustomUIPage<PlayerInfoData> {
 
@@ -33,13 +40,17 @@ public class PlayerInfoPage extends InteractiveCustomUIPage<PlayerInfoData> {
     private final String targetPlayerName;
     private final FactionManager factionManager;
     private final PowerManager powerManager;
+    private final PlayerStorage playerStorage;
     private final GuiManager guiManager;
+
+    private PlayerData cachedPlayerData;
 
     public PlayerInfoPage(PlayerRef viewerRef,
                           UUID targetPlayerUuid,
                           String targetPlayerName,
                           FactionManager factionManager,
                           PowerManager powerManager,
+                          PlayerStorage playerStorage,
                           GuiManager guiManager) {
         super(viewerRef, CustomPageLifetime.CanDismiss, PlayerInfoData.CODEC);
         this.viewerRef = viewerRef;
@@ -47,6 +58,7 @@ public class PlayerInfoPage extends InteractiveCustomUIPage<PlayerInfoData> {
         this.targetPlayerName = targetPlayerName;
         this.factionManager = factionManager;
         this.powerManager = powerManager;
+        this.playerStorage = playerStorage;
         this.guiManager = guiManager;
     }
 
@@ -57,103 +69,110 @@ public class PlayerInfoPage extends InteractiveCustomUIPage<PlayerInfoData> {
         // Load the player info template
         cmd.append("HyperFactions/faction/player_info.ui");
 
-        // Set player name
+        // === Header ===
         cmd.set("#PlayerName.Text", targetPlayerName);
 
-        // Get faction membership
+        // Check if target is online
+        PlayerRef targetRef = Universe.get().getPlayer(targetPlayerUuid);
+        boolean isOnline = targetRef != null && targetRef.isValid();
+        cmd.set("#OnlineIndicator.Text", isOnline ? "Online" : "Offline");
+        cmd.set("#OnlineIndicator.Style.TextColor", isOnline ? "#55FF55" : "#888888");
+
+        // === First Joined / Last Online ===
+        loadPlayerDataSync();
+        if (cachedPlayerData != null && cachedPlayerData.getFirstJoined() > 0) {
+            cmd.set("#FirstJoinedValue.Text", TimeUtil.formatDate(cachedPlayerData.getFirstJoined()));
+        } else {
+            cmd.set("#FirstJoinedValue.Text", "Unknown");
+        }
+        if (isOnline) {
+            cmd.set("#LastOnlineValue.Text", "Now");
+            cmd.set("#LastOnlineValue.Style.TextColor", "#55FF55");
+        } else if (cachedPlayerData != null && cachedPlayerData.getLastOnline() > 0) {
+            cmd.set("#LastOnlineValue.Text", TimeUtil.formatRelative(cachedPlayerData.getLastOnline()));
+        } else {
+            cmd.set("#LastOnlineValue.Text", "Unknown");
+        }
+
+        // === Faction Section ===
         Faction faction = factionManager.getPlayerFaction(targetPlayerUuid);
         FactionMember member = faction != null ? faction.getMember(targetPlayerUuid) : null;
 
-        // === Basic Info Section ===
-        cmd.append("#BasicInfoSection", "HyperFactions/faction/info_section.ui");
-        cmd.set("#BasicInfoSection #SectionTitle.Text", "Basic Information");
-
-        // Status (online/offline)
-        boolean isOnline = store.getComponent(ref, Player.getComponentType()) != null;
-        cmd.append("#BasicInfoSection #SectionContent", "HyperFactions/faction/info_row.ui");
-        cmd.set("#BasicInfoSection #SectionContent #InfoLabel.Text", "Status");
-        cmd.set("#BasicInfoSection #SectionContent #InfoValue.Text", isOnline ? "Online" : "Offline");
-        // Note: Cannot dynamically set text color via cmd.set()
-
-        // UUID
-        cmd.append("#BasicInfoSection #SectionContent", "HyperFactions/faction/info_row.ui");
-        cmd.set("#BasicInfoSection #SectionContent #InfoLabel.Text", "UUID");
-        cmd.set("#BasicInfoSection #SectionContent #InfoValue.Text", targetPlayerUuid.toString());
-
-        // === Faction Info Section ===
-        cmd.append("#FactionInfoSection", "HyperFactions/faction/info_section.ui");
-        cmd.set("#FactionInfoSection #SectionTitle.Text", "Faction");
-
         if (faction != null && member != null) {
-            // Faction name
-            cmd.append("#FactionInfoSection #SectionContent", "HyperFactions/faction/info_row.ui");
-            cmd.set("#FactionInfoSection #SectionContent #InfoLabel.Text", "Faction");
-            cmd.set("#FactionInfoSection #SectionContent #InfoValue.Text", faction.name());
-            // Note: Cannot dynamically set text color via cmd.set()
+            cmd.set("#FactionNameValue.Text", faction.name());
+            cmd.set("#FactionRoleValue.Text", member.role().getDisplayName());
+            cmd.set("#FactionJoinedValue.Text", TimeUtil.formatRelative(member.joinedAt()));
 
-            // Role
-            cmd.append("#FactionInfoSection #SectionContent", "HyperFactions/faction/info_row.ui");
-            cmd.set("#FactionInfoSection #SectionContent #InfoLabel.Text", "Role");
-            cmd.set("#FactionInfoSection #SectionContent #InfoValue.Text", member.role().name());
+            // Show faction rows, hide no-faction label
+            cmd.set("#FactionNameRow.Visible", true);
+            cmd.set("#FactionRoleRow.Visible", true);
+            cmd.set("#FactionJoinedRow.Visible", true);
+            cmd.set("#NoFactionLabel.Visible", false);
 
-            // Joined date
-            cmd.append("#FactionInfoSection #SectionContent", "HyperFactions/faction/info_row.ui");
-            cmd.set("#FactionInfoSection #SectionContent #InfoLabel.Text", "Joined");
-            cmd.set("#FactionInfoSection #SectionContent #InfoValue.Text",
-                    TimeUtil.formatRelative(member.joinedAt()));
-
-            // Last online
-            cmd.append("#FactionInfoSection #SectionContent", "HyperFactions/faction/info_row.ui");
-            cmd.set("#FactionInfoSection #SectionContent #InfoLabel.Text", "Last Online");
-            cmd.set("#FactionInfoSection #SectionContent #InfoValue.Text",
-                    TimeUtil.formatRelative(member.lastOnline()));
-
-            // View faction button
-            cmd.append("#FactionInfoSection #SectionContent", "HyperFactions/faction/action_button.ui");
-            cmd.set("#FactionInfoSection #SectionContent #ActionBtn.Text", "View Faction");
+            // View Faction button
             events.addEventBinding(
                     CustomUIEventBindingType.Activating,
-                    "#FactionInfoSection #SectionContent #ActionBtn",
+                    "#ViewFactionBtn",
                     EventData.of("Button", "ViewFaction")
-                            .append("FactionId", faction.id().toString()),
+                            .append("PlayerUuid", faction.id().toString()),
                     false
             );
         } else {
-            // No faction
-            cmd.append("#FactionInfoSection #SectionContent", "HyperFactions/faction/info_row.ui");
-            cmd.set("#FactionInfoSection #SectionContent #InfoLabel.Text", "Faction");
-            cmd.set("#FactionInfoSection #SectionContent #InfoValue.Text", "(None)");
-            // Note: Cannot dynamically set text color via cmd.set()
+            // Hide faction detail rows, show no-faction label
+            cmd.set("#FactionNameRow.Visible", false);
+            cmd.set("#FactionRoleRow.Visible", false);
+            cmd.set("#FactionJoinedRow.Visible", false);
+            cmd.set("#NoFactionLabel.Visible", true);
+            cmd.set("#ViewFactionBtn.Visible", false);
         }
 
-        // === Power Section ===
-        cmd.append("#PowerSection", "HyperFactions/faction/info_section.ui");
-        cmd.set("#PowerSection #SectionTitle.Text", "Power");
-
+        // === Stats Section ===
         PlayerPower power = powerManager.getPlayerPower(targetPlayerUuid);
-        if (power != null) {
-            // Current power
-            cmd.append("#PowerSection #SectionContent", "HyperFactions/faction/info_row.ui");
-            cmd.set("#PowerSection #SectionContent #InfoLabel.Text", "Current Power");
-            cmd.set("#PowerSection #SectionContent #InfoValue.Text",
-                    String.format("%.1f", power.power()));
+        cmd.set("#PowerValue.Text", String.format("%.1f / %.1f", power.power(), power.maxPower()));
 
-            // Max power
-            cmd.append("#PowerSection #SectionContent", "HyperFactions/faction/info_row.ui");
-            cmd.set("#PowerSection #SectionContent #InfoLabel.Text", "Max Power");
-            cmd.set("#PowerSection #SectionContent #InfoValue.Text",
-                    String.format("%.1f", power.maxPower()));
+        // Power bar
+        float powerRatio = power.maxPower() > 0 ? (float) (power.power() / power.maxPower()) : 0f;
+        cmd.set("#PowerBar.Value", powerRatio);
+        int powerPercent = power.getPowerPercent();
+        String powerColor = powerPercent >= 80 ? "#55FF55" : powerPercent >= 40 ? "#FFAA00" : "#FF5555";
+        cmd.set("#PowerBar.Bar.Color", powerColor);
 
-            // Power percentage (visual bar)
-            double percentage = (power.power() / power.maxPower()) * 100.0;
-            cmd.append("#PowerSection #SectionContent", "HyperFactions/faction/progress_bar.ui");
-            cmd.set("#PowerSection #SectionContent #ProgressBar.Value", String.format("%.0f", percentage));
-            cmd.set("#PowerSection #SectionContent #ProgressLabel.Text",
-                    String.format("%.0f%%", percentage));
+        // Combat stats from PlayerData
+        loadPlayerDataSync();
+        int kills = cachedPlayerData != null ? cachedPlayerData.getKills() : 0;
+        int deaths = cachedPlayerData != null ? cachedPlayerData.getDeaths() : 0;
+        double kdr = deaths > 0 ? (double) kills / deaths : kills;
+
+        cmd.set("#KillsValue.Text", String.valueOf(kills));
+        cmd.set("#DeathsValue.Text", String.valueOf(deaths));
+        cmd.set("#KDRValue.Text", String.format("%.2f", kdr));
+
+        // === Membership History ===
+        if (cachedPlayerData != null && !cachedPlayerData.getMembershipHistory().isEmpty()) {
+            // Show history newest-first (reverse of storage order)
+            List<MembershipRecord> history = new java.util.ArrayList<>(cachedPlayerData.getMembershipHistory());
+            Collections.reverse(history);
+
+            cmd.set("#HistoryCount.Text", history.size() + " records");
+            cmd.appendInline("#HistoryList", "Group #HistoryCards { LayoutMode: Top; }");
+
+            for (int i = 0; i < history.size(); i++) {
+                cmd.append("#HistoryCards", "HyperFactions/faction/history_entry.ui");
+                String idx = "#HistoryCards[" + i + "]";
+                MembershipRecord rec = history.get(i);
+
+                cmd.set(idx + " #HFactionName.Text", rec.factionName());
+                cmd.set(idx + " #HRole.Text", rec.highestRole().getDisplayName());
+                cmd.set(idx + " #HJoined.Text", "Joined: " + TimeUtil.formatDate(rec.joinedAt()));
+                cmd.set(idx + " #HLeft.Text", rec.isActive() ? "Current" : "Left: " + TimeUtil.formatDate(rec.leftAt()));
+                cmd.set(idx + " #HReason.Text", formatReason(rec.reason()));
+                cmd.set(idx + " #HReason.Style.TextColor", getReasonColor(rec.reason()));
+                cmd.set(idx + " #RoleBar.Background.Color", getRoleColor(rec.highestRole()));
+            }
         } else {
-            cmd.append("#PowerSection #SectionContent", "HyperFactions/faction/info_row.ui");
-            cmd.set("#PowerSection #SectionContent #InfoLabel.Text", "Power");
-            cmd.set("#PowerSection #SectionContent #InfoValue.Text", "(No data)");
+            cmd.set("#HistoryCount.Text", "");
+            cmd.appendInline("#HistoryList",
+                    "Label { Text: \"No membership history\"; Style: (FontSize: 11, TextColor: #555555); }");
         }
 
         // Back button
@@ -184,13 +203,9 @@ public class PlayerInfoPage extends InteractiveCustomUIPage<PlayerInfoData> {
                         UUID factionId = UUID.fromString(data.playerUuid);
                         Faction faction = factionManager.getFaction(factionId);
                         if (faction != null) {
-                            // Navigate to faction info page (would need to create this)
-                            player.sendMessage(
-                                    Message.raw("Use ").color("#AAAAAA")
-                                            .insert(Message.raw("/f info " + faction.name()).color("#55FF55"))
-                                            .insert(Message.raw(" to view faction details.").color("#AAAAAA"))
-                            );
-                            guiManager.closePage(player, ref, store);
+                            guiManager.openFactionInfo(player, ref, store, playerRef, faction);
+                        } else {
+                            player.sendMessage(Message.raw("Faction no longer exists.").color("#FF5555"));
                         }
                     } catch (IllegalArgumentException e) {
                         player.sendMessage(Message.raw("Invalid faction ID.").color("#FF5555"));
@@ -200,5 +215,41 @@ public class PlayerInfoPage extends InteractiveCustomUIPage<PlayerInfoData> {
 
             case "Back" -> guiManager.closePage(player, ref, store);
         }
+    }
+
+    private void loadPlayerDataSync() {
+        if (cachedPlayerData == null) {
+            try {
+                cachedPlayerData = playerStorage.loadPlayerData(targetPlayerUuid).join().orElse(null);
+            } catch (Exception e) {
+                Logger.debug("Failed to load player data for %s: %s", targetPlayerUuid, e.getMessage());
+            }
+        }
+    }
+
+    private String formatReason(MembershipRecord.LeaveReason reason) {
+        return switch (reason) {
+            case ACTIVE -> "ACTIVE";
+            case LEFT -> "LEFT";
+            case KICKED -> "KICKED";
+            case DISBANDED -> "DISBANDED";
+        };
+    }
+
+    private String getReasonColor(MembershipRecord.LeaveReason reason) {
+        return switch (reason) {
+            case ACTIVE -> "#55FF55";
+            case LEFT -> "#FFAA00";
+            case KICKED -> "#FF5555";
+            case DISBANDED -> "#AA00AA";
+        };
+    }
+
+    private String getRoleColor(FactionRole role) {
+        return switch (role) {
+            case LEADER -> "#FFD700";
+            case OFFICER -> "#00AAFF";
+            case MEMBER -> "#888888";
+        };
     }
 }

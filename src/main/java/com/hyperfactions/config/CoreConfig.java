@@ -21,6 +21,7 @@ public class CoreConfig extends ConfigFile {
 
     // Faction settings
     private int maxMembers = 50;
+    private int maxMembershipHistory = 10;
     private int maxNameLength = 24;
     private int minNameLength = 3;
     private boolean allowColors = true;
@@ -124,6 +125,7 @@ public class CoreConfig extends ConfigFile {
         if (hasSection(root, "faction")) {
             JsonObject faction = root.getAsJsonObject("faction");
             maxMembers = getInt(faction, "maxMembers", maxMembers);
+            maxMembershipHistory = getInt(faction, "maxMembershipHistory", maxMembershipHistory);
             maxNameLength = getInt(faction, "maxNameLength", maxNameLength);
             minNameLength = getInt(faction, "minNameLength", minNameLength);
             allowColors = getBool(faction, "allowColors", allowColors);
@@ -285,6 +287,7 @@ public class CoreConfig extends ConfigFile {
         // Faction settings
         JsonObject faction = new JsonObject();
         faction.addProperty("maxMembers", maxMembers);
+        faction.addProperty("maxMembershipHistory", maxMembershipHistory);
         faction.addProperty("maxNameLength", maxNameLength);
         faction.addProperty("minNameLength", minNameLength);
         faction.addProperty("allowColors", allowColors);
@@ -406,6 +409,7 @@ public class CoreConfig extends ConfigFile {
 
     // Faction
     public int getMaxMembers() { return maxMembers; }
+    public int getMaxMembershipHistory() { return maxMembershipHistory; }
     public int getMaxNameLength() { return maxNameLength; }
     public int getMinNameLength() { return minNameLength; }
     public boolean isAllowColors() { return allowColors; }
@@ -528,6 +532,7 @@ public class CoreConfig extends ConfigFile {
 
         // Faction settings
         maxMembers = validateMin(result, "faction.maxMembers", maxMembers, 1, 50);
+        maxMembershipHistory = validateRange(result, "faction.maxMembershipHistory", maxMembershipHistory, 1, 100, 10);
         maxNameLength = validateRange(result, "faction.maxNameLength", maxNameLength, 1, 64, 24);
         minNameLength = validateRange(result, "faction.minNameLength", minNameLength, 1, maxNameLength, 3);
 

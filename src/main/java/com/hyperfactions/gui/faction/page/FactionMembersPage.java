@@ -265,6 +265,18 @@ public class FactionMembersPage extends InteractiveCustomUIPage<FactionMembersDa
             // Show "(You)" label for self
             cmd.set(idx + " #SelfLabel.Visible", isSelf);
 
+            // Profile button - always visible when expanded
+            cmd.set(idx + " #ProfileBtn.Visible", true);
+            cmd.set(idx + " #ProfileSpacer.Visible", true);
+            events.addEventBinding(
+                    CustomUIEventBindingType.Activating,
+                    idx + " #ProfileBtn",
+                    EventData.of("Button", "ViewProfile")
+                            .append("PlayerUuid", member.uuid().toString())
+                            .append("Target", member.username()),
+                    false
+            );
+
             // Promote: Leader can promote Members to Officer (requires PROMOTE permission)
             boolean canPromote = viewerIsLeader && targetIsMember && !isSelf
                     && PermissionManager.get().hasPermission(playerRef.getUuid(), Permissions.PROMOTE);
@@ -446,6 +458,18 @@ public class FactionMembersPage extends InteractiveCustomUIPage<FactionMembersDa
             case "NextPage" -> {
                 currentPage++;
                 rebuildList(ref, store);
+            }
+
+            case "ViewProfile" -> {
+                if (data.playerUuid != null) {
+                    try {
+                        UUID uuid = UUID.fromString(data.playerUuid);
+                        String targetName = data.target != null ? data.target : "Unknown";
+                        guiManager.openPlayerInfo(player, ref, store, playerRef, uuid, targetName);
+                    } catch (IllegalArgumentException e) {
+                        sendUpdate();
+                    }
+                }
             }
 
             case "Promote" -> handlePromote(player, ref, store, data.playerUuid);

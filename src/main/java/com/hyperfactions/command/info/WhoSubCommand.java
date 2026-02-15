@@ -87,16 +87,14 @@ public class WhoSubCommand extends FactionSubCommand {
             return;
         }
 
-        // TODO: GUI mode disabled - PlayerInfoPage UI templates don't exist yet
-        // When player_info.ui, info_section.ui, info_row.ui, progress_bar.ui are created,
-        // uncomment this block to enable GUI mode:
-        // if (!fctx.isTextMode()) {
-        //     Player playerEntity = store.getComponent(ref, Player.getComponentType());
-        //     if (playerEntity != null) {
-        //         hyperFactions.getGuiManager().openPlayerInfo(playerEntity, ref, store, player, targetUuid, targetName);
-        //         return;
-        //     }
-        // }
+        // GUI mode - open player info page
+        if (!fctx.isTextMode()) {
+            Player playerEntity = store.getComponent(ref, Player.getComponentType());
+            if (playerEntity != null) {
+                hyperFactions.getGuiManager().openPlayerInfo(playerEntity, ref, store, player, targetUuid, targetName);
+                return;
+            }
+        }
 
         // Text mode: output to chat
         // Get faction info

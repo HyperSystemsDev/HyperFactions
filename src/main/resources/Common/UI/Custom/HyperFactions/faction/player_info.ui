@@ -1,0 +1,296 @@
+// Player Info Page
+// Displays detailed information about a player including faction, power, stats, and membership history
+// Used for /f who [player] command (GUI mode) and member profile navigation
+
+$C = "../../Common.ui";
+$S = "../shared/styles.ui";
+
+$C.@PageOverlay {
+  $C.@DecoratedContainer {
+    Anchor: (Width: 550, Height: 600);
+
+    #Title {
+      Group {
+        $C.@Title {
+          @Text = "Player Info";
+        }
+      }
+    }
+
+    #Content {
+      LayoutMode: Top;
+      Padding: (Left: 25, Right: 25, Top: 15, Bottom: 15);
+
+      // === Header Section ===
+      Group {
+        Anchor: (Height: 30, Bottom: 10);
+        LayoutMode: Left;
+
+        Label #PlayerName {
+          Text: "PlayerName";
+          Style: (FontSize: 20, TextColor: #FFFFFF, RenderBold: true, VerticalAlignment: Center);
+        }
+
+        Label { Anchor: (Width: 12); }
+
+        Label #OnlineIndicator {
+          Text: "Offline";
+          Style: (FontSize: 12, TextColor: #888888, VerticalAlignment: Center);
+        }
+      }
+
+      // First Joined / Last Online row
+      Group {
+        Anchor: (Height: 18, Bottom: 8);
+        LayoutMode: Left;
+
+        Label {
+          Text: "First joined:";
+          Style: (FontSize: 10, TextColor: #666666, VerticalAlignment: Center);
+          Anchor: (Width: 80);
+        }
+        Label #FirstJoinedValue {
+          Text: "";
+          Style: (FontSize: 10, TextColor: #AAAAAA, VerticalAlignment: Center);
+          Anchor: (Width: 140);
+        }
+
+        Label {
+          Text: "Last online:";
+          Style: (FontSize: 10, TextColor: #666666, VerticalAlignment: Center);
+          Anchor: (Width: 75);
+        }
+        Label #LastOnlineValue {
+          Text: "";
+          Style: (FontSize: 10, TextColor: #AAAAAA, VerticalAlignment: Center);
+        }
+      }
+
+      // Divider
+      Group {
+        Anchor: (Height: 1, Bottom: 12);
+        Background: (Color: #00AAAA);
+      }
+
+      // === Faction Section ===
+      Group {
+        Anchor: (Height: 20, Bottom: 5);
+        Label {
+          Text: "Faction";
+          Style: (FontSize: 11, TextColor: #666666, RenderBold: true);
+        }
+      }
+
+      Group #FactionSection {
+        Anchor: (Height: 75, Bottom: 12);
+        LayoutMode: Top;
+
+        // Faction Name row
+        Group #FactionNameRow {
+          Anchor: (Height: 22);
+          LayoutMode: Left;
+
+          Label {
+            Text: "Faction:";
+            Style: (FontSize: 12, TextColor: #AAAAAA, VerticalAlignment: Center);
+            Anchor: (Width: 80);
+          }
+
+          Label #FactionNameValue {
+            Text: "None";
+            Style: (FontSize: 12, TextColor: #FFFFFF, VerticalAlignment: Center);
+          }
+        }
+
+        // Role row
+        Group #FactionRoleRow {
+          Anchor: (Height: 22);
+          LayoutMode: Left;
+
+          Label {
+            Text: "Role:";
+            Style: (FontSize: 12, TextColor: #AAAAAA, VerticalAlignment: Center);
+            Anchor: (Width: 80);
+          }
+
+          Label #FactionRoleValue {
+            Text: "";
+            Style: (FontSize: 12, TextColor: #FFFFFF, VerticalAlignment: Center);
+          }
+        }
+
+        // Joined / View button row
+        Group #FactionJoinedRow {
+          Anchor: (Height: 28);
+          LayoutMode: Left;
+
+          Label {
+            Text: "Joined:";
+            Style: (FontSize: 12, TextColor: #AAAAAA, VerticalAlignment: Center);
+            Anchor: (Width: 80);
+          }
+
+          Label #FactionJoinedValue {
+            Text: "";
+            Style: (FontSize: 12, TextColor: #FFFFFF, VerticalAlignment: Center);
+            Anchor: (Width: 140);
+          }
+
+          Label { FlexWeight: 1; }
+
+          TextButton #ViewFactionBtn {
+            Text: "View Faction";
+            Anchor: (Height: 26, Width: 110);
+            Style: $S.@CyanButtonStyle;
+          }
+        }
+
+        // No faction label (hidden when in a faction)
+        Label #NoFactionLabel {
+          Text: "Not in a faction";
+          Style: (FontSize: 12, TextColor: #555555);
+          Anchor: (Height: 22);
+        }
+      }
+
+      // Divider
+      Group {
+        Anchor: (Height: 1, Bottom: 12);
+        Background: (Color: #333333);
+      }
+
+      // === Stats Section ===
+      Group {
+        Anchor: (Height: 20, Bottom: 5);
+        Label {
+          Text: "Stats";
+          Style: (FontSize: 11, TextColor: #666666, RenderBold: true);
+        }
+      }
+
+      Group #StatsSection {
+        Anchor: (Height: 55, Bottom: 12);
+        LayoutMode: Top;
+
+        // Power row with bar
+        Group {
+          Anchor: (Height: 22);
+          LayoutMode: Left;
+
+          Label {
+            Text: "Power:";
+            Style: (FontSize: 12, TextColor: #AAAAAA, VerticalAlignment: Center);
+            Anchor: (Width: 80);
+          }
+
+          Label #PowerValue {
+            Text: "0.0 / 0.0";
+            Style: (FontSize: 12, TextColor: #FFFFFF, VerticalAlignment: Center);
+            Anchor: (Width: 100);
+          }
+
+          // Power bar
+          Group {
+            FlexWeight: 1;
+            Anchor: (Top: 4, Bottom: 4);
+
+            ProgressBar #PowerBar {
+              Anchor: (Left: 0, Right: 0, Top: 0, Bottom: 0);
+              Bar: (Color: #55FF55);
+              Background: (Color: #333333);
+            }
+          }
+        }
+
+        // Combat stats row
+        Group {
+          Anchor: (Height: 22);
+          LayoutMode: Left;
+
+          Label {
+            Text: "Kills:";
+            Style: (FontSize: 12, TextColor: #AAAAAA, VerticalAlignment: Center);
+            Anchor: (Width: 40);
+          }
+          Label #KillsValue {
+            Text: "0";
+            Style: (FontSize: 12, TextColor: #55FF55, VerticalAlignment: Center);
+            Anchor: (Width: 50);
+          }
+
+          Label {
+            Text: "Deaths:";
+            Style: (FontSize: 12, TextColor: #AAAAAA, VerticalAlignment: Center);
+            Anchor: (Width: 50);
+          }
+          Label #DeathsValue {
+            Text: "0";
+            Style: (FontSize: 12, TextColor: #FF5555, VerticalAlignment: Center);
+            Anchor: (Width: 50);
+          }
+
+          Label {
+            Text: "K/D:";
+            Style: (FontSize: 12, TextColor: #AAAAAA, VerticalAlignment: Center);
+            Anchor: (Width: 35);
+          }
+          Label #KDRValue {
+            Text: "0.00";
+            Style: (FontSize: 12, TextColor: #FFFFFF, VerticalAlignment: Center);
+          }
+        }
+      }
+
+      // Divider
+      Group {
+        Anchor: (Height: 1, Bottom: 8);
+        Background: (Color: #333333);
+      }
+
+      // === Membership History Section ===
+      Group {
+        Anchor: (Height: 20, Bottom: 5);
+        LayoutMode: Left;
+
+        Label {
+          Text: "Membership History";
+          Style: (FontSize: 11, TextColor: #666666, RenderBold: true);
+        }
+
+        Label { Anchor: (Width: 8); }
+
+        Label #HistoryCount {
+          Text: "";
+          Style: (FontSize: 10, TextColor: #555555);
+        }
+      }
+
+      // History list container (dynamic entries appended here, scrollable)
+      Group #HistoryList {
+        FlexWeight: 1;
+        LayoutMode: TopScrolling;
+        ScrollbarStyle: $C.@DefaultScrollbarStyle;
+      }
+
+      // Spacer to push button down
+      Group { Anchor: (Height: 8); }
+
+      // === Back Button ===
+      Group {
+        Anchor: (Height: 35);
+        LayoutMode: Left;
+
+        Label { FlexWeight: 1; }
+
+        TextButton #BackBtn {
+          Text: "Back";
+          Anchor: (Height: 30, Width: 80);
+          Style: $S.@ButtonStyle;
+        }
+      }
+    }
+  }
+}
+
+// Native Hytale back button (bottom-left ESC)
+$C.@BackButton {}

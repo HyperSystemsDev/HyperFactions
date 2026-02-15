@@ -417,6 +417,9 @@ public class FactionManager {
         // Save async
         storage.saveFaction(faction);
 
+        // Publish member join event for the creator (so membership history is recorded)
+        EventBus.publish(new FactionMemberEvent(faction, leaderUuid, FactionMemberEvent.Type.JOIN));
+
         Logger.info("Faction '%s' [%s] created by %s", name, generatedTag, leaderName);
 
         if (onFactionCreated != null) {
@@ -922,6 +925,9 @@ public class FactionManager {
         factions.put(factionId, updated);
         playerToFaction.remove(playerUuid);
         storage.saveFaction(updated);
+
+        // Publish kick event (so membership history is recorded)
+        EventBus.publish(new FactionMemberEvent(updated, playerUuid, FactionMemberEvent.Type.KICK));
 
         Logger.info("[Admin] Kicked %s from faction '%s'", target.username(), faction.name());
         return FactionResult.SUCCESS;

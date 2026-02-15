@@ -1,0 +1,65 @@
+// History Entry - Single membership history row
+// Compact 36px row: role indicator bar, faction name + role, dates, leave reason badge
+
+$C = "../../Common.ui";
+$S = "../shared/styles.ui";
+
+Group {
+  Anchor: (Height: 36, Bottom: 3);
+  Background: (Color: #1a2a3a);
+  LayoutMode: Left;
+  Padding: (Left: 10, Right: 10, Top: 4, Bottom: 4);
+
+  // Role color indicator bar
+  Group #RoleBar {
+    Anchor: (Width: 3, Top: 4, Bottom: 4);
+    Background: (Color: #888888);
+  }
+
+  Group { Anchor: (Width: 8); }
+
+  // Faction name + role column
+  Group {
+    Anchor: (Width: 150);
+    LayoutMode: Top;
+
+    Label #HFactionName {
+      Text: "Faction";
+      Style: (FontSize: 12, TextColor: #CCCCCC, RenderBold: true, VerticalAlignment: Center);
+      Anchor: (Height: 15);
+    }
+
+    Label #HRole {
+      Text: "Member";
+      Style: (FontSize: 9, TextColor: #888888, VerticalAlignment: Center);
+      Anchor: (Height: 13);
+    }
+  }
+
+  // Dates column
+  Group {
+    Anchor: (Width: 160);
+    LayoutMode: Top;
+
+    Label #HJoined {
+      Text: "Joined: --";
+      Style: (FontSize: 9, TextColor: #777777, VerticalAlignment: Center);
+      Anchor: (Height: 14);
+    }
+
+    Label #HLeft {
+      Text: "Left: --";
+      Style: (FontSize: 9, TextColor: #777777, VerticalAlignment: Center);
+      Anchor: (Height: 14);
+    }
+  }
+
+  Group { FlexWeight: 1; }
+
+  // Leave reason badge
+  Label #HReason {
+    Text: "LEFT";
+    Style: (FontSize: 10, TextColor: #888888, RenderBold: true, VerticalAlignment: Center);
+    Anchor: (Width: 80);
+  }
+}

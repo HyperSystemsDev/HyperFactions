@@ -17,6 +17,10 @@ import com.hyperfactions.integration.orbis.OrbisGuardIntegration;
 import com.hyperfactions.integration.orbis.OrbisMixinsIntegration;
 import com.hyperfactions.integration.papi.PlaceholderAPIIntegration;
 import com.hyperfactions.integration.wiflow.WiFlowPlaceholderIntegration;
+import com.hyperfactions.data.Faction;
+import com.hyperfactions.data.FactionMember;
+import com.hyperfactions.data.MembershipRecord;
+import com.hyperfactions.data.PlayerData;
 import com.hyperfactions.data.Zone;
 import com.hyperfactions.data.ZoneFlags;
 import com.hyperfactions.data.ZoneType;
@@ -227,6 +231,7 @@ public class AdminSubCommand extends AbstractAsyncCommand {
             case "warzone" -> { if (requirePlayer(ctx, isPlayer)) handleWarzone(ctx, player, currentWorld, chunkX, chunkZ, args); }
             case "removezone" -> { if (requirePlayer(ctx, isPlayer)) handleRemovezone(ctx, currentWorld, chunkX, chunkZ); }
             case "zoneflag" -> { if (requirePlayer(ctx, isPlayer)) handleZoneFlag(ctx, currentWorld.getName(), chunkX, chunkZ, Arrays.copyOfRange(args, 1, args.length)); }
+            case "clearhistory" -> handleClearHistory(ctx, player, Arrays.copyOfRange(args, 1, args.length));
             default -> ctx.sendMessage(prefix().insert(msg("Unknown admin command. Use /f admin help", COLOR_RED)));
         }
     }
@@ -252,6 +257,7 @@ public class AdminSubCommand extends AbstractAsyncCommand {
         commands.add(new CommandHelp("/f admin zoneflag <flag> <value>", "Set zone flag"));
         commands.add(new CommandHelp("/f admin integrations", "Summary of all integrations"));
         commands.add(new CommandHelp("/f admin integration <name>", "Detailed integration status"));
+        commands.add(new CommandHelp("/f admin clearhistory <player>", "Clear player membership history"));
         ctx.sendMessage(HelpFormatter.buildHelp("Admin Commands", "Server administration", commands, null));
     }
 
@@ -1920,5 +1926,91 @@ public class AdminSubCommand extends AbstractAsyncCommand {
             ctx.sendMessage(msg("Status: ", COLOR_GRAY)
                 .insert(msg("Active - " + daysUntilDecay + " days until decay", COLOR_GREEN)));
         }
+    }
+
+    // === Clear History ===
+
+    private void handleClearHistory(CommandContext ctx, @Nullable PlayerRef player, String[] args) {
+        if (!hasPermission(player, Permissions.ADMIN)) {
+            ctx.sendMessage(prefix().insert(msg("You don't have permission.", COLOR_RED)));
+            return;
+        }
+
+        if (args.length < 1) {
+            ctx.sendMessage(prefix().insert(msg("Usage: /f admin clearhistory <player>", COLOR_YELLOW)));
+            return;
+        }
+
+        String targetName = args[0];
+
+        // Resolve player UUID — check online players first, then faction members
+        UUID targetUuid = null;
+        String resolvedName = targetName;
+
+        for (PlayerRef online : plugin.getTrackedPlayers().values()) {
+            if (online.getUsername().equalsIgnoreCase(targetName)) {
+                targetUuid = online.getUuid();
+                resolvedName = online.getUsername();
+                break;
+            }
+        }
+
+        if (targetUuid == null) {
+            for (Faction faction : hyperFactions.getFactionManager().getAllFactions()) {
+                for (FactionMember member : faction.getMembersSorted()) {
+                    if (member.username().equalsIgnoreCase(targetName)) {
+                        targetUuid = member.uuid();
+                        resolvedName = member.username();
+                        break;
+                    }
+                }
+                if (targetUuid != null) break;
+            }
+        }
+
+        if (targetUuid == null) {
+            ctx.sendMessage(prefix().insert(msg("Player not found.", COLOR_RED)));
+            return;
+        }
+
+        final String finalName = resolvedName;
+        hyperFactions.getPlayerStorage().loadPlayerData(targetUuid).thenAccept(opt -> {
+            if (opt.isEmpty()) {
+                ctx.sendMessage(prefix().insert(msg("No player data found for " + finalName + ".", COLOR_RED)));
+                return;
+            }
+
+            PlayerData data = opt.get();
+            int count = data.getMembershipHistory().size();
+
+            if (count == 0) {
+                ctx.sendMessage(prefix().insert(msg(finalName + " has no membership history.", COLOR_YELLOW)));
+                return;
+            }
+
+            data.clearHistory();
+
+            // Re-initialize with current faction if the player is in one
+            Faction currentFaction = hyperFactions.getFactionManager().getPlayerFaction(data.getUuid());
+            if (currentFaction != null) {
+                FactionMember member = currentFaction.getMember(data.getUuid());
+                if (member != null) {
+                    MembershipRecord activeRecord = new MembershipRecord(
+                        currentFaction.id(), currentFaction.name(), currentFaction.tag(),
+                        member.role(), member.joinedAt(), 0, MembershipRecord.LeaveReason.ACTIVE
+                    );
+                    data.addRecord(activeRecord, ConfigManager.get().getMaxMembershipHistory());
+                }
+            }
+
+            hyperFactions.getPlayerStorage().savePlayerData(data).thenRun(() -> {
+                if (currentFaction != null) {
+                    ctx.sendMessage(prefix().insert(msg("Cleared " + count + " history records for " + finalName
+                        + " (re-initialized with current faction: " + currentFaction.name() + ").", COLOR_GREEN)));
+                } else {
+                    ctx.sendMessage(prefix().insert(msg("Cleared " + count + " history records for " + finalName + ".", COLOR_GREEN)));
+                }
+            });
+        });
     }
 }

@@ -7,10 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-**Closes:** [#30](https://github.com/HyperSystemsDev/HyperFactions/issues/30)
+**Closes:** [#30](https://github.com/HyperSystemsDev/HyperFactions/issues/30), [#32](https://github.com/HyperSystemsDev/HyperFactions/issues/32)
 
 ### Added
 
+- **Player info page (`/f who [player]`)**: Full GUI page with faction membership, power stats, combat stats (kills/deaths/KDR), and membership history ([#32](https://github.com/HyperSystemsDev/HyperFactions/issues/32))
+- **Membership history tracking**: Records all faction joins, leaves, kicks, and disbands with timestamps, highest role achieved, and leave reason
+- **Player data expansion**: New `PlayerData` model with `firstJoined`, `lastOnline`, kills, deaths, username caching, and membership history — backwards-compatible with existing player JSON files
+- **"View Profile" button on members page**: Click a member's profile to navigate to their player info page
+- **Admin clear history command** (`/f admin clearhistory <player>`): Clears a player's membership history and re-initializes with their current faction if applicable
+- **Upgrade migration**: Existing faction members automatically get an active membership record on first startup, using their actual faction join date and current role
+- **First joined / last online tracking**: Displayed on the player info page header; initialized on first connect, updated on connect/disconnect
+- `maxMembershipHistory` config option (default: 10) to cap history records per player
 - **Terrain map mode for territory GUI**: Territory map now renders actual terrain imagery behind claim overlays using `ChunkWorldMap`, making it much easier to orient yourself and identify terrain features when claiming (rivers, biomes, elevation)
 - Dynamic terrain image asset delivery via `ChunkMapAsset` — generates a composite PNG from chunk world map data and sends it to the player's client at runtime
 - Static placeholder `Map.png` sent immediately on page open, with terrain loading asynchronously in the background
@@ -23,6 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **Terrain map lag on claim/unclaim**: Each claim/unclaim action opened a new page instance, regenerating the entire 17x17 terrain image from scratch. Now reuses the same page via `rebuild()`, skipping terrain generation and only updating the overlay grid
+- **Membership history not recorded for faction creation**: `FactionManager.createFaction()` now publishes a JOIN event for the faction creator
+- **Admin kicks not recorded in membership history**: `FactionManager.adminRemoveMember()` now publishes a KICK event
 
 ### Changed
 

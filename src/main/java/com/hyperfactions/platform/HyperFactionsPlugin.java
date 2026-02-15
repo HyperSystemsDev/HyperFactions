@@ -769,6 +769,18 @@ public class HyperFactionsPlugin extends JavaPlugin {
         // Track the player
         trackedPlayers.put(uuid, playerRef);
 
+        // Cache username, track first join and last online
+        hyperFactions.getPlayerStorage().loadPlayerData(uuid).thenAccept(opt -> {
+            com.hyperfactions.data.PlayerData data = opt.orElseGet(() -> new com.hyperfactions.data.PlayerData(uuid));
+            data.setUsername(username);
+            long now = System.currentTimeMillis();
+            if (data.getFirstJoined() == 0) {
+                data.setFirstJoined(now);
+            }
+            data.setLastOnline(now);
+            hyperFactions.getPlayerStorage().savePlayerData(data);
+        });
+
         // Load player power
         hyperFactions.getPowerManager().playerOnline(uuid);
 
@@ -825,6 +837,15 @@ public class HyperFactionsPlugin extends JavaPlugin {
 
         // Mark player offline
         hyperFactions.getPowerManager().playerOffline(uuid);
+
+        // Update last online timestamp
+        hyperFactions.getPlayerStorage().loadPlayerData(uuid).thenAccept(opt -> {
+            if (opt.isPresent()) {
+                com.hyperfactions.data.PlayerData data = opt.get();
+                data.setLastOnline(System.currentTimeMillis());
+                hyperFactions.getPlayerStorage().savePlayerData(data);
+            }
+        });
 
         // Update faction member last online
         hyperFactions.getFactionManager().updateLastOnline(uuid);

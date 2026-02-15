@@ -320,6 +320,7 @@ public class ConfigManager {
 
     // Faction
     public int getMaxMembers() { return coreConfig.getMaxMembers(); }
+    public int getMaxMembershipHistory() { return coreConfig.getMaxMembershipHistory(); }
     public int getMaxNameLength() { return coreConfig.getMaxNameLength(); }
     public int getMinNameLength() { return coreConfig.getMinNameLength(); }
     public boolean isAllowColors() { return coreConfig.isAllowColors(); }
