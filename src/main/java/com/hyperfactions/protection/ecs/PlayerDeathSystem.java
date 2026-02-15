@@ -5,6 +5,8 @@ import com.hyperfactions.config.ConfigManager;
 import com.hyperfactions.config.modules.GravestoneConfig;
 import com.hyperfactions.data.Faction;
 import com.hyperfactions.data.RelationType;
+import com.hyperfactions.data.Zone;
+import com.hyperfactions.data.ZoneFlags;
 import com.hyperfactions.manager.PowerManager;
 import com.hyperfactions.util.ChunkUtil;
 import com.hyperfactions.util.Logger;
@@ -77,6 +79,26 @@ public class PlayerDeathSystem extends RefChangeSystem<EntityStore, DeathCompone
             }
 
             UUID victimUuid = playerRef.getUuid();
+
+            // Check if power loss is disabled in this zone
+            TransformComponent transform = commandBuffer.getComponent(ref, TransformComponent.getComponentType());
+            if (transform != null) {
+                Vector3d pos = transform.getPosition();
+                int chunkX = ChunkUtil.toChunkCoord(pos.getX());
+                int chunkZ = ChunkUtil.toChunkCoord(pos.getZ());
+                try {
+                    String worldName = store.getExternalData().getWorld().getName();
+                    Zone zone = hyperFactions.getZoneManager().getZoneAt(worldName, chunkX, chunkZ);
+                    if (zone != null && !zone.getEffectiveFlag(ZoneFlags.POWER_LOSS)) {
+                        Logger.debugPower("Power loss skipped for %s in zone '%s' (power_loss=false)", victimUuid, zone.name());
+                        // Skip power changes, still announce death location
+                        announceDeathLocation(victimUuid, playerRef, store, commandBuffer, ref);
+                        return;
+                    }
+                } catch (Exception e) {
+                    // Fall through to normal power loss on error
+                }
+            }
 
             // Apply death power penalty
             double newPower = hyperFactions.getPowerManager().applyDeathPenalty(victimUuid);

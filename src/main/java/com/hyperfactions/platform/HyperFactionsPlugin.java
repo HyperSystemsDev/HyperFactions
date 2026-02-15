@@ -426,6 +426,14 @@ public class HyperFactionsPlugin extends JavaPlugin {
                     // Delegate to ProtectionChecker - returns true if spawn should be BLOCKED
                     return hyperFactions.getProtectionChecker().shouldBlockSpawn(worldName, x, y, z);
                 });
+
+        // Register place protection hook (bucket/fluid placement)
+        OrbisMixinsIntegration.registerPlaceHook(
+                (playerUuid, worldName, x, y, z) -> {
+                    // Fluid placement is a form of building - use BUILD check
+                    return hyperFactions.getProtectionChecker().canBuild(
+                            playerUuid, worldName, (double) x, (double) z);
+                });
     }
 
     /**
@@ -437,7 +445,7 @@ public class HyperFactionsPlugin extends JavaPlugin {
 
         getLogger().at(Level.INFO).log("=== HyperFactions Protection Coverage ===");
         getLogger().at(Level.INFO).log("ECS Events (native): Block break/place, Use, Harvest drops, Damage - ENABLED");
-        getLogger().at(Level.INFO).log("Mixin Hooks (registered): F-key pickup, Auto pickup, NPC Spawn control");
+        getLogger().at(Level.INFO).log("Mixin Hooks (registered): F-key pickup, Auto pickup, NPC Spawn control, Fluid placement");
         getLogger().at(Level.INFO).log("  -> Requires Hyxin + OrbisGuard-Mixins in earlyplugins/ to activate");
 
         if (orbisGuardAvailable) {

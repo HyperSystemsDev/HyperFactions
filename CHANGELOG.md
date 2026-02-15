@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`power_loss` zone flag**: Controls whether players lose faction power on death in a zone (default: `false` for both SafeZone and WarZone — no power loss in admin zones)
+- **Config migration v4→v5**: Removes deprecated `warzonePowerLoss` config option (replaced by per-zone `power_loss` flag)
+- Zone settings GUI now shows Power Loss toggle in the Death category
 - **HytaleNative permission provider**: Automatic compatibility with any permission plugin that registers with Hytale's native PermissionsModule (LuckPerms, PermissionsPlus, etc.)
 - **LuckPerms permission discovery**: All 53 HyperFactions permission nodes (44 permissions + 10 wildcards) now register with LuckPerms' PermissionRegistry on boot for web editor autocomplete
 - **Lazy initialization for permission providers**: LuckPerms and VaultUnlocked providers now retry initialization on first use if they failed at startup due to load order timing, ensuring prefix/suffix data is available for chat formatting
@@ -20,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Liquid placement (water/lava buckets) now blocked in protected zones and faction territory (requires OrbisGuard-Mixins place hook)
 - **LuckPerms prefix/suffix not showing in chat**: Permission providers failed to initialize at startup because LuckPerms loads after HyperFactions. Chat format `{prefix}` resolved to empty. Lazy init ensures the LuckPerms provider retries on first chat message when LuckPerms is loaded, so prefixes like `[Admin]` now appear alongside faction tags. (#25, #11, #24)
 - **VaultUnlocked provider using wrong class paths**: Corrected `net.milkbowl.vault2.VaultUnlocked` to `net.cfh.vault.VaultUnlocked`, fixed Subject/Context sub-package paths, unwrapped `Optional<>` returns from `permission()`/`chat()`, and fixed `getPrimaryGroup` → `primaryGroup` method name
 - **Admin commands crashing on world thread assertion**: `AdminSubCommand` extended `AbstractAsyncCommand` which runs on ForkJoinPool, but ECS calls like `store.getComponent()` assert WorldThread. Restructured to dispatch player commands back to world thread via `runAsync(ctx, runnable, world)`.

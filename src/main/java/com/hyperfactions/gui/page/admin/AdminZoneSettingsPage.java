@@ -24,11 +24,11 @@ import java.util.UUID;
 
 /**
  * Admin Zone Settings page - configure zone flags visually.
- * Shows all 22 zone flags with toggle buttons and default indicators in 2-column layout.
+ * Shows all 24 zone flags with toggle buttons and default indicators in 2-column layout.
  *
  * Layout (indices):
- * - Left column: Combat (0-3), Damage (4-5), Death (6), Building (7), Items (8-11)
- * - Right column: Interaction (12-17), Spawning (18-21)
+ * - Left column: Combat (0-3), Damage (4-5), Death (6-7), Building (8), Items (9-12)
+ * - Right column: Interaction (13-18), Spawning (19-23)
  *
  * Mixin-dependent flags are disabled when OrbisGuard-Mixins is not installed:
  * - ITEM_PICKUP_MANUAL: F-key pickup (requires pickup mixin)
@@ -81,15 +81,15 @@ public class AdminZoneSettingsPage extends InteractiveCustomUIPage<AdminZoneSett
         cmd.set("#ZoneType.Style.TextColor", typeColor);
 
         // Build flag toggles by category (matching 2-column UI layout)
-        // Left column: Combat (0-3), Damage (4-5), Death (6), Building (7), Items (8-11)
+        // Left column: Combat (0-3), Damage (4-5), Death (6-7), Building (8), Items (9-12)
         buildFlagCategory(cmd, events, zone, "Combat", ZoneFlags.COMBAT_FLAGS, 0);
         buildFlagCategory(cmd, events, zone, "Damage", ZoneFlags.DAMAGE_FLAGS, 4);
         buildFlagCategory(cmd, events, zone, "Death", ZoneFlags.DEATH_FLAGS, 6);
-        buildFlagCategory(cmd, events, zone, "Building", ZoneFlags.BUILDING_FLAGS, 7);
-        buildFlagCategory(cmd, events, zone, "Items", ZoneFlags.ITEM_FLAGS, 8);
-        // Right column: Interaction (12-17), Spawning (18-21)
-        buildFlagCategory(cmd, events, zone, "Interaction", ZoneFlags.INTERACTION_FLAGS, 12);
-        buildFlagCategory(cmd, events, zone, "Spawning", ZoneFlags.SPAWNING_FLAGS, 18);
+        buildFlagCategory(cmd, events, zone, "Building", ZoneFlags.BUILDING_FLAGS, 8);
+        buildFlagCategory(cmd, events, zone, "Items", ZoneFlags.ITEM_FLAGS, 9);
+        // Right column: Interaction (13-18), Spawning (19-23)
+        buildFlagCategory(cmd, events, zone, "Interaction", ZoneFlags.INTERACTION_FLAGS, 13);
+        buildFlagCategory(cmd, events, zone, "Spawning", ZoneFlags.SPAWNING_FLAGS, 19);
 
         // Reset to Defaults button
         if (!zone.getFlags().isEmpty()) {
@@ -299,15 +299,15 @@ public class AdminZoneSettingsPage extends InteractiveCustomUIPage<AdminZoneSett
         }
 
         // Rebuild flag toggles (matching 2-column UI layout)
-        // Left column: Combat (0-3), Damage (4-5), Death (6), Building (7), Items (8-11)
+        // Left column: Combat (0-3), Damage (4-5), Death (6-7), Building (8), Items (9-12)
         buildFlagCategory(cmd, events, zone, "Combat", ZoneFlags.COMBAT_FLAGS, 0);
         buildFlagCategory(cmd, events, zone, "Damage", ZoneFlags.DAMAGE_FLAGS, 4);
         buildFlagCategory(cmd, events, zone, "Death", ZoneFlags.DEATH_FLAGS, 6);
-        buildFlagCategory(cmd, events, zone, "Building", ZoneFlags.BUILDING_FLAGS, 7);
-        buildFlagCategory(cmd, events, zone, "Items", ZoneFlags.ITEM_FLAGS, 8);
-        // Right column: Interaction (12-17), Spawning (18-21)
-        buildFlagCategory(cmd, events, zone, "Interaction", ZoneFlags.INTERACTION_FLAGS, 12);
-        buildFlagCategory(cmd, events, zone, "Spawning", ZoneFlags.SPAWNING_FLAGS, 18);
+        buildFlagCategory(cmd, events, zone, "Building", ZoneFlags.BUILDING_FLAGS, 8);
+        buildFlagCategory(cmd, events, zone, "Items", ZoneFlags.ITEM_FLAGS, 9);
+        // Right column: Interaction (13-18), Spawning (19-23)
+        buildFlagCategory(cmd, events, zone, "Interaction", ZoneFlags.INTERACTION_FLAGS, 13);
+        buildFlagCategory(cmd, events, zone, "Spawning", ZoneFlags.SPAWNING_FLAGS, 19);
 
         // Update reset button state
         if (!zone.getFlags().isEmpty()) {

@@ -135,7 +135,7 @@ public final class ZoneFlags {
     public static final String ENVIRONMENTAL_DAMAGE = "environmental_damage";
 
     // ==========================================================================
-    // DEATH FLAGS (1)
+    // DEATH FLAGS (2)
     // ==========================================================================
 
     /**
@@ -144,6 +144,9 @@ public final class ZoneFlags {
      * Uses OrbisGuard-Mixins death hook to prevent item drops.
      */
     public static final String KEEP_INVENTORY = "keep_inventory";
+
+    /** Whether players lose faction power on death in this zone. */
+    public static final String POWER_LOSS = "power_loss";
 
     // ==========================================================================
     // MOB SPAWNING FLAGS (4) - Uses SpawnSuppressionController
@@ -215,8 +218,9 @@ public final class ZoneFlags {
         // Damage (2)
         FALL_DAMAGE,
         ENVIRONMENTAL_DAMAGE,
-        // Death (1)
+        // Death (2)
         KEEP_INVENTORY,
+        POWER_LOSS,
         // Mob Spawning (5)
         MOB_SPAWNING,
         HOSTILE_MOB_SPAWNING,
@@ -234,7 +238,7 @@ public final class ZoneFlags {
     public static final String[] COMBAT_FLAGS = { PVP_ENABLED, FRIENDLY_FIRE, PROJECTILE_DAMAGE, MOB_DAMAGE };
     public static final String[] BUILDING_FLAGS = { BUILD_ALLOWED };
     public static final String[] DAMAGE_FLAGS = { FALL_DAMAGE, ENVIRONMENTAL_DAMAGE };
-    public static final String[] DEATH_FLAGS = { KEEP_INVENTORY };
+    public static final String[] DEATH_FLAGS = { KEEP_INVENTORY, POWER_LOSS };
     public static final String[] SPAWNING_FLAGS = { MOB_SPAWNING, HOSTILE_MOB_SPAWNING, PASSIVE_MOB_SPAWNING, NEUTRAL_MOB_SPAWNING, NPC_SPAWNING };
     public static final String[] INTERACTION_FLAGS = { BLOCK_INTERACT, DOOR_USE, CONTAINER_USE, BENCH_USE, PROCESSING_USE, SEAT_USE };
     public static final String[] ITEM_FLAGS = { ITEM_DROP, ITEM_PICKUP, ITEM_PICKUP_MANUAL, INVINCIBLE_ITEMS };
@@ -311,8 +315,9 @@ public final class ZoneFlags {
             // Damage: No environmental damage in safe zones
             case FALL_DAMAGE -> false;
             case ENVIRONMENTAL_DAMAGE -> false;
-            // Death: Keep inventory (mixin)
+            // Death: Keep inventory (mixin), no power loss
             case KEEP_INVENTORY -> true;
+            case POWER_LOSS -> false;
             // Mob Spawning: Entirely disabled in safe zones
             case MOB_SPAWNING -> false;
             case HOSTILE_MOB_SPAWNING -> false;
@@ -364,8 +369,9 @@ public final class ZoneFlags {
             // Damage: All environmental damage enabled
             case FALL_DAMAGE -> true;
             case ENVIRONMENTAL_DAMAGE -> true;
-            // Death: No keep inventory - deaths have consequences
+            // Death: No keep inventory, no power loss in admin zones
             case KEEP_INVENTORY -> false;
+            case POWER_LOSS -> false;
             // Mob Spawning: All mob spawning enabled in war zones
             case MOB_SPAWNING -> true;
             case HOSTILE_MOB_SPAWNING -> true;
@@ -432,6 +438,7 @@ public final class ZoneFlags {
             case FALL_DAMAGE -> "Fall Damage";
             case ENVIRONMENTAL_DAMAGE -> "Env. Damage";
             case KEEP_INVENTORY -> "Keep Inventory";
+            case POWER_LOSS -> "Power Loss";
             case MOB_SPAWNING -> "Mob Spawning";
             case HOSTILE_MOB_SPAWNING -> "Hostile Mobs";
             case PASSIVE_MOB_SPAWNING -> "Passive Mobs";
@@ -469,6 +476,7 @@ public final class ZoneFlags {
             case FALL_DAMAGE -> "Fall damage applies";
             case ENVIRONMENTAL_DAMAGE -> "Drowning, suffocation, etc.";
             case KEEP_INVENTORY -> "Keep items on death (requires mixin)";
+            case POWER_LOSS -> "Players lose faction power on death";
             case MOB_SPAWNING -> "Master toggle for mob spawning (parent)";
             case HOSTILE_MOB_SPAWNING -> "Aggressive mobs can spawn";
             case PASSIVE_MOB_SPAWNING -> "Non-aggressive mobs can spawn";
