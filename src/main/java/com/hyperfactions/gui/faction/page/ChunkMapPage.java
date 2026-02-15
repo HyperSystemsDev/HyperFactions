@@ -1,10 +1,12 @@
 package com.hyperfactions.gui.faction.page;
 
 import com.hyperfactions.command.util.CommandUtil;
+import com.hyperfactions.config.ConfigManager;
 import com.hyperfactions.data.*;
 import com.hyperfactions.gui.ActivePageTracker;
 import com.hyperfactions.gui.GuiManager;
 import com.hyperfactions.gui.RefreshablePage;
+import com.hyperfactions.gui.faction.ChunkMapAsset;
 import com.hyperfactions.gui.nav.NavBarHelper;
 import com.hyperfactions.gui.nav.NewPlayerNavBarHelper;
 import com.hyperfactions.gui.faction.data.ChunkMapData;
@@ -27,19 +29,26 @@ import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 /**
- * Interactive Chunk Map page - displays a 9x9 territory grid.
+ * Interactive Chunk Map page - displays a territory grid.
+ * Supports two modes: flat colored grid (29x17) and terrain map with overlays (17x17).
  * Left-click to claim, right-click to unclaim.
  */
 public class ChunkMapPage extends InteractiveCustomUIPage<ChunkMapData> implements RefreshablePage {
 
     private static final String PAGE_ID = "map";
+
+    // Flat mode grid (29x17 at 16px)
     private static final int GRID_RADIUS_X = 14; // 29 columns (-14 to +14)
     private static final int GRID_RADIUS_Z = 8;  // 17 rows (-8 to +8)
     private static final int CELL_SIZE = 16;     // pixels per cell
 
-    // Color constants - clean flat design
+    // Terrain mode grid (17x17 at 32px, matching ChunkWorldMap pixel size)
+    private static final int TERRAIN_GRID_RADIUS = 8; // 17 cells (-8 to +8)
+
+    // Color constants - clean flat design (opaque, for flat mode)
     private static final String COLOR_OWN = "#4ade80";        // Bright green - your territory
     private static final String COLOR_ALLY = "#60a5fa";       // Bright blue - ally territory
     private static final String COLOR_ENEMY = "#f87171";      // Bright red - enemy territory
@@ -47,7 +56,15 @@ public class ChunkMapPage extends InteractiveCustomUIPage<ChunkMapData> implemen
     private static final String COLOR_WILDERNESS = "#1e293b"; // Dark slate - unclaimed (darker for contrast)
     private static final String COLOR_SAFEZONE = "#2dd4bf";   // Teal - safe zone
     private static final String COLOR_WARZONE = "#c084fc";    // Purple - war zone
-    // Player marker: white "+" overlay defined in chunk_marker.ui
+
+    // Semi-transparent overlay colors for terrain mode (RRGGBBAA hex)
+    private static final String ALPHA_OWN = "#4ade8080";       // 50% green
+    private static final String ALPHA_ALLY = "#60a5fa80";      // 50% blue
+    private static final String ALPHA_ENEMY = "#f8717180";     // 50% red
+    private static final String ALPHA_OTHER = "#fbbf2480";     // 50% gold
+    private static final String ALPHA_WILDERNESS = "#00000000"; // Fully transparent
+    private static final String ALPHA_SAFEZONE = "#2dd4bf80";  // 50% teal
+    private static final String ALPHA_WARZONE = "#c084fc80";   // 50% purple
 
     private final PlayerRef playerRef;
     private final FactionManager factionManager;
@@ -55,6 +72,9 @@ public class ChunkMapPage extends InteractiveCustomUIPage<ChunkMapData> implemen
     private final RelationManager relationManager;
     private final ZoneManager zoneManager;
     private final GuiManager guiManager;
+
+    // Terrain asset generation state (per page instance)
+    private CompletableFuture<ChunkMapAsset> terrainAssetFuture = null;
 
     public ChunkMapPage(PlayerRef playerRef,
                         FactionManager factionManager,
@@ -97,8 +117,13 @@ public class ChunkMapPage extends InteractiveCustomUIPage<ChunkMapData> implemen
         }
         Logger.debugTerritory("[ChunkMapPage] Player at chunk (%d, %d) in %s", playerChunkX, playerChunkZ, worldName);
 
-        // Load the main template
-        cmd.append("HyperFactions/faction/chunk_map.ui");
+        // Choose template based on terrain mode config
+        boolean terrainEnabled = ConfigManager.get().isTerrainMapEnabled();
+        if (terrainEnabled) {
+            cmd.append("HyperFactions/faction/chunk_map_terrain.ui");
+        } else {
+            cmd.append("HyperFactions/faction/chunk_map.ui");
+        }
 
         // Setup navigation bar - use new player nav when no faction
         if (viewerFaction != null) {
@@ -110,8 +135,12 @@ public class ChunkMapPage extends InteractiveCustomUIPage<ChunkMapData> implemen
         // Current position info
         cmd.set("#PositionInfo.Text", String.format("Your Position: Chunk (%d, %d)", playerChunkX, playerChunkZ));
 
-        // Build the chunk grid
-        buildChunkGrid(cmd, events, worldName, playerChunkX, playerChunkZ, viewerFaction);
+        // Build the chunk grid (terrain or flat mode)
+        if (terrainEnabled) {
+            buildTerrainMap(cmd, events, worldName, playerChunkX, playerChunkZ, viewerFaction);
+        } else {
+            buildChunkGrid(cmd, events, worldName, playerChunkX, playerChunkZ, viewerFaction);
+        }
 
         // Claim and power stats
         if (viewerFaction != null) {
@@ -206,6 +235,100 @@ public class ChunkMapPage extends InteractiveCustomUIPage<ChunkMapData> implemen
                 }
             }
         }
+    }
+
+    /**
+     * Builds the 17x17 terrain map grid with semi-transparent claim overlays.
+     * The terrain image is generated asynchronously and sent to the client.
+     * On first build, the grid appears over a loading background; once the terrain
+     * image is delivered, the page rebuilds with terrain visible.
+     */
+    private void buildTerrainMap(UICommandBuilder cmd, UIEventBuilder events,
+                                 String worldName, int centerX, int centerZ,
+                                 Faction viewerFaction) {
+        // Start terrain generation if not already started for this page instance.
+        // The dark placeholder PNG is registered at startup, so Background: "../Map.png"
+        // always resolves (no red X). When the real terrain is ready, we send it and
+        // delay the rebuild to let the client process the new asset.
+        if (terrainAssetFuture == null) {
+            // Send the placeholder asset to the client via the asset protocol.
+            // The static Map.png in the JAR has a content-based hash, but our
+            // generated terrain uses a fixed hash. Sending the placeholder first
+            // ensures the client has a consistent asset entry at this path.
+            ChunkMapAsset.sendToPlayer(playerRef.getPacketHandler(), ChunkMapAsset.empty());
+
+            terrainAssetFuture = ChunkMapAsset.generate(playerRef, centerX, centerZ, TERRAIN_GRID_RADIUS);
+            if (terrainAssetFuture != null) {
+                terrainAssetFuture.thenAccept(asset -> {
+                    if (asset != null) {
+                        // Send real terrain image, then sendUpdate() to refresh the
+                        // existing page. sendUpdate() (clear=false) runs on the world
+                        // thread and does NOT rebuild the page from scratch — it just
+                        // triggers the client to re-render with the new asset.
+                        ChunkMapAsset.sendToPlayer(playerRef.getPacketHandler(), asset);
+                        this.sendUpdate();
+                    }
+                });
+            }
+        }
+
+        UUID viewerFactionId = viewerFaction != null ? viewerFaction.id() : null;
+        boolean isOfficer = false;
+        if (viewerFaction != null) {
+            var member = viewerFaction.getMember(playerRef.getUuid());
+            isOfficer = member != null && member.isOfficerOrHigher();
+        }
+
+        // Build 17x17 grid using inline Groups (no borders, unlike TextButtons)
+        for (int zOffset = -TERRAIN_GRID_RADIUS; zOffset <= TERRAIN_GRID_RADIUS; zOffset++) {
+            int rowIndex = zOffset + TERRAIN_GRID_RADIUS;
+            int chunkZ = centerZ + zOffset;
+
+            // Row container - exactly 32px tall, children flow left-to-right
+            cmd.appendInline("#ChunkGrid", "Group { LayoutMode: Left; Anchor: (Height: 32); }");
+
+            for (int xOffset = -TERRAIN_GRID_RADIUS; xOffset <= TERRAIN_GRID_RADIUS; xOffset++) {
+                int colIndex = xOffset + TERRAIN_GRID_RADIUS;
+                int chunkX = centerX + xOffset;
+
+                ChunkInfo info = getChunkInfo(worldName, chunkX, chunkZ, viewerFactionId);
+                String alphaColor = getTerrainOverlayColor(info.type);
+
+                // Create cell as inline Group with baked-in overlay color.
+                // Groups have no inherent borders/outlines, eliminating grid lines.
+                cmd.appendInline("#ChunkGrid[" + rowIndex + "]",
+                        "Group { Anchor: (Width: 32, Height: 32); Background: (Color: " + alphaColor + "); }");
+
+                String cellSel = "#ChunkGrid[" + rowIndex + "][" + colIndex + "]";
+
+                // Player marker at center
+                if (xOffset == 0 && zOffset == 0) {
+                    cmd.append(cellSel, "HyperFactions/faction/chunk_map_marker.ui");
+                }
+
+                // Click events need a TextButton overlay (Activating doesn't work on Groups).
+                // Only add the button on actionable cells to avoid border artifacts.
+                if (isOfficer && (info.type == ChunkType.WILDERNESS || info.type == ChunkType.OWN || info.type == ChunkType.ENEMY)) {
+                    cmd.append(cellSel, "HyperFactions/faction/chunk_map_terrain_btn.ui");
+                    bindChunkEvents(events, cellSel + " #Btn", chunkX, chunkZ, info, viewerFactionId);
+                }
+            }
+        }
+    }
+
+    /**
+     * Gets the semi-transparent overlay color for a chunk type in terrain mode.
+     */
+    private String getTerrainOverlayColor(ChunkType type) {
+        return switch (type) {
+            case OWN -> ALPHA_OWN;
+            case ALLY -> ALPHA_ALLY;
+            case ENEMY -> ALPHA_ENEMY;
+            case OTHER -> ALPHA_OTHER;
+            case SAFEZONE -> ALPHA_SAFEZONE;
+            case WARZONE -> ALPHA_WARZONE;
+            case WILDERNESS -> ALPHA_WILDERNESS;
+        };
     }
 
     /**

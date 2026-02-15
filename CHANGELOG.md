@@ -7,7 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-*No changes yet*
+### Added
+
+- **Terrain map mode for territory GUI**: Territory map now renders actual terrain imagery behind claim overlays using `ChunkWorldMap`, making it much easier to orient yourself and identify terrain features when claiming (rivers, biomes, elevation)
+- Dynamic terrain image asset delivery via `ChunkMapAsset` — generates a composite PNG from chunk world map data and sends it to the player's client at runtime
+- Static placeholder `Map.png` sent immediately on page open, with terrain loading asynchronously in the background
+- Semi-transparent claim color overlays on top of terrain: own (green), ally (blue), enemy (red), other (gold), safe zone (teal), war zone (purple), wilderness (transparent)
+- Clickable cells for claim/unclaim actions in terrain mode (officers only)
+- Centered "+" player marker via dedicated `chunk_map_marker.ui` template
+- Compact 2-row legend showing all territory types and player marker
+- `terrainMapEnabled` config toggle in GUI section (default: `true`) — set to `false` to revert to the flat colored grid
+
+### Changed
+
+- CurseForge description updated with Discord community link and HyBounty integration callout
 
 ## [0.7.4] - 2026-02-14
 

@@ -412,6 +412,7 @@ public class ConfigManager {
 
     // GUI
     @NotNull public String getGuiTitle() { return coreConfig.getGuiTitle(); }
+    public boolean isTerrainMapEnabled() { return coreConfig.isTerrainMapEnabled(); }
 
     // Territory Notifications
     public boolean isTerritoryNotificationsEnabled() { return coreConfig.isTerritoryNotificationsEnabled(); }

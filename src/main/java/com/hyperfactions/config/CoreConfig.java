@@ -92,6 +92,7 @@ public class CoreConfig extends ConfigFile {
 
     // GUI settings
     private String guiTitle = "HyperFactions";
+    private boolean terrainMapEnabled = true;
 
     // Territory notification settings
     private boolean territoryNotificationsEnabled = true;
@@ -255,6 +256,7 @@ public class CoreConfig extends ConfigFile {
         if (hasSection(root, "gui")) {
             JsonObject gui = root.getAsJsonObject("gui");
             guiTitle = getString(gui, "title", guiTitle);
+            terrainMapEnabled = getBool(gui, "terrainMapEnabled", terrainMapEnabled);
         }
 
         // Territory notification settings
@@ -379,6 +381,7 @@ public class CoreConfig extends ConfigFile {
         // GUI settings
         JsonObject gui = new JsonObject();
         gui.addProperty("title", guiTitle);
+        gui.addProperty("terrainMapEnabled", terrainMapEnabled);
         root.add("gui", gui);
 
         // Territory notification settings
@@ -477,6 +480,7 @@ public class CoreConfig extends ConfigFile {
 
     // GUI
     @NotNull public String getGuiTitle() { return guiTitle; }
+    public boolean isTerrainMapEnabled() { return terrainMapEnabled; }
 
     // Territory Notifications
     public boolean isTerritoryNotificationsEnabled() { return territoryNotificationsEnabled; }

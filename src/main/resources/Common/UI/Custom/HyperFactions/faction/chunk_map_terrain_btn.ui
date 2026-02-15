@@ -1,0 +1,32 @@
+// 32x32 semi-transparent click cell for terrain map mode
+// Background color set from Java for claimed chunks (with alpha)
+// Player marker "+" set via .Text from Java
+
+$C = "../../Common.ui";
+
+TextButton #Btn {
+  Anchor: (Width: 32, Height: 32);
+  Background: (Color: #00000000);
+  TextTooltipShowDelay: 0.1;
+  Style: TextButtonStyle(
+    Default: (
+      Background: PatchStyle(Color: #00000000),
+      LabelStyle: (
+        FontSize: 20,
+        TextColor: #ffffffff,
+        RenderBold: true,
+        HorizontalAlignment: Center
+      )
+    ),
+    Hovered: (
+      Background: PatchStyle(Color: #ffffff30),
+      LabelStyle: (
+        FontSize: 20,
+        TextColor: #ffffffff,
+        RenderBold: true,
+        HorizontalAlignment: Center
+      )
+    ),
+    Sounds: $C.@ButtonSounds
+  );
+}

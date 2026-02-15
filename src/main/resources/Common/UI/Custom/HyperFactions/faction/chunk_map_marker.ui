@@ -1,0 +1,8 @@
+// Centered "+" player marker for terrain map mode
+// Appended inside the center cell Group
+
+Label #Marker {
+  Text: "+";
+  Anchor: (Width: 32, Height: 32);
+  Style: (FontSize: 20, TextColor: #ffffffff, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center);
+}
