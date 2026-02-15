@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+**Closes:** [#30](https://github.com/HyperSystemsDev/HyperFactions/issues/30)
+
 ### Added
 
 - **Terrain map mode for territory GUI**: Territory map now renders actual terrain imagery behind claim overlays using `ChunkWorldMap`, making it much easier to orient yourself and identify terrain features when claiming (rivers, biomes, elevation)
