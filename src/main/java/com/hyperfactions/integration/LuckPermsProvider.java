@@ -19,7 +19,8 @@ import java.util.UUID;
  */
 public class LuckPermsProvider implements PermissionProvider {
 
-    private boolean available = false;
+    private volatile boolean available = false;
+    private volatile boolean permanentFailure = false;
 
     // Reflection references
     private Object luckPermsApi = null;
@@ -47,8 +48,12 @@ public class LuckPermsProvider implements PermissionProvider {
     /**
      * Initializes the LuckPerms provider.
      * Attempts to load LuckPerms API via reflection.
+     * Safe to call multiple times — returns immediately if already initialized
+     * or permanently failed (ClassNotFoundException = not installed).
      */
     public void init() {
+        if (available || permanentFailure) return;
+
         try {
             // Load Tristate enum
             Class<?> tristateClass = Class.forName("net.luckperms.api.util.Tristate");
@@ -62,7 +67,6 @@ public class LuckPermsProvider implements PermissionProvider {
             luckPermsApi = getMethod.invoke(null);
 
             if (luckPermsApi == null) {
-                available = false;
                 Logger.debug("[LuckPermsProvider] API returned null");
                 return;
             }
@@ -72,14 +76,12 @@ public class LuckPermsProvider implements PermissionProvider {
             getUserManagerMethod = findMethod(apiClass, "getUserManager");
 
             if (getUserManagerMethod == null) {
-                available = false;
                 Logger.debug("[LuckPermsProvider] UserManager method not found");
                 return;
             }
 
             Object userManager = getUserManagerMethod.invoke(luckPermsApi);
             if (userManager == null) {
-                available = false;
                 Logger.debug("[LuckPermsProvider] UserManager is null");
                 return;
             }
@@ -89,7 +91,6 @@ public class LuckPermsProvider implements PermissionProvider {
             getUserMethod = findMethod(userManagerClass, "getUser", UUID.class);
 
             if (getUserMethod == null) {
-                available = false;
                 Logger.debug("[LuckPermsProvider] getUser method not found");
                 return;
             }
@@ -97,16 +98,25 @@ public class LuckPermsProvider implements PermissionProvider {
             available = true;
             Logger.info("[PermissionManager] LuckPerms provider initialized");
 
-        } catch (ClassNotFoundException e) {
-            available = false;
-            Logger.debug("[LuckPermsProvider] LuckPerms not found");
+        } catch (ClassNotFoundException | NoClassDefFoundError e) {
+            permanentFailure = true;
+            Logger.debug("[LuckPermsProvider] LuckPerms not installed");
         } catch (IllegalStateException e) {
-            // LuckPerms not loaded yet
-            available = false;
-            Logger.debug("[LuckPermsProvider] LuckPerms not loaded: %s", e.getMessage());
+            // LuckPerms not loaded yet — will retry on next use
+            Logger.debug("[LuckPermsProvider] LuckPerms not loaded yet, will retry: %s", e.getMessage());
         } catch (Exception e) {
-            available = false;
-            Logger.debug("[LuckPermsProvider] Failed to initialize: %s", e.getMessage());
+            // Other errors may be temporary (service not ready, etc.)
+            Logger.debug("[LuckPermsProvider] Init deferred: %s", e.getMessage());
+        }
+    }
+
+    /**
+     * Ensures the provider is initialized. Called before every operation
+     * to support lazy initialization when LuckPerms loads after HyperFactions.
+     */
+    private void ensureInitialized() {
+        if (!available && !permanentFailure) {
+            init();
         }
     }
 
@@ -135,12 +145,14 @@ public class LuckPermsProvider implements PermissionProvider {
 
     @Override
     public boolean isAvailable() {
+        ensureInitialized();
         return available;
     }
 
     @Override
     @NotNull
     public Optional<Boolean> hasPermission(@NotNull UUID playerUuid, @NotNull String permission) {
+        ensureInitialized();
         if (!available || luckPermsApi == null) {
             return Optional.empty();
         }
@@ -198,6 +210,7 @@ public class LuckPermsProvider implements PermissionProvider {
     @Override
     @Nullable
     public String getPrefix(@NotNull UUID playerUuid, @Nullable String worldName) {
+        ensureInitialized();
         if (!available || luckPermsApi == null) {
             return null;
         }
@@ -221,6 +234,7 @@ public class LuckPermsProvider implements PermissionProvider {
     @Override
     @Nullable
     public String getSuffix(@NotNull UUID playerUuid, @Nullable String worldName) {
+        ensureInitialized();
         if (!available || luckPermsApi == null) {
             return null;
         }
@@ -244,6 +258,7 @@ public class LuckPermsProvider implements PermissionProvider {
     @Override
     @NotNull
     public String getPrimaryGroup(@NotNull UUID playerUuid) {
+        ensureInitialized();
         if (!available || luckPermsApi == null) {
             return "default";
         }

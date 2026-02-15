@@ -20,10 +20,12 @@ import com.hyperfactions.protection.ecs.HarvestPickupProtectionSystem;
 import com.hyperfactions.territory.TerritoryTickingSystem;
 import com.hyperfactions.util.Logger;
 import com.hyperfactions.worldmap.HyperFactionsWorldMapProvider;
+import com.hyperfactions.integration.PermissionRegistrar;
 import com.hyperfactions.integration.orbis.OrbisMixinsIntegration;
 import com.hyperfactions.integration.orbis.OrbisGuardIntegration;
 import com.hypixel.hytale.component.system.ISystem;
 import com.hypixel.hytale.event.EventPriority;
+import com.hypixel.hytale.server.core.event.events.BootEvent;
 import com.hypixel.hytale.server.core.event.events.player.PlayerChatEvent;
 import com.hypixel.hytale.server.core.event.events.player.PlayerConnectEvent;
 import com.hypixel.hytale.server.core.event.events.player.PlayerDisconnectEvent;
@@ -155,6 +157,9 @@ public class HyperFactionsPlugin extends JavaPlugin {
 
         // Log protection coverage summary
         logProtectionCoverage();
+
+        // Register permission nodes with LuckPerms on BootEvent (after all plugins loaded)
+        getEventRegistry().registerGlobal(BootEvent.class, e -> PermissionRegistrar.registerWithLuckPerms());
 
         getLogger().at(Level.INFO).log("HyperFactions v%s enabled!", getManifest().getVersion());
     }

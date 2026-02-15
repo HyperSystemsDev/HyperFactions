@@ -17,6 +17,8 @@ public class HyperPermsProviderAdapter implements PermissionProvider {
     private boolean available = false;
     private Object hyperPermsInstance = null;
     private Method hasPermissionMethod = null;
+    private Method hasPermissionWithContextMethod = null;
+    private Method getContextsMethod = null;
     private Method getUserManagerMethod = null;
     private Method getPrefixMethod = null;
     private Method getSuffixMethod = null;
@@ -46,9 +48,21 @@ public class HyperPermsProviderAdapter implements PermissionProvider {
 
             Class<?> instanceClass = hyperPermsInstance.getClass();
 
-            // Get the hasPermission method
+            // Get the hasPermission method (2-param fallback)
             hasPermissionMethod = instanceClass.getMethod("hasPermission", UUID.class, String.class);
             getUserManagerMethod = instanceClass.getMethod("getUserManager");
+
+            // Try to get context-aware methods for world-specific permission support
+            try {
+                Class<?> contextSetClass = Class.forName("com.hyperperms.api.context.ContextSet");
+                getContextsMethod = instanceClass.getMethod("getContexts", UUID.class);
+                hasPermissionWithContextMethod = instanceClass.getMethod("hasPermission",
+                        UUID.class, String.class, contextSetClass);
+                Logger.debug("[HyperPermsProvider] Context-aware permission checking available");
+            } catch (ClassNotFoundException | NoSuchMethodException e) {
+                Logger.debug("[HyperPermsProvider] Context-aware methods not available, " +
+                        "world-specific permissions won't be resolved: %s", e.getMessage());
+            }
 
             // Try to find prefix/suffix methods
             try {
@@ -93,7 +107,16 @@ public class HyperPermsProviderAdapter implements PermissionProvider {
         }
 
         try {
-            Object result = hasPermissionMethod.invoke(hyperPermsInstance, playerUuid, permission);
+            Object result;
+
+            // Prefer context-aware check (resolves world-specific permissions)
+            if (getContextsMethod != null && hasPermissionWithContextMethod != null) {
+                Object contexts = getContextsMethod.invoke(hyperPermsInstance, playerUuid);
+                result = hasPermissionWithContextMethod.invoke(hyperPermsInstance, playerUuid, permission, contexts);
+            } else {
+                // Fallback to context-less check (older HyperPerms versions)
+                result = hasPermissionMethod.invoke(hyperPermsInstance, playerUuid, permission);
+            }
 
             if (result instanceof Boolean) {
                 return Optional.of((Boolean) result);

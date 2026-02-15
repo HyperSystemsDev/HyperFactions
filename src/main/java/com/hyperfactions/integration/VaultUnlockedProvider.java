@@ -12,6 +12,14 @@ import java.util.UUID;
  * Permission provider for VaultUnlocked (Vault2 API).
  * Uses reflection to integrate with VaultUnlocked's PermissionUnlocked and ChatUnlocked interfaces.
  *
+ * Actual class paths (from decompiled VaultUnlocked-Hytale 2.18.3):
+ * - Main: net.cfh.vault.VaultUnlocked
+ * - Subject: net.milkbowl.vault2.helper.subject.Subject
+ * - Context: net.milkbowl.vault2.helper.context.Context
+ * - TriState: net.milkbowl.vault2.helper.TriState
+ * - PermissionUnlocked: net.milkbowl.vault2.permission.PermissionUnlocked
+ * - ChatUnlocked: net.milkbowl.vault2.chat.ChatUnlocked
+ *
  * VaultUnlocked uses TriState for permission results:
  * - TRUE: Permission is explicitly granted
  * - FALSE: Permission is explicitly denied
@@ -19,7 +27,8 @@ import java.util.UUID;
  */
 public class VaultUnlockedProvider implements PermissionProvider {
 
-    private boolean available = false;
+    private volatile boolean available = false;
+    private volatile boolean permanentFailure = false;
 
     // Reflection references
     private Object permissionService = null;
@@ -37,6 +46,8 @@ public class VaultUnlockedProvider implements PermissionProvider {
     // Context and Subject helpers
     private Method createSubjectMethod = null;
     private Object globalContext = null;
+    private Class<?> contextClass = null;
+    private Class<?> subjectClass = null;
 
     @Override
     @NotNull
@@ -47,69 +58,48 @@ public class VaultUnlockedProvider implements PermissionProvider {
     /**
      * Initializes the VaultUnlocked provider.
      * Attempts to load VaultUnlocked classes via reflection.
+     * Safe to call multiple times — returns immediately if already initialized
+     * or permanently failed (ClassNotFoundException = not installed).
      */
     public void init() {
+        if (available || permanentFailure) return;
+
         try {
-            // Load TriState enum first
+            // Load TriState enum
             Class<?> triStateClass = Class.forName("net.milkbowl.vault2.helper.TriState");
             triStateTrue = Enum.valueOf((Class<Enum>) triStateClass, "TRUE");
             triStateFalse = Enum.valueOf((Class<Enum>) triStateClass, "FALSE");
             triStateUndefined = Enum.valueOf((Class<Enum>) triStateClass, "UNDEFINED");
 
-            // Load Subject class
-            Class<?> subjectClass = Class.forName("net.milkbowl.vault2.helper.Subject");
-            // Subject.player(UUID, String) static method
+            // Load Subject class (note: sub-package .subject)
+            subjectClass = Class.forName("net.milkbowl.vault2.helper.subject.Subject");
             createSubjectMethod = subjectClass.getMethod("player", UUID.class, String.class);
 
-            // Load Context class and get global context
-            Class<?> contextClass = Class.forName("net.milkbowl.vault2.helper.Context");
-            try {
-                Method globalMethod = contextClass.getMethod("global");
-                globalContext = globalMethod.invoke(null);
-            } catch (NoSuchMethodException e) {
-                // Try alternative: Context.GLOBAL static field
-                try {
-                    globalContext = contextClass.getField("GLOBAL").get(null);
-                } catch (NoSuchFieldException e2) {
-                    // Create empty context
-                    globalContext = contextClass.getConstructor().newInstance();
-                }
+            // Load Context class (note: sub-package .context) and get global context
+            contextClass = Class.forName("net.milkbowl.vault2.helper.context.Context");
+            // Context.GLOBAL is a public static final field
+            globalContext = contextClass.getField("GLOBAL").get(null);
+
+            // Get VaultUnlocked main class (net.cfh.vault, NOT net.milkbowl.vault2)
+            Class<?> vaultUnlockedClass = Class.forName("net.cfh.vault.VaultUnlocked");
+
+            // VaultUnlocked.permission() returns Optional<PermissionUnlocked>
+            Method permissionMethod = vaultUnlockedClass.getMethod("permission");
+            Object permOptional = permissionMethod.invoke(null);
+            if (permOptional instanceof Optional<?> opt) {
+                permissionService = opt.orElse(null);
             }
 
-            // Try to get services from Hytale's service registry or a static accessor
-            // VaultUnlocked typically registers as a service
-            Class<?> vaultUnlockedClass = Class.forName("net.milkbowl.vault2.VaultUnlocked");
-
-            // Try static accessor methods
-            try {
-                Method permissionMethod = vaultUnlockedClass.getMethod("permission");
-                permissionService = permissionMethod.invoke(null);
-            } catch (NoSuchMethodException e) {
-                // Try alternative accessor
-                try {
-                    Method getPermissionMethod = vaultUnlockedClass.getMethod("getPermission");
-                    permissionService = getPermissionMethod.invoke(null);
-                } catch (NoSuchMethodException e2) {
-                    Logger.debug("[VaultUnlockedProvider] No permission accessor found");
-                }
-            }
-
-            // Try to get chat service
-            try {
-                Method chatMethod = vaultUnlockedClass.getMethod("chat");
-                chatService = chatMethod.invoke(null);
-            } catch (NoSuchMethodException e) {
-                try {
-                    Method getChatMethod = vaultUnlockedClass.getMethod("getChat");
-                    chatService = getChatMethod.invoke(null);
-                } catch (NoSuchMethodException e2) {
-                    Logger.debug("[VaultUnlockedProvider] No chat accessor found");
-                }
+            // VaultUnlocked.chat() returns Optional<ChatUnlocked>
+            Method chatMethod = vaultUnlockedClass.getMethod("chat");
+            Object chatOptional = chatMethod.invoke(null);
+            if (chatOptional instanceof Optional<?> opt) {
+                chatService = opt.orElse(null);
             }
 
             if (permissionService == null) {
-                available = false;
-                Logger.debug("[VaultUnlockedProvider] Permission service not available");
+                // Service not registered yet — may become available later
+                Logger.debug("[VaultUnlockedProvider] Permission service not available yet");
                 return;
             }
 
@@ -118,12 +108,6 @@ public class VaultUnlockedProvider implements PermissionProvider {
             hasPermissionMethod = findMethod(permissionClass, "has", contextClass, subjectClass, String.class);
 
             if (hasPermissionMethod == null) {
-                // Try alternative method name
-                hasPermissionMethod = findMethod(permissionClass, "hasPermission", contextClass, subjectClass, String.class);
-            }
-
-            if (hasPermissionMethod == null) {
-                available = false;
                 Logger.debug("[VaultUnlockedProvider] No permission check method found");
                 return;
             }
@@ -135,18 +119,28 @@ public class VaultUnlockedProvider implements PermissionProvider {
                 getSuffixMethod = findMethod(chatClass, "getSuffix", contextClass, subjectClass);
             }
 
-            // Get primary group method
-            getPrimaryGroupMethod = findMethod(permissionClass, "getPrimaryGroup", contextClass, subjectClass);
+            // Get primary group method: primaryGroup(Context, Subject)
+            getPrimaryGroupMethod = findMethod(permissionClass, "primaryGroup", contextClass, subjectClass);
 
             available = true;
             Logger.info("[PermissionManager] VaultUnlocked provider initialized");
 
-        } catch (ClassNotFoundException e) {
-            available = false;
-            Logger.debug("[VaultUnlockedProvider] VaultUnlocked not found");
+        } catch (ClassNotFoundException | NoClassDefFoundError e) {
+            permanentFailure = true;
+            Logger.debug("[VaultUnlockedProvider] VaultUnlocked not installed");
         } catch (Exception e) {
-            available = false;
-            Logger.debug("[VaultUnlockedProvider] Failed to initialize: %s", e.getMessage());
+            // Other errors may be temporary (service not registered yet, etc.)
+            Logger.debug("[VaultUnlockedProvider] Init deferred: %s", e.getMessage());
+        }
+    }
+
+    /**
+     * Ensures the provider is initialized. Called before every operation
+     * to support lazy initialization when VaultUnlocked loads after HyperFactions.
+     */
+    private void ensureInitialized() {
+        if (!available && !permanentFailure) {
+            init();
         }
     }
 
@@ -175,38 +169,34 @@ public class VaultUnlockedProvider implements PermissionProvider {
 
     @Override
     public boolean isAvailable() {
+        ensureInitialized();
         return available;
     }
 
     @Override
     @NotNull
     public Optional<Boolean> hasPermission(@NotNull UUID playerUuid, @NotNull String permission) {
+        ensureInitialized();
         if (!available || permissionService == null || hasPermissionMethod == null) {
             return Optional.empty();
         }
 
         try {
-            // Create subject for player
             Object subject = createSubjectMethod.invoke(null, playerUuid, null);
-
-            // Call has(Context, Subject, String) -> TriState
             Object result = hasPermissionMethod.invoke(permissionService, globalContext, subject, permission);
 
             if (result == null) {
                 return Optional.empty();
             }
 
-            // Check TriState value
             if (result.equals(triStateTrue)) {
                 return Optional.of(true);
             } else if (result.equals(triStateFalse)) {
                 return Optional.of(false);
             } else if (result.equals(triStateUndefined)) {
-                // UNDEFINED means fall through to next provider
                 return Optional.empty();
             }
 
-            // Unknown result, treat as undefined
             return Optional.empty();
 
         } catch (Exception e) {
@@ -218,6 +208,7 @@ public class VaultUnlockedProvider implements PermissionProvider {
     @Override
     @Nullable
     public String getPrefix(@NotNull UUID playerUuid, @Nullable String worldName) {
+        ensureInitialized();
         if (!available || chatService == null || getPrefixMethod == null) {
             return null;
         }
@@ -226,9 +217,9 @@ public class VaultUnlockedProvider implements PermissionProvider {
             Object subject = createSubjectMethod.invoke(null, playerUuid, null);
             Object context = worldName != null ? createWorldContext(worldName) : globalContext;
 
+            // ChatUnlocked.getPrefix() returns Optional<String>
             Object result = getPrefixMethod.invoke(chatService, context, subject);
 
-            // Result may be Optional<String>
             if (result instanceof Optional<?> opt) {
                 return opt.map(Object::toString).orElse(null);
             }
@@ -243,6 +234,7 @@ public class VaultUnlockedProvider implements PermissionProvider {
     @Override
     @Nullable
     public String getSuffix(@NotNull UUID playerUuid, @Nullable String worldName) {
+        ensureInitialized();
         if (!available || chatService == null || getSuffixMethod == null) {
             return null;
         }
@@ -251,9 +243,9 @@ public class VaultUnlockedProvider implements PermissionProvider {
             Object subject = createSubjectMethod.invoke(null, playerUuid, null);
             Object context = worldName != null ? createWorldContext(worldName) : globalContext;
 
+            // ChatUnlocked.getSuffix() returns Optional<String>
             Object result = getSuffixMethod.invoke(chatService, context, subject);
 
-            // Result may be Optional<String>
             if (result instanceof Optional<?> opt) {
                 return opt.map(Object::toString).orElse(null);
             }
@@ -268,18 +260,15 @@ public class VaultUnlockedProvider implements PermissionProvider {
     @Override
     @NotNull
     public String getPrimaryGroup(@NotNull UUID playerUuid) {
+        ensureInitialized();
         if (!available || permissionService == null || getPrimaryGroupMethod == null) {
             return "default";
         }
 
         try {
             Object subject = createSubjectMethod.invoke(null, playerUuid, null);
+            // PermissionUnlocked.primaryGroup(Context, Subject) returns String
             Object result = getPrimaryGroupMethod.invoke(permissionService, globalContext, subject);
-
-            // Result may be Optional<String>
-            if (result instanceof Optional<?> opt) {
-                return opt.map(Object::toString).orElse("default");
-            }
             return result != null ? result.toString() : "default";
 
         } catch (Exception e) {
@@ -289,26 +278,16 @@ public class VaultUnlockedProvider implements PermissionProvider {
     }
 
     /**
-     * Creates a world-specific context.
+     * Creates a world-specific context using Context(String world) constructor.
      */
     private Object createWorldContext(String worldName) {
         try {
-            Class<?> contextClass = Class.forName("net.milkbowl.vault2.helper.Context");
-            // Try Context.of(String world) or similar
-            try {
-                Method ofMethod = contextClass.getMethod("of", String.class);
-                return ofMethod.invoke(null, worldName);
-            } catch (NoSuchMethodException e) {
-                // Try constructor
-                try {
-                    return contextClass.getConstructor(String.class).newInstance(worldName);
-                } catch (NoSuchMethodException e2) {
-                    // Fall back to global
-                    return globalContext;
-                }
+            if (contextClass != null) {
+                return contextClass.getConstructor(String.class).newInstance(worldName);
             }
         } catch (Exception e) {
-            return globalContext;
+            // Fall through to global
         }
+        return globalContext;
     }
 }

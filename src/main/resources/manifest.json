@@ -6,7 +6,7 @@
   "Website": "https://github.com/ZenithDevHQ/HyperFactions",
   "Main": "com.hyperfactions.platform.HyperFactionsPlugin",
   "ServerVersion": "*",
-  "SoftDependencies": ["HyperPerms", "OrbisGuard", "OrbisGuard-Mixins"],
+  "SoftDependencies": ["HyperPerms", "OrbisGuard", "OrbisGuard-Mixins", "LuckPerms", "VaultUnlocked"],
   "OptionalDependencies": {
     "HelpChat:PlaceholderAPI": ">= 1.0.2",
     "com.wiflow:WiFlowPlaceholderAPI": ">= 1.0.3"

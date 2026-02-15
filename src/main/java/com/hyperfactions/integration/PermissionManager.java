@@ -14,7 +14,7 @@ import java.util.function.Function;
 
 /**
  * Unified permission manager with chain-of-responsibility pattern.
- * Tries providers in order: VaultUnlocked -> HyperPerms -> LuckPerms.
+ * Tries providers in order: VaultUnlocked -> HyperPerms -> LuckPerms -> HytaleNative.
  *
  * Fallback behavior when no provider can answer:
  * - Admin permissions (hyperfactions.admin.*): Require OP
@@ -51,26 +51,32 @@ public class PermissionManager {
 
         providers.clear();
 
-        // Initialize providers in priority order
+        // Initialize providers in priority order.
+        // VaultUnlocked and LuckPerms support lazy init — if they load after
+        // HyperFactions, they'll initialize on first actual use.
+
         // VaultUnlocked first (acts as abstraction layer for other plugins)
         VaultUnlockedProvider vaultProvider = new VaultUnlockedProvider();
         vaultProvider.init();
-        if (vaultProvider.isAvailable()) {
-            providers.add(vaultProvider);
-        }
+        providers.add(vaultProvider);
 
-        // HyperPerms second
+        // HyperPerms second (no lazy init — either available or not)
         HyperPermsProviderAdapter hyperPermsProvider = new HyperPermsProviderAdapter();
         hyperPermsProvider.init();
         if (hyperPermsProvider.isAvailable()) {
             providers.add(hyperPermsProvider);
         }
 
-        // LuckPerms third
+        // LuckPerms third (supports lazy init for timing issues)
         LuckPermsProvider luckPermsProvider = new LuckPermsProvider();
         luckPermsProvider.init();
-        if (luckPermsProvider.isAvailable()) {
-            providers.add(luckPermsProvider);
+        providers.add(luckPermsProvider);
+
+        // HytaleNative last — catches any plugin that registers with PermissionsModule
+        // (LuckPerms, PermissionsPlus, etc.) as a fallback for permission checks
+        HytaleNativeProvider nativeProvider = new HytaleNativeProvider();
+        if (nativeProvider.isAvailable()) {
+            providers.add(nativeProvider);
         }
 
         initialized = true;
@@ -342,15 +348,16 @@ public class PermissionManager {
      */
     @NotNull
     public String getProviderNames() {
-        if (providers.isEmpty()) {
-            return "none";
-        }
         StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < providers.size(); i++) {
-            if (i > 0) sb.append(", ");
-            sb.append(providers.get(i).getName());
+        int count = 0;
+        for (PermissionProvider provider : providers) {
+            if (provider.isAvailable()) {
+                if (count > 0) sb.append(", ");
+                sb.append(provider.getName());
+                count++;
+            }
         }
-        return sb.toString();
+        return count == 0 ? "none" : sb.toString();
     }
 
     /**

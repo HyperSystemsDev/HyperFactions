@@ -95,29 +95,44 @@ public class AdminSubCommand extends AbstractAsyncCommand {
     @NotNull
     protected CompletableFuture<Void> executeAsync(@NotNull CommandContext ctx) {
         boolean isPlayer = ctx.isPlayer();
-        PlayerRef player = null;
-        Store<EntityStore> store = null;
-        Ref<EntityStore> ref = null;
-        World currentWorld = null;
 
         if (isPlayer) {
-            ref = ctx.senderAsPlayerRef();
+            // Player path — dispatch to world thread for safe ECS access
+            // (same pattern as AbstractPlayerCommand)
+            Ref<EntityStore> ref = ctx.senderAsPlayerRef();
             if (ref == null || !ref.isValid()) {
                 ctx.sendMessage(prefix().insert(msg("Player context unavailable.", COLOR_RED)));
                 return CompletableFuture.completedFuture(null);
             }
-            store = ref.getStore();
-            currentWorld = store.getExternalData().getWorld();
-            player = store.getComponent(ref, PlayerRef.getComponentType());
-            if (player == null) {
-                ctx.sendMessage(prefix().insert(msg("Could not find player entity.", COLOR_RED)));
-                return CompletableFuture.completedFuture(null);
-            }
+            Store<EntityStore> store = ref.getStore();
+            World currentWorld = store.getExternalData().getWorld();
+
+            return runAsync(ctx, () -> {
+                PlayerRef player = store.getComponent(ref, PlayerRef.getComponentType());
+                if (player == null) {
+                    ctx.sendMessage(prefix().insert(msg("Could not find player entity.", COLOR_RED)));
+                    return;
+                }
+                dispatchCommand(ctx, store, ref, player, currentWorld, true);
+            }, currentWorld);
+        } else {
+            // Console path — no ECS access needed, run directly
+            dispatchCommand(ctx, null, null, null, null, false);
+            return CompletableFuture.completedFuture(null);
         }
+    }
+
+    /**
+     * Dispatches the admin command after thread-safe context resolution.
+     * For players, this runs on the world thread. For console, runs on the calling thread.
+     */
+    private void dispatchCommand(@NotNull CommandContext ctx, @Nullable Store<EntityStore> store,
+                                 @Nullable Ref<EntityStore> ref, @Nullable PlayerRef player,
+                                 @Nullable World currentWorld, boolean isPlayer) {
 
         if (!hasPermission(player, Permissions.ADMIN)) {
             ctx.sendMessage(prefix().insert(msg("You don't have permission.", COLOR_RED)));
-            return CompletableFuture.completedFuture(null);
+            return;
         }
 
         String input = ctx.getInputString();
@@ -137,7 +152,7 @@ public class AdminSubCommand extends AbstractAsyncCommand {
                     hyperFactions.getGuiManager().openAdminMain(playerEntity, ref, store, player);
                 }
             }
-            return CompletableFuture.completedFuture(null);
+            return;
         }
 
         String adminCmd = args[0].toLowerCase();
@@ -145,7 +160,7 @@ public class AdminSubCommand extends AbstractAsyncCommand {
         // Show help for admin commands
         if (adminCmd.equals("help") || adminCmd.equals("?")) {
             showAdminHelp(ctx);
-            return CompletableFuture.completedFuture(null);
+            return;
         }
 
         // Extract player position (only if player)
@@ -153,7 +168,7 @@ public class AdminSubCommand extends AbstractAsyncCommand {
         if (isPlayer) {
             TransformComponent transform = store.getComponent(ref, TransformComponent.getComponentType());
             if (transform == null) {
-                return CompletableFuture.completedFuture(null);
+                return;
             }
             Vector3d pos = transform.getPosition();
             chunkX = ChunkUtil.toChunkCoord(pos.getX());
@@ -214,8 +229,6 @@ public class AdminSubCommand extends AbstractAsyncCommand {
             case "zoneflag" -> { if (requirePlayer(ctx, isPlayer)) handleZoneFlag(ctx, currentWorld.getName(), chunkX, chunkZ, Arrays.copyOfRange(args, 1, args.length)); }
             default -> ctx.sendMessage(prefix().insert(msg("Unknown admin command. Use /f admin help", COLOR_RED)));
         }
-
-        return CompletableFuture.completedFuture(null);
     }
 
     private void showAdminHelp(CommandContext ctx) {
@@ -253,14 +266,29 @@ public class AdminSubCommand extends AbstractAsyncCommand {
         ctx.sendMessage(msg("    HyperPerms: " + (hpAvailable ? "Active" : "Not Found"),
                 hpAvailable ? COLOR_GREEN : COLOR_GRAY));
 
+        // Provider names are filtered by availability (triggers lazy init)
         String providerNames = PermissionManager.get().getProviderNames();
+
         boolean luckPermsAvailable = providerNames.contains("LuckPerms");
         ctx.sendMessage(msg("    LuckPerms: " + (luckPermsAvailable ? "Active" : "Not Found"),
                 luckPermsAvailable ? COLOR_GREEN : COLOR_GRAY));
 
         boolean vaultAvailable = providerNames.contains("VaultUnlocked");
-        ctx.sendMessage(msg("    VaultUnlocked: " + (vaultAvailable ? "Active" : "Not Found"),
-                vaultAvailable ? COLOR_GREEN : COLOR_GRAY));
+        boolean vaultInstalled = false;
+        if (!vaultAvailable) {
+            try {
+                Class.forName("net.cfh.vault.VaultUnlocked");
+                vaultInstalled = true;
+            } catch (ClassNotFoundException ignored) {}
+        }
+        String vuStatus = vaultAvailable ? "Active" :
+                (vaultInstalled ? "Installed (no perm provider)" : "Not Installed");
+        ctx.sendMessage(msg("    VaultUnlocked: " + vuStatus,
+                vaultAvailable ? COLOR_GREEN : (vaultInstalled ? COLOR_YELLOW : COLOR_GRAY)));
+
+        boolean nativeAvailable = providerNames.contains("HytaleNative");
+        ctx.sendMessage(msg("    HytaleNative: " + (nativeAvailable ? "Active" : "Not Found"),
+                nativeAvailable ? COLOR_GREEN : COLOR_GRAY));
 
         // --- Protection ---
         ctx.sendMessage(msg("  Protection:", COLOR_YELLOW));
@@ -287,7 +315,12 @@ public class AdminSubCommand extends AbstractAsyncCommand {
         ctx.sendMessage(msg("    PlaceholderAPI: " + (papiAvailable ? "Active" : "Not Found"),
                 papiAvailable ? COLOR_GREEN : COLOR_GRAY));
 
-        boolean wiflowAvailable = WiFlowPlaceholderIntegration.isAvailable();
+        boolean wiflowAvailable;
+        try {
+            wiflowAvailable = WiFlowPlaceholderIntegration.isAvailable();
+        } catch (NoClassDefFoundError e) {
+            wiflowAvailable = false;
+        }
         ctx.sendMessage(msg("    WiFlow PAPI: " + (wiflowAvailable ? "Active" : "Not Found"),
                 wiflowAvailable ? COLOR_GREEN : COLOR_GRAY));
 
@@ -297,7 +330,7 @@ public class AdminSubCommand extends AbstractAsyncCommand {
     private void handleIntegrationDetail(CommandContext ctx, String[] args) {
         if (args.length == 0) {
             ctx.sendMessage(prefix().insert(msg("Usage: /f admin integration <name>", COLOR_RED)));
-            ctx.sendMessage(msg("  Available: hyperperms, orbisguard, mixins, gravestones, papi, wiflow", COLOR_GRAY));
+            ctx.sendMessage(msg("  Available: hyperperms, luckperms, vaultunlocked, native, orbisguard, mixins, gravestones, papi, wiflow", COLOR_GRAY));
             return;
         }
 
@@ -305,12 +338,15 @@ public class AdminSubCommand extends AbstractAsyncCommand {
         switch (name) {
             case "gravestones", "gravestone", "gs" -> handleIntegrationGravestones(ctx);
             case "hyperperms", "perms", "hp" -> handleIntegrationPermissions(ctx);
+            case "luckperms", "lp" -> handleIntegrationLuckPerms(ctx);
+            case "vaultunlocked", "vault", "vu" -> handleIntegrationVaultUnlocked(ctx);
+            case "hytale", "native", "hytaleNative" -> handleIntegrationHytaleNative(ctx);
             case "orbisguard", "orbis", "og" -> handleIntegrationOrbisGuard(ctx);
             case "mixins", "orbismixins", "om" -> handleIntegrationMixins(ctx);
             case "placeholderapi", "papi" -> handleIntegrationPAPI(ctx);
             case "wiflow", "wflow" -> handleIntegrationWiFlow(ctx);
             default -> ctx.sendMessage(prefix().insert(msg("Unknown integration: " + name +
-                    ". Available: hyperperms, orbisguard, mixins, gravestones, papi, wiflow", COLOR_RED)));
+                    ". Available: hyperperms, luckperms, vaultunlocked, native, orbisguard, mixins, gravestones, papi, wiflow", COLOR_RED)));
         }
     }
 
@@ -367,7 +403,7 @@ public class AdminSubCommand extends AbstractAsyncCommand {
         // Provider chain
         PermissionManager pm = PermissionManager.get();
         ctx.sendMessage(msg("  Provider Chain:", COLOR_CYAN));
-        ctx.sendMessage(msg("    Priority: VaultUnlocked > HyperPerms > LuckPerms", COLOR_GRAY));
+        ctx.sendMessage(msg("    Priority: VaultUnlocked > HyperPerms > LuckPerms > HytaleNative", COLOR_GRAY));
         ctx.sendMessage(msg("    Active Providers: " + pm.getProviderCount() + " (" + pm.getProviderNames() + ")", COLOR_WHITE));
 
         // Fallback config
@@ -375,6 +411,101 @@ public class AdminSubCommand extends AbstractAsyncCommand {
         ctx.sendMessage(msg("  Fallback:", COLOR_CYAN));
         ctx.sendMessage(msg("    allowWithoutPermissionMod: " + allowWithout,
                 allowWithout ? COLOR_GREEN : COLOR_GRAY));
+    }
+
+    private void handleIntegrationLuckPerms(CommandContext ctx) {
+        String providerNames = PermissionManager.get().getProviderNames();
+        boolean available = providerNames.contains("LuckPerms");
+
+        ctx.sendMessage(prefix().insert(msg("LuckPerms Integration", COLOR_CYAN)));
+        ctx.sendMessage(msg("  Provider Status: " + (available ? "Active" : "Not Found"),
+                available ? COLOR_GREEN : COLOR_GRAY));
+
+        if (available) {
+            ctx.sendMessage(msg("  Features:", COLOR_CYAN));
+            ctx.sendMessage(msg("    Permission Checks: Active (direct API)", COLOR_GREEN));
+            ctx.sendMessage(msg("    Prefix/Suffix: Active (via CachedMetaData)", COLOR_GREEN));
+            ctx.sendMessage(msg("    Primary Group: Active", COLOR_GREEN));
+            ctx.sendMessage(msg("    Permission Registration: Active (PermissionRegistry)", COLOR_GREEN));
+        } else {
+            // Check if LuckPerms is installed but provider failed
+            boolean classPresent = false;
+            try {
+                Class.forName("net.luckperms.api.LuckPermsProvider");
+                classPresent = true;
+            } catch (ClassNotFoundException ignored) {}
+
+            if (classPresent) {
+                boolean nativeAvailable = providerNames.contains("HytaleNative");
+                ctx.sendMessage(msg("  LuckPerms is installed but direct API not available", COLOR_YELLOW));
+                if (nativeAvailable) {
+                    ctx.sendMessage(msg("  Permissions routed via HytaleNative provider", COLOR_GREEN));
+                    ctx.sendMessage(msg("  Note: Prefix/suffix not available through HytaleNative", COLOR_YELLOW));
+                }
+            } else {
+                ctx.sendMessage(msg("  LuckPerms is not installed", COLOR_GRAY));
+            }
+        }
+
+        ctx.sendMessage(msg("  SoftDependency: manifest.json declares LuckPerms", COLOR_GRAY));
+        ctx.sendMessage(msg("  Lazy Init: Retries if LuckPerms loads after HyperFactions", COLOR_GRAY));
+    }
+
+    private void handleIntegrationVaultUnlocked(CommandContext ctx) {
+        String providerNames = PermissionManager.get().getProviderNames();
+        boolean available = providerNames.contains("VaultUnlocked");
+
+        ctx.sendMessage(prefix().insert(msg("VaultUnlocked Integration", COLOR_CYAN)));
+        ctx.sendMessage(msg("  Provider Status: " + (available ? "Active" : "Not Found"),
+                available ? COLOR_GREEN : COLOR_GRAY));
+
+        if (available) {
+            ctx.sendMessage(msg("  Features:", COLOR_CYAN));
+            ctx.sendMessage(msg("    Permission Checks: Active (PermissionUnlocked.has)", COLOR_GREEN));
+            ctx.sendMessage(msg("    Prefix/Suffix: Active (ChatUnlocked)", COLOR_GREEN));
+            ctx.sendMessage(msg("    Primary Group: Active", COLOR_GREEN));
+            ctx.sendMessage(msg("  API:", COLOR_CYAN));
+            ctx.sendMessage(msg("    Main Class: net.cfh.vault.VaultUnlocked", COLOR_GRAY));
+            ctx.sendMessage(msg("    Vault2 API: net.milkbowl.vault2.*", COLOR_GRAY));
+        } else {
+            boolean classPresent = false;
+            try {
+                Class.forName("net.cfh.vault.VaultUnlocked");
+                classPresent = true;
+            } catch (ClassNotFoundException ignored) {}
+
+            if (classPresent) {
+                ctx.sendMessage(msg("  VaultUnlocked installed but no permission provider registered", COLOR_YELLOW));
+                ctx.sendMessage(msg("  LuckPerms does not register with VaultUnlocked on Hytale", COLOR_GRAY));
+                ctx.sendMessage(msg("  VaultUnlocked is used for economy (Ecotale) only", COLOR_GRAY));
+            } else {
+                ctx.sendMessage(msg("  VaultUnlocked is not installed", COLOR_GRAY));
+            }
+        }
+
+        ctx.sendMessage(msg("  SoftDependency: manifest.json declares VaultUnlocked", COLOR_GRAY));
+        ctx.sendMessage(msg("  Lazy Init: Retries if VaultUnlocked loads after HyperFactions", COLOR_GRAY));
+    }
+
+    private void handleIntegrationHytaleNative(CommandContext ctx) {
+        String providerNames = PermissionManager.get().getProviderNames();
+        boolean available = providerNames.contains("HytaleNative");
+
+        ctx.sendMessage(prefix().insert(msg("HytaleNative Integration", COLOR_CYAN)));
+        ctx.sendMessage(msg("  Provider Status: " + (available ? "Active" : "Not Found"),
+                available ? COLOR_GREEN : COLOR_GRAY));
+
+        ctx.sendMessage(msg("  Description:", COLOR_CYAN));
+        ctx.sendMessage(msg("    Fallback provider that delegates to Hytale's PermissionsModule", COLOR_GRAY));
+        ctx.sendMessage(msg("    Catches any plugin using PermissionsModule.addProvider()", COLOR_GRAY));
+
+        if (available) {
+            ctx.sendMessage(msg("  Features:", COLOR_CYAN));
+            ctx.sendMessage(msg("    Permission Checks: Active (via PermissionsModule)", COLOR_GREEN));
+            ctx.sendMessage(msg("    Prefix/Suffix: Not supported (PermissionsModule limitation)", COLOR_YELLOW));
+            ctx.sendMessage(msg("    Primary Group: Not supported", COLOR_YELLOW));
+            ctx.sendMessage(msg("  Note: Lowest priority — only used when direct providers can't answer", COLOR_GRAY));
+        }
     }
 
     private void handleIntegrationOrbisGuard(CommandContext ctx) {

@@ -9,9 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **HytaleNative permission provider**: Automatic compatibility with any permission plugin that registers with Hytale's native PermissionsModule (LuckPerms, PermissionsPlus, etc.)
+- **LuckPerms permission discovery**: All 53 HyperFactions permission nodes (44 permissions + 10 wildcards) now register with LuckPerms' PermissionRegistry on boot for web editor autocomplete
+- **Lazy initialization for permission providers**: LuckPerms and VaultUnlocked providers now retry initialization on first use if they failed at startup due to load order timing, ensuring prefix/suffix data is available for chat formatting
+- **Integration detail commands**: `/f admin integration luckperms`, `vaultunlocked`, and `native` now provide detailed status for each provider
 - **Console support for admin commands**: All admin commands that don't require player context now work from the server console (`/f admin reload`, `debug status`, `backup list`, `decay`, `integrations`, `zone list`, `update`, `import`, etc.)
 - Console receives help text instead of GUI when running `/f admin` with no arguments
 - Player-only commands (`safezone`, `warzone`, `testgui`, GUI-based pages) show a clear error when run from console
+- LuckPerms and VaultUnlocked declared as SoftDependencies in manifest.json
+
+### Fixed
+
+- **LuckPerms prefix/suffix not showing in chat**: Permission providers failed to initialize at startup because LuckPerms loads after HyperFactions. Chat format `{prefix}` resolved to empty. Lazy init ensures the LuckPerms provider retries on first chat message when LuckPerms is loaded, so prefixes like `[Admin]` now appear alongside faction tags. (#25, #11, #24)
+- **VaultUnlocked provider using wrong class paths**: Corrected `net.milkbowl.vault2.VaultUnlocked` to `net.cfh.vault.VaultUnlocked`, fixed Subject/Context sub-package paths, unwrapped `Optional<>` returns from `permission()`/`chat()`, and fixed `getPrimaryGroup` → `primaryGroup` method name
+- **Admin commands crashing on world thread assertion**: `AdminSubCommand` extended `AbstractAsyncCommand` which runs on ForkJoinPool, but ECS calls like `store.getComponent()` assert WorldThread. Restructured to dispatch player commands back to world thread via `runAsync(ctx, runnable, world)`.
+- **WiFlow PlaceholderAPI NoClassDefFoundError**: Loading `WiFlowPlaceholderIntegration` class triggered class resolution for WiFlow imports, crashing when WiFlow wasn't installed. Wrapped in try-catch for `NoClassDefFoundError`.
+- **PermissionRegistrar silent failure**: Used `findMethod("getPlugin")` on LuckPermsApiProvider which has no such method. Changed to private field access via `Field.setAccessible(true)` to access the `plugin` field.
+- **World-specific permissions not working with HyperPerms**: Permission checks ignored world context, so permissions assigned to a specific world (e.g., `hyperfactions.create world=default`) were never matched. HyperPermsProviderAdapter now calls the context-aware `hasPermission(UUID, String, ContextSet)` with auto-resolved player contexts including current world.
 
 ## [0.7.3] - 2026-02-13
 
