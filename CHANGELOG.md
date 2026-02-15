@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+*No changes yet*
+
+## [0.7.4] - 2026-02-14
+
 ### Added
 
 - **`power_loss` zone flag**: Controls whether players lose faction power on death in a zone (default: `false` for both SafeZone and WarZone — no power loss in admin zones)
